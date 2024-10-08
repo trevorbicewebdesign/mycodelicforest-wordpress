@@ -1,0 +1,85 @@
+name: 'Bug Report'
+description: Report a bug to help us improve
+title: 'Bug: [Brief description of the issue]'
+labels: ['bug']
+assignees:
+  - ''
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug! Please fill out the details below to help us understand and resolve the issue.
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: ex. The app crashes when I try to open the settings page.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: ex.
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: ex. The settings page should open without crashing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+      placeholder: ex. [Drag and drop screenshots here or use the image upload option]
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: Please complete the following information.
+      placeholder: ex. iOS
+
+  - type: input
+    id: browser-type
+    attributes:
+      label: Browser Type
+      description: Please complete the following information.
+      placeholder: ex. Chrome
+
+  - type: input
+    id: browser-version
+    attributes:
+      label: Browser Version
+      description: Please complete the following information.
+      placeholder: ex. 22
+  
+  - type: input
+    id: screen-resolution
+    attributes:
+      label: Screen Resolution
+      description: Please complete the following information.
+      placeholder: ex. 1920x1080
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+      placeholder: ex. The issue started occurring after the latest update.
