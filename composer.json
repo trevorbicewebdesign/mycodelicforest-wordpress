@@ -9,7 +9,7 @@
         "preferred-install": "dist"
     },
     "extra": {
-        "wordpress-install-dir": "./",
+        "wordpress-install-dir": "./wp/",
         "installer-paths": {
             "wp-content/plugins/{$name}/": [
                 "type:wordpress-plugin"
@@ -31,8 +31,8 @@
         "wpackagist-plugin/really-simple-ssl": "*",
         "wpackagist-plugin/redirection": "*",
         "wpackagist-plugin/xml-sitemap-generator-for-google": "*",
-        "wpackagist-plugin/wp-smushit": "*",
         "wpackagist-plugin/email-address-obfuscation":"*",
+        "wpackagist-theme/spectra-one":"*"
     },
     "require-dev": {
         "lucatume/wp-browser": "^4.0",
