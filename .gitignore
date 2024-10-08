@@ -1,0 +1,118 @@
+# large/disallowed file types
+# a CDN should be used for these
+*.hqx
+*.bin
+*.exe
+*.dll
+*.deb
+*.dmg
+*.iso
+*.img
+*.msi
+*.msp
+*.msm
+*.mid
+*.midi
+*.kar
+*.mp3
+*.ogg
+*.m4a
+*.ra
+*.3gpp
+*.3gp
+*.mp4
+*.mpeg
+*.mpg
+*.mov
+*.webm
+*.flv
+*.m4v
+*.mng
+*.asx
+*.asf
+*.wmv
+*.avi
+
+# OS Files
+*~
+.DS_Store
+.svn
+.cvs
+*.bak
+*.swp
+Thumbs.db
+
+# Python
+*.pyc
+__pycache__/
+
+# wpengine specific
+.smushit-status
+.gitattributes
+_wpeprivate*
+.htaccess
+
+# wp core (as of 4.9.5)
+/db-config.php
+/index.php
+/license.txt
+/readme.html
+/wp-activate.php
+/wp-app.php
+/wp-atom.php
+/wp-blog-header.php
+/wp-comments-post.php
+/wp-commentsrss2.php
+/wp-config-sample.php
+/wp-cron.php
+/wp-feed.php
+/wp-links-opml.php
+/wp-load.php
+/wp-login.php
+/wp-mail.php
+/wp-rdf.php
+/wp-rss.php
+/wp-rss2.php
+/wp-pass.php
+/wp-register.php
+/wp-settings.php
+/wp-signup.php
+/wp-trackback.php
+/xmlrpc.php
+/wp-admin
+/wp-includes
+
+# other WP files
+apple-touch-icon-precomposed.png
+apple-touch-icon.png
+favicon.ico
+
+# WP Local specific files
+local-xdebuginfo.php
+
+# ignore all WP Content
+/wp-content/index.php
+/wp-content/advanced-cache.php
+/wp-content/*/
+!/wp-content/mysql.sql
+
+# ignore debug log
+/wp-content/debug.log
+
+# ignore composer vendor
+/vendor
+
+# ignore test db seeds
+/tests/_support/Data/db/dump.sql
+
+############################################
+# Plugin and theme execptions
+# Add exceptions for your custom plugins and themes here
+############################################
+
+!wp-content/themes/bmw-chap-child
+
+composer_final.json
+composer_initial.json
+auth.json
+pr_body.txt
