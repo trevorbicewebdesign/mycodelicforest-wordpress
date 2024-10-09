@@ -32,14 +32,14 @@ setup:
 	git clean -fdx
 	composer install
 	git checkout composer.json
-	@echo "Checking for uploads.zip file in the `bmanbwbdev/app/` folder..."
+	@echo "Checking for uploads.zip file in the `mycodelicforest/app/` folder..."
 	unzip_flag="no"; \
 	if [ -f "../uploads.zip" ]; then \
 		echo "Unzipping uploads.zip to wp-content/uploads..."; \
 		unzip ../uploads.zip; \
 	else \
 		while true; do \
-			read -r -p "uploads.zip not found in the `bmanbwbdev/app/` folder. Do you want to continue anyway? (yes/no): " cont; \
+			read -r -p "uploads.zip not found in the `mycodelicforest/app/` folder. Do you want to continue anyway? (yes/no): " cont; \
 			case "$$cont" in \
 				yes | YES ) break;; \
 				no | NO ) echo "Operation canceled."; exit 1;; \
@@ -74,7 +74,7 @@ clean-database:
 
 	wp search-replace 'burnerswithoutborders.org' "$$WORDPRESS_DOMAIN" --all-tables
 	wp search-replace 'bmanbwb.wpengine.com' "$$WORDPRESS_DOMAIN" --all-tables
-	wp search-replace 'bmanbwbdev.wpengine.com' "$$WORDPRESS_DOMAIN" --all-tables
+	wp search-replace 'mycodelicforest.wpengine.com' "$$WORDPRESS_DOMAIN" --all-tables
 	wp search-replace 'bmanbwbstaging.wpengine.com' "$$WORDPRESS_DOMAIN" --all-tables
 
 	mysql -u root -proot -h localhost local < tests/dev-drop-tables.sql
