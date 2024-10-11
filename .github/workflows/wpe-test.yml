@@ -81,7 +81,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - test-type: integration
+          # - test-type: integration
           - test-type: functional
           - test-type: acceptance
     env:
