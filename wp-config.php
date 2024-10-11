@@ -34,7 +34,6 @@ if (
 else if (getenv('WORDPRESS_DB_TEST_URL') !== false) {
 	define( 'DB_NAME', 'test' );
     $table_prefix = 'test_';
-	die("1234qwer");
 } else {
     define( 'DB_NAME', 'local' );
     $table_prefix = 'wp_';
