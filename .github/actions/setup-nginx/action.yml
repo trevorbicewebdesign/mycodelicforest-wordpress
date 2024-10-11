@@ -39,7 +39,7 @@ runs:
       shell: bash
     
     - name: Test Nginx
-      run: curl -I http://127.0.0.1:14580/local-phpinfo.php
+      run: curl -I http://127.0.0.1/local-phpinfo.php
       shell: bash
 
     - name: Log PHP-FPM

@@ -141,8 +141,8 @@ jobs:
 
       - name: Checkout wp-config.php & add defines
         run: |
-          wp config set WP_HOME 'http://127.0.0.1:14580' --type=constant
-          wp config set WP_SITEURL 'http://127.0.0.1:14580' --type=constant
+          wp config set WP_HOME 'http://127.0.0.1' --type=constant
+          wp config set WP_SITEURL 'http://127.0.0.1' --type=constant
 
       - name: Start NGIX Server
         if: ${{ matrix.test-type != 'integration' }}
