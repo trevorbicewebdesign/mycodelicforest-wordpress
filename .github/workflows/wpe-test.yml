@@ -110,6 +110,7 @@ jobs:
       - name: Create .env file for tests
         run: |
           cp ./tests/.env.ci ./tests/.env
+          ls -a
 
       - name: Start MYSQL
         run: |
