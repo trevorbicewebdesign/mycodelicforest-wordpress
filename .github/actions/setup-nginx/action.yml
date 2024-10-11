@@ -1,0 +1,48 @@
+name: Setup Nginx
+description: 'sets up nginx server for testing'
+
+inputs:
+  php-version:
+    description: 'PHP version'
+    required: false
+    default: 8.2
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup PHP-FPM
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-upgrade php${{ inputs.php-version }}-fpm
+        sudo chmod 644 /var/log/php${{ inputs.php-version }}-fpm.log
+        sudo systemctl start php${{ inputs.php-version }}-fpm
+        sudo systemctl enable php${{ inputs.php-version }}-fpm
+      shell: bash
+
+    - name: Build Nginx config 
+      uses: dominicwatson/github-action-envsubst@v1
+      env:
+        PHP_VERSION: ${{ inputs.php-version }}
+        GITHUB_WORKSPACE: ${{ github.workspace }}
+      with:
+        files: nginx-test-admin.conf
+        patterns: $GITHUB_WORKSPACE $PHP_VERSION
+    
+    - name: Setup NGINX
+      run: |
+        sudo rm /etc/nginx/sites-enabled/default
+        sudo ln -sfv ${GITHUB_WORKSPACE}/nginx-test-admin.conf /etc/nginx/sites-enabled/admintest 
+        sudo nginx -t
+        sudo systemctl restart nginx
+        sudo systemctl start php${{ inputs.php-version }}-fpm
+        sleep 10 # Pause to allow services to stabilize
+      shell: bash
+    
+    - name: Test Nginx
+      run: curl -I http://127.0.0.1:14580/local-phpinfo.php
+      shell: bash
+
+    - name: Log PHP-FPM
+      run: |
+        sudo tail -n 20 /var/log/php${{ inputs.php-version }}-fpm.log
+      shell: bash
