@@ -123,7 +123,7 @@ jobs:
         run: |
           mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS seed;"
           mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS test;"
-          mv -v ./wp-content/mysql.sql ./tests/_support/Data/db/dump.sql
+          cp ./wp-content/mysql.sql ./tests/_support/Data/db/dump.sql
 
       - name: Test MySQL Connection
         run: |
