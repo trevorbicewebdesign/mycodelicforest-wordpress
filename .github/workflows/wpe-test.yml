@@ -54,9 +54,9 @@ jobs:
       - name: Debug cache hit
         run: echo "Cache hit was ${{ steps.cache-hit.outputs.cache-hit }}"
 
-      - name: Configure Composer GitHub OAuth
-        if: steps.cache-hit.outputs.cache-hit != 'true'
-        run: composer config --global github-oauth.github.com ${{ secrets.GH_TOKEN }}
+#      - name: Configure Composer GitHub OAuth
+#        if: steps.cache-hit.outputs.cache-hit != 'true'
+#        run: composer config --global github-oauth.github.com ${{ secrets.GH_TOKEN }}
 
       - name: Install Dependencies if no cache hit
         if: steps.cache-hit.outputs.cache-hit != 'true'
