@@ -1,0 +1,49 @@
+{
+    "type": "project",
+    "config": {
+        "vendor-dir": "vendor",
+        "allow-plugins": {
+            "johnpbloch/wordpress-core-installer": true,
+            "composer/installers": true
+        },
+        "preferred-install": "dist"
+    },
+    "extra": {
+        "wordpress-install-dir": "./",
+        "installer-paths": {
+            "wp-content/plugins/{$name}/": [
+                "type:wordpress-plugin"
+            ],
+            "wp-content/themes/{$name}/": [
+                "type:wordpress-theme"
+            ]
+        }
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://wpackagist.org"
+        }
+    ],
+    "require": {
+        "johnpbloch/wordpress": "^6.0",      
+        "wpackagist-plugin/google-site-kit": "*",
+        "wpackagist-plugin/really-simple-ssl": "*",
+        "wpackagist-plugin/redirection": "*",
+        "wpackagist-plugin/xml-sitemap-generator-for-google": "*",
+        "wpackagist-plugin/email-address-obfuscation":"*",
+        "wpackagist-theme/spectra-one":"*"
+    },
+    "require-dev": {
+        "lucatume/wp-browser": "^4.0",
+        "codeception/module-rest": "^3.3",
+        "league/factory-muffin": "^3.0",
+        "league/factory-muffin-faker": "^2.0",
+        "10up/wp_mock": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Helper\\": "tests/_support/Helper/"
+        }
+    }
+}
