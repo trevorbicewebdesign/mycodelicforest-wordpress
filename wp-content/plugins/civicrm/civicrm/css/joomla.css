@@ -1,0 +1,60 @@
+/* Joomla-specific css directives for CiviCRM.
+   These are namespaced to Joomla so could be loaded on other CMSs. */
+
+body.admin.com_civicrm .crm-container label,
+body.admin.com_civicrm  .crm-container .description {
+  font-size: 1em; /* ems to inherit Grernwich's small size */
+  color: #3e3e3e;
+}
+body.admin.com_civicrm .crm-container .label {
+  background: transparent;
+  font-size: inherit;
+  line-height: inherit;
+}
+body.admin.com_civicrm.layout-default #content,
+body.admin.com_civicrm.layout-default #content > .row > .col-md-12 {
+  padding: 0;
+}
+body.admin.com_civicrm.layout-default #content > .row {
+  margin-inline: 0;
+}
+body.admin.com_civicrm #crm-content {
+  padding: 1rem;
+}
+body.admin.com_civicrm #subhead-container,
+body.admin.com_civicrm .subhead-collapse,
+body.admin.com_civicrm.layout-default a[target="_blank"]::before {
+  display: none;
+}
+body.admin.com_civicrm .crm-container details { /* Atum J4 reset */
+  background: inherit;
+  border: none;
+  border-radius: inherit;
+  margin: 0;
+  padding: 0;
+}
+body.admin.com_civicrm .crm-container details + details {
+  margin: 0.25rem 0 0;
+}
+body.admin.com_civicrm .crm-container details summary ~ * { /* Atum J4 reset */
+  margin-top: 0;
+}
+body.admin.com_civicrm.layout-default .crm-dashlet {
+  max-width: 60vw;
+}
+body.admin.com_civicrm .crm-container.ui-dialog {
+  z-index: 100000;
+}
+body.admin.com_civicrm .ui-widget-overlay {
+  z-index: 100001;
+}
+body.admin.com_civicrm .select2-drop {
+  z-index: 100002;
+}
+body.admin.com_civicrm .modal-dialog {
+  max-width: inherit;
+  margin: 0;
+  padding: 0;
+  overflow: scroll;
+  pointer-events: all;
+}
