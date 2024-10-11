@@ -1,0 +1,46 @@
+actor: FunctionalTester
+suite_namespace: Tests\Functional
+modules:
+    # enable helpers as array
+    enabled:
+        - lucatume\WPBrowser\Module\WPDb
+        - lucatume\WPBrowser\Module\WPFilesystem
+        - lucatume\WPBrowser\Module\WPLoader
+        - lucatume\WPBrowser\Module\WPBrowser
+        - Tests\Support\Helper\Functional
+        - Tests\Support\Helper\WPDb
+    config:
+      Tests\Support\Helper\WPDb:
+          plugins: [
+            bwb-core/bwb-core.php
+            ]
+          # theme: 'bwb-chap-child'
+          theme-stylesheet: 'bwb-chap-child'
+          # theme-template: 'chap'
+          theme-template: 'chap'
+      lucatume\WPBrowser\Module\WPBrowser:
+        url: '%WORDPRESS_URL%'
+        adminUsername: '%WORDPRESS_ADMIN_USER%'
+        adminPassword: '%WORDPRESS_ADMIN_PASSWORD%'
+        adminPath: '/wp-admin'
+        headers:
+          X_WPBROWSER_REQUEST: 1
+          X_TEST_REQUEST: 1
+      lucatume\WPBrowser\Module\WPDb:
+          dbUrl: '%WORDPRESS_DB_SEED_URL%'
+          dump:
+            - 'tests/_support/Data/db/dump.sql'
+          populate: true
+          cleanup: true
+          reconnect: false
+          url: '%WORDPRESS_URL%'
+          urlReplacement: false
+          tablePrefix: '%SEED_TABLE_PREFIX%'
+          createIfNotExists: true
+      lucatume\WPBrowser\Module\WPFilesystem:
+          wpRootFolder: '%WORDPRESS_ROOT_DIR%'
+      lucatume\WPBrowser\Module\WPLoader:
+          loadOnly: true
+          wpRootFolder: "%WORDPRESS_ROOT_DIR%" 
+          dbUrl: '%WORDPRESS_DB_SEED_URL%'
+          domain: '%WORDPRESS_DOMAIN%'

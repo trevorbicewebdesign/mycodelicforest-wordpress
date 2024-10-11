@@ -1,0 +1,43 @@
+actor: ApiTester
+bootstrap: _bootstrap.php
+modules:
+    # enable helpers as array
+    enabled:
+        - lucatume\WPBrowser\Module\WPDb
+        - lucatume\WPBrowser\Module\WPFilesystem
+        - lucatume\WPBrowser\Module\WPLoader
+        - lucatume\WPBrowser\Module\WPBrowser
+        - REST
+        - Tests\Support\Helper\API 
+        - Tests\Support\Helper\WPDb
+    config:
+      Tests\Support\Helper\WPDb:
+        plugins: ['bm-wpe-scaffold/bm-wpe-scaffold.php']
+        theme-stylesheet: 'bm-wpe-scaffold'
+        theme-template: 'twentytwentyone'
+      REST:
+        depends: lucatume\WPBrowser\Module\WPBrowser
+      lucatume\WPBrowser\Module\WPBrowser:
+        url: '%WORDPRESS_URL%'
+        adminUsername: '%WORDPRESS_ADMIN_USER%'
+        adminPassword: '%WORDPRESS_ADMIN_PASSWORD%'
+        adminPath: '/wp-admin'
+      lucatume\WPBrowser\Module\WPDb:
+          dbUrl: '%WORDPRESS_DB_SEED_URL%'
+          dump:
+            - 'tests/_support/Data/db/dump.sql'
+            - 'tests/_support/Data/db/_user-admin.sql'
+          populate: true
+          cleanup: true
+          reconnect: false
+          url: '%WORDPRESS_URL%'
+          urlReplacement: true
+          tablePrefix: '%SEED_TABLE_PREFIX%'
+          createIfNotExists: true
+      lucatume\WPBrowser\Module\WPFilesystem:
+          wpRootFolder: '%WORDPRESS_ROOT_DIR%'
+      lucatume\WPBrowser\Module\WPLoader:
+          loadOnly: true
+          wpRootFolder: "%WORDPRESS_ROOT_DIR%" 
+          dbUrl: '%WORDPRESS_DB_SEED_URL%'
+          domain: '%WORDPRESS_DOMAIN%'

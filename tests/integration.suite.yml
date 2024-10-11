@@ -1,0 +1,29 @@
+# Integration suite configuration
+#
+# Run integration and "WordPress unit" tests.
+
+actor: IntegrationTester
+bootstrap: _bootstrap.php
+modules:
+    enabled:
+        - lucatume\WPBrowser\Module\WPLoader
+        - Tests\Support\Helper\Integration
+        - Asserts        
+    config:
+        lucatume\WPBrowser\Module\WPLoader:
+           wpRootFolder: "%WORDPRESS_ROOT_DIR%" 
+           dbUrl: '%WORDPRESS_DB_TEST_URL%'
+           wpDebug: true
+           tablePrefix: '%TEST_TABLE_PREFIX%'
+           domain: '%WORDPRESS_DOMAIN%'
+           adminEmail: 'admin@%WORDPRESS_DOMAIN%'
+           title: 'Integration Tests'
+           plugins: [
+                'advanced-custom-fields-pro/acf.php',
+                'bwb-core/bwb-core.php',
+                'chap-shortcodes/chap-shortcodes.php',
+                'nextgen-gallery/nggallery.php',
+                'pronamic-google-maps/pronamic-google-maps.php',
+
+            ]
+           theme: 'bwb-chap-child'
