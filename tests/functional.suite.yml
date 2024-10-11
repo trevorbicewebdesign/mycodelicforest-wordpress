@@ -8,16 +8,7 @@ modules:
         - lucatume\WPBrowser\Module\WPLoader
         - lucatume\WPBrowser\Module\WPBrowser
         - Tests\Support\Helper\Functional
-        - Tests\Support\Helper\WPDb
     config:
-      Tests\Support\Helper\WPDb:
-          plugins: [
-            bwb-core/bwb-core.php
-            ]
-          # theme: 'bwb-chap-child'
-          theme-stylesheet: 'bwb-chap-child'
-          # theme-template: 'chap'
-          theme-template: 'chap'
       lucatume\WPBrowser\Module\WPBrowser:
         url: '%WORDPRESS_URL%'
         adminUsername: '%WORDPRESS_ADMIN_USER%'

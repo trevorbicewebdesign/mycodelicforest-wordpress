@@ -13,10 +13,6 @@ modules:
         - Tests\Support\Helper\Acceptance
         - Asserts
     config:
-        Tests\Support\Helper\WPDb:
-          plugins: 
-          theme-stylesheet: 'bwb-chap-child'
-          theme-template: 'chap'
         lucatume\WPBrowser\Module\WPWebDriver:
           url: '%WORDPRESS_URL%'
           adminUsername: '%WORDPRESS_ADMIN_USER%'
