@@ -87,9 +87,6 @@ jobs:
     env:
       PHP_VERSION: 8.2
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -106,6 +103,9 @@ jobs:
           key: ${{ needs.setup.outputs.cache-key }}
           restore-keys: |
             ${{ runner.os }}-composer-
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Create .env file for tests
         run: |
