@@ -80,9 +80,7 @@ clean-database:
 	wp user create admin admin@example.com --role=administrator --user_pass=password123!test
 	wp core update-db
 	wp plugin deactivate --all
-	while read plugin; do \
-		wp plugin activate "$$plugin"; \
-	done < tests/dev-active-plugins.txt
+	wp plugin activate --all
 
 # Commits a cleaned and sanitized version of the seed database to the repository.
 commit-seed-database:
