@@ -1,0 +1,163 @@
+name: Tests
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+
+jobs:
+  setup:
+    name: Cache Composer Dependencies
+    runs-on: ubuntu-20.04
+    outputs:
+      cache-hit: ${{ steps.cache-hit.outputs.cache-hit }}
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare workspace for caching composer dependencies
+        # This step is required to avoid caching the entire repository
+        # The only things in the file system should be things installed with composer and the composer files
+        run: |
+          rm -rf *
+          git checkout composer.json
+          git checkout composer.lock
+        shell: /usr/bin/bash -e {0}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+
+      - name: Generate cache key from composer.lock
+        id: cache-key
+        run: echo "key=$(echo ${{ runner.os }}-composer-$(sha256sum composer.lock | awk '{ print $1 }'))" >> $GITHUB_OUTPUT
+  
+      - name: Lookup Composer cache
+        id: cache-hit
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./
+            !.github
+            !.git
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+          lookup-only: true
+
+      - name: Debug cache hit
+        run: echo "Cache hit was ${{ steps.cache-hit.outputs.cache-hit }}"
+
+      - name: Configure Composer GitHub OAuth
+        if: steps.cache-hit.outputs.cache-hit != 'true'
+        run: composer config --global github-oauth.github.com ${{ secrets.GH_TOKEN }}
+
+      - name: Install Dependencies if no cache hit
+        if: steps.cache-hit.outputs.cache-hit != 'true'
+        run: composer install --no-interaction --no-progress --optimize-autoloader
+
+      - name: Cache Composer dependencies
+        if: steps.cache-hit.outputs.cache-hit != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./
+            !.github
+            !.git
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+  run-tests:
+    name: Test 
+    needs: [setup]
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        include:
+          - test-type: integration
+          - test-type: functional
+          - test-type: acceptance
+    env:
+      PHP_VERSION: 8.2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{env.PHP_VERSION}}
+          tools: composer:v2, wp
+
+      - name: Restore Cached dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./
+            !.github
+            !.git
+          key: ${{ needs.setup.outputs.cache-key }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Create .env file for tests
+        run: |
+          cp ./tests/.env.ci ./tests/.env
+
+      - name: Start MYSQL
+        run: |
+          sudo systemctl start mysql.service
+
+      - name: Verify MySQL Service Status
+        run: |
+          sudo systemctl status mysql.service
+
+      - name: Setup Database
+        run: |
+          mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS seed;"
+          mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS test;"
+          mv -v ./wp-content/mysql.sql ./tests/_support/Data/db/dump.sql
+
+      - name: Test MySQL Connection
+        run: |
+          mysql -u root -proot -h localhost -e "SHOW DATABASES;"
+
+      - name: Load Database
+        run: |
+          mysql -u root -proot -h localhost seed < ./tests/_support/Data/db/dump.sql
+
+      - name: Restart Chromedriver
+        if: ${{ matrix.test-type == 'acceptance' }}
+        run: |
+          ./vendor/bin/codecept chromedriver:update
+          ./vendor/bin/codecept dev:restart
+
+      - name: Checkout wp-config.php & add defines
+        run: |
+          wp config set WP_HOME 'http://127.0.0.1:14580' --type=constant
+          wp config set WP_SITEURL 'http://127.0.0.1:14580' --type=constant
+
+      - name: Start NGIX Server
+        if: ${{ matrix.test-type != 'integration' }}
+        uses: ./.github/actions/setup-nginx
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+
+      - name: Run ${{ matrix.test-type }} tests
+        run: |
+          ./vendor/bin/codecept run ${{ matrix.test-type }} -d --no-interaction --skip-group=skipCI --html
+
+      - name: Upload Artifacts on Failure
+        if: failure() # This step will run only if the previous step fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-test-artifacts-${{ github.sha }}
+          path: |
+            tests/_output/**
