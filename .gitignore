@@ -90,27 +90,30 @@ favicon.ico
 # WP Local specific files
 local-xdebuginfo.php
 
-# ignore all WP Content
-/wp-content/index.php
-/wp-content/advanced-cache.php
-/wp-content/*/
-!/wp-content/mysql.sql
-
-# ignore debug log
-/wp-content/debug.log
-
-# ignore composer vendor
+#ignore composer vendor
 /vendor
 
-# ignore test db seeds
-/tests/_support/Data/db/dump.sql
+# ignore all WP Content
+/wp-content/*
 
-############################################
-# Plugin and theme execptions
-# Add exceptions for your custom plugins and themes here
-############################################
+# Except for the mysql.sql file
+!/wp-content/mysql.sql
 
-!wp-content/themes/bmw-chap-child
+# Allow the plugins and themes directories themselves
+!/wp-content/plugins/
+!/wp-content/themes/
+
+# Ignore everything in plugins and themes directories
+/wp-content/plugins/*
+/wp-content/themes/*
+
+# Include only the specified plugin and theme
+!/wp-content/plugins/civicrm/
+!/wp-content/plugins/civicrm/**
+
+!/wp-content/themes/mycodelic-forest-child/
+!/wp-content/themes/mycodelic-forest-child/**
+composer_initial.json
 
 composer_final.json
 composer_initial.json
