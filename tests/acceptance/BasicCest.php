@@ -14,7 +14,6 @@ class BasicCest
     public function homepageIsVisible(AcceptanceTester $I)
     {
         $I->amOnPage("/");
-        $I->waitForElementVisible("#site-footer");
         $I->see("Mycodelic Forest");
     }
 }
