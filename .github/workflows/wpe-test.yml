@@ -71,7 +71,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          tools: composer:${{ env.COMPOSER_VERSION }}
+          tools: composer:v2
 
       # Generate a unique cache key based on the `composer.lock` file
       - name: Generate cache key from composer.lock
@@ -92,11 +92,6 @@ jobs:
       # Output whether cache was hit
       - name: Debug cache hit
         run: echo "Cache hit was ${{ steps.cache-hit.outputs.cache-hit }}"
-
-      # Configure GitHub OAuth token for Composer if cache is missing
-      # - name: Configure Composer GitHub OAuth
-      #  if: steps.cache-hit.outputs.cache-hit != 'true'
-      #  run: ${{ env.GITHUB_OAUTH_COMMAND }}
 
       # Install dependencies if cache is missing
       - name: Install Dependencies if no cache hit
