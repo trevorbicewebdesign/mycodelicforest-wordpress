@@ -39,8 +39,7 @@ env:
     wp-signup.php
     wp-trackback.php
     xmlrpc.php
-  COMPOSER_VERSION: 'v2'  # Composer version for setup
-  GITHUB_OAUTH_COMMAND: 'composer config --global github-oauth.github.com ${{ secrets.GH_TOKEN }}' # OAuth configuration command for Composer
+  # GITHUB_OAUTH_COMMAND: 'composer config --global github-oauth.github.com ${{ secrets.GH_TOKEN }}' # OAuth configuration command for Composer
 
 # Job to cache Composer dependencies
 jobs:
@@ -95,9 +94,9 @@ jobs:
         run: echo "Cache hit was ${{ steps.cache-hit.outputs.cache-hit }}"
 
       # Configure GitHub OAuth token for Composer if cache is missing
-      - name: Configure Composer GitHub OAuth
-        if: steps.cache-hit.outputs.cache-hit != 'true'
-        run: ${{ env.GITHUB_OAUTH_COMMAND }}
+      # - name: Configure Composer GitHub OAuth
+      #  if: steps.cache-hit.outputs.cache-hit != 'true'
+      #  run: ${{ env.GITHUB_OAUTH_COMMAND }}
 
       # Install dependencies if cache is missing
       - name: Install Dependencies if no cache hit
