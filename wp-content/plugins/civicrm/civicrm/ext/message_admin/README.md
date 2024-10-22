@@ -1,1 +1,0 @@
-# Message Admin Extension
