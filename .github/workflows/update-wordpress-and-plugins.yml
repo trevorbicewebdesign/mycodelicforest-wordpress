@@ -1,0 +1,82 @@
+name: Update Wordpress and Plugin Dependencies
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Composer dependencies
+        run: |
+          composer config http-basic.connect.advancedcustomfields.com ${{ secrets.ADVANCEDCUSTOMFIELDS_USERNAME }} ${{ secrets.ADVANCEDCUSTOMFIELDS_PASSWORD }}
+          composer config --auth github-oauth.github.com "${{ secrets.GIT_PERSONAL_TOKEN }}"
+          composer install
+          git checkout composer.json
+
+      - name: Capture initial plugin versions
+        run: |
+          composer show --direct --format=json > composer_initial.json
+          
+      - name: Update Composer dependencies
+        run: composer update
+
+      - name: Capture final plugin versions
+        run: |
+          composer show --direct --format=json > composer_final.json
+
+      - name: Compare versions and prepare PR body
+        run: |
+          # Compare WordPress versions
+          INITIAL_VERSION=$(jq -r '.installed[] | select(.name == "johnpbloch/wordpress") | .version' composer_initial.json)
+          FINAL_VERSION=$(jq -r '.installed[] | select(.name == "johnpbloch/wordpress") | .version' composer_final.json)
+          if [[ "$INITIAL_VERSION" != "$FINAL_VERSION" ]]; then
+            echo "**johnpbloch/wordpress** was updated from $INITIAL_VERSION to $FINAL_VERSION" >> pr_body.txt
+            echo '' >> pr_body.txt
+          fi
+
+          # Compare plugin versions
+          echo '### Plugin updates:' >> pr_body.txt
+          PLUGIN_UPDATES=""
+          for ROW in $(jq -r '.installed[] | select(.name != "johnpbloch/wordpress") | .name' composer_final.json); do
+            INITIAL_VERSION=$(jq -r --arg ROW "$ROW" '.installed[] | select(.name == $ROW) | .version' composer_initial.json)
+            FINAL_VERSION=$(jq -r --arg ROW "$ROW" '.installed[] | select(.name == $ROW) | .version' composer_final.json)
+            if [[ "$INITIAL_VERSION" != "$FINAL_VERSION" ]]; then
+              PLUGIN_UPDATES="${PLUGIN_UPDATES}**$ROW** was updated from $INITIAL_VERSION to $FINAL_VERSION\n"
+            fi
+          done
+
+          if [[ -z "$PLUGIN_UPDATES" ]]; then
+            echo "No plugins to update" >> pr_body.txt
+          else
+            echo -e "$PLUGIN_UPDATES" >> pr_body.txt
+          fi
+
+      - name: Commit changes
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git add composer.json composer.lock
+          git commit -m "Update dependencies"
+          
+      - name: Create or update PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: master
+          branch: update-wordpress-and-plugins
+          title: 'Update Wordpress and plugins'
+          body-path: pr_body.txt
+          commit-message: 'Update dependencies'
