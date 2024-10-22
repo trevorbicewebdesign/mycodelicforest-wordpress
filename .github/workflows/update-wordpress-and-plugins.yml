@@ -21,8 +21,6 @@ jobs:
 
       - name: Install Composer dependencies
         run: |
-          composer config http-basic.connect.advancedcustomfields.com ${{ secrets.ADVANCEDCUSTOMFIELDS_USERNAME }} ${{ secrets.ADVANCEDCUSTOMFIELDS_PASSWORD }}
-          composer config --auth github-oauth.github.com "${{ secrets.GIT_PERSONAL_TOKEN }}"
           composer install
           git checkout composer.json
 
