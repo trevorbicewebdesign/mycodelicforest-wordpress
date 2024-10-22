@@ -60,7 +60,7 @@ jobs:
         run: |
           rm -rf *
           rm -r .github
-          rm .wpe-deploy-files .wpe-pull-ignore .wpe-push-ignore .deployignore .gitignore
+          rm .deployignore .gitignore
           git checkout composer.json
           git checkout composer.lock
           rm -r .git
