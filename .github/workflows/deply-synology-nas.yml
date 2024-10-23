@@ -51,8 +51,8 @@ jobs:
       - name: Clone server Git repo using username/password
         run: |
           sshpass -p "${{ secrets.GRIMOIRE_PASSWORD }}" \
-          git clone ssh://${{ secrets.GRIMOIRE_USERNAME }}@${{ secrets.SSH_SERVER }}:222/volume1/tbwebdesign/www/wordpress.mycodelicforest.org/mycodelicforest-wordpress.git deploy
-
+          git clone ssh://trevorbice@grimoire.trevorbice.com:222/volume1/tbwebdesign/www/wordpress.mycodelicforest.org/mycodelicforest-wordpress.git deploy
+        
       - name: Clone current repository into dist
         uses: actions/checkout@v3
         with:
