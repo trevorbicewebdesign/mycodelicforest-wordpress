@@ -1,0 +1,99 @@
+name: Deploy to Synology NAS
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: 'Environment to deploy to (e.g., Production, Development, etc.)'
+        required: true
+        default: 'Development'
+        options:
+        - Production
+        - Staging
+        - Development
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+
+      - name: Show environment
+        run: |
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Deployment Target: ${{ env.DEPLOY_TARGET }}"
+
+      - name: Set up Git repository
+        uses: actions/checkout@v3
+
+      - name: Create dist and deploy folders
+        run: |
+          mkdir dist
+          mkdir deploy
+
+      - name: Clone server Git repo
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          GIT_SSH_COMMAND: 'ssh -o StrictHostKeyChecking=no'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -t rsa your-server.com >> ~/.ssh/known_hosts
+          cd deploy
+          git clone ssh://your-user@your-server.com:/path/to/your-repo.git .
+
+      - name: Clone current repository into dist
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: dist
+
+      - name: Install Composer dependencies
+        run: |
+          cd dist
+          composer install
+
+      - name: Copy WordPress core files to deploy
+        run: |
+          rsync -av --delete --delete-excluded --exclude-from=.deployignore --exclude='wp-content/plugins/' --exclude='wp-content/themes/' --exclude='wp-content/uploads' dist/* deploy
+
+      - name: Copy WordPress content folders to deploy
+        run: |
+          rsync -av --delete --exclude-from=.deployignore dist/wp-content/plugins/* deploy/wp-content/plugins
+          rsync -av --delete --exclude-from=.deployignore dist/wp-content/themes/* deploy/wp-content/themes
+
+      - name: Copy .gitignore file
+        run: |
+          wget -O deploy/.gitignore https://wpengine.com/wp-content/uploads/2020/02/recommended-gitignore-wp.txt
+
+      - name: Copy config to deploy
+        run: |
+          cp dist/wp-config.php deploy/
+
+      - name: Delete unwanted folders in deploy
+        run: |
+          cd deploy
+          find . -mindepth 1 -maxdepth 1 -type d ! \(  -name '.git' -o -name 'wp-includes' -o -name 'wp-content' -o -name 'wp-admin' \) -exec rm -rf {} +
+          ls -a
+
+      - name: Deploy to Synology NAS (or Custom Server)
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          cd deploy
+          git pull
+          git config --global user.email "gitci@yourdomain.com"
+          git config --global user.name "Git CI"
+          git add .
+          git commit -m "Deploy to Synology NAS"
+          git push origin master -f
