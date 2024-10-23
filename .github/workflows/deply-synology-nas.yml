@@ -96,6 +96,8 @@ jobs:
         run: |
           cd deploy
           ls -a
+          sshpass -p "${{ secrets.GRIMOIRE_PASSWORD }}" \
+          GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -p 222" \
           git config --global user.email "trevorbicewebdesign@gmail.com"
           git config --global user.name "Trevor Bice"
           git status
