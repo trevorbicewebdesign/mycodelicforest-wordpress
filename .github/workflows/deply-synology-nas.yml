@@ -41,6 +41,11 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get install -y sshpass
 
+      - name: Add SSH host key to known hosts
+        run: |
+          ssh-keyscan -p 222 grimoire.trevorbice.com >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
       - name: Clone server Git repo using username/password
         run: |
           sshpass -p "${{ secrets.GRIMOIRE_PASSWORD }}" \
