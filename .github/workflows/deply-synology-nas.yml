@@ -38,17 +38,13 @@ jobs:
           mkdir dist
           mkdir deploy
 
-      - name: Clone server Git repo
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          GIT_SSH_COMMAND: 'ssh -o StrictHostKeyChecking=no'
+      - name: Install sshpass
+        run: sudo apt-get install -y sshpass
+
+      - name: Clone server Git repo using username/password
         run: |
-          mkdir -p ~/.ssh
-          echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -t rsa your-server.com >> ~/.ssh/known_hosts
-          cd deploy
-          git clone ssh://your-user@your-server.com:/path/to/your-repo.git .
+          sshpass -p "${{ secrets.GRIMOIRE_PASSWORD }}" \
+          git clone ssh://${{ secrets.GRIMOIRE_USERNAME }}@${{ secrets.SSH_SERVER }}:222/volume1/tbwebdesign/www/wordpress.mycodelicforest.org/mycodelicforest-wordpress.git deploy
 
       - name: Clone current repository into dist
         uses: actions/checkout@v3
@@ -86,9 +82,7 @@ jobs:
           find . -mindepth 1 -maxdepth 1 -type d ! \(  -name '.git' -o -name 'wp-includes' -o -name 'wp-content' -o -name 'wp-admin' \) -exec rm -rf {} +
           ls -a
 
-      - name: Deploy to Synology NAS (or Custom Server)
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Deploy to Synology NAS
         run: |
           cd deploy
           git pull
