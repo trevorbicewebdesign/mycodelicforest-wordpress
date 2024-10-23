@@ -92,9 +92,10 @@ jobs:
       - name: Deploy to Synology NAS
         run: |
           cd deploy
+          ls -a
+          git config --global user.email "trevorbicewebdesign@gmail.com"
+          git config --global user.name "Trevor Bice"
           git pull
-          git config --global user.email "gitci@yourdomain.com"
-          git config --global user.name "Git CI"
           git add .
           git commit -m "Deploy to Synology NAS"
           git push origin master -f
