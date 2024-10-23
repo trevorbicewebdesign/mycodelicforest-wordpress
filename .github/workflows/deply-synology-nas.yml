@@ -43,6 +43,7 @@ jobs:
 
       - name: Add SSH host key to known hosts
         run: |
+          touch ~/.ssh/known_hosts
           ssh-keyscan -p 222 grimoire.trevorbice.com >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
