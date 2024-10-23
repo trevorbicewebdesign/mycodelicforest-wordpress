@@ -52,6 +52,9 @@ jobs:
         run: |
           sshpass -p "${{ secrets.GRIMOIRE_PASSWORD }}" \
           git clone ssh://trevorbice@grimoire.trevorbice.com:222/volume1/tbwebdesign/www/wordpress.mycodelicforest.org/mycodelicforest-wordpress.git deploy
+          cd deploy
+          ls -a
+          cd ..
         
       - name: Clone current repository into dist
         uses: actions/checkout@v3
