@@ -98,6 +98,8 @@ jobs:
           ls -a
           git config --global user.email "trevorbicewebdesign@gmail.com"
           git config --global user.name "Trevor Bice"
+          git status
+          git fetch
           git pull
           git add .
           git status
