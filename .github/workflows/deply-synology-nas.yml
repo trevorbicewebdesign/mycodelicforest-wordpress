@@ -92,6 +92,7 @@ jobs:
 
       - name: Deploy to Synology NAS
         run: |
+          set -x
           cd deploy
           ls -a
           GIT_SSH_COMMAND="ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=no -p 222" \
