@@ -69,12 +69,14 @@ jobs:
 
       - name: Copy WordPress core files to deploy
         run: |
-          rsync -av --delete --delete-excluded --exclude-from=.deployignore --exclude='wp-content/plugins/' --exclude='wp-content/themes/' --exclude='wp-content/uploads' dist/* deploy
+          set -x
+          rsync -av --delete --exclude-from='.deployignore' dist/* deploy
 
       - name: Copy WordPress content folders to deploy
         run: |
-          rsync -av --delete --exclude-from=.deployignore dist/wp-content/plugins/* deploy/wp-content/plugins
-          rsync -av --delete --exclude-from=.deployignore dist/wp-content/themes/* deploy/wp-content/themes
+          set -x
+          rsync -av --delete --exclude-from='.deployignore' dist/wp-content/plugins/* deploy/wp-content/plugins
+          rsync -av --delete --exclude-from='.deployignore' dist/wp-content/themes/* deploy/wp-content/themes
 
       - name: Copy .gitignore file
         run: |
