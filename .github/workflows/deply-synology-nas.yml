@@ -91,16 +91,17 @@ jobs:
 
       - name: Deploy to Synology NAS
         run: |
-          sshpass -p "${{ secrets.GRIMOIRE_PASSWORD }}" \
           cd deploy
           ls -a
           GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -p 222" \
+          sshpass -p "${{ secrets.GRIMOIRE_PASSWORD }}" \
           git config --global user.email "trevorbicewebdesign@gmail.com"
           git config --global user.name "Trevor Bice"
           git status
           git fetch
           git pull
           git add .
-          git status
           git commit -m "Deploy to Synology NAS"
+          sshpass -p "${{ secrets.GRIMOIRE_PASSWORD }}" \
           git push origin master -f
+        
