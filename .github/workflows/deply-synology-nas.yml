@@ -51,6 +51,7 @@ jobs:
           git clone ssh://trevorbice@grimoire.trevorbice.com:222/volume1/tbwebdesign/www/wordpress.mycodelicforest.org/mycodelicforest-wordpress.git deploy
           cd deploy
           ls -a
+          git remote -v
           cd ..
         
       - name: Clone current repository into dist
