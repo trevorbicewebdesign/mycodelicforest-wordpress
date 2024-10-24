@@ -110,6 +110,9 @@ local-xdebuginfo.php
 # Include only the specified plugin and theme
 !/wp-content/plugins/civicrm/
 !/wp-content/plugins/civicrm/**
+!/wp-content/plugins/test/
+!/wp-content/plugins/test/**
+
 
 !/wp-content/themes/mycodelic-forest-child/
 !/wp-content/themes/mycodelic-forest-child/**
