@@ -38,9 +38,6 @@ jobs:
           mkdir dist
           mkdir deploy
 
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass
-
       - name: Add SSH host key to known hosts
         run: |
           mkdir -p ~/.ssh
@@ -94,9 +91,9 @@ jobs:
 
       - name: Deploy to Synology NAS
         run: |
+          sshpass -p "${{ secrets.GRIMOIRE_PASSWORD }}" \
           cd deploy
           ls -a
-          sshpass -p "${{ secrets.GRIMOIRE_PASSWORD }}" \
           GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -p 222" \
           git config --global user.email "trevorbicewebdesign@gmail.com"
           git config --global user.name "Trevor Bice"
