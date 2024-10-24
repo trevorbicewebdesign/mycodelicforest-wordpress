@@ -71,12 +71,17 @@ jobs:
         run: |
           set -x
           rsync -av --delete --exclude-from='.deployignore' dist/* deploy
+          # List the files in the deploy folder after rsync to verify
+          echo "Files in deploy after rsync:"
+          ls -la deploy
 
       - name: Copy WordPress content folders to deploy
         run: |
           set -x
           rsync -av --delete --exclude-from='.deployignore' dist/wp-content/plugins/* deploy/wp-content/plugins
           rsync -av --delete --exclude-from='.deployignore' dist/wp-content/themes/* deploy/wp-content/themes
+          echo "Files in deploy/wp-content after rsync:"
+          ls -la deploy/wp-content
 
       - name: Copy .gitignore file
         run: |
