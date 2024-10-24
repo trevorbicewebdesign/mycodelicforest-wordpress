@@ -32,6 +32,7 @@
         "wpackagist-plugin/redirection": "*",
         "wpackagist-plugin/xml-sitemap-generator-for-google": "*",
         "wpackagist-plugin/email-address-obfuscation":"*",
+        "wpackagist-plugin/ultimate-addons-for-gutenberg": "*",
         "wpackagist-theme/spectra-one":"*"
     },
     "require-dev": {
