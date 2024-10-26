@@ -33,6 +33,7 @@
         "wpackagist-plugin/xml-sitemap-generator-for-google": "*",
         "wpackagist-plugin/email-address-obfuscation":"*",
         "wpackagist-plugin/ultimate-addons-for-gutenberg": "*",
+        "wpackagist-plugin/login-with-google": "*",
         "wpackagist-plugin/wordfence": "*",
         "wpackagist-theme/spectra-one":"*"
     },
