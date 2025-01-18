@@ -19,15 +19,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Clean up the vendor folder so we have a fresh environment.
+      - name: Remove vendor folder
+        run: rm -rf vendor
+
+      # Install Composer dependencies (from your lock file) in a clean state.
       - name: Install Composer dependencies
-        run: |
-          composer install
-          git checkout composer.json
+        run: composer install
 
       - name: Capture initial plugin versions
         run: |
           composer show --direct --format=json > composer_initial.json
-          
+
+      # Disable parallel downloads to avoid async extraction issues in some WP packages.
+      - name: Configure Composer parallel downloads
+        run: composer config --global parallel-downloads 1
+
       - name: Update Composer dependencies
         run: composer update
 
@@ -68,7 +75,7 @@ jobs:
           git config --global user.name "GitHub Action"
           git add composer.json composer.lock
           git commit -m "Update dependencies"
-          
+
       - name: Create or update PR
         uses: peter-evans/create-pull-request@v7
         with:
