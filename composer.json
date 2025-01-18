@@ -6,7 +6,8 @@
             "johnpbloch/wordpress-core-installer": true,
             "composer/installers": true
         },
-        "preferred-install": "dist"
+        "preferred-install": "dist",
+        "parallel-install": 1
     },
     "extra": {
         "wordpress-install-dir": "./",
