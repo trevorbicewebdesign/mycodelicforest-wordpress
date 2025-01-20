@@ -87,10 +87,6 @@ jobs:
         run: |
           wget -O deploy/.gitignore https://wpengine.com/wp-content/uploads/2020/02/recommended-gitignore-wp.txt
 
-      - name: Copy config to deploy
-        run: |
-          cp dist/wp-config.php deploy/
-
       - name: Delete unwanted folders in deploy
         run: |
           cd deploy
