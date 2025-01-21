@@ -112,6 +112,7 @@ local-xdebuginfo.php
 !/wp-content/plugins/civicrm/**
 !/wp-content/plugins/test/
 !/wp-content/plugins/test/**
+!/wp-content/plugins/gravityforms/
 
 
 !/wp-content/themes/mycodelic-forest-child/
