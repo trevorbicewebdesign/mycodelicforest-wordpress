@@ -1,0 +1,5 @@
+{
+    "name": "burningmantech/gravityforms",
+    "description": "Central storage location for the gravity forms plugin for installation with composer.",
+    "type": "wordpress-plugin"
+}
