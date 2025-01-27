@@ -106,6 +106,7 @@ local-xdebuginfo.php
 # Ignore everything in plugins and themes directories
 /wp-content/plugins/*
 /wp-content/themes/*
+!/wp-content/themes/mycodelic-forest-child/
 
 # Include only the specified plugin and theme
 !/wp-content/plugins/civicrm/
@@ -113,6 +114,7 @@ local-xdebuginfo.php
 !/wp-content/plugins/test/
 !/wp-content/plugins/test/**
 !/wp-content/plugins/gravityforms/
+!/wp-content/plugins/mycodelic-forest/
 
 
 !/wp-content/themes/mycodelic-forest-child/
