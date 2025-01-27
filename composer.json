@@ -37,6 +37,7 @@
         "wpackagist-plugin/login-with-google": "*",
         "wpackagist-plugin/wordfence": "*",
         "wpackagist-plugin/ultimate-faqs": "*",
+        "wpackagist-plugin/wp-mail-smtp": "*",
         "wpackagist-theme/spectra-one":"*"
     },
     "require-dev": {
