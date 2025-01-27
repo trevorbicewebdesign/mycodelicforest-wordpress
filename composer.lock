@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "09bc5d85a0d7098e88f40e796ae4ee62",
+    "content-hash": "505c52c972c3d8cb68b2f6bfe46042ac",
     "packages": [
         {
             "name": "composer/installers",
@@ -407,6 +407,24 @@
             },
             "type": "wordpress-plugin",
             "homepage": "https://wordpress.org/plugins/ultimate-addons-for-gutenberg/"
+        },
+        {
+            "name": "wpackagist-plugin/ultimate-faqs",
+            "version": "2.3.2",
+            "source": {
+                "type": "svn",
+                "url": "https://plugins.svn.wordpress.org/ultimate-faqs/",
+                "reference": "tags/2.3.2"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://downloads.wordpress.org/plugin/ultimate-faqs.2.3.2.zip"
+            },
+            "require": {
+                "composer/installers": "^1.0 || ^2.0"
+            },
+            "type": "wordpress-plugin",
+            "homepage": "https://wordpress.org/plugins/ultimate-faqs/"
         },
         {
             "name": "wpackagist-plugin/wordfence",
@@ -6279,10 +6297,10 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": {},
-    "platform-dev": {},
+    "platform": [],
+    "platform-dev": [],
     "plugin-api-version": "2.6.0"
 }
