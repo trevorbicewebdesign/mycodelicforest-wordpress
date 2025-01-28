@@ -6,9 +6,8 @@ actor: AcceptanceTester
 bootstrap: _bootstrap.php
 modules:
     enabled:
-        - lucatume\WPBrowser\Module\WPDb
         - lucatume\WPBrowser\Module\WPFilesystem
-        - lucatume\WPBrowser\Module\WPLoader
+        - lucatume\WPBrowser\Module\WPDb
         - lucatume\WPBrowser\Module\WPWebDriver
         - Tests\Support\Helper\Acceptance
         - Asserts
@@ -22,12 +21,19 @@ modules:
           host: '%WEBDRIVER_HOST%'
           port: '%WEBDRIVER_PORT%'
           path: '/'
-          window-size: 1920x1080
+          window_size: 1920x1080
           capabilities:
             goog:chromeOptions: 
-              args: ["--ignore-certificate-errors", "--headless", "--window-size=1920x1080", "--no-sandbox", "--disable-gpu", "allow-insecure-localhost"]
+              args: [
+                "--start-maximized", 
+                "--ignore-certificate-errors", 
+                "--headless", 
+                "--window-size=1920x1080", 
+                "--no-sandbox", 
+                "--disable-gpu"
+                ]
               prefs: 
-                download.default_directory: '%PWD%/tests/_output/'
+                download.default_directory: 'tests/_output/'
                 download.prompt_for_download: false
                 download.directory_upgrade: true
                 safebrowsing.enabled: false
@@ -35,8 +41,7 @@ modules:
                 Page.setDownloadBehavior: {behavior: 'allow', downloadPath: 'tests/_output/'}
         lucatume\WPBrowser\Module\WPDb:
           dbUrl: '%WORDPRESS_DB_SEED_URL%'
-          dump:
-            - 'tests/_support/Data/db/dump.sql'
+          dump: 'tests/_support/Data/db/dump.sql'
           populate: true
           cleanup: true
           reconnect: false
@@ -46,9 +51,3 @@ modules:
           createIfNotExists: true
         lucatume\WPBrowser\Module\WPFilesystem:
           wpRootFolder: '%WORDPRESS_ROOT_DIR%'
-        lucatume\WPBrowser\Module\WPLoader:
-          loadOnly: true
-          wpRootFolder: "%WORDPRESS_ROOT_DIR%" 
-          dbUrl: '%WORDPRESS_DB_SEED_URL%'
-          domain: '%WORDPRESS_DOMAIN%'
-          debug: true
