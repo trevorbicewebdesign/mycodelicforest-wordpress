@@ -126,3 +126,4 @@ composer_initial.json
 auth.json
 pr_body.txt
 wp-config.php
+wp-content/mysql.sql
