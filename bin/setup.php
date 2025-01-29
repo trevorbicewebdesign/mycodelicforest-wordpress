@@ -59,6 +59,7 @@ class SetupScript
             'wp-includes',
             'wp-content/plugins',
             'wp-content/themes',
+            'vendor',
         ];
 
         // Loop through each path and remove untracked files
@@ -111,7 +112,7 @@ class SetupScript
         if (file_exists("../uploads.zip")) {
             echo "Unzipping uploads.zip to wp-content/uploads...\n";
             // Requires 'unzip' to be available on PATH
-            $this->runCommand("unzip ../uploads.zip -d wp-content/uploads");
+            $this->runCommand("unzip ../uploads.zip -d wp-content");
         } else {
             // Prompt user to continue anyway or cancel
             while (true) {
