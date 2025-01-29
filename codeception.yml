@@ -15,8 +15,8 @@ extensions:
         - lucatume\WPBrowser\Extension\ChromeDriverController
     config:
       lucatume\WPBrowser\Extension\ChromeDriverController:
-        binary: './vendor/bin/chromedriver'
-        port: 9515
+        binary: './vendor/bin/chromedriver.exe'
+        port: 4444
         suites: [acceptance]
     commands:
         - lucatume\WPBrowser\Command\RunOriginal

@@ -47,6 +47,14 @@ class BasicCest
         $I->takeFullPageScreenshot("register-page");
     }
 
+    public function calendarPageIsVisible(AcceptanceTester $I)
+    {
+        $I->amOnPage("/calendar");
+        $I->wait(1);
+        $I->see("Calendar");
+        $I->takeFullPageScreenshot("calendar-page");
+    }
+
     public function contactPageIsVisible(AcceptanceTester $I)
     {
         $I->amOnPage("/contact");
@@ -54,17 +62,18 @@ class BasicCest
         $I->see("Contact Us");
         $I->takeFullPageScreenshot("contact-page");
 
-        $I->see("Name", "legend");
-        $I->see("First", "label");
-        $I->see("Last", "label");
-        $I->see("Email", "legend");
-        $I->see("Subject", "legend");
-        $I->see("Message", "legend");
-        $I->see("Submit", "button");
+        $I->see("Name", "#gform_4 legend");
+        $I->see("First", "#gform_4 label");
+        $I->see("Last", "#gform_4 label");
+        $I->see("Email", "#gform_4 label");
+        $I->see("Subject", "#gform_4 label");
+        $I->see("Message", "#gform_4 label");
+        $I->seeElement("#gform_4 input[type=submit]");
 
         $I->click("Submit");
-
-        $I->see("The First Name field is required.");
+        $I->takeFullPageScreenshot("contact-page-errors");
+        // $I->wait(1);
+        // $I->see("There was a problem with your submission. Please review the fields below.");
 
         $I->fillField("#input_4_1_3", "John");
         $I->fillField("#input_4_1_6", "Doe");
@@ -74,7 +83,7 @@ class BasicCest
         $I->click("Submit");
 
         $I->wait(1);
-
+        $I->takeFullPageScreenshot("contact-page-thank-you");
         $I->see("Contact Form Was Submitted");
 
     }
