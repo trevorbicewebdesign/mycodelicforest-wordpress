@@ -74,9 +74,9 @@ class SetupScript
             }
         }
 
-        // Ensure wp-config.php is not removed
-        if (!file_exists('wp-config.php')) {
-            echo "WARNING: wp-config.php not found. Please ensure it exists before proceeding.\n";
+        // temporarily rename wp-config.php to prevent deletion
+        if (file_exists('wp-config.php')) {
+            rename('wp-config.php', 'wp-config.php.bak');
         }
     }
     /**
@@ -85,6 +85,13 @@ class SetupScript
     private function composerInstall(): void
     {
         $this->runCommand("composer install");
+
+        // temporarily rename wp-config.php to prevent deletion
+        if (file_exists('wp-config.php.bak')) {
+            rename('wp-config.php.bak', 'wp-config.php');
+        }
+
+        $this->runCommand("git reset composer.json");
     }
 
     /**
@@ -104,7 +111,7 @@ class SetupScript
         if (file_exists("../uploads.zip")) {
             echo "Unzipping uploads.zip to wp-content/uploads...\n";
             // Requires 'unzip' to be available on PATH
-            $this->runCommand("unzip ../uploads.zip");
+            $this->runCommand("unzip ../wp-content/uploads.zip");
         } else {
             // Prompt user to continue anyway or cancel
             while (true) {
