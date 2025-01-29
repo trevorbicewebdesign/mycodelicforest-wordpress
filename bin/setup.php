@@ -111,7 +111,7 @@ class SetupScript
         if (file_exists("../uploads.zip")) {
             echo "Unzipping uploads.zip to wp-content/uploads...\n";
             // Requires 'unzip' to be available on PATH
-            $this->runCommand("unzip ../wp-content/uploads.zip");
+            $this->runCommand("unzip ../uploads.zip -d wp-content/uploads");
         } else {
             // Prompt user to continue anyway or cancel
             while (true) {
