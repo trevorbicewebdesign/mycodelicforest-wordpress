@@ -17,8 +17,8 @@ class SetupScript
         $this->checkUploadsZip();
         $this->promptDatabaseAction();
 
-        // $this->updateChromedriver();
-        // $this->restartCodeceptIfNeeded();
+        $this->updateChromedriver();
+        $this->restartCodeceptIfNeeded();
     }
 
     /**
@@ -164,7 +164,8 @@ class SetupScript
      */
     private function updateChromedriver(): void
     {
-        $this->runCommand("./vendor/bin/codecept chromedriver:update");
+        $command = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') ? "vendor\\bin\\codecept chromedriver:update" : "./vendor/bin/codecept chromedriver:update";
+        $this->runCommand($command);
     }
 
     /**
@@ -188,7 +189,8 @@ class SetupScript
         }
 
         if (!$portOpen) {
-            $this->runCommand("./vendor/bin/codecept dev:restart");
+            $command = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') ? "vendor\\bin\\codecept dev:restart" : "./vendor/bin/codecept dev:restart";
+            $this->runCommand($command);
         }
     }
 
