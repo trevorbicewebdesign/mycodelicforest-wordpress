@@ -18,4 +18,4 @@ setup:
 
 # Cleans sensitive data from the database before exporting for commit to ensure security.
 clean-database:
-	php ./bin/clean-database.php
+	php ./bin/clean-database.php $WORDPRESS_DOMAIN
