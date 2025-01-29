@@ -53,9 +53,32 @@ class SetupScript
      */
     private function gitClean(): void
     {
-        $this->runCommand("git clean -fdx");
-    }
+        // Define the paths to be cleaned
+        $pathsToClean = [
+            'wp-admin',
+            'wp-includes',
+            'wp-content/plugins',
+            'wp-content/themes',
+        ];
 
+        // Loop through each path and remove untracked files
+        foreach ($pathsToClean as $path) {
+            $this->runCommand("git clean -fdx $path");
+        }
+
+        // Remove untracked files in the root WordPress folder that start with 'wp-' except wp-config.php
+        $rootFiles = glob('wp-*');
+        foreach ($rootFiles as $file) {
+            if ($file !== 'wp-config.php' && is_file($file)) {
+                $this->runCommand("git clean -fdx $file");
+            }
+        }
+
+        // Ensure wp-config.php is not removed
+        if (!file_exists('wp-config.php')) {
+            echo "WARNING: wp-config.php not found. Please ensure it exists before proceeding.\n";
+        }
+    }
     /**
      * Run 'composer install' to install dependencies.
      */
