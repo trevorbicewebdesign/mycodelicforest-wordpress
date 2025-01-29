@@ -25,6 +25,8 @@ TRUNCATE TABLE civicrm_mailing_recipients;
 
 TRUNCATE TABLE civicrm_phone;
 
+TRUNCATE TABLE civicrm_job_log;
+
 TRUNCATE TABLE wp_users;
 
 TRUNCATE TABLE wp_usermeta;
