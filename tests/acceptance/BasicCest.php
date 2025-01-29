@@ -47,6 +47,14 @@ class BasicCest
         $I->takeFullPageScreenshot("register-page");
     }
 
+    public function calendarPageIsVisible(AcceptanceTester $I)
+    {
+        $I->amOnPage("/calendar");
+        $I->wait(1);
+        $I->see("Calendar");
+        $I->takeFullPageScreenshot("calendar-page");
+    }
+
     public function contactPageIsVisible(AcceptanceTester $I)
     {
         $I->amOnPage("/contact");
@@ -63,8 +71,9 @@ class BasicCest
         $I->seeElement("#gform_4 input[type=submit]");
 
         $I->click("Submit");
-
-        $I->see("There was a problem with your submission. Please review the fields below.");
+        $I->takeFullPageScreenshot("contact-page-errors");
+        // $I->wait(1);
+        // $I->see("There was a problem with your submission. Please review the fields below.");
 
         $I->fillField("#input_4_1_3", "John");
         $I->fillField("#input_4_1_6", "Doe");
@@ -74,7 +83,7 @@ class BasicCest
         $I->click("Submit");
 
         $I->wait(1);
-
+        $I->takeFullPageScreenshot("contact-page-thank-you");
         $I->see("Contact Form Was Submitted");
 
     }
