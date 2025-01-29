@@ -17,8 +17,8 @@ class SetupScript
         $this->checkUploadsZip();
         $this->promptDatabaseAction();
 
-        $this->updateChromedriver();
-        $this->restartCodeceptIfNeeded();
+        // $this->updateChromedriver();
+        // $this->restartCodeceptIfNeeded();
     }
 
     /**
