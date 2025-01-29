@@ -65,10 +65,8 @@ class CleanDatabase
             "wp db import bin/dev-truncate-tables.sql",
         ];
 
-        // 3. Run each command in turn, checking for errors.
         $this->runCommands($commands);
 
-        // 4. Recreate WP admin user, update DB, deactivate all plugins
         $finalCommands = [
             "wp user create admin admin@example.com --role=administrator --user_pass=password123!test",
             "wp core update-db",
@@ -76,8 +74,7 @@ class CleanDatabase
         ];
         $this->runCommands($finalCommands);
 
-        // 5. Reactivate necessary plugins
-        $activatePlugins = [
+        $this->activatePlugins([
             "civicrm",
             "email-address-obfuscation",
             "google-site-kit",
@@ -88,8 +85,20 @@ class CleanDatabase
             "ultimate-addons-for-gutenberg",
             "ultimate-faqs",
             "mycodelic-forest",
-        ];
-        $plugins = implode(' ', $activatePlugins);
+        ]);
+
+        echo "Database cleanup and plugin reactivation complete!\n";
+
+        $this->runCommands([
+            "wp cache flush",
+            "wp rewrite flush",
+            "wp db export wp-content/mysql.sql --allow-root",
+        ]);
+    }
+
+    private function activatePlugins(array $plugins): void
+    {
+        $plugins = implode(' ', $plugins);
         $cmd = "wp plugin activate {$plugins}";
         echo ConsoleColors::colorize("$cmd\n", ConsoleColors::BLUE);
         $returnCode = 0;
@@ -98,9 +107,6 @@ class CleanDatabase
             fwrite(STDERR, "Command failed with code $returnCode: $cmd\n");
             exit($returnCode);
         }
-
-        // 6. Done
-        echo "Database cleanup and plugin reactivation complete!\n";
     }
 
     /**
