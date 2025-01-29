@@ -54,17 +54,17 @@ class BasicCest
         $I->see("Contact Us");
         $I->takeFullPageScreenshot("contact-page");
 
-        $I->see("Name", "legend");
-        $I->see("First", "label");
-        $I->see("Last", "label");
-        $I->see("Email", "legend");
-        $I->see("Subject", "legend");
-        $I->see("Message", "legend");
-        $I->see("Submit", "button");
+        $I->see("Name", "#gform_4 legend");
+        $I->see("First", "#gform_4 label");
+        $I->see("Last", "#gform_4 label");
+        $I->see("Email", "#gform_4 label");
+        $I->see("Subject", "#gform_4 label");
+        $I->see("Message", "#gform_4 label");
+        $I->seeElement("#gform_4 input[type=submit]");
 
         $I->click("Submit");
 
-        $I->see("The First Name field is required.");
+        $I->see("There was a problem with your submission. Please review the fields below.");
 
         $I->fillField("#input_4_1_3", "John");
         $I->fillField("#input_4_1_6", "Doe");
