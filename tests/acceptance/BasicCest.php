@@ -12,7 +12,7 @@ class BasicCest
     public function homePageIsVisible(AcceptanceTester $I)
     {
         $I->amOnPage("/");
-        $I->see("Mycodelic Forest");
+        $I->see("Mycodelic Forest", "h1");
         $I->takeFullPageScreenshot("home-page");
     }
 
