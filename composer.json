@@ -38,6 +38,7 @@
         "wpackagist-plugin/wordfence": "*",
         "wpackagist-plugin/ultimate-faqs": "*",
         "wpackagist-plugin/wp-mail-smtp": "*",
+        "wpackagist-plugin/members": "*",
         "wpackagist-theme/spectra-one":"*"
     },
     "require-dev": {
