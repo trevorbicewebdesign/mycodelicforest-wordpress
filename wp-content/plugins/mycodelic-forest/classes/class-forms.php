@@ -15,13 +15,13 @@ class MycodelicForestForms
 
     public function contactFormHandler($entry, $form)
     {
-        die("Contact Form Was Submitted");
+        // die("Contact Form Was Submitted");
 
     }
 
     public function registrationFormHandler($entry, $form)
     {
-        die("Registration Form Was Submitted");
+        // die("Registration Form Was Submitted");
 
     }
 
