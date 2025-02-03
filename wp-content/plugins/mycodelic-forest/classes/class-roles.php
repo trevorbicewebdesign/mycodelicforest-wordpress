@@ -9,6 +9,7 @@ class MycodelicForestRoles {
 
     public function init() {
         add_action('init', array($this, 'add_roles'));
+        add_action('wp_login', array($this, 'lastLogin'));
     }
 
     public function add_roles()
@@ -29,5 +30,10 @@ class MycodelicForestRoles {
                 'upload_files' => true,
             )
         );
+    }
+
+    public function lastLogin($user_id)
+    {
+        update_user_meta($user_id, 'last_login', time());
     }
 }
