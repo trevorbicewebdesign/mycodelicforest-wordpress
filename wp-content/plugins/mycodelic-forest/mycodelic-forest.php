@@ -20,7 +20,7 @@ require_once(MYCO_CORE_ABS_PATH . 'classes/class-roles.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-shortcodes.php');
  
 class MycodelicForestInit {
-    public $version = '0.0.1';
+    public $version = '0.0.10';
     public $MycodelicForestCore;
     public $MycodelicForestDiscord;
     public $MycodelicForestForms;
