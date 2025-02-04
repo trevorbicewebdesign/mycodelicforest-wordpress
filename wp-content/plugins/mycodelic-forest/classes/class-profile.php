@@ -19,13 +19,13 @@ class MycodelicForestProfile{
 
     public function extraFields()
     {
-        // Address 1
-        // Address 2
+        // Street Address
+        // Address Line 2
         // City
         // State
         // Zip
         // Phone
-        // Has attended burning man
+        // Attended burning man?
         // Years attended
     }
 
@@ -173,6 +173,14 @@ class MycodelicForestProfile{
         update_user_meta( $user_id, 'phone', $phone );
         update_user_meta( $user_id, 'has_attended_burning_man', $has_attended_burning_man );
         update_user_meta( $user_id, 'years_attended', $years_attended );
+    }
+
+    public function saveProfileFields(array $profile)
+    {
+        // validate the profile fields
+        if( !isset($profile['first_name']) || empty($profile['first_name']) ){
+            return new WP_Error('missing_first_name', 'First name is required');
+        }
     }
 
 }

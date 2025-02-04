@@ -115,6 +115,7 @@ local-xdebuginfo.php
 !/wp-content/plugins/test/**
 !/wp-content/plugins/gravityforms/
 !/wp-content/plugins/mycodelic-forest/
+!/wp-content/plugins/revslider/
 
 
 !/wp-content/themes/mycodelic-forest-child/

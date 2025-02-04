@@ -13,6 +13,21 @@ class MycodelicForestRoles {
 
     public function add_roles()
     {
+       $this->addRoleMycodelicForestMember();
 
+    }
+
+    public function addRoleMycodelicForestMember()
+    {
+        add_role(
+            'mycodelic_forest_member',
+            __('Mycodelic Forest Member', 'mycodelic-forest'),
+            array(
+                'read' => true,
+                'edit_posts' => true,
+                'delete_posts' => true,
+                'upload_files' => true,
+            )
+        );
     }
 }
