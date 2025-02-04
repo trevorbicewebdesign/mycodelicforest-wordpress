@@ -1,16 +1,18 @@
 <?php
 
-class MycodelicForestDiscordTest extends \lucatume\WPBrowser\TestCase\WPTestCase {
+class MycodelicForestDiscordTest extends \lucatume\WPBrowser\TestCase\WPTestCase
+{
     /**
      * @var \IntegrationTester
      */
 
-    protected function _before() {
-        
+    protected function _before()
+    {
     }
 
-    public function testGetChapterProjectUpdates() {
-        
+    public function testGetChapterProjectUpdates()
+    {
+
         $MycodelicForestDiscord = $this->make('MycodelicForestDiscord', []);
 
         $results = $MycodelicForestDiscord->sendMessage("This is a message");
