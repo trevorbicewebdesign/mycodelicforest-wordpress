@@ -37,6 +37,7 @@ class MycodelicForestShortcodes
                 'sequential' => 1,
                 'group'      => $group_id, // filter by group
                 'return'     => ['contact_id', 'display_name', 'email'],
+                'options'    => ['limit' => 0], // no limit
             ) );
         } catch ( \CiviCRM_API3_Exception $e ) {
             return '<p>Error fetching contacts: ' . $e->getMessage() . '</p>';
@@ -49,7 +50,11 @@ class MycodelicForestShortcodes
 
         // 5. Construct output HTML
         $html  = '<div class="civi-group-contacts">';
-        $html .= '<h3>Contacts in group ' . esc_html( $group_id ) . '</h3>';
+        $group_name = civicrm_api3( 'Group', 'getvalue', array(
+            'id'     => $group_id,
+            'return' => 'title',
+        ) );
+        $html .= '<h3>' . esc_html( $group_name ) . '</h3>';  
 
         $html .= '<ul>';
         foreach ( $result['values'] as $contact ) {

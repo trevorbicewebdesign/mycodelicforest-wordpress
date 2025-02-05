@@ -15,7 +15,38 @@ class MycodelicForestProfile{
  
          add_action( 'personal_options_update', [ $this, 'save_extra_fields' ] );
          add_action( 'edit_user_profile_update', [ $this, 'save_extra_fields' ] );
+
+         add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_recaptcha_script'] );
+
+         add_action( 'register_form', [ $this, 'add_recaptcha_to_registration'] );
+
+         add_filter( 'registration_errors', 'verify_recaptcha_on_registration', 10, 3 );
     }
+
+    public function enqueue_recaptcha_script() {
+        wp_enqueue_script( 'google-recaptcha', 'https://www.google.com/recaptcha/api.js', array(), null, true );
+    }
+    
+    public function add_recaptcha_to_registration() {
+        echo '<div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>';
+    }
+
+    public function verify_recaptcha_on_registration( $errors, $sanitized_user_login, $user_email ) {
+        if ( isset( $_POST['g-recaptcha-response'] ) ) {
+            $recaptcha_response = sanitize_text_field( $_POST['g-recaptcha-response'] );
+            $response = wp_remote_get( "https://www.google.com/recaptcha/api/siteverify?secret=YOUR_SECRET_KEY&response={$recaptcha_response}" );
+            $response_body = wp_remote_retrieve_body( $response );
+            $result = json_decode( $response_body, true );
+            
+            if ( ! isset( $result['success'] ) || true !== $result['success'] ) {
+                $errors->add( 'captcha_invalid', __( '<strong>ERROR</strong>: reCAPTCHA verification failed, please try again.' ) );
+            }
+        } else {
+            $errors->add( 'captcha_missing', __( '<strong>ERROR</strong>: Please complete the reCAPTCHA.' ) );
+        }
+        
+        return $errors;
+    }    
 
     public function extraFields()
     {
@@ -182,5 +213,7 @@ class MycodelicForestProfile{
             return new WP_Error('missing_first_name', 'First name is required');
         }
     }
+
+
 
 }
