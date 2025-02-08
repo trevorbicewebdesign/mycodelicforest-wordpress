@@ -8,13 +8,14 @@ class MycodelicForestRoles {
     }
 
     public function init() {
-        add_action('init', array($this, 'add_roles'));
-        add_action('wp_login', array($this, 'lastLogin'));
+        add_action('init', [$this, 'add_roles']);
+        add_action('wp_login', [$this, 'lastLogin']);
+        add_action('rtcamp.google_user_logged_in', [$this, 'lastGoogleLogin'], 10, 2);
     }
 
     public function add_roles()
     {
-       $this->addRoleMycodelicForestMember();
+       // $this->addRoleMycodelicForestMember();
 
     }
 
@@ -32,8 +33,14 @@ class MycodelicForestRoles {
         );
     }
 
+    public function lastGoogleLogin($user_wp, $user)
+    {
+        $this->lastLogin($user_wp->ID);
+    }
+
     public function lastLogin($user_id)
     {
         update_user_meta($user_id, 'last_login', time());
+        update_user_meta($user_id, 'wfls-last-login', time());
     }
 }
