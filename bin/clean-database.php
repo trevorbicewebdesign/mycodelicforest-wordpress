@@ -81,6 +81,7 @@ class CleanDatabase
             "gravityforms",
             "really-simple-ssl",
             "redirection",
+            "revslider",
             "wp-mail-smtp",
             "ultimate-addons-for-gutenberg",
             "ultimate-faqs",
