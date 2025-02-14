@@ -6,17 +6,21 @@ actor: IntegrationTester
 bootstrap: _bootstrap.php
 modules:
     enabled:
+        - \Helper\BwbHelper\BwbHelper
+        - \Helper\BwbHelper\WordpressDbHandler
+        - lucatume\WPBrowser\Module\WPLoader
         - Tests\Support\Helper\Integration
-        - Asserts  
-        - WPDb
+        - Asserts        
     config:
-        WPDb:
-          dbUrl: '%WORDPRESS_DB_SEED_URL%'
-          dump: 'tests/_support/Data/db/dump.sql'
-          populate: true
-          cleanup: true
-          reconnect: false
-          url: '%WORDPRESS_URL%'
-          urlReplacement: false
-          tablePrefix: '%SEED_TABLE_PREFIX%'
-          createIfNotExists: true
+        lucatume\WPBrowser\Module\WPLoader:
+           wpRootFolder: "%WORDPRESS_ROOT_DIR%" 
+           dbUrl: '%WORDPRESS_DB_TEST_URL%'
+           wpDebug: true
+           tablePrefix: '%TEST_TABLE_PREFIX%'
+           domain: '%WORDPRESS_DOMAIN%'
+           adminEmail: 'admin@%WORDPRESS_DOMAIN%'
+           title: 'Integration Tests'
+           plugins: [
+            'mycodelic-forest/mycodelic-forest.php'
+           ]
+           theme: 'spectra-one'
