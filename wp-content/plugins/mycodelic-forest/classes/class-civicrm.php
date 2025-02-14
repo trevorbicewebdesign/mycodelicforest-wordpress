@@ -61,7 +61,7 @@ class MycodelicForestCiviCRM
         }
         */
 
-        $mockedData = [
+        $contacts = [
             [
                 'contact_id'   => 1,
                 'display_name' => 'John Doe',
