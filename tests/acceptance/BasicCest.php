@@ -121,7 +121,7 @@ class BasicCest
     {
         $I->amOnPage("/contact");
         $I->wait(1);
-        $I->see("Contact Us");
+        $I->see("Contact");
         $I->takeFullPageScreenshot("contact-page");
 
         $I->see("Name", "#gform_4 legend");
