@@ -10,3 +10,4 @@
  * If you need to load one or more database dump file(s) to set up the test database, add the path to the dump file to
  * the "modules.config.WPLoader.dump" setting.
  */
+putenv("APPLICATION_ENV=test");
