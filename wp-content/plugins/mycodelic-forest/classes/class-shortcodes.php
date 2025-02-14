@@ -44,7 +44,7 @@ class MycodelicForestShortcodes
         $html .= '<h3>' . esc_html($group_name) . '</h3>';
 
         $html .= '<ul>';
-        foreach ($contacts['values'] as $contact) {
+        foreach ($contacts as $contact) {
             $display_name = isset($contact['display_name']) ? $contact['display_name'] : '(No Name)';
             $email = isset($contact['email']) ? $contact['email'] : '(No Email)';
 
