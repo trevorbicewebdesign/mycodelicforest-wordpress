@@ -37,6 +37,7 @@ jobs:
           rm -r wp-content
           rm -r vendor
           composer update
+          git checkout composer.json -f
 
       - name: Capture final plugin versions
         run: |
