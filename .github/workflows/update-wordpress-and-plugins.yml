@@ -31,6 +31,11 @@ jobs:
       - name: Capture initial plugin versions
         run: |
           composer show --direct --format=json > composer_initial.json
+
+      - name: Clear existing wordpress and plugins
+        run: |
+          git clean -fdx
+          rm -r wp-content
           
       - name: Update Composer dependencies
         run: composer update
