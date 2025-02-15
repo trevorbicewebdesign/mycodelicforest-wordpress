@@ -45,16 +45,20 @@ jobs:
 
       - name: Compare versions and prepare PR body
         run: |
+          # Create a temporary file to store PR body
+          TMP_PR_BODY=$(mktemp)
+          echo "TMP_PR_BODY=$TMP_PR_BODY" >> $GITHUB_ENV
+
           # Compare WordPress versions
           INITIAL_VERSION=$(jq -r '.installed[] | select(.name == "johnpbloch/wordpress") | .version' composer_initial.json)
           FINAL_VERSION=$(jq -r '.installed[] | select(.name == "johnpbloch/wordpress") | .version' composer_final.json)
           if [[ "$INITIAL_VERSION" != "$FINAL_VERSION" ]]; then
-            echo "**johnpbloch/wordpress** was updated from $INITIAL_VERSION to $FINAL_VERSION" >> pr_body.txt
-            echo '' >> pr_body.txt
+            echo "**johnpbloch/wordpress** was updated from $INITIAL_VERSION to $FINAL_VERSION" >> "$TMP_PR_BODY"
+            echo '' >> "$TMP_PR_BODY"
           fi
 
           # Compare plugin versions
-          echo '### Plugin updates:' >> pr_body.txt
+          echo '### Plugin updates:' >> "$TMP_PR_BODY"
           PLUGIN_UPDATES=""
           for ROW in $(jq -r '.installed[] | select(.name != "johnpbloch/wordpress") | .name' composer_final.json); do
             INITIAL_VERSION=$(jq -r --arg ROW "$ROW" '.installed[] | select(.name == $ROW) | .version' composer_initial.json)
@@ -65,20 +69,25 @@ jobs:
           done
 
           if [[ -z "$PLUGIN_UPDATES" ]]; then
-            echo "No plugins to update" >> pr_body.txt
+            echo "No plugins to update" >> "$TMP_PR_BODY"
           else
-            echo -e "$PLUGIN_UPDATES" >> pr_body.txt
+            echo -e "$PLUGIN_UPDATES" >> "$TMP_PR_BODY"
           fi
 
-      - name: Commit changes
+      - name: Commit changes and clean workspace
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git add composer.json composer.lock
           git commit -m "Update dependencies"
-          git clean -fd -e pr_body.txt
-          ls -la
           
+          # Remove untracked files except for our PR body file
+          git clean -fdX
+          ls -la
+
+      - name: Restore PR body and create PR
+        run: cp "$TMP_PR_BODY" pr_body.txt
+
       - name: Create or update PR
         uses: peter-evans/create-pull-request@v7
         with:
