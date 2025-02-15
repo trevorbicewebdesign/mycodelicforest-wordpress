@@ -24,7 +24,7 @@
 */
 div.revslider_block {
   background: url(images/rs6_logo_2x.png);
-  background-size: contain;
+  background-size: 120px 30px;
   background-repeat: no-repeat;
   line-height: 32px; }
 

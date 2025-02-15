@@ -3919,7 +3919,7 @@ msgid "HTML5 Autoplay"
 msgstr ""
 
 #: admin/views/builder-slider-forms.php:961
-msgid "Option is depricated and will be removed in upcoming updates !"
+msgid "Option is deprecated and will be removed in upcoming updates !"
 msgstr ""
 
 #: admin/views/builder-slider-forms.php:970
@@ -5180,7 +5180,7 @@ msgid "Layer as jQuery Object"
 msgstr ""
 
 #: admin/views/modals-builder.php:520
-msgid "Meta Datas"
+msgid "Metadata"
 msgstr ""
 
 #: admin/views/modals-builder.php:522
@@ -7165,7 +7165,7 @@ msgstr ""
 
 #: admin/views/builder-layer-forms.php:909
 msgid ""
-"Depricated Function !<br>Only visible by Rendering. Limited influence on "
+"Deprecated Function !<br>Only visible by Rendering. Limited influence on "
 "Styled Layers. Custom CSS Inline will be removed in Version 6.2"
 msgstr ""
 

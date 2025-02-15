@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
  
 if(!defined('ABSPATH')) exit();
@@ -86,7 +86,7 @@ class RevSliderUpdate extends RevSliderFunctions {
 
 	public function _check_updates(){
 		// Get data
-		if(empty($this->data)){
+		if(empty($this->data) || !isset($this->data->basic)){
 			$data = get_option($this->option, false);
 			$data = $data ? $data : new stdClass;
 			
@@ -207,6 +207,9 @@ class RevSliderUpdate extends RevSliderFunctions {
 						//remove validation, add notice
 						update_option('revslider-valid', 'false');
 						update_option('revslider-deregister-popup', true);
+						if(isset($version_info->deactivated_msg) && !empty($version_info->deactivated_msg)){
+							update_option('revslider-deregister-message', $version_info->deactivated_msg);
+						}
 					}
 				}
 			}

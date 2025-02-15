@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -14,6 +14,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	private $slider;
 	private $order;
 	private $layers = array();
+	private $bglayer = array();
 	public $params;
 	public $children = array();
 	public $image_id;
@@ -21,9 +22,13 @@ class RevSliderSlide extends RevSliderFunctions {
 	public $image_path;
 	public $image_filename;
 	private $image_thumb;
+	public $image_filepath;
 	public $settings;
 	public $post_data;
 	private $template_id;
+	public $ignore_alt = false;
+	public $img_sizes = [];
+	public $v7 = false;
 	
 	private $static_slide = false;
 	
@@ -43,6 +48,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * added for compatibility with old AddOns
 	 **/
 	public function getID(){
+		$this->add_deprecation_message('getID', 'get_id');
 		return $this->get_id();
 	}
 	
@@ -51,6 +57,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * added for compatibility with old AddOns
 	 **/
 	public function getSliderID(){
+		$this->add_deprecation_message('getSliderID', 'get_slider_id');
 		return $this->get_slider_id();
 	}
 	
@@ -59,6 +66,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * added for compatibility with old AddOns
 	 **/
 	public function getImageUrl(){
+		$this->add_deprecation_message('getImageUrl', '$this->image_url');
 		return $this->image_url;
 	}
 	
@@ -66,6 +74,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * old version of RevSliderSlide->getLayers()
 	 **/
 	public function getLayers(){
+		$this->add_deprecation_message('getLayers', 'get_layers');
 		return $this->get_layers();
 	}
 	
@@ -73,6 +82,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * old version of RevSliderSlide->set_layers_raw()
 	 **/
 	public function setLayersRaw($layers){
+		$this->add_deprecation_message('setLayersRaw', 'set_layers_raw');
 		$this->set_layers_raw($layers);
 	}
 	
@@ -80,6 +90,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * old version of RevSliderSlide->save_layers()
 	 */
 	public function saveLayers(){
+		$this->add_deprecation_message('saveLayers', 'save_layers');
 		$this->save_layers();
 	}
 	
@@ -90,6 +101,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @return string
 	 */
 	public function getParam($name, $default = null){
+		$this->add_deprecation_message('getParam', 'get_val');
 		if($default === null){
 			$default = '';
 		}
@@ -194,8 +206,27 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * get slide layers
 	 * before: RevSliderSlide::getLayers()
 	 */
-	public function get_layers(){
-		return apply_filters('revslider_get_layers', apply_filters('revslider_getLayers', $this->layers, $this), $this);
+	public function get_layers($modified = false){
+		$layers = apply_filters('revslider_get_layers', apply_filters('revslider_getLayers', $this->layers, $this), $this);
+		if($modified !== false) $layers = $this->modify_layers($layers);
+
+		return $layers;
+	}
+
+	/**
+	 * used to modify layers only for frontend output
+	 * as of now it is unused as qTranslate is gone but may be needed later on
+	 */
+	public function modify_layers($layers = array()){
+		return $layers; //currently only returning layers, if changes need to be done remove this part and change layers before returning them
+
+		$layers = (empty($layers)) ? $this->layers : $layers;
+
+		foreach($layers ?? [] as $k => $layer){
+			$layers[$k] = $layer;
+		}
+
+		return $layers;
 	}
 	
 	/**
@@ -283,11 +314,15 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @return mixed
 	 */
 	public function get_static_slide_id($slider_id){
-		global $wpdb;
+		global $wpdb, $SR_GLOBALS;
 		
 		$slide = array();
 		if(!empty($slider_id)){
-			$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES." WHERE slider_id = %d", $slider_id), ARRAY_A);
+			if($SR_GLOBALS['use_table_version'] === 7){
+				$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES . "7 WHERE slider_id = %d AND static = 1", $slider_id), ARRAY_A);
+			}else{
+				$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES . " WHERE slider_id = %d", $slider_id), ARRAY_A);
+			}
 		}
 		
 		return (empty($slide)) ? false : $this->get_val($slide, 'id', false);
@@ -300,14 +335,21 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @return bool
 	 */
 	public function init_static_slide_by_slider_id($slider_id){
-		global $wpdb;
-
+		global $wpdb, $SR_GLOBALS;
+		
 		if(empty($slider_id)) return false;
 
-		$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES." WHERE slider_id = %d", $slider_id), ARRAY_A);
+		if($SR_GLOBALS['use_table_version'] === 7){
+			$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES . "7 WHERE slider_id = %d AND static = 1", $slider_id), ARRAY_A);
+		}else{
+			$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES . " WHERE slider_id = %d", $slider_id), ARRAY_A);
+		}
 		if(empty($slide)) return false;
 
 		$this->init_by_data($slide);
+		$this->set_val($this->params, array('static', 'isstatic'), true);
+		$this->static_slide	= true;
+		
 		return true;
 	}
 	
@@ -319,15 +361,20 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @return bool
 	 */
 	public function exist_by_id($slideid){
-		global $wpdb;
-
+		global $wpdb, $SR_GLOBALS;
+		
 		try{
 			if(strpos($slideid, 'static_') !== false){
 				$slide_id = str_replace('static_', '', $slideid);
 				$this->validate_numeric($slide_id, __('Slide ID', 'revslider'));
-				$record = $wpdb->get_row($wpdb->prepare("SELECT id FROM ". $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES ." WHERE id = %d", $slide_id), ARRAY_A);
+				if($SR_GLOBALS['use_table_version'] === 7){
+					$record = $wpdb->get_row($wpdb->prepare("SELECT id FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES . "7 WHERE id = %d AND static = 1", $slide_id), ARRAY_A);
+				}else{
+					$record = $wpdb->get_row($wpdb->prepare("SELECT id FROM ". $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES . " WHERE id = %d", $slide_id), ARRAY_A);
+				}
 			}else{
-				$record = $wpdb->get_row($wpdb->prepare("SELECT id FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES ." WHERE id = %d", $slideid), ARRAY_A);
+				$v		= ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
+				$record	= $wpdb->get_row($wpdb->prepare("SELECT id FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v ." WHERE id = %d", $slideid), ARRAY_A);
 			}
 		}catch(Exception $e){
 			return false;
@@ -342,7 +389,9 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @param int $slide_id
 	 */
 	public function init_by_id($slide_id){
-		global $wpdb;
+		global $wpdb, $SR_GLOBALS;
+		
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
 		
 		try{
 			if(strpos($slide_id, 'static_') !== false){
@@ -350,10 +399,15 @@ class RevSliderSlide extends RevSliderFunctions {
 				$static_id = str_replace('static_', '', $slide_id);
 				
 				$this->validate_numeric($static_id, 'Static Slide ID');
-				$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES ." WHERE id = %d", $static_id), ARRAY_A);
+				if($SR_GLOBALS['use_table_version'] === 7){
+					$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES . "7 WHERE id = %d AND static = 1", $static_id), ARRAY_A);
+				}else{
+					$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES . " WHERE id = %d", $static_id), ARRAY_A);
+				}
 			}else{
+				$this->static_slide	= false;
 				$this->validate_numeric($slide_id, 'Slide ID');
-				$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES ." WHERE id = %d", $slide_id), ARRAY_A);
+				$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v ." WHERE id = %d", $slide_id), ARRAY_A);
 			}
 			$this->init_by_data($slide);
 			
@@ -386,22 +440,119 @@ class RevSliderSlide extends RevSliderFunctions {
 		$this->children		= $slide->children;
 	}
 	
+	public function check_create_slide($slide_id, $slider_id){
+		if($this->exist_by_id($slide_id)) return $slide_id;
+
+		$static		= (strpos($slide_id, 'static_') !== false) ? true : false;
+		$slide_id	= $this->create_slide($slider_id, '', $static, $slide_id);
+		if($static === true) $slide_id = 'static_'.$slide_id;
+
+		return ($this->exist_by_id($slide_id)) ? $slide_id : false;
+	}
+
+	/**
+	 * @param string $tag_key
+	 * @param string $default
+	 * @return void
+	 */
+	public function filter_layer_tags($tag_key, $default){
+		$allowed_tags = $this->get_allowed_layer_tags();
+		foreach($this->layers as $key => $layer){
+			if(empty($layer[$tag_key]) || in_array($layer[$tag_key], $allowed_tags)) continue;
+			$this->layers[$key][$tag_key] = $default;
+		}
+	}
 	
-	
+	public function filter_layer_attributes_v6(){
+		foreach($this->layers ?? [] as $key => $layer){
+			if(!isset($layer['attributes']) || empty($layer['attributes'])) continue;
+			foreach($layer['attributes'] ?? [] as $aKey => $aVal){
+				if(empty($aVal)) continue;
+				switch($aKey){
+					case 'title':
+						$this->layers[$key]['attributes'][$aKey] = sanitize_text_field($aVal);
+					break;
+					case 'classes':
+					case 'wrapperClasses':
+						$this->layers[$key]['attributes'][$aKey] = (is_array($aVal)) ? implode(' ', $this->filter_class_name(explode(' ', $aVal))) : $aVal;
+					break;
+					case 'id':
+					case 'wrapperId':
+					case 'rel':
+						$this->layers[$key]['attributes'][$aKey] = $this->filter_class_name($aVal);
+					break;
+				}
+			}
+		}
+	}
+
+	public function filter_layer_attributes_v7(){
+		foreach($this->layers ?? [] as $key => $layer){
+			if(!isset($layer['attr']) || empty($layer['attr'])) continue;
+			foreach($layer['attr'] ?? [] as $aKey => $aVal){
+				if(empty($aVal)) continue;
+				switch($aKey){
+					case 'aO':
+					case 't':
+					case 'tO':
+						$this->layers[$key]['attr'][$aKey] = sanitize_text_field($aVal);
+					break;
+					case 'class':
+					case 'wrapClass':
+					case 'iClass':
+						$this->layers[$key]['attr'][$aKey] = (is_array($aVal)) ? implode(' ', $this->filter_class_name(explode(' ', $aVal))) : $aVal;
+					break;
+					case 'id':
+					case 'wrapId':
+					case 'rel':
+						$this->layers[$key]['attr'][$aKey] = $this->filter_class_name($aVal);
+					break;
+				}
+			}
+		}
+	}
+
+	/**
+	 * v7 data is structured a little different, hence we need a different process of saving
+	 **/
+	public function save_slide_v7($slide_id, $data, $slider_id){
+		if($this->get_val($data, array('slide', 'global'), false) === true) $slide_id = 'static_' . $slide_id;
+		$slide_id	= $this->check_create_slide($slide_id, $slider_id);
+		if($slide_id === false) return false;
+		$this->init_by_id($slide_id);
+		
+		$this->settings['version'] = $this->get_val($data, 'version', $this->get_val($this->settings, 'version', RS_REVISION));
+		$this->params = $this->get_val($data, 'slide', array());
+		$this->layers = $this->get_val($data, 'layers', array());
+		$this->filter_layer_tags('tag', 'sr7-layer');
+		$this->filter_layer_attributes_v7();
+
+		$this->save_params();
+		$this->save_layers();
+		$this->save_settings();
+
+		//we need to update the order field
+		$order = $this->get_val($this->params, 'order');
+		$this->change_slide_order($slide_id, $order);
+
+		//backup AddOn fix for Page/Post Slide saving
+		if(class_exists('RsBackupBase') && !isset($data['session_id'])) $data['session_id'] = substr(md5(rand()), 0, 7);
+		
+		// needed for backups addon
+		do_action('revslider_slide_updateSlideFromData_post', false, $data, $this);
+		do_action('save_slide_v7', false, $data, $this);
+		
+		return true;
+	}
+
 	/**
 	 * Save a Slide by the given data
 	 * @before: RevSliderSlide::updateSlideFromData();
 	 **/
 	public function save_slide($slide_id, $data, $slider_id){
-		if(!$this->exist_by_id($slide_id)){
-			$static = (strpos($slide_id, 'static_') !== false) ? true : false;
-			
-			$slide_id = $this->create_slide($slider_id, '', $static, $slide_id);
-			if(!$this->exist_by_id($slide_id)){
-				return false;
-			}
-		}
-		
+		$slide_id = $this->check_create_slide($slide_id, $slider_id);
+		if($slide_id === false) return false;
+
 		$this->init_by_id($slide_id);
 		
 		$params = $this->get_val($data, 'params', array());
@@ -417,6 +568,8 @@ class RevSliderSlide extends RevSliderFunctions {
 		$layers = $this->get_val($data, 'layers', array());
 		$layers = $this->json_decode_slashes($layers);
 		$this->layers = (empty($layers) || !is_array($layers)) ? array() : $layers;
+		$this->filter_layer_tags('htmltag', 'rs-layer');
+		$this->filter_layer_attributes_v6();
 		
 		$this->save_params();
 		$this->save_layers();
@@ -480,9 +633,20 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @before: RevSliderSlide::deleteSlide();
 	 */
 	public function delete_slide_by_id($slide_id){
-		global $wpdb;
-		$return = $wpdb->delete($wpdb->prefix . RevSliderFront::TABLE_SLIDES, array('id' => $slide_id));
+		global $wpdb, $SR_GLOBALS;
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
+		$return = $wpdb->delete($wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v, array('id' => $slide_id));
+
 		do_action('revslider_slide_deleteSlide', $slide_id);
+		if($v !== '7'){
+			//check if we have a v7 equivalent and if yes delete, too
+			$v7_slide_id = $this->get_v7_slider_map(false, $slide_id);
+			if($v7_slide_id === false) return $return;
+
+			$wpdb->delete($wpdb->prefix . RevSliderFront::TABLE_SLIDES . '7', array('id' => $v7_slide_id));
+			//update the slider map to remove the slide as it no longer exists!!
+			//$this->remove_v7_slider_from_map(false, $slide_id);
+		}
 		
 		return $return;
 	}
@@ -493,10 +657,12 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @before: RevSliderSlider::duplicateSlide();
 	 **/
 	public function duplicate_slide_by_id($slide_id, $slider_id){
-		global $wpdb;
+		global $wpdb, $SR_GLOBALS;
+		
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
 		
 		$done	= false;
-		$slide	= $wpdb->get_row($wpdb->prepare("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES ." WHERE id = %s", $slide_id), ARRAY_A);
+		$slide	= $wpdb->get_row($wpdb->prepare("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v ." WHERE id = %s", $slide_id), ARRAY_A);
 		if(!empty($slide)){
 			$slider	= new RevSliderSlider();
 			
@@ -514,7 +680,7 @@ class RevSliderSlide extends RevSliderFunctions {
 			$slide['slide_order']	= $order + 1;
 			$slide_id				= $this->get_val($slide, 'id');
 			unset($slide['id']);
-			$done = $wpdb->insert($wpdb->prefix . RevSliderFront::TABLE_SLIDES, $slide);
+			$done = $wpdb->insert($wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v, $slide);
 		}
 		
 		return ($done) ? $wpdb->insert_id : false;
@@ -527,19 +693,162 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @param string $slide_order
 	 */
 	public function change_slide_order($slide_id, $slide_order){
-		global $wpdb;
+		global $wpdb, $SR_GLOBALS;
 		
-		$wpdb->update($wpdb->prefix . RevSliderFront::TABLE_SLIDES, array('slide_order' => $slide_order), array('id' => $slide_id));
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
+		
+		$wpdb->update($wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v, array('slide_order' => $slide_order), array('id' => $slide_id));
+
+		if($v !== '7'){
+			//check if we have a v7 equivalent and if yes delete, too
+			$v7_slide_id = $this->get_v7_slider_map(false, $slide_id);
+			if($v7_slide_id !== false){
+				$wpdb->update($wpdb->prefix . RevSliderFront::TABLE_SLIDES . '7', array('slide_order' => $slide_order), array('id' => $v7_slide_id));
+			}
+		}
 	}
 	
-	
+	public function get_bg_layer(){
+		if(!empty($this->bglayer)) return $this->bglayer;
+
+		if($this->v7 === false) return array();
+
+		$layers = $this->get_layers();
+		foreach($layers ?? [] as $layer){
+			if($this->get_val($layer, 'rTo') !== 'slide') continue;
+			if($this->get_val($layer, 'subtype') !== 'slidebg') continue;
+
+			$this->bglayer = $layer;
+			break;
+		}
+
+		return $this->bglayer;
+	}
+
+	public function update_bg_layer($bglayer){
+		if($this->v7 === false) return array();
+
+		$this->bglayer = $bglayer;
+
+		$layers = $this->get_layers();
+		foreach($layers ?? [] as $key => $layer){
+			if($this->get_val($layer, 'rTo') !== 'slide') continue;
+			if($this->get_val($layer, 'subtype') !== 'slidebg') continue;
+
+			$layers[$key] = $bglayer;
+			break;
+		}
+		
+		$this->set_layers_raw($layers);
+	}
+
+	/**
+	 * check slide settings, if the slide should be printed or not
+	 */
+	public function check_use_slide(){
+		if($this->get_param(array('publish', 'state'), 'published') === 'unpublished') return false;
+		
+		$in			= true;
+		$ts			= current_time('timestamp');
+		$date_from	= $this->get_param(array('publish', 'from'), '');
+		$date_to	= $this->get_param(array('publish', 'to'), '');
+		
+		if($date_from != ''){
+			$date_from = strtotime($date_from);
+			if($ts < $date_from) $in = false;
+		}
+		
+		if($date_to != ''){
+			$date_to = strtotime($date_to);
+			if($ts > $date_to) $in = false;
+		}
+		
+		return $in;
+	}
+
+	/**
+	 * init post data in v7 style
+	 */
+	public function init_by_post_data_v7($post, RevSliderSlide $template, $slider_id){
+		global $SR_GLOBALS;
+
+		$post_id	= $this->get_val($post, 'id');
+		$_temp_id	= false;
+		$v6			= false;
+		$temp_id_v6 = intval(get_post_meta($post_id, 'slide_template', true));
+		$temp_id_v7 = intval(get_post_meta($post_id, 'slide_template_v7', true));
+		$this->post_data = apply_filters('revslider_slide_initByPostData', $post, $template, $slider_id, $this);
+
+		if($temp_id_v6 > 0 || $temp_id_v7 > 0){
+			try{
+				$local = new RevSliderSlide();
+				if($temp_id_v7 > 0){
+					$temp_id = $temp_id_v7;
+				}else{
+					$_temp_id = $this->get_v7_slide_map($temp_id_v6); //we always receive the v6 slide id here so we need to translate to v7
+					if($_temp_id !== false){
+						$temp_id = $_temp_id;
+					}else{
+						$temp_id = $temp_id_v6;
+						$v6		 = $SR_GLOBALS['use_table_version'];
+						$SR_GLOBALS['use_table_version'] = 6;
+					}
+				}
+				if($local->exist_by_id($temp_id)){
+					$local->init_by_id($temp_id);
+					$this->init_by_slide($local);
+				}else{
+					$this->init_by_slide($template);
+				}
+				if($v6 !== false) $SR_GLOBALS['use_table_version'] = $v6;
+			}catch(Exception $e){
+				$this->init_by_slide($template);
+			}
+		}else{
+			$this->init_by_slide($template);
+		}
+		
+		$this->id				= $this->template_id; //PK TODO in pure v7: $this->template_id is not needed, change init_by_slide() to add it directly into $this->id
+		$this->params['title']	= $this->get_val($post, 'title');
+		
+		if($this->get_val($this->params, array('seo', 'set'), false) == true && $this->get_val($this->params, array('seo', 'type'), 'regular') == 'regular'){
+			$this->params['seo']['link'] = str_replace(array('%link%', '{{link}}'), $this->get_val($post, 'link'), $this->params['seo']['link']);
+			$this->params['seo']['link'] = str_replace('-', '_REVSLIDER_', $this->params['seo']['link']);
+			//process meta tags:
+			$matches = array();
+			preg_match_all('/(?:%meta:(\w+)%|{{meta:(\w+)}})/', $this->params['seo']['link'], $matches);
+			if(isset($matches[0]) && !empty($matches[0])){
+				foreach($matches[0] as $key => $match){
+					$meta = str_replace(['%meta:', '%', '{{meta:', '}}'], ['', '', '', ''], $match);
+					$this->params['seo']['link'] = str_replace($match, $this->get_val($post, array('meta', $meta)), $this->params['seo']['link']);
+				}
+			}
+			$this->params['seo']['link'] = str_replace('_REVSLIDER_', '-', $this->params['seo']['link']);
+		}
+
+		//$this->params['publish']['state'] = ($post['post_status'] == 'publish') ? 'published' : $this->params['publish']['state'] = 'unpublished';
+		
+		if(!in_array($this->get_val($this->params, array('bg', 'type'), 'trans'), array('trans', 'solid'), true)){
+			if($this->get_val($this->params, array('bg', 'imageFromStream'), false) === true){ //if image is choosen, use featured image as background // && $this->get_val($this->params, array('bg', 'type')) == 'image'
+				$this->image_url = $this->get_val($post, 'media');
+				$thumbnail_url = $this->get_val($post, 'thumb');
+				if(!empty($thumbnail_url)){
+					if(!isset($this->params['thumb'])) $this->params['thumb'] = array();
+					$this->params['thumb']['customThumbSrc'] = $thumbnail_url;
+				}
+			}
+		}
+
+		//replace placeholders in layers:
+		$this->set_layers_by_stream_post_v7($post, $slider_id);
+	}
+
 	/**
 	 * init slide by post data
 	 * @before: RevSliderSlide::initByPostData();
 	  * @removed in 6.2.18 -> @change 6.2.16: $template_id will not be written if the current post id is not the post_id to prevent malfunctioning
 	 */
 	public function init_by_post_data($data, RevSliderSlide $template, $slider_id){
-
 		$post_id	 = $this->get_val($data, 'ID');
 		$template_id = get_post_meta($post_id, 'slide_template', true);
 		//only change the template if we are in the post itself, not if we are in another revslider that is post based!
@@ -626,7 +935,75 @@ class RevSliderSlide extends RevSliderFunctions {
 		$this->set_layers_by_post($data, $slider_id);
 	}
 	
-	
+	/**
+	 * replacing placeholders in v7 layers
+	 */
+	public function set_layers_by_stream_post_v7($post, $slider_id){
+		$translation = array('publish' => 'date', 'modified' => 'date_modified', 'author' => 'author_name', 'comments' => 'num_comments', 'catlistraw' => 'catlist_raw'); //translation is needed, as $post has different keys now than before
+		$replace	 = array('catlist' => 'catlistraw');
+		$post		 = apply_filters('revslider_set_layers_by_stream_post', $post, $slider_id, $this);
+		if(empty($this->layers)) return;
+		if(empty($this->img_sizes)) $this->img_sizes = $this->get_all_image_sizes();
+
+		$layers = json_encode($this->layers, true);
+		foreach($post as $from => $to){
+			if(is_array($to)){
+				foreach($to ?? [] as $_from => $_to){
+					if(is_array($_to)){
+						//check if we are content || excerpt (excerpt with words|chars is written in meta)
+						if($from === 'content'){
+							foreach($_to ?? [] as $num => $text){
+								$text = (empty($text)) ? '' : addslashes($text);
+								$layers = str_replace(array('{{'.$from.':'.$_from.':'.$num.'}}', '%'.$from.':'.$_from.':'.$num.'%'), $text, $layers);
+							}
+						}elseif($from === 'meta'){
+							foreach($_to ?? [] as $num => $text){
+								if($_from !== 'excerpt') continue;
+								foreach($text ?? [] as $_num => $_text){
+									$_text = (empty($_text)) ? '' : addslashes($_text);
+									$layers = str_replace(array('{{'.$_from.':'.$num.':'.$_num.'}}', '%'.$_from.':'.$num.':'.$_num.'%'), $_text, $layers);
+								}
+							}
+						}
+					}else{
+						$_to = (empty($_to)) ? '' : addslashes($_to);
+						$_from = ($from === 'meta') ? 'meta:'.$_from : $_from;
+						$layers = str_replace(array('{{'.$_from.'}}', '%'.$_from.'%'), $_to, $layers);
+					}
+				}
+			}else{
+				if(isset($replace[$from])) $from = $replace[$from];
+				if(strpos($from, '.*?') !== false){
+					$contents = preg_match_all('/{{'.$from.'}}/', $layers, $matches);
+					foreach($matches[0] ?? [] as $content) {
+						$to = (empty($to)) ? '' : addslashes($to);
+						$layers = str_replace($content, $to, $layers);
+					}
+				}else{
+					$to = (empty($to)) ? '' : addslashes($to);
+					$layers = str_replace(array('{{'.$from.'}}', '%'.$from.'%'), $to, $layers);
+					if(isset($translation[$from])) $layers = str_replace(array('{{'.$translation[$from].'}}', '%'.$translation[$from].'%'), $to, $layers);
+				}
+			}
+		}
+
+		foreach($this->img_sizes ?? [] as $img_handle => $img_name){
+			$layers = str_replace(['{{featured_image_url_'.$img_handle.'}}', '%featured_image_url_'.$img_handle.'%'],  $this->get_val($post, ['img_urls', $img_handle, 'url'], ''), $layers);
+			$layers = str_replace(['{{featured_image_'.$img_handle.'}}', '%featured_image_'.$img_handle.'%'], $this->get_val($post, ['img_urls', $img_handle, 'tag'], ''), $layers);
+			
+			//fix for using the lowercase name instead of the handle
+			$img_name = str_replace(' ', '_', strtolower($img_name));
+			$layers = str_replace(['{{featured_image_url_'.$img_name.'}}', '%featured_image_url_'.$img_name.'%'],  $this->get_val($post, ['img_urls', $img_handle, 'url'], ''), $layers);
+			$layers = str_replace(['{{featured_image_'.$img_name.'}}', '%featured_image_'.$img_name.'%'], $this->get_val($post, ['img_urls', $img_handle, 'tag'], ''), $layers);
+		}
+		
+		$layers = preg_replace('/\[rev_slider.*?\]|\[\/rev_slider\]|\[sr7.*?\]|\[\/sr7\]/', '', $layers, -1); //remove shortcode in case of recursion
+		$layers = str_replace(array("\r\n", "\r", "\n"), '\n', $layers);
+		$layers = json_decode($layers, true);
+
+		if(!empty($layers)) $this->layers = $layers;
+	}
+
 	/**
 	 * replace layer placeholders by post data
 	 * @before: RevSliderSlide::setLayersByPostData();
@@ -780,38 +1157,6 @@ class RevSliderSlide extends RevSliderFunctions {
 		return apply_filters('revslider_getExcerptById', $excerpt, $post, $limit);
 	}
 	
-	
-	/**
-	 * get text intro, limit by number of words
-	 * @before: RevSliderFunctionsWP::getTextIntro();
-	 */
-	public function get_text_intro($text, $limit){
-		$limit++;
-		$array = explode(' ', $text, $limit);
-		
-		if(count($array) >= $limit){
-			array_pop($array);
-			$intro = implode(' ', $array);
-			$intro = trim($intro);
-			$intro .= (!empty($intro)) ? '...' : '';
-		}else{
-			$intro = $text;
-		}
-		
-		return preg_replace('`\[[^\]]*\]`', '', $intro);
-	}
-	
-	
-	/**
-	 * get text intro, limit by number of words
-	 * @before: RevSliderFunctionsWP::getTextIntro();
-	 */
-	public function get_text_intro_chars($text, $limit){
-		$intro = substr($text, 0, $limit);
-		return preg_replace('`\[[^\]]*\]`', '', $intro);
-	}
-	
-	
 	/**
 	 * replace placeholders with post data
 	 **/
@@ -960,78 +1305,7 @@ class RevSliderSlide extends RevSliderFunctions {
 			}
 		}
 		
-		if(RevSliderWooCommerce::woo_exists()){
-			$is_30 = RevSliderWooCommerce::version_check('3.0');
-			$product = ($is_30) ? wc_get_product($post_id) : get_product($post_id);
-			
-			if($product !== false){
-				$wc_stock		= ($is_30) ? RevSliderWooCommerce::get_total_stock($product) : $product->get_total_stock();
-				$wc_rating		= ($is_30) ? wc_get_rating_html($product->get_average_rating()) : $product->get_rating_html();
-				$wc_categories	= ($is_30) ? wc_get_product_category_list($product->get_id(), ',') : $product->get_categories(',');
-				$wc_tags		= ($is_30) ? wc_get_product_tag_list($product->get_id()) : $product->get_tags();
-				$wc_add_to_cart_button = '';
-				$wc_star_rating = '<div class="rs-starring">';
-				preg_match_all('#<strong class="rating">.*?</span>#', $wc_rating, $match);
-				if(!empty($match) && isset($match[0]) && isset($match[0][0])){
-					$wc_star_rating .= str_replace($match[0][0], '', $wc_rating);
-					$wc_star_rating = str_replace("Rated ","",$wc_star_rating);
-				}
-				$wc_star_rating .= '</div>';
-				
-				if(strpos($text, 'wc_add_to_cart_button') !== false){
-					$pr_id			= ($is_30) ? $product->get_id() : $product->id;
-					$pr_type		= ($is_30) ? $product->get_type() : $product->product_type;
-					$suffix			= defined('SCRIPT_DEBUG') && SCRIPT_DEBUG ? '' : '.min';
-					$ajax_cart_en	= get_option('woocommerce_enable_ajax_add_to_cart') == 'yes' ? true : false;
-					$assets_path	= str_replace(array( 'http:', 'https:'), '', WC()->plugin_url()) . '/assets/';
-					
-					if($ajax_cart_en){
-						wp_enqueue_script( 'wc-add-to-cart', $assets_path.'js/frontend/'.'add-to-cart'.$suffix.'.js', array('jquery'), WC_VERSION, true);
-						
-						global $wc_is_localized;
-						if($wc_is_localized === false){ //load it only one time
-							wp_localize_script('wc-add-to-cart', 'wc_add_to_cart_params', apply_filters('wc_add_to_cart_params', array(
-								'ajax_url'			=> WC()->ajax_url(),
-								'ajax_loader_url'	=> apply_filters('woocommerce_ajax_loader_url', $assets_path . 'images/ajax-loader@2x.gif'),
-								'i18n_view_cart'	=> esc_attr__('View Cart', 'woocommerce'),
-								'cart_url'			=> get_permalink(wc_get_page_id('cart')),
-								'is_cart'			=> is_cart(),
-								'cart_redirect_after_add' => get_option('woocommerce_cart_redirect_after_add')
-							)));
-							$wc_is_localized = true;
-						}
-					}
-					
-					$wc_add_to_cart_button = apply_filters(
-						'woocommerce_loop_add_to_cart_link',
-						sprintf('<a href="%s" rel="nofollow" data-product_id="%s" data-product_sku="%s" class="button %s product_type_%s">%s</a>',
-							esc_url($product->add_to_cart_url()),
-							esc_attr($pr_id),
-							esc_attr($product->get_sku()),
-							$product->is_purchasable() ? 'add_to_cart_button' : '',
-							esc_attr($pr_type),
-							esc_html($product->add_to_cart_text())
-						),
-						$product
-					);
-				}
-				
-				$text = str_replace(array('%wc_full_price%', '{{wc_full_price}}'), $product->get_price_html(), $text);
-				$text = str_replace(array('%wc_price%', '{{wc_price}}'), wc_price($product->get_price()), $text);
-				$text = str_replace(array('%wc_price_no_cur%', '{{wc_price_no_cur}}'), $product->get_price(), $text);
-				$text = str_replace(array('%wc_stock%', '{{wc_stock}}'), $wc_stock, $text);
-				$text = str_replace(array('%wc_rating%', '{{wc_rating}}'), $wc_rating, $text);
-				$text = str_replace(array('%wc_star_rating%', '{{wc_star_rating}}'), $wc_star_rating, $text);
-				$text = str_replace(array('%wc_categories%', '{{wc_categories}}'), $wc_categories, $text);
-				$text = str_replace(array('%wc_add_to_cart%', '{{wc_add_to_cart}}'), $product->add_to_cart_url(), $text);
-				$text = str_replace(array('%wc_add_to_cart_button%', '{{wc_add_to_cart_button}}'), $wc_add_to_cart_button, $text);
-				$text = str_replace(array('%wc_sku%', '{{wc_sku}}'), $product->get_sku(), $text);
-				$text = str_replace(array('%wc_stock_quantity%', '{{wc_stock_quantity}}'), $product->get_stock_quantity(), $text);
-				$text = str_replace(array('%wc_rating_count%', '{{wc_rating_count}}'), $product->get_rating_count(), $text);
-				$text = str_replace(array('%wc_review_count%', '{{wc_review_count}}'), $product->get_review_count(), $text);
-				$text = str_replace(array('%wc_tags%', '{{wc_tags}}'), $wc_tags, $text);
-			}
-		}
+		$text = apply_filters('sr_modify_layer_text', $text, $post_id, $this);
 		
 		return $text;
 	}
@@ -1055,7 +1329,7 @@ class RevSliderSlide extends RevSliderFunctions {
 				$this->init_by_facebook($a['slider_id'], $a['additions']);
 			break;
 			case 'twitter':
-				$this->init_by_twitter($a['slider_id'], $a['additions']);
+				$this->throw_error(__('Twitter Stream is no longer available, for further information, please check https://www.sliderrevolution.com/faq/why-are-we-dropping-twitter-api-integration/', 'revslider'));
 			break;
 			case 'instagram':
 				$this->init_by_instagram($a['slider_id'], $a['additions']);
@@ -1102,7 +1376,7 @@ class RevSliderSlide extends RevSliderFunctions {
 		}
 		
 		if($this->get_val($this->params, array('bg', 'type')) == 'image'){ //if image is choosen, use featured image as background
-			if($additions['fb_type'] == 'album'){
+			if($this->get_val($additions, 'fb_type') == 'album'){
 				$image_array = $this->get_val($this->post_data, 'images');
 				$this->image_url	=  isset($image_array[0]['source']) ? $image_array[0]['source'] : $this->get_val($this->post_data, 'picture', $this->image_thumb);
 				$this->image_thumb	= $this->get_val($this->post_data, 'picture', $this->image_thumb);
@@ -1111,7 +1385,7 @@ class RevSliderSlide extends RevSliderFunctions {
 				$this->image_thumb	= $this->get_val($this->post_data, 'picture', $this->image_thumb);
 			}
 			
-			$this->image_url = (empty($this->image_url)) ? RS_PLUGIN_URL.'public/assets/assets/sources/facebook.png' : $this->image_url;
+			$this->image_url = (empty($this->image_url)) ? RS_PLUGIN_URL_CLEAN.'public/assets/sources/facebook.png' : $this->image_url;
 			$this->image_url = (is_ssl()) ? str_replace('http://', 'https://', $this->image_url) : $this->image_url;
 			$this->image_filename = basename($this->image_url);
 		}
@@ -1119,108 +1393,6 @@ class RevSliderSlide extends RevSliderFunctions {
 		$this->post_data = apply_filters('revslider_slide_initByFacebook_post', $this->post_data, $slider_id, $additions, $this);
 		
 		$this->set_layers_by_stream($slider_id, 'facebook', $additions); //replace placeholders in layers
-	}
-	
-	
-	/**
-	 * init the data for twitter
-	 * @since: 5.0
-	 * @before: RevSliderSlide::initByTwitter();
-	 */
-	private function init_by_twitter($slider_id, $additions){
-		$this->post_data = apply_filters('revslider_slide_initByTwitter_pre', $this->post_data, $slider_id, $additions, $this);
-		
-		$this->id = $this->get_val($this->post_data, 'id');
-		$this->set_param('title', $this->get_val($this->post_data, 'title'));
-		$this->set_param(array('publish', 'state'), 'published');
-		
-		if($this->get_val($this->params, array('seo', 'set'), false) && $this->get_val($this->params, array('seo', 'type'), 'regular') == 'regular'){
-			$link = 'https://twitter.com/'.$additions['twitter_user'].'/status/'.$this->get_val($this->post_data, 'id_str');
-			$this->set_param(array('seo', 'link'), str_replace(array('%link%', '{{link}}'), $link, $this->params['seo']['link']));
-		}
-		
-		if(in_array($this->get_val($this->params, array('bg', 'type')), array('html5', 'trans', 'image', 'streamtwitter', 'streamtwitterboth'), true)){ //if image is choosen, use featured image as background
-			$img_sizes		 = $this->get_all_image_sizes('twitter');
-			$img_res		 = $this->get_val($this->params, array('bg', 'imageSourceType'), reset($img_sizes));
-			$this->image_id	 = $this->get_val($this->post_data, 'id');
-			$img_res		 = (!isset($img_sizes[$img_res])) ? key($img_sizes) : $img_res;
-			$image_url_array = $this->get_val($this->post_data, 'media');
-			$image_url_large = $this->get_val($image_url_array, 'large');
-			$img			 = $this->get_val($image_url_large, 'media_url', '');
-			$entities		 = $this->get_val($this->post_data, 'entities');
-			$urls			 = $this->get_val($entities, 'urls');
-			
-			if($img == ''){
-				$image_url_array = $this->get_val($entities, 'media');
-				if(is_array($image_url_array) && isset($image_url_array[0])){
-					$img = (is_ssl()) ? $this->get_val($image_url_array[0], 'media_url_https') : $this->get_val($image_url_array[0], 'media_url');
-				}
-			}
-			
-			if(is_array($urls) && isset($urls[0])){
-				$display_url = $this->get_val($urls[0], 'display_url');
-				$raw = explode('/', $display_url);
-				
-				//check if youtube or vimeo is inside
-				if(strpos($display_url, 'youtu.be') !== false){
-					$this->set_param(array('bg', 'youtube'), $raw[1]); //set video for background video
-				}elseif(strpos($display_url, 'vimeo.com') !== false){
-					$this->set_param(array('bg', 'vimeo'), $raw[1]); //set video for background video
-				}
-			}
-			
-			$image_url_array = $this->get_val($entities, 'media');
-			if(is_array($image_url_array) && isset($image_url_array[0])){
-				$video_info	= $this->get_val($image_url_array[0], 'video_info');
-				$variants	= $this->get_val($video_info, 'variants');
-				if(is_array($variants) && isset($variants[0])){
-					$this->set_param(array('bg', 'mpeg'), $this->get_val($variants[0], 'url')); //set video for background video
-				}
-			}
-			
-			$entities = $this->get_val($this->post_data, 'extended_entities');
-			if($img == ''){
-				$image_url_array = $this->get_val($entities, 'media');
-				if(is_array($image_url_array) && isset($image_url_array[0])){
-					$img = (is_ssl()) ? $this->get_val($image_url_array[0], 'media_url_https') : $this->get_val($image_url_array[0], 'media_url');
-				}
-			}
-			
-			$urls = $this->get_val($entities, 'urls');
-			if(is_array($urls) && isset($urls[0])){
-				$display_url = $this->get_val($urls[0], 'display_url');
-				
-				//check if youtube or vimeo is inside
-				$raw = explode('/', $display_url);
-				if(strpos($display_url, 'youtu.be') !== false){
-					$this->set_param(array('bg', 'youtube'), $raw[1]); //set video for background video
-				}elseif(strpos($display_url, 'vimeo.com') !== false){
-					$this->set_param(array('bg', 'vimeo'), $raw[1]); //set video for background video
-				}
-			}
-			
-			$image_url_array = $this->get_val($entities, 'media');
-			if(is_array($image_url_array) && isset($image_url_array[0])){
-				$video_info	= $this->get_val($image_url_array[0], 'video_info');
-				$variants	= $this->get_val($video_info, 'variants');
-				if(is_array($variants) && isset($variants[0])){
-					$this->set_param(array('bg', 'mpeg'), $this->get_val($variants[0], 'url')); //set video for background video
-				}
-			}
-			
-			if($img !== ''){
-				$this->image_url = $img;
-				$this->image_thumb = $img;
-			}
-			
-			$this->image_url = (empty($this->image_url)) ? RS_PLUGIN_URL.'public/assets/assets/sources/twitter.png' : $this->image_url;
-			$this->image_url = (is_ssl()) ? str_replace("http://", "https://", $this->image_url) : $this->image_url;
-			$this->image_filename = basename($this->image_url);
-		}
-		
-		$this->post_data = apply_filters('revslider_slide_initByTwitter_post', $this->post_data, $slider_id, $additions, $this);
-		
-		$this->set_layers_by_stream($slider_id, 'twitter', $additions); //replace placeholders in layers
 	}
 	
 	
@@ -1259,7 +1431,7 @@ class RevSliderSlide extends RevSliderFunctions {
 			$this->image_url = $this->get_val($this->post_data, 'display_url');
 			$this->image_thumb = $this->get_val($this->post_data, 'thumbnail_src', $this->image_thumb);
 			
-			$this->image_url = (empty($this->image_url)) ? RS_PLUGIN_URL . 'public/assets/assets/sources/instagram.png' : $this->image_url;
+			$this->image_url = (empty($this->image_url)) ? RS_PLUGIN_URL_CLEAN . 'public/assets/sources/instagram.png' : $this->image_url;
 
 			$this->image_url = (is_ssl()) ? str_replace('http://', 'https://', $this->image_url) : $this->image_url;
 			$this->image_filename = basename($this->image_url);
@@ -1323,7 +1495,7 @@ class RevSliderSlide extends RevSliderFunctions {
 				}
 			}
 			$this->image_thumb	= $this->get_val($is, 'thumbnail', $this->image_thumb);
-			$this->image_url	= (empty($this->image_url)) ? RS_PLUGIN_URL.'public/assets/assets/sources/flickr.png' : $this->image_url;
+			$this->image_url	= (empty($this->image_url)) ? RS_PLUGIN_URL_CLEAN.'public/assets/sources/flickr.png' : $this->image_url;
 			$this->image_url	= (is_ssl()) ? str_replace("http://", "https://", $this->image_url) : $this->image_url;
 			$this->image_filename = basename($this->image_url);
 		}
@@ -1355,7 +1527,7 @@ class RevSliderSlide extends RevSliderFunctions {
 			$this->set_param(array('seo', 'link'), str_replace(array('%link%', '{{link}}'), $link, $this->params['seo']['link']));
 		}
 		
-		switch($additions['yt_type']){
+		switch($this->get_val($additions, 'yt_type')){
 			case 'channel':
 				$this->id = $this->get_val($this->post_data, array('id', 'videoId'));
 			break;
@@ -1390,7 +1562,7 @@ class RevSliderSlide extends RevSliderFunctions {
 			$this->image_url = (empty($this->image_url)) ? $this->get_val($is, 'default', '') : $this->image_url;
 			$this->image_thumb = $this->get_val($is, 'medium', $this->image_thumb);
 			
-			$this->image_url = (empty($this->image_url)) ? RS_PLUGIN_URL.'public/assets/assets/sources/youtube.png' : $this->image_url;
+			$this->image_url = (empty($this->image_url)) ? RS_PLUGIN_URL_CLEAN.'public/assets/sources/youtube.png' : $this->image_url;
 			$this->image_url = (is_ssl()) ? str_replace('http://', 'https://', $this->image_url) : $this->image_url;
 			
 			if($this->get_param(array('thumb', 'customThumbSrc'), '') === ''){
@@ -1439,7 +1611,7 @@ class RevSliderSlide extends RevSliderFunctions {
 			}
 			
 			$this->image_url = $this->get_val($is, $img_res, '');
-			$this->image_url = (empty($this->image_url)) ? RS_PLUGIN_URL.'public/assets/assets/sources/vimeo.png' : $this->image_url;
+			$this->image_url = (empty($this->image_url)) ? RS_PLUGIN_URL_CLEAN.'public/assets/sources/vimeo.png' : $this->image_url;
 			$this->image_url = (is_ssl()) ? str_replace("http://", "https://", $this->image_url) : $this->image_url;
 			$this->image_thumb = $this->get_val($is, 'thumbnail', $this->image_thumb);
 			$this->image_filename = basename($this->image_url);
@@ -1467,16 +1639,12 @@ class RevSliderSlide extends RevSliderFunctions {
 				$_img_s[$v] = $v;
 			}
 		}
-		$img_sizes = array_merge($img_sizes, $_img_sizes, $_img_s);
-		
+		$img_sizes	= array_merge($img_sizes, $_img_sizes, $_img_s);
+		$content	= $this->get_val($attr, 'content');
+
 		$text = apply_filters('revslider_slide_set_stream_data_pre', $text, $attr, $stream_type, $additions, $is_action, $img_sizes);
-		$title = ($stream_type == 'twitter' && $is_action === false) ? $this->add_wrap_around_url($this->get_val($attr, 'title')) : $this->get_val($attr, 'title');
-		$excerpt = ($stream_type == 'twitter' && $is_action === false) ? $this->add_wrap_around_url($this->get_val($attr, 'excerpt')) : $this->get_val($attr, 'excerpt');
-		$content = ($stream_type == 'twitter' && $is_action === false) ? $this->add_wrap_around_url($this->get_val($attr, 'content')) : $this->get_val($attr, 'content');
-		
-		$text = str_replace(array('%title%', '{{title}}'), $title, $text);
-		$text = str_replace(array('%excerpt%', '{{excerpt}}'), $excerpt, $text);
-		$text = str_replace(array('%description%', '{{description}}'), $excerpt, $text);
+		$text = str_replace(array('%title%', '{{title}}'), $this->get_val($attr, 'title'), $text);
+		$text = str_replace(array('%excerpt%', '{{excerpt}}', '%description%', '{{description}}'), $this->get_val($attr, 'excerpt'), $text);
 		$text = str_replace(array('%alias%', '{{alias}}'), $this->get_val($attr, 'alias'), $text);
 		$text = str_replace(array('%content%', '{{content}}'), $content, $text);
 		$text = str_replace(array('%link%', '{{link}}'), $this->get_val($attr, 'link'), $text);
@@ -1524,7 +1692,7 @@ class RevSliderSlide extends RevSliderFunctions {
 		switch($stream_type){
 			case 'facebook':
 				foreach($img_sizes as $img_handle => $img_name){
-					if($additions['fb_type'] == 'album'){
+					if($this->get_val($additions, 'fb_type') == 'album'){
 						$text = str_replace(array('%featured_image_url_'.$img_handle.'%', '{{featured_image_url_'.$img_handle.'}}', '%image_url_'.$img_handle.'%', '{{image_url_'.$img_handle.'}}'), $this->get_val($attr, array('img_urls', $img_handle, 'url')), $text);
 						$text = str_replace(array('%featured_image_'.$img_handle.'%', '{{featured_image_'.$img_handle.'}}', '%image_'.$img_handle.'%', '{{image_'.$img_handle.'}}'), $this->get_val($attr, array('img_urls', $img_handle, 'tag')), $text);
 					}else{
@@ -1535,7 +1703,6 @@ class RevSliderSlide extends RevSliderFunctions {
 			break;
 			case 'youtube':
 			case 'vimeo':
-			case 'twitter':
 			case 'instagram':
 			case 'flickr':
 				foreach($img_sizes as $img_handle => $img_name){
@@ -1559,7 +1726,6 @@ class RevSliderSlide extends RevSliderFunctions {
 		$this->params	= $this->get_val($a, 'params');
 		$this->layers	= $this->get_val($a, 'layers');
 		$additions['lazyload'] = ($this->get_slider_param($slider_id, array('general', 'lazyLoad'), false) != 'none') ? true : false;
-		
 		$attr			= $this->return_stream_data($stream_type, $additions);
 		
 		if(!empty($this->layers)){
@@ -1581,13 +1747,9 @@ class RevSliderSlide extends RevSliderFunctions {
 				}
 				
 				$layer_type = $this->get_val($layer, 'type', 'text');
-
-				//TODO: Check Patrick
-				if ( ( $layer_type === 'image' && $this->get_val($layer, array('media', 'imageFromStream'), false) === true ) || ( in_array($layer_type, array('shape', 'row', 'group'), true)  && $this->get_val($layer, array('idle', 'bgFromStream'), false) === true )  ){
+				if(($layer_type === 'image' && $this->get_val($layer, array('media', 'imageFromStream'), false) === true) || (in_array($layer_type, array('shape', 'row', 'group'), true) && $this->get_val($layer, array('idle', 'bgFromStream'), false) === true)){
 					$featured_image_url = $this->get_val($attr, 'stream_image_url', '');
-					if(!empty($featured_image_url)){
-						$this->set_val($layer, array('media', 'imageUrl'), $featured_image_url);
-					}
+					if(!empty($featured_image_url)) $this->set_val($layer, array('media', 'imageUrl'), $featured_image_url);
 				}
 				$this->layers[$key] = $layer;
 			}
@@ -1628,16 +1790,11 @@ class RevSliderSlide extends RevSliderFunctions {
 		
 		switch($stream_type){
 			case 'facebook':
-				if($additions['fb_type'] == 'album'){
+				if($this->get_val($additions, 'fb_type') == 'album'){
 					$image_array = $this->get_val($this->post_data, 'images');
 					$this->image_url	= isset($image_array[0]['source']) ? $image_array[0]['source'] : $this->get_val($this->post_data, 'picture', $this->image_thumb);
 					$this->image_thumb	= $this->get_val($this->post_data, 'picture', $this->image_thumb);
-				}else{
-					$this->image_url	= $this->get_val($this->post_data, 'full_picture', $this->image_thumb);
-					$this->image_thumb	= $this->get_val($this->post_data, 'picture', $this->image_thumb);
-				}
 
-				if($this->get_val($additions, 'fb_type') == 'album'){
 					$fb_img_thumbnail = $this->get_val($this->post_data, 'picture');
 
 					$image_array = $this->get_val($this->post_data, 'images');
@@ -1664,6 +1821,9 @@ class RevSliderSlide extends RevSliderFunctions {
 						)
 					);
 				}else{
+					$this->image_url	= $this->get_val($this->post_data, 'full_picture', $this->image_thumb);
+					$this->image_thumb	= $this->get_val($this->post_data, 'picture', $this->image_thumb);
+
 					$fb_img_thumbnail = $this->get_val($this->post_data, 'picture');
 					$fb_img = $this->get_val($this->post_data, 'full_picture');
 
@@ -1685,48 +1845,6 @@ class RevSliderSlide extends RevSliderFunctions {
 								'url' => $fb_img_thumbnail,
 								'tag' => '<img'.$class.' src="'.$fb_img_thumbnail.'" alt="'.esc_attr($this->get_val($this->post_data, 'message')).'" data-no-retina />'
 							)
-						)
-					);
-				}
-			break;
-			case 'twitter':
-				$image_url_array = $this->get_val($this->post_data, 'media');
-				$image_url_large = $this->get_val($image_url_array, 'large');
-				$img = $this->get_val($image_url_large, 'media_url', '');
-				if($img == ''){
-					$entities = $this->get_val($this->post_data, 'entities');
-					$image_url_array = $this->get_val($entities, 'media');
-					if(is_array($image_url_array) && isset($image_url_array[0])){
-						$img = (is_ssl()) ? $this->get_val($image_url_array[0], 'media_url_https') : $this->get_val($image_url_array[0], 'media_url');
-						$image_url_large = $image_url_array[0];
-					}
-				}
-				if($img == ''){
-					$entities = $this->get_val($this->post_data, 'extended_entities');
-					$image_url_array = $this->get_val($entities, 'media');
-					if(is_array($image_url_array) && isset($image_url_array[0])){
-						$img = (is_ssl()) ? $this->get_val($image_url_array[0], 'media_url_https') : $this->get_val($image_url_array[0], 'media_url');
-						$image_url_large = $image_url_array[0];
-					}
-				}
-				
-				$attr1 = array(
-					'title'		=> $this->get_val($this->post_data, 'full_text'),
-					'content'	=> $this->get_val($this->post_data, 'full_text'),
-					'link'		=> 'https://twitter.com/'.$this->get_val($additions, 'twitter_user').'/status/'.$this->get_val($this->post_data, 'id_str'),
-					'date'		=> $this->convert_post_date($this->get_val($this->post_data, 'created_at'), true),
-					'author_name'	=> $this->get_val($this->post_data, array('user', 'screen_name')),
-					'retweet_count'	=> $this->get_val($this->post_data, 'retweet_count', '0'),
-					'favorite_count'=> $this->get_val($this->post_data, 'favorite_count', '0'),
-				);
-				if($img !== ''){
-					$w = $this->get_val($image_url_large, 'w', '');
-					$h = $this->get_val($image_url_large, 'h', '');
-					$attr1['stream_image_url'] = $img;
-					$attr1['img_urls'] = array(
-						'large' => array(
-							'url' => $img,
-							'tag' => '<img'.$class.' src="'.$img.'" width="'.$w.'" height="'.$h.'" alt="'.esc_attr($this->get_val($this->post_data, 'full_text')).'" data-no-retina />'
 						)
 					);
 				}
@@ -1821,7 +1939,7 @@ class RevSliderSlide extends RevSliderFunctions {
 						$attr1['img_urls'][$name] = array(
 							'url' => $this->get_val($vals, 'url'),
 						);
-						switch($additions['yt_type']){
+						switch($this->get_val($additions, 'yt_type')){
 							case 'channel':
 								$attr1['img_urls'][$name]['tag'] = '<img'.$class.' src="'.$this->get_val($vals, 'url').'" alt="'.esc_attr($this->get_val($attr1, 'title')).'" data-no-retina />';
 							break;
@@ -1869,11 +1987,30 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @before: RevSliderSlide::saveLayers()
 	 */
 	public function save_layers(){
-		global $wpdb;
+		global $wpdb, $SR_GLOBALS;
 		
-		$table			= ($this->static_slide) ? $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES : $wpdb->prefix . RevSliderFront::TABLE_SLIDES;
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
+		
+		$table			= ($this->static_slide && $SR_GLOBALS['use_table_version'] !== 7) ? $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES : $wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v;
 		$this->layers	= apply_filters('revslider_slide_saveLayers', $this->layers, $this->static_slide, $this);
 		
+		if(!empty($this->layers) && $SR_GLOBALS['use_table_version'] === 6){
+			if(!current_user_can('administrator') && apply_filters('revslider_restrict_role', true)){
+				foreach($this->layers ?? [] as $k => $layer){
+				
+					$actions = $this->get_val($layer, ['actions', 'action'], []);
+					if(empty($actions)) continue;
+
+					foreach($actions ?? [] as $l => $action){
+						if(!isset($action['actioncallback'])) continue;
+						unset($actions[$l]);
+					}
+
+					$this->layers[$k]['actions']['action'] = $actions;
+				}
+			}
+		}
+
 		$wpdb->update($table, array('layers' => json_encode($this->layers)), array('id' => $this->id));
 	}
 	
@@ -1887,6 +2024,7 @@ class RevSliderSlide extends RevSliderFunctions {
 		if(is_array($name)){
 			$params = &$this->params;
 			foreach($name as $i => $key){
+				if(!isset($params[$key])) $params[$key] = array();
 				if(is_array($params)){
 					$params = &$params[$key];
 				}elseif(is_object($params)){
@@ -1923,12 +2061,28 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @before: RevSliderSlide::saveParams();
 	 */
 	public function save_params(){
-		global $wpdb;
+		global $wpdb, $SR_GLOBALS;
 		
-		$table = ($this->static_slide) ? $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES : $wpdb->prefix . RevSliderFront::TABLE_SLIDES;
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
+		
+		$table = ($this->static_slide && $SR_GLOBALS['use_table_version'] !== 7) ? $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES : $wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v;
 		$this->params = apply_filters('revslider_slide_saveParams', $this->params, $this->static_slide, $this);
-		
-		$wpdb->update($table, array('params' => json_encode($this->params)),array('id' => $this->id));
+
+		if(!empty($this->params) && $SR_GLOBALS['use_table_version'] === 7){
+			if(!current_user_can('administrator') && apply_filters('revslider_restrict_role', true)){
+				$actions = $this->get_val($this->params, 'actions', []);
+				if(!empty($actions)){
+					foreach($actions ?? [] as $k => $action){
+						if($this->get_val($action, 'a') !== 'callback') continue;
+						unset($actions[$k]);
+					}
+
+					$this->params['actions'] = $actions;
+				}
+			}
+		}
+
+		$wpdb->update($table, array('params' => json_encode($this->params)), array('id' => $this->id));
 	}
 	
 	
@@ -1937,9 +2091,11 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @since: 6.0
 	 */
 	public function save_settings(){
-		global $wpdb;
+		global $wpdb, $SR_GLOBALS;
 		
-		$table = ($this->static_slide) ? $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES : $wpdb->prefix . RevSliderFront::TABLE_SLIDES;
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
+		
+		$table = ($this->static_slide && $SR_GLOBALS['use_table_version'] !== 7) ? $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES : $wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v;
 		$this->settings = apply_filters('revslider_slide_save_settings', $this->settings, $this->static_slide, $this);
 		
 		/**
@@ -1974,7 +2130,9 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @before: RevSliderSlide::createSlide()
 	 */
 	public function create_slide($slider_id, $obj = '', $static = false, $id = false){
-		global $wpdb;
+		global $wpdb, $SR_GLOBALS;
+		
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
 		
 		$image_url	= (is_array($obj)) ? $this->get_val($obj, 'url') : $obj;
 		$image_id	= (is_array($obj)) ? $this->get_val($obj, 'id') : null;
@@ -2001,12 +2159,13 @@ class RevSliderSlide extends RevSliderFunctions {
 			'layers'	=> '',
 			'settings'	=> json_encode($settings)
 		);
+		if($SR_GLOBALS['use_table_version'] === 7) $insert['static'] = $this->_truefalse($static);
 		
-		if($id !== false) $insert['id'] = $id;
+		if($id !== false) $insert['id'] = str_replace('static_', '', $id);
 		if(!$static) $insert['slide_order'] = $order;
 		
 		$insert	= apply_filters('revslider_slide_createSlide', $insert, $slider_id, $static, $this);
-		$table	= (!$static) ? RevSliderFront::TABLE_SLIDES : RevSliderFront::TABLE_STATIC_SLIDES;
+		$table	= ($static && $SR_GLOBALS['use_table_version'] !== 7) ? RevSliderFront::TABLE_STATIC_SLIDES : RevSliderFront::TABLE_SLIDES . $v;
 		$done	= $wpdb->insert($wpdb->prefix . $table, $insert);
 		
 		return ($done) ? $wpdb->insert_id : false;
@@ -2018,10 +2177,14 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * before: RevSliderSlide::initByStaticID()
 	 */
 	public function init_by_static_id($slide_id){
-		global $wpdb;
-		$this->validate_numeric($slide_id, 'Slide ID');
+		global $wpdb, $SR_GLOBALS;
 		
-		$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES." WHERE id = %d", $slide_id), ARRAY_A);
+		$this->validate_numeric($slide_id, 'Slide ID');
+		if($SR_GLOBALS['use_table_version'] === 7){
+			$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES ."7 WHERE id = %d AND static = 1", $slide_id), ARRAY_A);
+		}else{
+			$slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES ." WHERE id = %d", $slide_id), ARRAY_A);
+		}
 		$this->init_by_data($slide);
 	}
 	
@@ -2031,8 +2194,9 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * before: RevSliderSlide::initByData();
 	 */
 	public function init_by_data($slide){
-		$slide = apply_filters('revslider_slide_init_by_data', apply_filters('revslider_slide_initByData', $slide));
-		
+		global $SR_GLOBALS;
+		$slide			 = apply_filters('revslider_slide_init_by_data', apply_filters('revslider_slide_initByData', $slide));
+		$this->v7		 = ($SR_GLOBALS['use_table_version'] === 7) ? true : false;
 		$this->id		 = $this->get_val($slide, 'id');
 		$this->slider_id = $this->get_val($slide, 'slider_id');
 		$this->order	 = $this->get_val($slide, 'slide_order', '');
@@ -2043,9 +2207,17 @@ class RevSliderSlide extends RevSliderFunctions {
 		$this->settings	 = $this->get_val($slide, 'settings');
 		$this->settings	 = (!is_array($this->settings)) ? (array)json_decode($this->settings, true) : $this->settings;
 		$this->params['version'] = $this->get_val($this->settings, 'version', $this->get_val($this->params, 'version'));
-		$this->image_id	 = $this->get_val($this->params, array('bg', 'imageId'));
-		$image_resolution = $this->get_val($this->params, array('bg', 'imageSourceType'), 'full');
-		$image_url = $this->get_val($this->params, array('bg', 'image'));
+		if($this->v7){
+			$bglayer	 = $this->get_bg_layer();
+			$bglayertype = 'trans';
+			$bglayertype = (!empty($this->get_val($bglayer, array('bg', 'image')))) ? 'image' : $bglayertype;
+			$bglayertype = (!empty($this->get_val($bglayer, array('bg', 'video')))) ? 'video' : $bglayertype;
+			$image_url	 = ($bglayertype === 'video') ? $this->get_val($bglayer, array('bg', $bglayertype, 'poster', 'src')) : $this->get_val($bglayer, array('bg', $bglayertype, 'src'));
+		}else{
+			$image_url	 = $this->get_val($this->params, array('bg', 'image'));
+		}
+		$this->image_id	 = ($this->v7) ? $this->get_val($bglayer, array('bg', $bglayertype, 'lib_id')) : $this->get_val($this->params, array('bg', 'imageId'));
+		$image_resolution = ($this->v7) ? $this->get_val($bglayer, array('bg', $bglayertype, 'lib_size'), 'full') : $this->get_val($this->params, array('bg', 'imageSourceType'), 'full');
 		
 		/**
 		 * fix for [{0:'a',1:'b'}] structures that can occur
@@ -2069,13 +2241,24 @@ class RevSliderSlide extends RevSliderFunctions {
 			if(!empty($this->image_id)){
 				$image_url = $this->get_url_attachment_image($this->image_id, $image_resolution);
 				if(empty($image_url)){
-					$image_url = $this->get_val($this->params, array('bg', 'image'));
+					if($this->v7){
+						$image_url = ($bglayertype === 'video') ? $this->get_val($bglayer, array('bg', $bglayertype, 'poster', 'src')) : $this->get_val($bglayer, array('bg', $bglayertype, 'src'));
+					}else{
+						$image_url = $this->get_val($this->params, array('bg', 'image'));
+					}
 					$this->image_id	= $this->get_image_id_by_url($image_url);
 					if($this->image_id !== false){
 						$image_url = $this->get_url_attachment_image($this->image_id, $image_resolution);
 						
-						$this->set_val($this->params, array('bg', 'imageId'), $this->image_id);
-						$this->save_params();
+						if(!$this->v7){
+							if($bglayertype !== 'trans'){
+								$this->set_val($bglayer, array('bg', $bglayertype, 'lib_id'), $this->image_id);
+								$this->update_bg_layer($bglayer);
+							}
+						}else{
+							$this->set_val($this->params, array('bg', 'imageId'), $this->image_id);
+							$this->save_params();
+						}
 					}
 				}
 				
@@ -2085,8 +2268,15 @@ class RevSliderSlide extends RevSliderFunctions {
 				
 				if($this->image_id !== false && $this->image_id !== null){
 					//save the image ID in the Slide Settings
-					$this->set_val($this->params, array('bg', 'imageId'), $this->image_id);
-					$this->save_params();
+					if($this->v7){
+						if($bglayertype !== 'trans'){
+							$this->set_val($bglayer, array('bg', $bglayertype, 'lib_id'), $this->image_id);
+							$this->update_bg_layer($bglayer);
+						}
+					}else{
+						$this->set_val($this->params, array('bg', 'imageId'), $this->image_id);
+						$this->save_params();
+					}
 					
 					$image_url = $this->get_url_attachment_image($this->image_id, $image_resolution);
 				}
@@ -2107,14 +2297,19 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @since: 6.0
 	 **/
 	public function get_slides_for_library($slider_ids = array(), $get_static_slide = false){
-		global $wpdb;
-		$slides = array();
+		global $wpdb, $SR_GLOBALS;
 		
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
+
+		$slides = array();
+
+		$addition = ($get_static_slide === false && $SR_GLOBALS['use_table_version'] === 7) ? " AND static = false" : '';
+
 		if(!empty($slider_ids)){
 			foreach($slider_ids as $sid){
-				$cur_slides = $wpdb->get_results($wpdb->prepare("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES ." WHERE slider_id = %s", $sid), ARRAY_A);
+				$cur_slides = $wpdb->get_results($wpdb->prepare("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v ." WHERE slider_id = %s".$addition, $sid), ARRAY_A);
 				
-				if($get_static_slide === true){
+				if($get_static_slide === true && $SR_GLOBALS['use_table_version'] !== 7){
 					$static_slide = $wpdb->get_row($wpdb->prepare("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES ." WHERE slider_id = %s", $sid), ARRAY_A);
 					if(!empty($static_slide)){
 						$static_slide['id'] = 'static_'.$static_slide['id'];
@@ -2144,7 +2339,7 @@ class RevSliderSlide extends RevSliderFunctions {
 				
 				if($this->get_val($slide, 'static', false) === true){
 					$slides[$key]['title'] = __('Global Layers', 'revslider');
-					$slides[$key]['bg'] = array('type' => 'image', 'src' => RS_PLUGIN_URL.'admin/assets/images/sources/static.png', 'style' => array());
+					$slides[$key]['bg'] = array('type' => 'image', 'src' => RS_PLUGIN_URL_CLEAN.'admin/assets/images/sources/static.png', 'style' => array());
 				}else{
 					if($this->get_val($params, 'title', false) === false) $params['title'] = 'Slide '.$i;
 					$slides[$key]['title']	= $this->get_val($params, 'title');
@@ -2182,13 +2377,16 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @since: 6.3.10
 	 **/
 	public function get_slide_ids_by_slider_id($slider_ids){
-		global $wpdb;
+		global $wpdb, $SR_GLOBALS;
+		
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
+		$addition = ($SR_GLOBALS['use_table_version'] === 7) ? " AND static != 1" : "";
 		
 		if(is_array($slider_ids) && !empty($slider_ids)){
 			$in  = str_repeat('%d,', count($slider_ids) - 1) . '%d';
-			$slides_data = $wpdb->get_results($wpdb->prepare("SELECT `id`, `slider_id`, `slide_order` FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES." WHERE slider_id IN(".$in.") ORDER BY slider_id,slide_order ASC", $slider_ids), ARRAY_A);
+			$slides_data = $wpdb->get_results($wpdb->prepare("SELECT `id`, `slider_id`, `slide_order` FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v . " WHERE slider_id IN(".$in.")".$addition." ORDER BY slider_id,slide_order ASC", $slider_ids), ARRAY_A);
 		}else{
-			$slides_data = $wpdb->get_results($wpdb->prepare("SELECT `id`, `slider_id`, `slide_order` FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES." WHERE slider_id = %d ORDER BY slide_order ASC", $slider_ids), ARRAY_A);
+			$slides_data = $wpdb->get_results($wpdb->prepare("SELECT `id`, `slider_id`, `slide_order` FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v . " WHERE slider_id = %d".$addition." ORDER BY slide_order ASC", $slider_ids), ARRAY_A);
 		}
 		
 		return $slides_data;
@@ -2196,67 +2394,71 @@ class RevSliderSlide extends RevSliderFunctions {
 	
 	/**
 	 * get all slides from specific slider id
-	 * @before: RevSliderSlider::getSlidesFromGallery
 	 **/
-	public function get_slides_by_slider_id($slider_id, $published = false, $wmpl = false, $first = false, $init_layer = true, $fetch_single = false){
-		global $wpdb;
+	public function get_slides_by_slider_id($slider_id, $published = false, $wpml = false, $first = false, $init_layer = true, $fetch_single = false){
+		global $wpdb, $SR_GLOBALS;
 		
+		$v = ($SR_GLOBALS['use_table_version'] === 7) ? '7' : '';
+		$addition = ($SR_GLOBALS['use_table_version'] === 7) ? " AND static != 1" : "";
+
 		$slides		= array();
 		$children	= array();
 		$first_sql	= ($fetch_single === true) ? " AND `slide_order` = '1'" : '';
 		
 		if(is_array($slider_id) && !empty($slider_id)){
 			$in  = str_repeat('%d,', count($slider_id) - 1) . '%d';
-			$slides_data_sql = $wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES." WHERE slider_id IN(".$in.")".$first_sql." ORDER BY slider_id,slide_order ASC", $slider_id);
+			$slides_data_sql = $wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v . " WHERE slider_id IN(".$in.")".$first_sql.$addition." ORDER BY slider_id,slide_order ASC", $slider_id);
 		}else{
-			$slides_data_sql = $wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES." WHERE slider_id = %d".$first_sql." ORDER BY slide_order ASC", $slider_id);
+			$slides_data_sql = $wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES . $v . " WHERE slider_id = %d".$first_sql.$addition." ORDER BY slide_order ASC", $slider_id);
 		}
-
+		
 		$cache_key = $this->get_wp_cache_key('get_slides_by_slider_id', $slides_data_sql);
 		$slides_data = wp_cache_get($cache_key, self::CACHE_GROUP);
 		if (false === $slides_data) {
 			$slides_data = $wpdb->get_results($slides_data_sql, ARRAY_A);
 			wp_cache_set($cache_key, $slides_data, self::CACHE_GROUP);
 		}
-		
+
 		foreach($slides_data as $slide_data){
 			$slide	= new RevSliderSlide();
 			$slide->init_layer = $init_layer;
 			$slide->init_by_data($slide_data);
+
+			if($published == true && $slide->get_param(array('publish', 'state'), 'published') == 'unpublished') continue;
 			
-			if($published == true && $slide->get_param(array('publish', 'state'), 'published') == 'unpublished'){
-				continue;
-			}
-			
-			$pid = $slide->get_param(array('child', 'parentId'), '');
-			
+			$pid = ($this->v7) ? $slide->get_param('parentID', '') : $slide->get_param(array('child', 'parentId'), '');
+
 			if(!empty($pid)){
 				if(!isset($children[$pid])) $children[$pid] = array();
 				$children[$pid][] = $slide;
 				
-				if(!$wmpl) continue; //do not add it to $slides
+				if(!$wpml) continue; //do not add it to $slides
 			}
 			
 			$slides[$slide->get_id()] = $slide;
 			
-			if($first) break; //we only want the first slide!
+			if($first && $wpml === false) break; //we only want the first slide on none wpml sliders!
 		}
 		
 		//add children array to the parent slides
-		foreach($children as $pid => $arr){
-			if(!isset($slides[$pid])){
-				continue;
-			}
+		foreach($children ?? [] as $pid => $arr){
+			if(!isset($slides[$pid])) continue;
+
 			$slides[$pid]->children = $arr;
 		}
 		
+		if($first && $wpml === true){ //as we have wmpl enabled, we still need to only return one slide, but with all its children for later selection
+			foreach($children ?? [] as $slide){
+				return $slide;
+			}
+		}
+
 		return $slides;
 	}
 	
 	
 	/**
 	 * get params for export
-	 * before: RevSliderSlide::getParamsForExport()
 	 */
 	public function get_params_for_export(){
 		$params	 = $this->params;
@@ -2281,7 +2483,6 @@ class RevSliderSlide extends RevSliderFunctions {
 	
 	/**
 	 * modify layer links for export
-	 * before: RevSliderSlide::getLayersForExport()
 	 */
 	public function get_layers_for_export(){
 		$layers = array();
@@ -2303,7 +2504,6 @@ class RevSliderSlide extends RevSliderFunctions {
 	/**
 	 * get the image attributes needed to show preview images
 	 * @will replace get_image_attributes()
-	 * @before: RevSldierSlide::get_image_attributes();
 	 * bg: { type (color, image,transparent),  src: (image source)...}
 	 **/
 	public function get_overview_image_attributes($layouttype){
@@ -2333,44 +2533,17 @@ class RevSliderSlide extends RevSliderFunctions {
 					$image['style']['background-position']	= ($position == 'percentage') ? intval($this->get_val($bg, 'positionX', '0')).'% '.intval($this->get_val($bg, 'positionY', '0')).'%' : $position;
 					$image['style']['background-repeat']	= $this->get_val($bg, 'repeat', 'no-repeat');
 					
-					$_src = RS_PLUGIN_URL.'public/assets/assets/sources/';
-					switch($layouttype){
-						case 'gallery':
-						break;
-						case 'posts':
-						case 'specific_posts':
-						case 'specific_post':
-							$image['src']	= $_src.'post.png';
-							$image['style']	= array('background-size' => 'cover');
-						break;
-						case 'woocommerce':
-							$image['src']	= $_src.'woo.png';
-							$image['style']	= array('background-size' => 'cover');
-						break;
-						case 'facebook':
-							$image['src']	= $_src.'facebook.png';
-							$image['style']	= array('background-size' => 'cover');
-						break;
-						case 'twitter':
-							$image['src']	= $_src.'twitter.png';
-							$image['style']	= array('background-size' => 'cover');
-						break;
-						case 'instagram':
-							$image['src']	= $_src.'instagram.png';
-							$image['style']	= array('background-size' => 'cover');
-						break;
-						case 'flickr':
-							$image['src']	= $_src.'flickr.png';
-							$image['style']	= array('background-size' => 'cover');
-						break;
-						case 'youtube':
-							$image['src']	= $_src.'youtube.png';
-							$image['style']	= array('background-size' => 'cover');
-						break;
-						case 'vimeo':
-							$image['src']	= $_src.'vimeo.png';
-							$image['style']	= array('background-size' => 'cover');
-						break;
+					$_src = RS_PLUGIN_URL_CLEAN.'public/assets/sources/';
+					if(in_array($layouttype, array('posts', 'specific_posts', 'specific_post', 'woocommerce', 'facebook', 'twitter', 'instagram', 'flickr', 'youtube', 'vimeo'))){
+						if(in_array($layouttype, array('posts', 'specific_posts', 'specific_post'))){
+							$image['src'] = $_src.'post.png';
+						}elseif($layouttype === 'woocommerce'){
+							$image['src'] = $_src.'woo.png';
+						}else{
+							$image['src'] = $_src. $layouttype .'.png';
+						}
+
+						$image['style']	= array('background-size' => 'cover');
 					}
 				}else{
 					$image = $this->get_image_attributes($layouttype);
@@ -2386,9 +2559,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * get the image attributes needed to show preview images if the Slider is older than 6.0.0
 	 * @has still old RevSlider 5 keys as we check for an revslider prior to 6.0.0
 	 * @before: RevSldierSlide::get_image_attributes();
-	 
 	 * bg: { type (color, image,transparent), src: (image source) ….}
-	 
 	 **/
 	public function get_overview_image_attributes_pre60($layouttype){
 		$image		= array('type' => 'image', 'src' => $this->get_param('image', ''), 'style' => array());
@@ -2404,8 +2575,6 @@ class RevSliderSlide extends RevSliderFunctions {
 			}elseif(strpos($this->get_param('background_type'), 'vimeo') !== false){
 				$type = 'vimeo';
 			}elseif(strpos($this->get_param('background_type'), 'instagram') !== false){
-				$type = 'html5';
-			}elseif(strpos($this->get_param('background_type'), 'twitter') !== false){
 				$type = 'html5';
 			}else{
 				$type = $this->get_param('background_type');
@@ -2425,7 +2594,7 @@ class RevSliderSlide extends RevSliderFunctions {
 				$image['style']['background-position']	= ($position == 'percentage') ? intval($this->get_param('bg_position_x', 0)).'% '.intval($this->get_param('bg_position_y', 0)).'%' : $position;
 				$image['style']['background-repeat']	= $this->get_param('bg_repeat', 'no-repeat');
 				
-				$_src = RS_PLUGIN_URL.'public/assets/assets/sources/';
+				$_src = RS_PLUGIN_URL_CLEAN.'public/assets/sources/';
 				switch($layouttype){
 					case 'gallery':
 					break;
@@ -2499,7 +2668,7 @@ class RevSliderSlide extends RevSliderFunctions {
 			$style['background-position']	= ($position == 'percentage') ? intval($this->get_param(array('bg', 'positionX'), '0')).'% '.intval($this->get_param(array('bg', 'positionY'), '0')).'%' : $position;
 			$style['background-repeat']		= $this->get_param(array('bg', 'repeat'), 'no-repeat');
 			
-			$_src = RS_PLUGIN_URL.'public/assets/assets/sources/';
+			$_src = RS_PLUGIN_URL_CLEAN.'public/assets/sources/';
 			switch($layouttype){
 				case 'gallery':
 					$image_id = $this->get_param(array('bg', 'imageId'));
@@ -2646,7 +2815,7 @@ class RevSliderSlide extends RevSliderFunctions {
 				if(!empty($_fonts)){
 					foreach($_fonts as $font => $_font_values){
 						foreach($all_fonts as $f){
-							if(strtolower(str_replace(array('"', "'", ' '), '', $f['label'])) == strtolower(str_replace(array('"', "'", ' '), '', $font)) && ($f['type'] == 'googlefont' || $f['type'] === 'custom' && isset($f['url']) && isset($f['frontend']) && $f['frontend'] === true)){
+							if(strtolower(str_replace(array('"', "'", ' '), '', $f['label'])) == strtolower(str_replace(array('"', "'", ' '), '', $font)) && ($f['type'] == 'googlefont' || $f['type'] === 'custom' && isset($f['url']))){
 								
 								if(!isset($fonts[$f['label']])){
 									$fonts[$f['label']] = array('variants' => array(), 'subsets' => array());
@@ -2696,7 +2865,10 @@ class RevSliderSlide extends RevSliderFunctions {
 									}
 								}
 
-								if($f['type'] === 'custom') $fonts[$f['label']]['url'] = $f['url'];
+								if($f['type'] === 'custom'){
+									$fonts[$f['label']]['url'] = $f['url'];
+									$fonts[$f['label']]['load'] = (isset($f['frontend']) && $f['frontend'] === true) ? true : false;
+								}
 								
 								break;
 							}
@@ -2705,7 +2877,7 @@ class RevSliderSlide extends RevSliderFunctions {
 				}
 			}
 		}
-		
+			
 		return apply_filters('revslider_slide_getUsedFonts', $fonts, $this);
 	}
 	
@@ -2765,39 +2937,6 @@ class RevSliderSlide extends RevSliderFunctions {
 	
 	
 	/**
-	 * get categories list, copy the code from default wp functions
-	 * @before: RevSliderFunctionsWP::getCategoriesHtmlList();
-	 */
-	public function get_categories_html($cat_ids, $tax = null, $post_id = '', $full = false){
-		global $wp_rewrite;
-
-		if(!empty($post_id) && $full === false) return get_the_category_list(', ', null, $post_id);
-		
-		$categories	= ($full === true && !empty($cat_ids)) ? $cat_ids :  $this->get_categories_by_id($cat_ids, $tax);
-		$errors		= $this->get_val($categories, 'errors');
-		$list		= array();
-		$err		= '';
-		$rel 		= (is_object($wp_rewrite) && $wp_rewrite->using_permalinks()) ? 'rel="category tag"' : 'rel="category"';
-		
-		if(!empty($errors)){
-			foreach($errors as $error){
-				$err .= implode('', $error);
-			}
-			$this->throw_error(__('retrieving categories error: '.esc_html($err)));
-		}
-		
-		foreach($categories as $category){
-			$link = get_category_link($this->get_val($category, 'term_id'));
-			$name = $this->get_val($category, 'name');
-
-			$list[] = (!empty($link)) ? '<a href="' . esc_url($link) . '" title="' . esc_attr(sprintf(__('View all posts in %s', 'revslider'), $name)) .'" '. $rel .'>'. $name .'</a>' : $name;
-		}
-
-		return (!empty($list)) ? implode(', ', $list) : '';
-	}
-	
-	
-	/**
 	 * get categories by id's
 	 * @before: RevSliderFunctionsWP::getCategoriesByIDs();
 	 */
@@ -2823,7 +2962,7 @@ class RevSliderSlide extends RevSliderFunctions {
 	public function base_encode($num, $alphabet = '123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'){
 		$base_count = strlen($alphabet);
 		$encoded = '';
-		while ($num >= $base_count){
+		while($num >= $base_count){
 			$div = $num / $base_count;
 			$mod = intval($num - ($base_count * intval($div)));
 			$encoded = $alphabet[$mod] . $encoded;
@@ -2847,10 +2986,10 @@ class RevSliderSlide extends RevSliderFunctions {
 		if(preg_match($reg_exUrl, $text, $url)){
 			// make the urls hyper links
 			return preg_replace($reg_exUrl, '<a href="'.$url[0].'" rel="nofollow" target="_blank">'.$url[0].'</a>', $text);
-		}else{
-			// if no urls in the text just return the text
-			return $text;
 		}
+
+		// if no urls in the text just return the text
+		return $text;
 	}
 	
 	
@@ -2860,13 +2999,8 @@ class RevSliderSlide extends RevSliderFunctions {
 	 * @return string
 	 */
 	public function get_content_path(){
-		if(is_multisite()){
-			$path = (!defined('BLOGUPLOADDIR')) ? ABSPATH.'wp-content/' : BLOGUPLOADDIR;
-		}else{
-			$path = (!defined('WP_CONTENT_DIR')) ? WP_CONTENT_DIR.'/' : ABSPATH.'wp-content/'; //FIX FOR PHP5
-		}
-		
-		return $path;
+		if(is_multisite()) return (!defined('BLOGUPLOADDIR')) ? ABSPATH.'wp-content/' : BLOGUPLOADDIR;
+		return (!defined('WP_CONTENT_DIR')) ? WP_CONTENT_DIR.'/' : ABSPATH.'wp-content/'; //FIX FOR PHP5
 	}
 	
 	

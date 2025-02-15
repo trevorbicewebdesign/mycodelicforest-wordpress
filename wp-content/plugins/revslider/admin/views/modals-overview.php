@@ -5,7 +5,7 @@
  * This file is used to markup the admin-facing aspects of the plugin.
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
  
 if(!defined('ABSPATH')) exit();
@@ -22,19 +22,19 @@ if(!defined('ABSPATH')) exit();
 					<div style="padding:80px 100px 0px">
 						<div id="welcome_logo"></div>
 						<div class="mcg_option_third_wraps">
-							<div class="st_slider mcg_guide_optionwrap mcg_option_third">																
-								<div class="mcg_o_title"><?php _e('What\'s new?');?></div>
-								<div class="mcg_o_descp"><?php printf(__( 'Go over our Change Log to learn about new Features and Bug Fixes in Version %s.', 'revslider'), RS_REVISION); ?></div>
+							<div class="st_slider mcg_guide_optionwrap mcg_option_third">
+								<div class="mcg_o_title"><?php _e('Introducing the Velocity Engine');?></div>
+								<div class="mcg_o_descp"><?php printf(__( 'Learn about the enhanced capabilities and performance of the SR7 Engine.', 'revslider'), RS_REVISION); ?></div>
 								<div class="div25"></div>
-								<a  target="_blank" rel="noopener" href="https://www.sliderrevolution.com/documentation/changelog/" class="basic_action_button autosize basic_action_lilabutton"><?php _e('More Info');?></a>
+								<a  target="_blank" rel="noopener" href="https://www.sliderrevolution.com/sr7-velocity-frontend-engine-update/" class="basic_action_button autosize basic_action_lilabutton"><?php _e('Learn More');?></a>
 							</div>
-							<div class="st_scene mcg_guide_optionwrap mcg_option_third">																
-								<div class="mcg_o_title"><?php _e('First Steps, Docs & FAQs');?></div>
-								<div class="mcg_o_descp"><?php printf(__( 'Check out our Help Center with updated<br>%s Support Posts, Manual and Video Tuts.', 'revslider'), RS_REVISION); ?></div>
+							<div class="st_scene mcg_guide_optionwrap mcg_option_third">
+								<div class="mcg_o_title"><?php _e('SR7 Engine Update Guide');?></div>
+								<div class="mcg_o_descp"><?php printf(__( 'Allow us to guide you step-by-step in activating the SR7 “Velocity” Engine within your Slider Revolution.', 'revslider'), RS_REVISION); ?></div>
 								<div class="div25"></div>
-								<a  target="_blank" rel="noopener" href="https://www.sliderrevolution.com/help-center/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=faq" class="basic_action_button autosize basic_action_lilabutton"><?php _e('Help Center');?></a>
+								<a  target="_blank" rel="noopener" href="(https://www.sliderrevolution.com/sr7-velocity-frontend-engine-update/#sr7updateguide" class="basic_action_button autosize basic_action_lilabutton"><?php _e('Start Guide');?></a>
 							</div>
-							<div class="st_carousel mcg_guide_optionwrap mcg_option_third last">																
+							<div class="st_carousel mcg_guide_optionwrap mcg_option_third last">
 								<div class="mcg_o_title"><?php _e('Clear your Browser Cache');?></div>
 								<div class="mcg_o_descp"><?php _e('To make sure that all Slider Revolution files<br>are updated, please clear your cache.');?></div>
 								<div class="div25"></div>
@@ -120,6 +120,20 @@ if(!defined('ABSPATH')) exit();
 										}
 										?>
 									</select><span class="linebreak"></span>
+						<label_a><?php _e('Rendering Engine', 'revslider');?></label_a><select id="renderingengine"  data-theme="inmodal" class="globalinput easyinit nosearchbox tos2" data-r="globals.getTec.engine">
+										<option selected="selected" value="SR7"><?php _e('SR7', 'revslider');?></option>
+										<option value="SR6"><?php _e('SR6', 'revslider');?></option>
+										</select><span class="linebreak"></span>						
+						<label_a><?php _e('SR7 Data Load Method', 'revslider');?></label_a><select id="dataloadmethod"  data-theme="inmodal" class="globalinput easyinit nosearchbox tos2" data-r="globals.getTec.core">
+										<option selected="selected" value="MIX"><?php _e('Smart Loading', 'revslider');?></option>
+										<option selected="selected" value="JSON"><?php _e('Preloading', 'revslider');?></option>
+										<option value="REST"><?php _e('On Demand Loading', 'revslider');?></option>										
+										</select><span class="linebreak"></span>
+						<label_a><?php _e('SR7 Feeds Load Method', 'revslider');?></label_a><select id="feedsload"  data-theme="inmodal" class="globalinput easyinit nosearchbox tos2" data-r="globals.getTec.feed">
+										<option selected="selected" value="JSON"><?php _e('Preloading', 'revslider');?></option>
+										<option value="REST"><?php _e('On Demand Loading', 'revslider');?></option>										
+										</select><span class="linebreak"></span>
+						</select><span class="linebreak"></span>						
 						<label_a><?php _e('Include libraries globally', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.allinclude"><span class="linebreak"></span>
 						<label_a><?php _e('List of pages to include RevSlider libraries ', 'revslider');?></label_a><input type="text" data-r="globals.includeids" class="easyinit globalinput" placeholder="<?php _e('(ie. Example 2,homepage,5)', 'revslider');?>"><span class="linebreak"></span>
 						<label_a><?php _e('Cross-origin image defaults', 'revslider');?><a href="https://www.themepunch.com/faq/cors/" style="margin-left:10px;" target="_blank" rel="noopener"><i style="font-size:15px" class="material-icons">help</i></a></label_a><select id="crossorigin" name="crossorigin" data-theme="inmodal" class="globalinput easyinit nosearchbox tos2" data-r="globals.imgcrossOrigin">
@@ -128,14 +142,17 @@ if(!defined('ABSPATH')) exit();
 										<option value="use-credentials"><?php _e('Use Credentials', 'revslider');?></option>
 									</select><span class="linebreak"></span>						
 						<label_a><?php _e('Slider Revolution Analytics Sharing', 'revslider');?></label_a><input type="checkbox" data-evt="udpateTrackingEnv" class="easyinit globalinput callEvent" data-r="globals.trackingOnOff"><span class="linebreak"></span>
-						<div class="div25"></div>
-						<div class="ale_i_title"><?php _e('Page Loading Optimization', 'revslider');?></div>
-						<hr class="general_hr">
-						<label_a><?php _e('Insert scripts in footer', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.script.footer"><span class="linebreak"></span>
-						<label_a><?php _e('Defer JavaScript loading', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.script.defer"><span class="linebreak"></span>
-						<label_a><?php _e('Load Files asynchronously', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.script.async"><span class="linebreak"></span>
-						<label_a><?php _e('Load YouTube API early', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.script.ytapi"><span class="linebreak"></span>
-												
+						
+						<div class="div25"></div>						
+							<div class="ale_i_title"><?php _e('Page Loading Optimization', 'revslider');?></div>
+							<hr class="general_hr">
+							<div class="hideforsr7">
+								<label_a><?php _e('Insert scripts in footer', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.script.footer"><span class="linebreak"></span>
+								<label_a><?php _e('Defer JavaScript loading', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.script.defer"><span class="linebreak"></span>
+								<label_a><?php _e('Load Files asynchronously', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.script.async"><span class="linebreak"></span>
+							</div>	
+							<label_a><?php _e('Load YouTube API early', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.script.ytapi"><span class="linebreak"></span>
+						
 						
 						<div class="div25"></div>
 						<div class="ale_i_title"><?php _e('Fonts', 'revslider');?></div>
@@ -171,17 +188,20 @@ if(!defined('ABSPATH')) exit();
 										<option value="true"><?php _e("On", 'revslider');?></option><option value="false"><?php _e("Off", 'revslider');?></option><option value="none"><?php _e("No Change", 'revslider');?></option>
 									</select><span class="linebreak"></span>
 						<div class="show_forceViewport_true hide_forceViewport"><label_a><?php _e('ViewPort Distance if Forced', 'revslider');?></label_a><input type="text" class="easyinit globalinput" data-numeric="true" data-allowed="px,%" data-min="-1500" data-max="1500" data-r="globals.forcedViewportDistance"></div>
-						<label_a><?php _e('Default lazy loading in modules', 'revslider');?></label_a><select id="overwritelazyloading" name="overwritelazyloading" data-theme="inmodal" class="globalinput easyinit nosearchbox tos2" data-r="globals.forceLazyLoading">
-										<option value="all"><?php _e("All", 'revslider');?></option><option value="smart"><?php _e("Smart", 'revslider');?></option><option value="single"><?php _e("Single", 'revslider');?></option><option value="none"><?php _e("No Change", 'revslider');?></option>
-									</select><span class="linebreak"></span>
-						<label_a><?php _e('Lazy Load on BG Images', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.lazyonbg"><span class="linebreak"></span>
-						<label_a><?php _e('Third-party lazy loading data', 'revslider');?></label_a><input type="text" class="easyinit globalinput"  data-r="globals.lazyloaddata" placeholder="<?php _e('(i.e. lazy-src for WP Rocket)', 'revslider'); ?>"><span class="linebreak"></span>
+						<div class="hideforsr7">
+							<label_a><?php _e('Default lazy loading in modules', 'revslider');?></label_a><select id="overwritelazyloading" name="overwritelazyloading" data-theme="inmodal" class="globalinput easyinit nosearchbox tos2" data-r="globals.forceLazyLoading">
+											<option value="all"><?php _e("All", 'revslider');?></option><option value="smart"><?php _e("Smart", 'revslider');?></option><option value="single"><?php _e("Single", 'revslider');?></option><option value="none"><?php _e("No Change", 'revslider');?></option>
+										</select><span class="linebreak"></span>
+							<label_a><?php _e('Lazy Load on BG Images', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.lazyonbg"><span class="linebreak"></span>
+							<label_a><?php _e('Third-party lazy loading data', 'revslider');?></label_a><input type="text" class="easyinit globalinput"  data-r="globals.lazyloaddata" placeholder="<?php _e('(i.e. lazy-src for WP Rocket)', 'revslider'); ?>"><span class="linebreak"></span>
+						</div>
 						<label_a><?php _e('Use internal caching', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-r="globals.internalcaching"><span class="linebreak"></span>
 						<label_a></label_a><div id="rs_force_clear_cache" class="basic_action_button autosize"><i class="material-icons">build</i><?php _e('Clear Cache', 'revslider'); ?></div>
 						<div class="div25"></div>
 						<div class="ale_i_title"><?php _e('Miscellaneous', 'revslider');?></div>
 						<hr class="general_hr">						
-						<label_a><?php _e('Fix RevSlider table issues', 'revslider');?></label_a><div id="rs_db_force_create" class="basic_action_button autosize"><i class="material-icons">build</i><?php _e('Force RS DB Creation', 'revslider');?></div>						
+						<label_a><?php _e('Fix RevSlider table issues', 'revslider');?></label_a><div id="rs_db_force_create" class="basic_action_button autosize"><i class="material-icons">build</i><?php _e('Force RS DB Creation', 'revslider');?></div>
+						<label_a><?php _e('Clear SR7 Migrated Tables', 'revslider');?></label_a><div id="rs7_db_force_clear" class="basic_action_button autosize"><i class="material-icons">build</i><?php _e('Clear SR7 Tables', 'revslider');?></div>
 						<label_a><?php _e('Editor high contrast mode', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput callEvent" data-evt="highContrast" data-r="globals.highContrast"><span class="linebreak"></span>
 						<label_a><?php _e('Template Editing Guide', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-evt="highContrast" data-r="globals.templateGuide"><span class="linebreak"></span>
 						<label_a><?php _e('Module Creation Guide', 'revslider');?></label_a><input type="checkbox" class="easyinit globalinput" data-evt="highContrast" data-r="globals.moduleGuide"><span class="linebreak"></span>

@@ -162,6 +162,15 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 	 */
 	protected $_requires_smallest_unit = false;
 
+	/**
+	 * Out of the box, payment add-ons do not support feed reprocessing.
+	 *
+	 * @since 2.9.2
+	 *
+	 * @var bool
+	 */
+	protected $_supports_feed_reprocessing = false;
+
 	//--------- Initialization ----------
 	/**
 	 * Runs before the payment add-on is initialized.
@@ -209,7 +218,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		add_filter( 'gform_confirmation', array( $this, 'confirmation' ), 20, 4 );
 
 		add_filter( 'gform_validation', array( $this, 'maybe_validate' ), 20, 2 );
-		add_filter( 'gform_entry_post_save', array( $this, 'entry_post_save' ), 10, 2 );
+		add_filter( 'gform_entry_post_save', array( $this, 'entry_post_save' ), 11, 2 );
 
 		if ( $this->_requires_credit_card ) {
 			add_filter( 'gform_register_init_scripts', array( $this, 'register_creditcard_token_script' ), 10, 3 );
@@ -219,6 +228,9 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 
 		add_filter( 'gform_is_delayed_pre_process_feed', array( $this, 'maybe_delay_feed_processing' ), 20, 4 );
 
+		// Maybe support payment status in conditional logic.
+		add_filter( 'gform_entry_meta_conditional_logic_confirmations', array( $this, 'maybe_add_payment_status_to_meta' ), 10, 2 );
+		add_filter( 'gform_entry_meta_pre_evaluate_conditional_logic', array( $this, 'maybe_add_payment_status_to_meta' ), 10, 2 );
 	}
 
 	/**
@@ -249,7 +261,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		add_filter( 'gform_delete_lead', array( $this, 'entry_deleted' ) );
 		add_action( 'gform_before_delete_field', array( $this, 'before_delete_field' ), 10, 2 );
 
-		if ( rgget( 'page' ) == 'gf_entries' ) {
+		if ( GFForms::get_page_query_arg() == 'gf_entries' ) {
 			add_action( 'gform_payment_details', array( $this, 'entry_info' ), 10, 2 );
 		}
 	}
@@ -300,14 +312,14 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		if ( $installed_version != $this->_payment_version ) {
 			$this->upgrade_payment( $installed_version );
 
-			$installed_addons = array( $this->_slug );
+			$installed_addons = array( $this->get_slug() );
 			update_option( 'gravityformsaddon_payment_addons', $installed_addons );
 		}
-		elseif ( ! in_array( $this->_slug, $installed_addons ) ) {
+		elseif ( ! in_array( $this->get_slug(), $installed_addons ) ) {
 
 			$this->upgrade_payment( $installed_version );
 
-			$installed_addons[] = $this->_slug;
+			$installed_addons[] = $this->get_slug();
 			update_option( 'gravityformsaddon_payment_addons', $installed_addons );
 		}
 
@@ -454,6 +466,60 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 	}
 
 	/**
+	 * Adds additional relevant information for payment add-ons to the frontend feeds
+	 *
+	 * @since unknown
+	 *
+	 * @param array $form The Form object to get Frontend Feeds from.
+	 *
+	 * @return array An array with feeds eligible to be a Front End Feed, including feed data necessary for payment add-ons.
+	 */
+	public function get_frontend_feeds( $form ) {
+
+		if ( ! $this->_supports_frontend_feeds ) {
+			return array();
+		}
+
+		$feeds = $this->get_active_feeds( $form['id'] );
+		if ( empty( $feeds ) ) {
+			return array();
+		}
+
+		$frontend_feeds = parent::get_frontend_feeds( $form );
+
+		foreach ( $frontend_feeds as $key => $frontend_feed ) {
+			foreach ( $feeds as $feed ) {
+				if ( rgar( $frontend_feed, 'feedId' ) !== rgar( $feed, 'id' ) ) {
+					continue;
+				}
+
+				$feed_meta = $feed['meta'];
+
+				$frontend_feeds[ $key ]['transactionType']                    = rgar( $feed_meta, 'transactionType' );
+				$frontend_feeds[ $key ]['subscription_name']                  = rgar( $feed_meta, 'subscription_name' );
+				$frontend_feeds[ $key ]['recurringAmount']                    = rgar( $feed_meta, 'recurringAmount' );
+				$frontend_feeds[ $key ]['billingCycle_length']                = rgar( $feed_meta, 'billingCycle_length' );
+				$frontend_feeds[ $key ]['billingCycle_unit']                  = rgar( $feed_meta, 'billingCycle_unit' );
+				$frontend_feeds[ $key ]['setupFee_enabled']                   = rgar( $feed_meta, 'setupFee_enabled' );
+				$frontend_feeds[ $key ]['trial_enabled']                      = rgar( $feed_meta, 'trial_enabled' );
+				$frontend_feeds[ $key ]['trialPeriod']                        = rgar( $feed_meta, 'trialPeriod' );
+				$frontend_feeds[ $key ]['paymentAmount']                      = rgar( $feed_meta, 'paymentAmount' );
+				$frontend_feeds[ $key ]['billingInformation_address_line1']   = rgar( $feed_meta, 'billingInformation_address_line1' );
+				$frontend_feeds[ $key ]['billingInformation_address_line2']   = rgar( $feed_meta, 'billingInformation_address_line1' );
+				$frontend_feeds[ $key ]['billingInformation_address_city']    = rgar( $feed_meta, 'billingInformation_address_city' );
+				$frontend_feeds[ $key ]['billingInformation_address_state']   = rgar( $feed_meta, 'billingInformation_address_state' );
+				$frontend_feeds[ $key ]['billingInformation_address_zip']     = rgar( $feed_meta, 'billingInformation_address_zip' );
+				$frontend_feeds[ $key ]['billingInformation_address_country'] = rgar( $feed_meta, 'billingInformation_address_country' );
+				$frontend_feeds[ $key ]['customerInformation_email']          = rgar( $feed_meta, 'customerInformation_email' );
+				$frontend_feeds[ $key ]['customerInformation_description']    = rgar( $feed_meta, 'customerInformation_description' );
+				$frontend_feeds[ $key ]['customerInformation_coupon']         = rgar( $feed_meta, 'customerInformation_coupon' );
+			}
+		}
+
+		return $frontend_feeds;
+	}
+
+	/**
 	 * Override to specify where the "Post Payment Action" setting should appear on the payment add-on feed.
 	 *
 	 * @since 2.4.13
@@ -553,6 +619,74 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		}
 
 		return $this->validation( $validation_result );
+	}
+
+	/**
+	 * Handle the entry meta conditional logic confirmations. Adds support for the payment_status entry field to the confirmation condition logic setting.
+	 *
+	 * @since 2.9.1
+	 *
+	 * @param array $entry_meta      The entry meta.
+	 * @param array $form            The form object.
+	 * @param int   $confirmation_id The confirmation ID.
+	 *
+	 * @return array Returns the entry meta, with the payment_status field added to it.
+	 */
+	public function maybe_add_payment_status_to_meta( $entry_meta, $form ) {
+
+		// Get the payment statuses supported by this add-on. Emtpy array means this add-on does not support payment status conditional logic.
+		$payment_statuses = $this->get_conditional_logic_payment_statuses( $form );
+
+		// If this add-on does not support payment status conditinal logic, return the entry meta as is.
+		if ( empty( $payment_statuses ) ) {
+			return $entry_meta;
+		}
+
+		// If no other add-on has added the payment_status field to the entry meta, add it.
+		if ( rgempty( 'payment_status', $entry_meta ) ) {
+			$entry_meta['payment_status'] = array(
+				'label'      => esc_html__( 'Payment Status', 'gravityformsstripe' ),
+				'is_numeric' => false,
+				'filter'     => array(
+					'operators' => array( 'is', 'isnot' ),
+					'choices'    => array(),
+				),
+			);
+		}
+
+		// Getting an array of payment statuses already present in the entry meta.
+		$existing_payment_statuses = empty( rgars( $entry_meta, 'payment_status/filter/choices' ) ) ? array() : array_column( rgars( $entry_meta, 'payment_status/filter/choices' ), 'value' );
+
+		// Append this add-on's payment statuses to $entry_meta if they are not already present.
+		foreach ( $payment_statuses as $value => $text ) {
+			if ( ! in_array( $value, $existing_payment_statuses ) ) {
+				$entry_meta['payment_status']['filter']['choices'][] = array(
+					'value' => $value,
+					'text'  => $text,
+				);
+			}
+		}
+
+		return $entry_meta;
+	}
+
+	/**
+	 * Returns the payment statuses that can be used in conditional logic. Override this function to add support for payment statuses in conditional logic.
+	 * Example:
+	 * return array(
+	 *    'Paid' => __( 'Paid', 'gravityforms' ),
+	 *    'Failed' => __( 'Failed', 'gravityforms' ),
+	 *    'Processing' => __( 'Processing', 'gravityforms' ),
+	 * );
+	 *
+	 * @since 2.9.1
+	 *
+	 * @param array $form The form object.
+	 *
+	 * @return array Return an array with the payment statuses that can be used in conditional logic. Return an empty array to disable this feature.
+	 */
+	public function get_conditional_logic_payment_statuses( $form ) {
+		return array();
 	}
 
 	/**
@@ -920,7 +1054,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		}
 
 		// Saving which gateway was used to process this entry.
-		gform_update_meta( $entry['id'], 'payment_gateway', $this->_slug );
+		gform_update_meta( $entry['id'], 'payment_gateway', $this->get_slug() );
 
 		if ( empty( $this->current_feed ) || empty( $this->current_submission_data ) ) {
 			return $entry;
@@ -1226,7 +1360,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 
 		$gateway = gform_get_meta( $entry_id, 'payment_gateway' );
 
-		return $gateway == $this->_slug;
+		return $gateway == $this->get_slug();
 	}
 
 	/**
@@ -1493,7 +1627,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 	 * @return bool True if valid. False otherwise.
 	 */
 	public function is_callback_valid() {
-		if ( rgget( 'callback' ) != $this->_slug ) {
+		if ( rgget( 'callback' ) != $this->get_slug() ) {
 			return false;
 		}
 
@@ -1530,7 +1664,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 
 		// Returns either false or an array of data about the callback request which payment add-on will then use
 		// to generically process the callback data
-		$this->log_debug( __METHOD__ . '(): Initializing callback processing for: ' . $this->_slug );
+		$this->log_debug( __METHOD__ . '(): Initializing callback processing for: ' . $this->get_slug() );
 
 		$callback_action = $this->callback();
 
@@ -1756,7 +1890,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		global $wpdb;
 
 		$wpdb->insert( "{$wpdb->prefix}gf_addon_payment_callback", array(
-			'addon_slug'   => $this->_slug,
+			'addon_slug'   => $this->get_slug(),
 			'callback_id'  => $callback_id,
 			'lead_id'      => $entry_id,
 			'date_created' => gmdate( 'Y-m-d H:i:s' )
@@ -1781,7 +1915,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 	public function is_duplicate_callback( $callback_id ) {
 		global $wpdb;
 
-		$sql = $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}gf_addon_payment_callback WHERE addon_slug=%s AND callback_id=%s", $this->_slug, $callback_id );
+		$sql = $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}gf_addon_payment_callback WHERE addon_slug=%s AND callback_id=%s", $this->get_slug(), $callback_id );
 		if ( $wpdb->get_var( $sql ) ) {
 			return true;
 		}
@@ -1989,7 +2123,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		}
 
 		GFAPI::update_entry_property( $entry['id'], 'payment_status', $action['payment_status'] );
-		$this->add_note( $entry['id'], $action['note'] );
+		$this->add_note( $entry['id'], $action['note'], 'error' );
 		$this->post_payment_action( $entry, $action );
 
 		return true;
@@ -2026,7 +2160,8 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 
 	public function start_subscription( $entry, $subscription ) {
 		$this->log_debug( __METHOD__ . '(): Processing request.' );
-		if ( ! $this->has_subscription( $entry ) ) {
+		$has_active_subscription = $this->has_subscription( $entry ) && $entry['payment_status'] === 'Active';
+		if ( ! $has_active_subscription ) {
 			$entry['payment_status']   = 'Active';
 			$entry['payment_amount']   = $subscription['amount'];
 			$entry['payment_date']     = ! rgempty( 'subscription_start_date', $subscription ) ? $subscription['subscription_start_date'] : gmdate( 'Y-m-d H:i:s' );
@@ -2152,10 +2287,12 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 
 		// keep 'gform_subscription_payment_failed' for backward compatability
 		/**
-		 * @deprecated Use gform_post_fail_subscription_payment now
+		 * @deprecated Use gform_post_fail_subscription_payment now.
+		 * @remove-in 3.0
 		 */
 		do_action( 'gform_subscription_payment_failed', $entry, $action['subscription_id'] );
 		if ( has_filter( 'gform_subscription_payment_failed' ) ) {
+			trigger_error( 'gform_subscription_payment_failed is deprecated and will be removed in version 3.0. Use gform_post_fail_subscription_payment.', E_USER_DEPRECATED );
 			$this->log_debug( __METHOD__ . '(): Executing functions hooked to gform_subscription_payment_failed.' );
 		}
 		/**
@@ -2209,7 +2346,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		}
 
 		GFAPI::update_entry_property( $entry['id'], 'payment_status', 'Cancelled' );
-		$this->add_note( $entry['id'], $note );
+		$this->add_note( $entry['id'], $note, 'error' );
 
 		// Include $subscriber_id as 3rd parameter for backwards compatibility
 		do_action( 'gform_subscription_canceled', $entry, $feed, $entry['transaction_id'] );
@@ -2317,7 +2454,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 	// -------- Cron --------------------
 	public function setup_cron() {
 		// Setting up cron
-		$cron_name = "{$this->_slug}_cron";
+		$cron_name = "{$this->get_slug()}_cron";
 
 		add_action( $cron_name, array( $this, 'check_status' ) );
 
@@ -2373,6 +2510,20 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 
 
 	//--------- Feed Settings ----------------
+
+	/**
+	 * Returning an empty array because payment feed logic is evaluated before entry meta is saved.
+	 *
+	 * @since 2.9
+	 *
+	 * @param array $form       The form the feed is being created or edited for.
+	 * @param array $entry_meta An empty array or the entry meta fields to be assigned to the JavaScript entry_meta variable.
+	 *
+	 * @return array
+	 */
+	public function get_feed_settings_entry_meta( $form, $entry_meta = array() ) {
+		return array();
+	}
 
 	/**
 	 * Remove the add new button from the title if the form requires a credit card field.
@@ -3164,7 +3315,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 			esc_html__( 'Feb', 'gravityforms' ),
 			esc_html__( 'Mar', 'gravityforms' ),
 			esc_html__( 'Apr', 'gravityforms' ),
-			esc_html__( 'May', 'gravityforms' ),
+			esc_html_x( 'May', 'Abbreviated month name', 'gravityforms' ),
 			esc_html__( 'Jun', 'gravityforms' ),
 			esc_html__( 'Jul', 'gravityforms' ),
 			esc_html__( 'Aug', 'gravityforms' ),
@@ -3282,7 +3433,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 	public function results_filter_ui( $filter_ui, $form_id, $page_title, $gf_page, $gf_view ) {
 
 		// Don't use this filter if we aren't on the results page for this add-on
-		if ( $gf_view !== "gf_results_{$this->_slug}" ) {
+		if ( $gf_view !== "gf_results_{$this->get_slug()}" ) {
 			return $filter_ui;
 		}
 
@@ -3415,18 +3566,18 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		$sql = $wpdb->prepare(
 			"DELETE FROM {$wpdb->prefix}gf_addon_payment_transaction
                                 WHERE lead_id IN
-                                   (SELECT lead_id FROM {$entry_meta_table_name} WHERE meta_key='payment_gateway' AND meta_value=%s)", $this->_slug
+                                   (SELECT lead_id FROM {$entry_meta_table_name} WHERE meta_key='payment_gateway' AND meta_value=%s)", $this->get_slug()
 		);
 		$wpdb->query( $sql );
 
 		if ( $this->_supports_callbacks ) {
 			// deleting callback log
-			$sql = $wpdb->prepare( "DELETE FROM {$wpdb->prefix}gf_addon_payment_callback WHERE addon_slug=%s", $this->_slug );
+			$sql = $wpdb->prepare( "DELETE FROM {$wpdb->prefix}gf_addon_payment_callback WHERE addon_slug=%s", $this->get_slug() );
 			$wpdb->query( $sql );
 		}
 
 		//clear cron
-		wp_clear_scheduled_hook( $this->_slug . '_cron' );
+		wp_clear_scheduled_hook( $this->get_slug() . '_cron' );
 
 		parent::uninstall();
 	}
@@ -3446,7 +3597,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 					'subscriptionError'         => __( 'The subscription could not be canceled. Please try again later.', 'gravityforms' )
 				),
 				'enqueue' => array(
-					array( 'admin_page' => array( 'form_settings' ), 'tab' => $this->_slug ),
+					array( 'admin_page' => array( 'form_settings' ), 'tab' => $this->get_slug() ),
 					array( 'admin_page' => array( 'entry_view' ) ),
 				)
 			),
@@ -3512,7 +3663,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 			return $content;
 		}
 
-		$slug = str_replace( 'gravityforms', '', $this->_slug );
+		$slug = str_replace( 'gravityforms', '', $this->get_slug() );
 		$content .= '<input type=\'hidden\' name=\'' . $slug . '_response\' id=\'gf_' . $slug . '_response\' value=\'' . rgpost( $slug . '_response' ) . '\' />';
 
 		return $content;
@@ -3577,7 +3728,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 			'formId'        => rgar( $form, 'id' ),
 			'hasPages'      => GFCommon::has_pages( $form ),
 			'pageCount'     => GFFormDisplay::get_max_page_number( $form ),
-			'responseField' => '#gf_' . str_replace( 'gravityforms', '', $this->_slug ) . '_response'
+			'responseField' => '#gf_' . str_replace( 'gravityforms', '', $this->get_slug() ) . '_response'
 		);
 
 		/* Get needed fields. */
@@ -3750,7 +3901,7 @@ abstract class GFPaymentAddOn extends GFFeedAddOn {
 		$feed  = $this->get_payment_feed( $entry, $form );
 
 		// If user is not authorized, exit.
-		if ( $feed && $this->_slug === $feed['addon_slug'] && ! GFCommon::current_user_can_any( $this->_capabilities_settings_page ) ) {
+		if ( $feed && $this->get_slug() === $feed['addon_slug'] && ! GFCommon::current_user_can_any( $this->_capabilities_settings_page ) ) {
 			wp_send_json_error( array( 'message' => esc_html__( 'Access denied.', 'gravityforms' ) ) );
 		}
 

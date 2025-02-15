@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -135,14 +135,15 @@ class RevSliderCache extends RevSliderFunctions {
 		if(!empty($t_special)){
 			$_rs_css_collection = $this->get_val($t_special, 'rs_css_collection', array());
 			if(!empty($_rs_css_collection)){
-				global $rs_css_collection;
-				$rs_css_collection = $_rs_css_collection;
+				global $SR_GLOBALS;
+				$SR_GLOBALS['collections']['css'] = $_rs_css_collection;
 			}
 			$_font_var = $this->get_val($t_special, 'font_var', array());
 			if(!empty($_font_var)){
+				global $SR_GLOBALS;
 				foreach($_font_var as $fw){
-					global $$fw;
-					$$fw = true;
+					if(!isset($SR_GLOBALS['icon_sets'][$fw])) $SR_GLOBALS['icon_sets'][$fw] = array('css' => false, 'parsed' => false);
+					$SR_GLOBALS['icon_sets'][$fw]['css'] = true;
 				}
 			}
 		}

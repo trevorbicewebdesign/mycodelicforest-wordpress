@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -68,7 +68,7 @@ class RevSliderGlobals {
 
 		//try to create one
 		if (class_exists($key)) {
-			$this->add($key, new $key);;
+			$this->add($key, new $key);
 		} else {
 			//class not exists, add null to prevent further attempts
 			$this->add($key, NULL);

@@ -208,6 +208,23 @@ class GFFormSettings {
 						),
 					),
 					array(
+						'name'          => 'validationPlacement',
+						'type'          => 'select',
+						'label'         => esc_html__( 'Validation Message Placement', 'gravityforms' ),
+						'default_value' => 'below',
+						'tooltip'       => gform_tooltip( 'form_validation_placement', '', true ),
+						'choices'       => array(
+							array(
+								'label' => __( 'Below inputs', 'gravityforms' ),
+								'value' => 'below',
+							),
+							array(
+								'label' => __( 'Above inputs', 'gravityforms' ),
+								'value' => 'above',
+							),
+						),
+					),
+					array(
 						'name'    => 'subLabelPlacement',
 						'type'    => 'select',
 						'label'   => esc_html__( 'Sub-Label Placement', 'gravityforms' ),
@@ -548,11 +565,16 @@ class GFFormSettings {
 		 * Filters the form settings before they are displayed.
 		 *
 		 * @deprecated
+		 * @remove-in 3.0
 		 * @since 1.7
 		 *
 		 * @param array $form_settings The form settings.
 		 * @param array $form          The Form Object.
 		 */
+
+		if ( has_filter( 'gform_form_settings' ) ) {
+			trigger_error( 'gform_form_settings is deprecated and will be removed in version 3.0.', E_USER_DEPRECATED );
+		}
 		$legacy_settings = apply_filters( 'gform_form_settings', array(), $form );
 
 		// If legacy settings exist, add to fields.
@@ -627,18 +649,12 @@ class GFFormSettings {
 	 * @return bool
 	 */
 	public static function legacy_is_in_use() {
-		$legacy_is_in_use = GFCache::get( 'legacy_is_in_use' );
-		if ( empty( $legacy_is_in_use ) ) {
-			$legacy_is_in_use = false;
-			$forms            = GFAPI::get_forms( null, false, 'date_created', 'ASC' );
-			foreach ( $forms as $form ) {
-				if ( rgar( $form, 'markupVersion' ) && $form['markupVersion'] == 1 ) {
-					$legacy_is_in_use = true;
-					break;
-				}
-			}
+		$legacy_is_in_use = GFCache::get( 'legacy_is_in_use', $found_in_cache );
 
-			GFCache::set( 'legacy_is_in_use', $legacy_is_in_use, true, 2 * WEEK_IN_SECONDS );
+		if ( ! $found_in_cache ) {
+			$legacy_is_in_use = GFFormsModel::has_legacy_markup();
+
+			GFCache::set( 'legacy_is_in_use', $legacy_is_in_use, true,  DAY_IN_SECONDS );
 		}
 
 		return $legacy_is_in_use;
@@ -659,6 +675,7 @@ class GFFormSettings {
 		    ></span>
 		    <div class="gform-alert__message-wrap">
 		        <p class="gform-alert__message">' . esc_html__( 'Legacy markup is incompatible with many new features, including the Orbital Theme.', 'gravityforms' ) . '</p>
+		        <p class="gform-alert__message">' . esc_html__( 'Legacy markup will be removed in Gravity Forms 3.1.0, and then all forms will use modern markup.  We recommend using modern markup on all forms.', 'gravityforms' ) . '</p>
 			    <a
 		            class="gform-alert__cta gform-button gform-button--white gform-button--size-xs"
 			        href="https://docs.gravityforms.com/about-legacy-markup"
@@ -684,20 +701,15 @@ class GFFormSettings {
 
 		require_once( GFCommon::get_base_path() . '/form_detail.php' );
 
-		$form_id       = rgget( 'id' );
-		$form          = GFFormsModel::get_form_meta( $form_id );
-		$form          = gf_apply_filters( array( 'gform_admin_pre_render', $form_id ), $form );
+		$form_id = rgget( 'id' );
+		$form    = GFCommon::gform_admin_pre_render( GFFormsModel::get_form_meta( $form_id ) );
 
 		// Initialize new settings renderer.
 		$renderer = new Settings(
 			array(
 				'fields'         => array_values( self::form_settings_fields( $form ) ),
 				'initial_values' => self::get_initial_values( $form ),
-				'save_callback'  => function( $values ) use ( &$form ) {
-
-					// Get form object.
-					$form_id = rgget( 'id' );
-					$form    = GFFormsModel::get_form_meta( $form_id );
+				'save_callback'  => function( $values ) use ( &$form, $form_id ) {
 
 					// Set form version.
 					$form['version'] = GFForms::$version;
@@ -712,6 +724,7 @@ class GFFormSettings {
 					// Form Layout
 					$form['labelPlacement']          = GFCommon::whitelist( rgar( $values, 'labelPlacement' ), array( 'top_label', 'left_label', 'right_label' ) );
 					$form['descriptionPlacement']    = GFCommon::whitelist( rgar( $values, 'descriptionPlacement' ), array( 'below', 'above' ) );
+					$form['validationPlacement']     = GFCommon::whitelist( rgar( $values, 'validationPlacement' ), array( 'below', 'above' ) );
 					$form['subLabelPlacement']       = GFCommon::whitelist( rgar( $values, 'subLabelPlacement' ), array( 'below', 'above' ) );
 					$form['validationSummary']       = rgar( $values, 'validationSummary', false );
 					$form['requiredIndicator']       = GFCommon::whitelist( rgar( $values, 'requiredIndicator' ), array( 'text', 'asterisk', 'custom' ) );
@@ -830,6 +843,9 @@ class GFFormSettings {
 
 		// Get all of the current values.
 		foreach ( $form as $key => $value ) {
+			if ( in_array( $key, array( 'fields', 'notifications', 'confirmations' ) ) ) {
+				continue;
+			}
 			if ( is_array( $value ) ) {
 				foreach ( $value as $sub_key => $sub_value ) {
 					if ( is_array( $sub_value ) ) {
@@ -842,9 +858,8 @@ class GFFormSettings {
 
 					}
 				}
-			} else {
-				$initial_values[ $key ] = $value;
 			}
+			$initial_values[ $key ] = $value;
 		}
 
 		// Start and end times are formatted differently than other fields.
@@ -1033,7 +1048,7 @@ class GFFormSettings {
 
 						$query = array(
 							'subview' => $tab['name'],
-							'page'    => rgget( 'page' ),
+							'page'    => GFForms::get_page_query_arg(),
 							'id'      => rgget( 'id' ),
 							'view'    => rgget( 'view' ),
 						);

@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -25,17 +25,6 @@ class RevSliderData {
 	const CACHE_NS_KEY = 'revslider_namespace_key';
 
 	public $css;
-	public $bad_extensions = array(
-		'php', 'php2', 'php3', 'php4', 'php5', 'php6', 'php7', 'phps', 'phps', 'pht', 'phtm', 'phtml', 'pgif', 'shtml', 'htaccess', 'phar', 'inc', 'hphp', 'ctp', 'module',
-		'asp', 'aspx', 'config', 'ashx', 'asmx', 'aspq', 'axd', 'cshtm', 'cshtml', 'rem', 'soap', 'vbhtm', 'vbhtml', 'asa', 'cer', 'shtml',
-		'jsp', 'jspx', 'jsw', 'jsv', 'jspf', 'wss', 'do', 'action',
-		'cfm, .cfml, .cfc, .dbm',
-		'swf',
-		'pl', 'cgi',
-		'yaws',
-		'zip', 'rar', '7z',
-		'html', 'htm', 'js', 'exe', 'bat', 'cmd', 'vbs', 'msi', 'reg', 'scr', 'com', 'pif', 'jsp', 'asp', 'aspx', 'cgi', 'pl', 'swf', 'htaccess', 'sh', 'py', 'rb', 'ps1', 'psm1', 'jar', 'jspx', 'xhtml', 'jspx', 'shtml', 'ini', 'dll', 'sys', 'jspx'
-	);
 
 	/**
 	 * wp cache does not support group delete
@@ -244,14 +233,14 @@ class RevSliderData {
 	 * get the version 5 animations only, if available
 	 **/
 	public function get_animations_v5(){
-		global $revslider_animations;
+		global $SR_GLOBALS;
 		$custom = array();
 		$temp = array();
 		$sort = array();
 
 		$this->fill_animations();
 
-		foreach($revslider_animations as $value){
+		foreach($SR_GLOBALS['animations'] as $value){
 			$type = $this->get_val($value, array('params', 'type'), '');
 			if(!in_array($type, array('customout', 'customin'))) continue;
 
@@ -278,14 +267,14 @@ class RevSliderData {
 	 * @before: RevSliderOperations::getCustomAnimationsFullPre()
 	 */
 	public function get_custom_animations_full_pre($pre = 'in'){
-		global $revslider_animations;
+		global $SR_GLOBALS;
 		$custom = array();
 		$temp = array();
 		$sort = array();
 
 		$this->fill_animations();
 
-		foreach($revslider_animations as $value){
+		foreach($SR_GLOBALS['animations'] as $value){
 			$settings = $this->get_val($value, 'settings', '');
 			$type = $this->get_val($value, 'type', '');
 			if($type == '' && $settings == '' || $type == $pre){
@@ -317,21 +306,21 @@ class RevSliderData {
 	 * @before: RevSliderOperations::fillAnimations();
 	 **/
 	public function fill_animations(){
-		global $revslider_animations;
-		if(empty($revslider_animations)){
+		global $SR_GLOBALS;
+		if(empty($SR_GLOBALS['animations'])){
 			global $wpdb;
 
 			$result = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . RevSliderFront::TABLE_LAYER_ANIMATIONS, ARRAY_A);
-			$revslider_animations = (!empty($result)) ? $result : array();
+			$SR_GLOBALS['animations'] = (!empty($result)) ? $result : array();
 
-			if(!empty($revslider_animations)){
-				foreach($revslider_animations as $ak => $av){
-					$revslider_animations[$ak]['params'] = json_decode(str_replace("'", '"', $av['params']), true);
+			if(!empty($SR_GLOBALS['animations'])){
+				foreach($SR_GLOBALS['animations'] as $ak => $av){
+					$SR_GLOBALS['animations'][$ak]['params'] = json_decode(str_replace("'", '"', $av['params']), true);
 				}
 			}
 
-			if(!empty($revslider_animations)){
-				array_walk_recursive($revslider_animations, array('RevSliderData', 'force_to_boolean'));
+			if(!empty($SR_GLOBALS['animations'])){
+				array_walk_recursive($SR_GLOBALS['animations'], array('RevSliderData', 'force_to_boolean'));
 			}
 		}
 	}
@@ -402,11 +391,6 @@ class RevSliderData {
 					'low_resolution' => __('Low Resolution', 'revslider'),
 					'original_size' => __('Original Size', 'revslider'),
 					'large' => __('Large Size', 'revslider'),
-				);
-			break;
-			case 'twitter':
-				$custom_sizes = array(
-					'large' => __('Standard Resolution', 'revslider'),
 				);
 			break;
 			case 'facebook':
@@ -729,9 +713,9 @@ class RevSliderData {
 	 **/
 	public function set_icon_sets($icon_sets){
 
-		$icon_sets[] = 'fa-icon-';
-		$icon_sets[] = 'fa-';
-		$icon_sets[] = 'pe-7s-';
+		$icon_sets['FontAwesomeIcon'] = 'fa-icon-';
+		$icon_sets['FontAwesome'] = 'fa-';
+		$icon_sets['PeIcon'] = 'pe-7s-';
 
 		return $icon_sets;
 	}
@@ -762,12 +746,12 @@ class RevSliderData {
 				},
 
 				"slideover":{
-					"slideoververtical":{"title":"*swap_vert* Auto Direction","in":{"y":"(100%)"},"out":{"a":false}},
-					"slideoverhorizontal":{"title":"*swap_horiz* Auto Direction","in":{"x":"(100%)"},"out":{"a":false}},
-					"slideoverup":{"title":"*north*","in":{"y":"100%"},"out":{"a":false}},
-					"slideoverdown":{"title":"*south*","in":{"y":"-100%"},"out":{"a":false}},
-					"slideoverleft":{"title":"*west*","in":{"x":"100%"},"out":{"a":false}},
-					"slideoverright":{"title":"*east*","in":{"x":"-100%"},"out":{"a":false}}
+					"slideoververtical":{"title":"*swap_vert* Auto Direction","in":{"o":"1","y":"(100%)"},"out":{"o":"1", "a":false}},
+					"slideoverhorizontal":{"title":"*swap_horiz* Auto Direction","in":{"o":"1","x":"(100%)"},"out":{"o":"1", "a":false}},
+					"slideoverup":{"title":"*north*","in":{"o":"1","y":"100%"},"out":{"o":"1", "a":false}},
+					"slideoverdown":{"title":"*south*","in":{"o":"1","y":"-100%"},"out":{"o":"1", "a":false}},
+					"slideoverleft":{"title":"*west*","in":{"o":"1","x":"100%"},"out":{"o":"1", "a":false}},
+					"slideoverright":{"title":"*east*","in":{"o":"1","x":"-100%"},"out":{"o":"1", "a":false}}
 				},
 				"remove":{
 					"slideremovevertical":{"title":"*swap_vert* Auto Direction","out":{"a":false,"y":"(-100%)"}},
@@ -778,12 +762,12 @@ class RevSliderData {
 					"slideremoveright":{"title":"*east*","out":{"a":false,"x":"-100%"}}
 				},
 				"slideinout":{
-					"slidevertical":{"title":"*swap_vert* Auto Direction", "in":{"y":"(100%)"}},
-					"slidehorizontal":{"title":"*swap_horiz* Auto Direction","in":{"x":"(100%)"}},
-					"slideup":{"title":"*north*", "in":{"y":"100%"}},
-					"slidedown":{"title":"*south*", "in":{"y":"-100%"}},
-					"slideleft":{"title":"*west*", "in":{"x":"100%"}},
-					"slideright":{"title":"*east*", "in":{"x":"-100%"}}
+					"slidevertical":{"title":"*swap_vert* Auto Direction", "in":{"o":"1","y":"(100%)"}, "out":{"y":"(-100%)"}},
+					"slidehorizontal":{"title":"*swap_horiz* Auto Direction","in":{"o":"1","x":"(100%)"}, "out":{"x":"(-100%)"}},
+					"slideup":{"title":"*north*", "in":{"o":"1","y":"100%"}, "out":{"y":"-100%"}},
+					"slidedown":{"title":"*south*", "in":{"o":"1","y":"-100%"}, "out":{"y":"100%"}},
+					"slideleft":{"title":"*west*", "in":{"o":"1","x":"100%"}, "out":{"x":"-100%"}},
+					"slideright":{"title":"*east*", "in":{"o":"1","x":"-100%"}, "out":{"x":"100%"}}
 				},
 				"slideinoutfadein":{
 					"slidefadeinvertical":{"title":"*swap_vert* Auto Direction","in":{"o":0,"y":"(100%)"},"out":{"a":false}},
@@ -796,18 +780,18 @@ class RevSliderData {
 				"slideinoutfadeinout":{
 					"slidefadeinoutvertical":{"title":"*swap_vert* Auto Direction","in":{"o":0,"y":"(100%)"}},
 					"slidefadeinouthorizontal":{"title":"*swap_horiz* Auto Direction","in":{"o":0,"x":"(100%)"}},
-					"fadetotopfadefrombottom":{"title":"*north*","in":{"o":0,"y":"100%"}},
-					"fadetobottomfadefromtop":{"title":"*south*","in":{"o":0,"y":"-100%"}},
-					"fadetoleftfadefromright":{"title":"*west*","in":{"o":0,"x":"100%"}},
-					"fadetorightfadefromleft":{"title":"*east*","in":{"o":0,"x":"100%"}}
+					"fadetotopfadefrombottom":{"title":"*north*","in":{"o":0,"y":"100%"},"out":{"o":0, "y":"-100%"}},
+					"fadetobottomfadefromtop":{"title":"*south*","in":{"o":0,"y":"-100%"},"out":{"o":0, "y":"100%"}},
+					"fadetoleftfadefromright":{"title":"*west*","in":{"o":0,"x":"100%"},"out":{"o":0, "x":"-100%"}},
+					"fadetorightfadefromleft":{"title":"*east*","in":{"o":0,"x":"100%"},"out":{"o":0, "x":"100%"}}
 				},
 				"parallax":{
-					"parallaxvertical":{"title":"*swap_vert* Auto Direction", "in":{"y":"(100%)"},"out":{"a":false,"y":"(-60%)"}},
-					"parallaxhorizontal":{"title":"*swap_horiz* Auto Direction", "in":{"x":"(100%)"},"out":{"a":false,"x":"(-60%)"}},
-					"parallaxtotop":{"title":"*north*", "in":{"y":"100%"},"out":{"a":false,"y":"-60%"}},
-					"parallaxtobottom":{"title":"*south*", "in":{"y":"-100%"},"out":{"a":false,"y":"60%"}},
-					"parallaxtoleft":{"title":"*west*", "in":{"x":"100%"},"out":{"a":false,"x":"-60%"}},
-					"parallaxtoright":{"title":"*east*", "in":{"x":"-100%"},"out":{"a":false,"x":"60%"}}
+					"parallaxvertical":{"title":"*swap_vert* Auto Direction", "in":{"o":1,"y":"(100%)"},"out":{"a":false,"y":"(-60%)"}},
+					"parallaxhorizontal":{"title":"*swap_horiz* Auto Direction", "in":{"o":1,"x":"(100%)"},"out":{"a":false,"x":"(-60%)"}},
+					"parallaxtotop":{"title":"*north*", "in":{"o":1,"y":"100%"},"out":{"a":false,"y":"-60%"}},
+					"parallaxtobottom":{"title":"*south*", "in":{"o":1,"y":"-100%"},"out":{"a":false,"y":"60%"}},
+					"parallaxtoleft":{"title":"*west*", "in":{"o":1,"x":"100%"},"out":{"a":false,"x":"-60%"}},
+					"parallaxtoright":{"title":"*east*", "in":{"o":1,"x":"-100%"},"out":{"a":false,"x":"60%"}}
 				},
 				"double":{
 					"slidingoverlayvertical":{"title":"*swap_vert* Auto Direction","speed":"2000", "in":{"y":"(100%)"},"e":"slidingoverlay"},
@@ -826,12 +810,12 @@ class RevSliderData {
 					"zoomoutl":{"title":"*remove* Via Light","p":"light", "in":{"sx":"1.6","sy":"1.6","o":-0.5,"e":"power0.inOut"},"out":{"a":false,"sx":"0.6","sy":"0.6","o":0}}
 				},
 				"zoomslidein":{
-					"scaledownvertical":{"title":"*swap_vert* Auto Direction", "in":{"y":"(100%)"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}},
-					"scaledownhorizontal":{"title":"*swap_horiz* Auto Direction", "in":{"x":"(100%)"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}},
-					"scaledownfromtop":{"title":"*north*", "in":{"y":"100%"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}},
-					"scaledownfrombottom":{"title":"*south*", "in":{"y":"-100%"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}},
-					"scaledownfromleft":{"title":"*west*", "in":{"x":"100%"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}},
-					"scaledownfromright":{"title":"*east*", "in":{"x":"-100%"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}}
+					"scaledownvertical":{"title":"*swap_vert* Auto Direction", "in":{"o":"1","y":"(100%)"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}},
+					"scaledownhorizontal":{"title":"*swap_horiz* Auto Direction", "in":{"o":"1","x":"(100%)"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}},
+					"scaledownfromtop":{"title":"*north*", "in":{"o":"1","y":"100%"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}},
+					"scaledownfrombottom":{"title":"*south*", "in":{"o":"1","y":"-100%"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}},
+					"scaledownfromleft":{"title":"*west*", "in":{"o":"1","x":"100%"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}},
+					"scaledownfromright":{"title":"*east*", "in":{"o":"1","x":"-100%"}, "out":{"a":false, "sx":"0.85", "sy":"0.85", "o":"1"}}
 				},
 				"zoomslideout":{
 					"scaleupvertical":{"title":"*swap_vert* Auto Direction","o":"outin", "in":{"sx":"0.85", "sy":"0.85","o":"0"}, "out":{"a":false, "y":"(100%)", "o":"1"}},
@@ -1026,5 +1010,25 @@ class RevSliderData {
 		$transitions = apply_filters('revslider_data_get_base_transitions', $transitions);
 
 		return ($raw) ? $transitions : json_decode($transitions, true);
+	}
+	
+	public function get_allowed_layer_tags()
+	{
+		return array('sr7-layer', 'rs-layer', 'a', 'div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'label');
+	}
+
+	/**
+	 * @param array $layer
+	 * @param string $tag_key
+	 * @param string $default
+	 * @return array
+	 */
+	public function filter_single_layer_tags($layer, $tag_key, $default)
+	{
+		$allowed_tags = $this->get_allowed_layer_tags();
+		if (!empty($layer[$tag_key]) && !in_array($layer[$tag_key], $allowed_tags)) { 
+			$layer[$tag_key] = $default;
+		}
+		return $layer;
 	}
 }

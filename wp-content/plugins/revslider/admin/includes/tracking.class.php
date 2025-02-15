@@ -2,7 +2,7 @@
 /**
 * @author	ThemePunch <info@themepunch.com>
 * @link		https://www.themepunch.com/
-* @copyright 2022 ThemePunch
+* @copyright 2024 ThemePunch
 */
 
 
@@ -88,7 +88,8 @@ class RevSliderTracking extends RevSliderFunctions {
 	 **/
 	public function _run($deactivation = 'default'){
 		if(!$this->is_enabled()) return false;
-		
+		global $SR_GLOBALS;
+
 		$sl			= new RevSliderSlide();
 		$data		= $this->get_tracking_data();
 		$pages		= $this->get_all_shortcode_pages();
@@ -98,9 +99,10 @@ class RevSliderTracking extends RevSliderFunctions {
 
 		if(!isset($data['html_exports'])) $data['html_exports'] = 0;
 		$data['environment'] = array(
-			'version'		=> RS_REVISION
+			'version'		=> RS_REVISION,
+			'engine'		=> $this->get_val($SR_GLOBALS, 'front_version', 6)
 		);
-		$data['licensed']	= ($deactivation === 'default') ? $this->_truefalse(get_option('revslider-valid', 'true')) : $deactivation; //if $deactivation === false, we are in deactivation process, so set already to false
+		$data['licensed']	= (!in_array($deactivation, array(true, false), true)) ? $this->_truefalse(get_option('revslider-valid', 'true')) : $deactivation; //if $deactivation === false, we are in deactivation process, so set already to false
 		$data['slider']		= array(
 			'number'		=> 0,
 			'premium'		=> 0,
@@ -110,11 +112,13 @@ class RevSliderTracking extends RevSliderFunctions {
 				'post'			=> 0,
 				'woocommerce'	=> 0,
 				'social'		=> 0,
+				'social_detail'	=> array(),
 			),
 			'navigations'	=> array(
 				'arrows'	=> 0,
 				'bullets'	=> 0,
 				'tabs'		=> 0,
+				'scrubber'	=> 0,
 				'thumbs'	=> 0,
 				'mouse'		=> 0,
 				'swipe'		=> 0,
@@ -185,7 +189,11 @@ class RevSliderTracking extends RevSliderFunctions {
 
 				if($type === 'gallery')	$data['slider']['sources']['custom']++;
 				if($post === true || $specific_post === true)	$data['slider']['sources']['post']++;
-				if($stream === true)	$data['slider']['sources']['social']++;
+				if($stream !== false){
+					$data['slider']['sources']['social']++;
+					if(!isset($data['slider']['sources']['social_detail'][$stream])) $data['slider']['sources']['social_detail'][$stream] = 0;
+					$data['slider']['sources']['social_detail'][$stream]++;
+				}
 				if($wc === true)		$data['slider']['sources']['woocommerce']++;
 
 				if($premium === true)	$data['slider']['premium']++;
@@ -312,31 +320,6 @@ class RevSliderTracking extends RevSliderFunctions {
 		}
 
 		return $ids;
-	}
-
-	/**
-	 * this will return the exact alias of the rev_slider modules on given posts/pages
-	 **/
-	public function get_shortcode_from_page($ids){
-		$_shortcodes = array();
-		$ids		 = (!is_array($ids)) ? (array)$ids : $ids;
-
-		foreach($ids as $id){
-			$post = get_post($id);
-			if(is_a($post, 'WP_Post') && has_shortcode($post->post_content, 'rev_slider')){
-				preg_match_all('/\[rev_slider.*alias=.(.*)"\]/', $post->post_content, $shortcodes);
-				
-				if(isset($shortcodes[1]) && $shortcodes[1] !== ''){
-					foreach($shortcodes[1] as $s){
-						if(strpos($s, '"') !== false) $s = $this->get_val(explode('"', $s), 0);
-						if(!RevSliderSlider::alias_exists($s)) continue;
-						if(!in_array($s, $_shortcodes)) $_shortcodes[] = $s;
-					}
-				}
-			}
-		}
-
-		return $_shortcodes;
 	}
 
 	public function add_additional_data($addition){

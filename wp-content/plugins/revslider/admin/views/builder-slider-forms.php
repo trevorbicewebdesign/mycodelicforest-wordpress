@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -291,7 +291,7 @@ $api = 'revapi'; // . $slider_id;
 						<!-- SLIDER MIN HEIGHT AND MAX WIDTH -->
 						<longoption class="slidermaxwidth"><i class="material-icons rcw">unfold_more</i><label_a><?php _e('Max Width', 'revslider');?></label_a><input data-allowed="px,%,none" data-min="0" data-numeric="true"  id="sr_size_maxwidth" data-r="size.maxWidth" data-evt="updatesliderlayout"  type="text"  class="sliderinput valueduekeyboard easyinit" placeholder="none"></longoption>
 						<longoption class="sliderminheight"><i class="material-icons">unfold_less</i><label_a><?php _e('Min Height', 'revslider');?></label_a><input data-min="0" data-numeric="true"  data-allowed="px,%,none" id="sr_size_minheight" data-r="size.minHeight" data-evt="updatesliderlayout"  type="text" class="sliderinput valueduekeyboard smallinput easyinit" placeholder="none"></longoption>
-						<longoption class="sliderfsminheight"><i class="material-icons">unfold_less</i><label_a><?php _e('Min Height', 'revslider');?></label_a><input data-min="0" data-numeric="true" data-allowed="none,px,%" id="sr_size_minheight_fs" data-r="size.minHeightFullScreen" placeholder="none" data-evt="updatesliderlayout"  type="text"  class="sliderinput valueduekeyboard easyinit"></longoption>
+						<longoption class="sliderfsminheight"><i class="material-icons">unfold_less</i><label_a><?php _e('Min Height', 'revslider');?></label_a><input data-min="0" data-numeric="true" data-allowed="px,%" id="sr_size_minheight_fs" data-r="size.minHeightFullScreen" placeholder="none" data-evt="updatesliderlayout"  type="text"  class="sliderinput valueduekeyboard easyinit"></longoption>
 						<longoption><i class="material-icons">unfold_more</i><label_a><?php _e('Wrapper Max Height', 'revslider');?></label_a><input data-allowed="px,%,none" data-min="0" data-numeric="true"  id="sr_size_maxheight" data-r="size.maxHeight"  type="text"  class="sliderinput valueduekeyboard easyinit" placeholder="none"></longoption>
 
 						<div class="div20"></div>
@@ -549,8 +549,7 @@ $api = 'revapi'; // . $slider_id;
 							<div><input value="post" type="radio" name="slider_sourcetype" class="sliderinput easyinit" data-evt="loadStreamDependencies" data-evtparam="force" data-show="#source_*val*_settings, #post_typesubselector" data-hide=".source_subsetting_wrapper" data-r="sourcetype"><label_sub><?php _e('Post-Based', 'revslider');?></label_sub></div>
 							<div><input value="woo" type="radio" name="slider_sourcetype" class="sliderinput easyinit" data-evt="loadStreamDependencies" data-evtparam="force" data-show="#source_*val*_settings" data-hide=".source_subsetting_wrapper" data-r="sourcetype"><label_sub><?php _e('WooCommerce', 'revslider');?></label_sub></div>
 							<div><input value="flickr" type="radio" name="slider_sourcetype" class="sliderinput easyinit" data-evt="loadStreamDependencies" data-evtparam="force" data-show="#source_*val*_settings" data-hide=".source_subsetting_wrapper" data-r="sourcetype"><label_sub><?php _e('Flickr', 'revslider');?></label_sub></div>
-							<div><input value="instagram" type="radio" name="slider_sourcetype" class="sliderinput easyinit" data-evt="loadStreamDependencies" data-evtparam="force" data-show="#source_*val*_settings" data-hide=".source_subsetting_wrapper" data-r="sourcetype"><label_sub><?php _e('Instagram', 'revslider');?></label_sub></div>
-							<div><input value="twitter" type="radio" name="slider_sourcetype" class="sliderinput easyinit" data-evt="loadStreamDependencies" data-evtparam="force" data-show="#source_*val*_settings" data-hide=".source_subsetting_wrapper" data-r="sourcetype"><label_sub><?php _e('Twitter', 'revslider');?></label_sub></div>
+							<div><input value="instagram" type="radio" name="slider_sourcetype" class="sliderinput easyinit" data-evt="loadStreamDependencies" data-evtparam="force" data-show="#source_*val*_settings" data-hide=".source_subsetting_wrapper" data-r="sourcetype"><label_sub><?php _e('Instagram', 'revslider');?></label_sub></div>							
 							<div><input value="facebook" type="radio" name="slider_sourcetype" class="sliderinput easyinit" data-evt="loadStreamDependencies" data-evtparam="force" data-show="#source_*val*_settings" data-hide=".source_subsetting_wrapper" data-r="sourcetype"><label_sub><?php _e('Facebook', 'revslider');?></label_sub></div>
 							<div><input value="youtube" type="radio" name="slider_sourcetype" class="sliderinput easyinit" data-evt="loadStreamDependencies" data-evtparam="force" data-show="#source_*val*_settings" data-hide=".source_subsetting_wrapper" data-r="sourcetype"><label_sub><?php _e('YouTube', 'revslider');?></label_sub></div>
 							<div><input value="vimeo" type="radio" name="slider_sourcetype" class="sliderinput easyinit" data-evt="loadStreamDependencies" data-evtparam="force" data-show="#source_*val*_settings" data-hide=".source_subsetting_wrapper" data-r="sourcetype"><label_sub><?php _e('Vimeo', 'revslider');?></label_sub></div>
@@ -577,7 +576,7 @@ $api = 'revapi'; // . $slider_id;
 						<div style="display:none"  class="form_intoaccordion" data-trigger="#slr_fsc_l2"><i class="material-icons">arrow_drop_down</i></div>
 						<div class="collapsable">
 							<div id="post_subtype_settings_wrapper">
-								<label_a><?php _e('Fetch By', 'revslider');?></label_a><select id="post_fetch_type" name="post_fetch_type" class="sliderinput tos2 nosearchbox easyinit" data-r="source.post.fetchType" data-show=".fetch_ .*val*_, ._show_*val*" data-hide=".fetch_ .dep_, ._*val*_hide">
+								<label_a><?php _e('Fetch By', 'revslider');?></label_a><select id="post_fetch_type" name="post_fetch_type" class="sliderinput tos2 nosearchbox easyinit" data-evt="updateSortByPosts" data-r="source.post.fetchType" data-show=".fetch_ .*val*_, ._show_*val*" data-hide=".fetch_ .dep_, ._*val*_hide">
 									<option value="cat_tag"><?php _e('Categories & Tags', 'revslider');?></option>
 									<option value="related"><?php _e('Related', 'revslider');?></option>
 									<option value="popular"><?php _e('Popular', 'revslider');?></option>
@@ -1056,7 +1055,7 @@ foreach ($wc_sortby as $wc_val => $wc_name) {
 					<div class="div10"></div>
 					<row class="direktrow">
 						<labelhalf><i class="material-icons vmi">sms_failed</i></labelhalf>
-						<contenthalf><div class="function_info"><?php _e('Option is depricated and will be removed in upcoming updates !', 'revslider');?></div></contenthalf>
+						<contenthalf><div class="function_info"><?php _e('Option is deprecated and will be removed in upcoming updates !', 'revslider');?></div></contenthalf>
 					</row>
 				</div>
 			</div>
@@ -1069,8 +1068,10 @@ foreach ($wc_sortby as $wc_val => $wc_name) {
 				<div class="collapsable" style="display:block !important">
 					<!-- SLIDER MISC. SETTINGS -->
 					<longoption><label_a ><?php _e('Observe Wrapper Container', 'revslider');?></label_a><input type="checkbox"  id="sr_gen_observeWrapper" class="sliderinput easyinit" data-r="general.observeWrap" /></longoption>
-					<longoption><label_a ><?php _e('Next on Browser Focus', 'revslider');?></label_a><input type="checkbox"  id="sr_gen_nextSlideOnFocus" class="sliderinput easyinit" data-r="general.nextSlideOnFocus" /></longoption>
-					<longoption><label_a ><?php _e('Disable Blur/Focus behav.', 'revslider');?></label_a><input type="checkbox"  id="sr_gen_disableFocusListener" class="sliderinput easyinit" data-r="general.disableFocusListener" /></longoption>
+					<longoption><label_a ><?php _e('Next on Browser Focus (SR6)', 'revslider');?></label_a><input type="checkbox"  id="sr_gen_nextSlideOnFocus" class="sliderinput easyinit" data-r="general.nextSlideOnFocus" /></longoption>
+					<longoption><label_a ><?php _e('Disable Blur/Focus behav. (SR6)', 'revslider');?></label_a><input type="checkbox"  id="sr_gen_disableFocusListener" class="sliderinput easyinit" data-r="general.disableFocusListener" /></longoption>
+					<longoption><label_a ><?php _e('Freeze on Blur (SR7)', 'revslider');?></label_a><input type="checkbox"  id="sr_gen_freezeOnBlur" class="sliderinput easyinit" data-r="general.freezeOnBlur" /></longoption>
+					<longoption><label_a ><?php _e('Media Ignores Scroll Blur (SR7)', 'revslider');?></label_a><input type="checkbox"  id="sr_gen_mISB" class="sliderinput easyinit" data-r="general.mISB" /></longoption>
 					<longoption><label_a ><?php _e('Set Deeplink Hash in URL', 'revslider');?></label_a><input type="checkbox"  id="sr_gen_enableurlhash" class="sliderinput easyinit" data-r="general.enableurlhash" /></longoption>
 				</div><!-- END OF COLLAPSABLE-->
 				<div class="div5"></div>
@@ -1164,6 +1165,11 @@ if ($wpml->wpml_exists()) {
 								<div class="fixedscrollsettings">
 									<div class="all_sbt_fix_dependencies">
 										<div class="div20"></div>
+										<label_a style="overflow:visible"><?php _e('Shorter Height', 'revslider');?></label_a><select id="fixed_scroll_align"  class="sliderinput easyinit tos2 nosearchbox" data-r="scrolltimeline.align">
+											<option value="top"><?php _e('Top Aligned (SR6/SR7)', 'revslider');?></option>
+											<option value="travel"><?php _e('Center Travel (SR7)', 'revslider');?></option>											
+											<option value="bottom"><?php _e('Bottom Aligned (SR7)', 'revslider');?></option>											
+										</select>
 										<longoption><label_a><?php _e('Module Fixed From', 'revslider');?></label_a><input data-allowed="ms" id="fixed_scroll_start" data-r="scrolltimeline.fixedStart" data-numeric="true" data-min="1" data-max="999999999" data-evt="updateFixedScrollRange"  type="text"  class="sliderinput valueduekeyboard  easyinit" style="width:95px"></longoption>
 										<longoption><label_a><?php _e('Module Fixed Until', 'revslider');?></label_a><input data-allowed="ms"  id="fixed_scroll_end" data-r="scrolltimeline.fixedEnd" data-numeric="true" data-min="1" data-max="999999999"  data-evt="updateFixedScrollRange"  type="text"  class="sliderinput valueduekeyboard  easyinit" style="width:95px"></longoption>
 									</div>

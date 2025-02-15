@@ -2,16 +2,18 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
 
 $rsaf	= new RevSliderFunctionsAdmin();
+$rs_nav	= new RevSliderNavigation();
 $rs_od	= $rsaf->get_slider_overview();
 $rsa	= $rsaf->get_short_library($rs_od);
 $rsupd	= new RevSliderPluginUpdate();
 $rsaddon= new RevSliderAddons();
+$rsslider= new RevSliderSlider();
 if(!isset($rstrack)) $rstrack= new RevSliderTracking();
 
 $rs_addon_update		 = $rsaddon->check_addon_version();
@@ -36,6 +38,9 @@ $rs_backend_fonts		 = $rsaf->get_font_familys();
 $rs_new_addon_counter	 = get_option('rs-addons-counter', false);
 $rs_new_addon_counter	 = ($rs_new_addon_counter === false) ? count($rs_addons) : $rs_new_addon_counter;
 $rs_new_temp_counter	 = get_option('rs-templates-counter', false);
+$rs_slider_short_list	 = $rsslider->get_sliders_short_list();
+$rs_font_familys		 = $rsaf->get_font_familys();
+
 if($rs_new_temp_counter === false){
 	$_rs_tmplts			 = get_option('rs-templates', false);
 	$_rs_tmplts			 = $this->do_uncompress($_rs_tmplts);
@@ -48,20 +53,49 @@ $rs_global_sizes		 = array(
 	'm' => $rsaf->get_val($rs_global_settings, array('size', 'mobile'), '480')
 );
 $rs_show_updated = get_option('rs_cache_overlay', '1.0.0');
-if(version_compare(RS_REVISION, $rs_show_updated, '>')){
-    update_option('rs_cache_overlay', RS_REVISION);
-}
-$rs_show_deregister_popup = $rsaf->_truefalse(get_option('revslider-deregister-popup', 'false'));
+if(version_compare(RS_REVISION, $rs_show_updated, '>')) update_option('rs_cache_overlay', RS_REVISION);
 
+$rs_show_deregister_popup = $rsaf->_truefalse(get_option('revslider-deregister-popup', 'false'));
 ?>
 <!-- GLOBAL VARIABLES -->
 <script>
+	window.SR7 ??=  {};    
+	SR7.F ??= {};
+	SR7.D ??= {};
+	SR7.E ??= {gAddons:{}};
+	SR7.E.php ??= {};
+	SR7.LIB ??= {};
+	
+	SR7.E.nonce			= '<?php echo wp_create_nonce('revslider_actions'); ?>';
+	SR7.E.plugin_dir	= 'revslider';
+	SR7.E.slug_path		= '<?php echo str_replace(array("\n", "\r"), '', RS_PLUGIN_SLUG_PATH); ?>';
+	SR7.E.slug			= '<?php echo str_replace(array("\n", "\r"), '', RS_PLUGIN_SLUG); ?>';
+	SR7.E.plugin_url	= '<?php echo str_replace(array("\n", "\r"), '', RS_PLUGIN_URL); ?>';
+	SR7.E.wp_plugin_url = '<?php echo str_replace(array("\n", "\r"), '', WP_PLUGIN_URL) . "/"; ?>';
+	SR7.E.revision		= '<?php echo RS_REVISION; ?>';
+	SR7.E.ajaxurl		= '<?php echo admin_url('admin-ajax.php'); ?>';
+	SR7.E.resturl		= '<?php echo get_rest_url(); ?>';
+	SR7.E.backend		= true;
+	<?php
+	if(!file_exists(RS_PLUGIN_SLUG_PATH . 'public/js/defaults.js')){ ?>
+	SR7.E.resources		= {
+		defaults:	"<?php echo RS_PLUGIN_URL.'public/js/defaults.js'; ?>",
+		migration:	"<?php echo RS_PLUGIN_URL.'public/js/migration.js';?>",
+		save:		"<?php echo RS_PLUGIN_URL.'public/js/save.js'; ?>",
+	}
+	<?php }else{ ?>
+	SR7.E.resources		= {			
+		migration:	"<?php echo RS_PLUGIN_URL.'public/js/migration.js';?>",
+		save:		"<?php echo RS_PLUGIN_URL.'public/js/save.js'; ?>",
+	}
+	<?php } ?>
+
 	window.RVS = window.RVS === undefined ? {F:{}, C:{}, ENV:{}, LIB:{}, V:{}, S:{}, DOC:jQuery(document), WIN:jQuery(window)} : window.RVS;
 	
 	RVS.LIB.ADDONS			= RVS.LIB.ADDONS === undefined ? {} : RVS.LIB.ADDONS;	
 	RVS.LIB.ADDONS			= jQuery.extend(true,RVS.LIB.ADDONS,<?php echo (!empty($rs_addons)) ? 'JSON.parse('.$rsaf->json_encode_client_side($rs_addons).')' : '{}'; ?>);	
 	RVS.LIB.OBJ 			= {types: <?php echo (empty($rsa)) ? '{}' : 'JSON.parse('. $rsaf->json_encode_client_side($rsa).')'; ?>};
-	RVS.LIB.SLIDERS			= <?php echo (defined('JSON_INVALID_UTF8_IGNORE')) ? json_encode(RevSliderSlider::get_sliders_short_list(), JSON_INVALID_UTF8_IGNORE) : json_encode(RevSliderSlider::get_sliders_short_list()); ?>;
+	RVS.LIB.SLIDERS			= <?php echo (defined('JSON_INVALID_UTF8_IGNORE')) ? json_encode($rs_slider_short_list, JSON_INVALID_UTF8_IGNORE) : json_encode($rs_slider_short_list); ?>;
 	RVS.LIB.COLOR_PRESETS	= <?php echo (!empty($rs_color_picker_presets)) ? 'JSON.parse('. $rsaf->json_encode_client_side($rs_color_picker_presets) .')' : '{}'; ?>;
 
 	RVS.ENV.addOns_to_update = <?php echo (!empty($rs_addon_update)) ? 'JSON.parse('.$rsaf->json_encode_client_side($rs_addon_update).')' : '{}'; ?>;
@@ -81,8 +115,8 @@ $rs_show_deregister_popup = $rsaf->_truefalse(get_option('revslider-deregister-p
 	RVS.ENV.php_version		= '<?php echo phpversion(); ?>';
 	RVS.ENV.output_compress	= <?php echo (!empty($rs_compression)) ? 'JSON.parse('. $rsaf->json_encode_client_side($rs_compression) .')' : '[]'; ?>;
 	RVS.ENV.placeholder		= {
-		date_format:		'<?php echo $rs_wp_date_format; ?>',
-		time_format:		'<?php echo $rs_wp_time_format; ?>',
+		date_format:		'<?php echo addslashes($rs_wp_date_format); ?>',
+		time_format:		'<?php echo addslashes($rs_wp_time_format); ?>',
 		date_today:			'<?php echo date($rs_wp_date_format); ?>',
 		time:				'<?php echo date($rs_wp_time_format); ?>',
 		tomorrow:			'<?php echo date($rs_wp_date_format, strtotime(date($rs_wp_date_format) . ' +1 day')); ?>',
@@ -112,7 +146,6 @@ $rs_show_deregister_popup = $rsaf->_truefalse(get_option('revslider-deregister-p
 	RVS.ENV.img_sizes		= JSON.parse(<?php echo $rsaf->json_encode_client_side($rs_added_image_sizes); ?>);
 	RVS.ENV.create_img_meta	= <?php echo (!empty($rs_image_meta_todo)) ? 'true' : 'false'; ?>;
 	RVS.ENV.notices			= <?php echo (!empty($rs_notices)) ? 'JSON.parse('. $rsaf->json_encode_client_side($rs_notices) .')' : '[]'; ?>;
-	RVS.ENV.selling			= <?php echo ($rsaf->get_addition('selling') === true) ? 'true' : 'false'; ?>;
 	RVS.ENV.newAddonsAmount = '<?php echo $rs_new_addon_counter; ?>';
 	RVS.ENV.newTemplatesAmount = '<?php echo $rs_new_temp_counter; ?>';
 	RVS.ENV.deregisterPopup	= <?php echo ($rs_show_deregister_popup) ? 'true' : 'false'; ?>;
@@ -121,7 +154,6 @@ $rs_show_deregister_popup = $rsaf->_truefalse(get_option('revslider-deregister-p
 		tutorial:		<?php echo (!empty($rs_tutorial)) ? 'JSON.parse('. $rsaf->json_encode_client_side($rs_tutorial) .')' : '[]'; ?>,
 		bottom:			<?php echo (!empty($rs_tutorial_bottom)) ? 'JSON.parse('. $rsaf->json_encode_client_side($rs_tutorial_bottom) .')' : '[]'; ?>
 	};
-	
 	<?php
 	if($rs_slider_update_needed == true){
 	?>

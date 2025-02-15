@@ -4,7 +4,7 @@
  * @since: 5.0
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.sliderrevolution.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -72,27 +72,57 @@ class RevSliderFacebook extends RevSliderFunctions {
 		//fb returned error
 		if (isset($_GET[self::QUERY_ERROR])) return;
 
-		//we need token and slide ID to proceed with saving token
-		if (!isset($_GET[self::QUERY_TOKEN]) || !isset($_GET['id'])) return;
+		//we need token and slide ID / slider alias to proceed with saving token
+		if(!isset($_GET[self::QUERY_TOKEN]) || !( isset($_GET['id']) || isset($_GET['alias']) ) ) return;
+
+		$sr_admin = RevSliderGlobals::instance()->get('RevSliderAdmin');
+		if(!current_user_can($sr_admin->get_user_role())){
+			$_GET[self::QUERY_ERROR] = __('Bad Request', 'revslider');
+			return;
+		}
 
 		$token = $_GET[self::QUERY_TOKEN];
 		$connectwith = isset($_GET[self::QUERY_CONNECTWITH]) ? $_GET[self::QUERY_CONNECTWITH] : '';
 		$page_id = isset($_GET[self::QUERY_PAGE_ID]) ? $_GET[self::QUERY_PAGE_ID] : '';
-		$id = (isset($_GET['id'])) ? $_GET['id'] : '';
+		$id = $this->get_val($_GET, 'id');
+		$alias = $this->get_val($_GET, 'alias');
+		
+		$nonce_name = '';
+		$nonce = $this->get_val($_GET, 'rs_fb_nonce');
 
 		$slider	= new RevSliderSlider();
 		$slide	= new RevSliderSlide();
 
-		$slide->init_by_id($id);
-		$slider_id = $slide->get_slider_id();
-		if(intval($slider_id) == 0){
-			$_GET[self::QUERY_ERROR] = __('Slider could not be loaded', 'revslider');
-			return;
+		if(!empty($alias)){
+			$slider->init_by_alias($alias);
+			if($slider->inited === false){
+				$_GET[self::QUERY_ERROR] = __('Slider could not be loaded', 'revslider');
+				return;
+			}
+			
+			$nonce_name = self::get_nonce_name($alias);
+			
+		} else {
+			$slide->init_by_id($id);
+
+			$slider_id = $slide->get_slider_id();
+			if(intval($slider_id) == 0){
+				$_GET[self::QUERY_ERROR] = __('Slider could not be loaded', 'revslider');
+				return;
+			}
+
+			$slider->init_by_id($slider_id);
+			if($slider->inited === false){
+				$_GET[self::QUERY_ERROR] = __('Slider could not be loaded', 'revslider');
+				return;
+			}
+
+			$nonce_name = self::get_nonce_name($id);
+			
 		}
 
-		$slider->init_by_id($slider_id);
-		if($slider->inited === false){
-			$_GET[self::QUERY_ERROR] = __('Slider could not be loaded', 'revslider');
+		if(wp_verify_nonce($nonce, $nonce_name) == false){
+			$_GET[self::QUERY_ERROR] = __('Bad Request', 'revslider');
 			return;
 		}
 
@@ -104,7 +134,7 @@ class RevSliderFacebook extends RevSliderFunctions {
 
 		//redirect
 		$url = set_url_scheme( 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] );
-		$url = add_query_arg(array(self::QUERY_TOKEN => false, self::QUERY_PAGE_ID => false, self::QUERY_CONNECTWITH => false, self::QUERY_SHOW => 1), $url);
+		$url = add_query_arg(array(self::QUERY_TOKEN => false, self::QUERY_PAGE_ID => false, self::QUERY_CONNECTWITH => false, 'rs_fb_nonce' => false, self::QUERY_SHOW => 1), $url);
 		wp_redirect($url);
 		exit();
 	}
@@ -126,8 +156,16 @@ class RevSliderFacebook extends RevSliderFunctions {
 	public static function get_login_url(){
 		$rslb = RevSliderGlobals::instance()->get('RevSliderLoadBalancer');
 		$id = (isset($_GET['id'])) ? $_GET['id'] : '';
-		$state = base64_encode(admin_url('admin.php?page=revslider&view=slide&id='.$id));
-		return $rslb->get_url('updates') . '/' . self::URL_FB_AUTH . '?state=' . $state;
+		$alias = (isset($_GET['alias'])) ? $_GET['alias'] : '';
+		if (!empty($id)) {
+			$link = $rslb->get_url('updates') . '/' . self::URL_FB_AUTH . '?state=' . base64_encode( admin_url('admin.php?page=revslider&view=slide&id='.$id.'&rs_fb_nonce='.wp_create_nonce(self::get_nonce_name($id))) );
+		} else if (!empty($alias)) {
+			$link = $rslb->get_url('updates') . '/' . self::URL_FB_AUTH . '?state=' . base64_encode( admin_url('admin.php?page=revslider&view=slide&alias='.$alias.'&rs_fb_nonce='.wp_create_nonce(self::get_nonce_name($alias))) );
+		} else {
+			$link = esc_attr('javascript:RVS.F.showInfo({content:"Slider ID or alias unavailable", type:"warning", showdelay:1, hidedelay:5, hideon:"", event:"" });');
+		}
+
+		return $link;
 	}
 
 	protected function _make_api_call($args = array()){
@@ -135,7 +173,7 @@ class RevSliderFacebook extends RevSliderFunctions {
 
 		$rslb = RevSliderGlobals::instance()->get('RevSliderLoadBalancer');
 
-		$response = wp_remote_post($rslb->get_url('updates') . '/' . self::URL_FB_API, array(
+		$response = wp_safe_remote_post($rslb->get_url('updates') . '/' . self::URL_FB_API, array(
 			'user-agent' => 'WordPress/'.$wp_version.'; '.get_bloginfo('url'),
 			'body'		 => $args,
 			'timeout'	 => 45
@@ -270,7 +308,15 @@ class RevSliderFacebook extends RevSliderFunctions {
 
 		$prefix = self::TRANSIENT_PREFIX . $id;
 		$wpdb->query($wpdb->prepare("DELETE FROM $wpdb->options WHERE `option_name` LIKE '%s'", '%'.$prefix.'%'));
-		//$wpdb->query($wpdb->prepare("DELETE FROM $wpdb->options WHERE `option_name` LIKE '%%%s%%'", $wpdb->esc_like($prefix)));
+	}
+
+	/**
+	 * @param int|string $p
+	 * @return string
+	 */
+	public static function get_nonce_name($p)
+	{
+		return self::TRANSIENT_PREFIX . 'nonce_' . $p;
 	}
 
 }

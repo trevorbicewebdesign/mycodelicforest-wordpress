@@ -202,7 +202,9 @@ class GF_Field_FileUpload extends GF_Field {
 				}
 			}
 			$single_file_name = $_FILES[ $input_name ]['name'];
-			$file_names = array( array( 'uploaded_filename' => $single_file_name ) );
+			if ( ! empty( $single_file_name ) ) {
+				$file_names[] = array( 'uploaded_filename' => $single_file_name );
+			}
 		}
 
 		foreach ( $file_names as $file_name ) {
@@ -223,6 +225,21 @@ class GF_Field_FileUpload extends GF_Field {
 				}
 			}
 		}
+
+		if ( ( $this->multipleFiles && ! rgblank( $this->maxFiles ) ) || ( ! $this->multipleFiles && $this->type !== 'post_image' ) ) {
+			$limit = $this->multipleFiles ? absint( $this->maxFiles ) : 1;
+			$count = count( $file_names );
+			if ( ! empty( $value ) ) {
+				$entry_files   = is_array( $value ) ? $value : json_decode( $value, true );
+				$count       += is_array( $entry_files ) ? count( $entry_files ) : 1;
+			}
+
+			if ( $count && $count > $limit ) {
+				$this->failed_validation  = true;
+				$this->validation_message = empty( $this->errorMessage ) ? sprintf( esc_html__( 'Maximum number of files (%d) exceeded.', 'gravityforms' ), $limit ) : $this->errorMessage;
+			}
+		}
+
 		GFCommon::log_debug( __METHOD__ . '(): Validation complete.' );
 	}
 
@@ -252,10 +269,6 @@ class GF_Field_FileUpload extends GF_Field {
 		$tabindex        = $this->get_tabindex();
 		$multiple_files  = $this->multipleFiles;
 		$file_list_id    = 'gform_preview_' . $form_id . '_' . $id;
-
-		$is_entry_detail = $this->is_entry_detail();
-		$is_form_editor  = $this->is_form_editor();
-		$is_admin = $is_entry_detail || $is_form_editor;
 
 		// Generate upload rules messages ( allowed extensions, max no. of files, max file size ).
 		$upload_rules_messages = array();
@@ -346,7 +359,7 @@ class GF_Field_FileUpload extends GF_Field {
 			$upload             = "<div id='{$container_id}' data-settings='{$plupload_init_json}' class='gform_fileupload_multifile'>
 										<div id='{$drag_drop_id}' class='gform_drop_area gform-theme-field-control'>
 											<span class='gform_drop_instructions'>{$drop_files_here_text} </span>
-											<button type='button' id='{$browse_button_id}' class='button gform_button_select_files gform-theme-button gform-theme-button--control' {$describedby} {$tabindex} >{$select_files_text}</button>
+											<button type='button' id='{$browse_button_id}' class='button gform_button_select_files gform-theme-button gform-theme-button--control' {$describedby} {$tabindex} {$disabled_text}>{$select_files_text}</button>
 										</div>
 									</div>";
 
@@ -471,7 +484,8 @@ class GF_Field_FileUpload extends GF_Field {
 
 	public function is_value_submission_empty( $form_id ) {
 		$input_name = 'input_' . $this->id;
-		$tmp_path   = GFFormsModel::get_upload_path( $form_id ) . '/tmp/';
+		$tmp_location = GFFormsModel::get_tmp_upload_location( $form_id );
+		$tmp_path     = $tmp_location['path'];
 
 		if ( $this->multipleFiles ) {
 			$uploaded_files = GFFormsModel::$uploaded_files[ $form_id ];
@@ -582,16 +596,29 @@ class GF_Field_FileUpload extends GF_Field {
 					if ( ! isset( $file_info['temp_filename'] ) ) {
 						$existing_file = $this->check_existing_entry( $entry_id, $input_name, $file_info );
 
+						// If existing file is an array, we need to get the filename to avoid a fatal.
+						if ( rgar( $existing_file, 'uploaded_filename' ) ) {
+							$existing_file = $existing_file['uploaded_filename'];
+						}
+
 						// We already have the file path in $existing_file, however it's good to check that the file path in the entry meta matches.
 						$uploaded_path = gform_get_meta( $entry_id, self::get_file_upload_path_meta_key_hash( $existing_file ) );
 
 						if ( $uploaded_path ) {
 							$uploaded_files[ $i ] = $uploaded_path['url'] . $uploaded_path['file_name'];
+						} else {
+							// If there is no file path in the entry meta or we're not editing an existing entry, get the upload path.
+							$uploaded_path = GFFormsModel::get_file_upload_path( $form_id, $existing_file, false );
+
+							if ( $uploaded_path ) {
+								$uploaded_files[ $i ] = $uploaded_path['url'];
+							}
 						}
 						continue;
 					}
 
-					$temp_filepath = GFFormsModel::get_upload_path( $form_id ) . '/tmp/' . wp_basename( $file_info['temp_filename'] );
+					$tmp_location  = GFFormsModel::get_tmp_upload_location( $form_id );
+					$temp_filepath = $tmp_location['path'] . wp_basename( $file_info['temp_filename'] );
 					if ( $file_info && file_exists( $temp_filepath ) ) {
 						$uploaded_files[ $i ] = $this->move_temp_file( $form_id, $file_info );
 					}
@@ -742,7 +769,16 @@ class GF_Field_FileUpload extends GF_Field {
 
 	public function get_value_entry_list( $value, $entry, $field_id, $columns, $form ) {
 		if ( $this->multipleFiles ) {
-			$uploaded_files_arr = empty( $value ) ? array() : json_decode( $value, true );
+			if ( is_array( $value ) ) {
+				$uploaded_files_arr = $value;
+			} else {
+				$uploaded_files_arr = json_decode( $value, true );
+				if ( ! is_array( $uploaded_files_arr ) ) {
+					$uploaded_files_arr = array( $value );
+				}
+			}
+
+
 			$file_count         = count( $uploaded_files_arr );
 			if ( $file_count > 1 ) {
 				$value = empty( $uploaded_files_arr ) ? '' : sprintf( esc_html__( '%d files', 'gravityforms' ), count( $uploaded_files_arr ) );
@@ -766,54 +802,66 @@ class GF_Field_FileUpload extends GF_Field {
 	}
 
 	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
-		$output = '';
-		if ( ! empty( $value ) ) {
-			$output_arr     = array();
-			$file_paths     = $this->multipleFiles ? json_decode( $value ) : array( $value );
-			$force_download = in_array( 'download', $this->get_modifiers() );
-
-			if ( is_array( $file_paths ) ) {
-				foreach ( $file_paths as $file_path ) {
-					$basename = wp_basename( $file_path );
-					$file_path = $this->get_download_url( $file_path, $force_download );
-
-					/**
-					 * Allow for override of SSL replacement
-					 *
-					 * By default Gravity Forms will attempt to determine if the schema of the URL should be overwritten for SSL.
-					 * This is not ideal for all situations, particularly domain mapping. Setting $field_ssl to false will prevent
-					 * the override.
-					 *
-					 * @since 2.1.1.23
-					 *
-					 * @param bool                $field_ssl True to allow override if needed or false if not.
-					 * @param string              $file_path The file path of the download file.
-					 * @param GF_Field_FileUpload $field     The field object for further context.
-					 */
-					$field_ssl = apply_filters( 'gform_secure_file_download_is_https', true, $file_path, $this );
-
-					if ( GFCommon::is_ssl() && strpos( $file_path, 'http:' ) !== false && $field_ssl === true ) {
-						$file_path = str_replace( 'http:', 'https:', $file_path );
-					}
-
-					/**
-					 * Allows for the filtering of the file path before output.
-					 *
-					 * @since 2.1.1.23
-					 *
-					 * @param string              $file_path The file path of the download file.
-					 * @param GF_Field_FileUpload $field     The field object for further context.
-					 */
-					$file_path    = str_replace( ' ', '%20', apply_filters( 'gform_fileupload_entry_value_file_path', $file_path, $this ) );
-					$output_arr[] = $format == 'text' ? $file_path : sprintf( "<li><a href='%s' target='_blank' aria-label='%s'>%s</a></li>", esc_attr( $file_path ), esc_attr__( 'Click to view', 'gravityforms' ), $basename );
-
-				}
-				$output = join( PHP_EOL, $output_arr );
-			}
+		if ( empty( $value ) ) {
+			return '';
 		}
-		$output = empty( $output ) || $format == 'text' ? $output : sprintf( '<ul>%s</ul>', $output );
 
-		return $output;
+		$output     = '';
+		$output_arr = array();
+
+		$files = json_decode( $value, true );
+		if ( ! is_array( $files ) ) {
+			$files = array( $value );
+		}
+
+		$force_download = in_array( 'download', $this->get_modifiers() );
+
+		if ( is_array( $files ) ) {
+			foreach ( $files as $file_path ) {
+				if ( is_array( $file_path ) ) {
+					$basename  = rgar( $file_path, 'uploaded_name' );
+					$file_path = rgar( $file_path, 'tmp_url' );
+				} else {
+					$basename = wp_basename( $file_path );
+				}
+
+				$file_path = $this->get_download_url( $file_path, $force_download );
+
+				/**
+				 * Allow for override of SSL replacement
+				 *
+				 * By default Gravity Forms will attempt to determine if the schema of the URL should be overwritten for SSL.
+				 * This is not ideal for all situations, particularly domain mapping. Setting $field_ssl to false will prevent
+				 * the override.
+				 *
+				 * @since 2.1.1.23
+				 *
+				 * @param bool                $field_ssl True to allow override if needed or false if not.
+				 * @param string              $file_path The file path of the download file.
+				 * @param GF_Field_FileUpload $field     The field object for further context.
+				 */
+				$field_ssl = apply_filters( 'gform_secure_file_download_is_https', true, $file_path, $this );
+
+				if ( GFCommon::is_ssl() && strpos( $file_path, 'http:' ) !== false && $field_ssl === true ) {
+					$file_path = str_replace( 'http:', 'https:', $file_path );
+				}
+
+				/**
+				 * Allows for the filtering of the file path before output.
+				 *
+				 * @since 2.1.1.23
+				 *
+				 * @param string              $file_path The file path of the download file.
+				 * @param GF_Field_FileUpload $field     The field object for further context.
+				 */
+				$file_path    = str_replace( ' ', '%20', apply_filters( 'gform_fileupload_entry_value_file_path', $file_path, $this ) );
+				$output_arr[] = $format == 'text' ? $file_path : sprintf( "<li><a href='%s' target='_blank' aria-label='%s'>%s</a></li>", esc_attr( $file_path ), esc_attr__( 'Click to view', 'gravityforms' ), $basename );
+
+			}
+			$output = join( PHP_EOL, $output_arr );
+		}
+
+		return empty( $output ) || $format == 'text' ? $output : sprintf( '<ul>%s</ul>', $output );
 	}
 
 	/**
@@ -840,24 +888,28 @@ class GF_Field_FileUpload extends GF_Field {
 	 */
 	public function get_value_merge_tag( $value, $input_id, $entry, $form, $modifier, $raw_value, $url_encode, $esc_html, $format, $nl2br ) {
 
+		if ( empty( $raw_value ) ) {
+			return '';
+		}
+
 		$force_download = in_array( 'download', $this->get_modifiers() );
 
-		if ( $this->multipleFiles ) {
-
-			$files = empty( $raw_value ) ? array() : json_decode( $raw_value, true );
-			foreach ( $files as &$file ) {
-				$file = $this->get_download_url( $file, $force_download );
-				$file = str_replace( ' ', '%20', $file );
-				if ( $esc_html ) {
-					$value = esc_html( $value );
-				}
-			}
-			$value = $format == 'html' ? join( '<br />', $files ) : join( ', ', $files );
-
-		} else {
-			$value = $this->get_download_url( $raw_value, $force_download );
-			$value = str_replace( ' ', '%20', $value );
+		$files = json_decode( $raw_value, true );
+		if ( ! is_array( $files ) ) {
+			$files = array( $raw_value );
 		}
+
+		foreach ( $files as &$file ) {
+			if ( is_array( $file ) ) {
+				$file = rgar( $file, 'tmp_url' );
+			}
+			$file = str_replace( ' ', '%20', $this->get_download_url( $file, $force_download ) );
+			if ( $esc_html ) {
+				$file = esc_html( $file );
+			}
+		}
+
+		$value = $format == 'html' ? join( '<br />', $files ) : join( ', ', $files );
 
 		if ( $url_encode ) {
 			$value = urlencode( $value );
@@ -869,8 +921,10 @@ class GF_Field_FileUpload extends GF_Field {
 
 	public function move_temp_file( $form_id, $tempfile_info ) {
 
-		$target = GFFormsModel::get_file_upload_path( $form_id, $tempfile_info['uploaded_filename'] );
-		$source = GFFormsModel::get_upload_path( $form_id ) . '/tmp/' . wp_basename( $tempfile_info['temp_filename'] );
+		$target       = GFFormsModel::get_file_upload_path( $form_id, $tempfile_info['uploaded_filename'] );
+		$tmp_location = GFFormsModel::get_tmp_upload_location( $form_id );
+		$source       = $tmp_location['path'] . wp_basename( $tempfile_info['temp_filename'] );
+
 
 		GFCommon::log_debug( __METHOD__ . '(): Moving temp file from: ' . $source );
 
@@ -914,7 +968,12 @@ class GF_Field_FileUpload extends GF_Field {
 
 		$value = rgar( $entry, $input_id );
 		if ( $this->multipleFiles && ! empty( $value ) ) {
-			return implode( ' , ', json_decode( $value, true ) );
+			$decoded = json_decode( $value, true );
+			if ( ! is_array( $decoded ) ) {
+				return $value;
+			}
+
+			return implode( ' , ', $decoded );
 		}
 
 		return $value;

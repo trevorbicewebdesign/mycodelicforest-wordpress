@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -28,8 +28,8 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	public function __construct(){
 		$this->upload_dir		= wp_upload_dir();
 		$this->font_icon_paths	= array(
-			RS_PLUGIN_PATH.'public/assets/fonts/font-awesome/css/font-awesome.css',
-			RS_PLUGIN_PATH.'public/assets/fonts/pe-icon-7-stroke/css/pe-icon-7-stroke.css'
+			RS_PLUGIN_PATH.'sr6/assets/fonts/font-awesome/css/font-awesome.css',
+			RS_PLUGIN_PATH.'sr6/assets/fonts/pe-icon-7-stroke/css/pe-icon-7-stroke.css'
 		);
 		$this->font_icon_paths	= apply_filters('revslider_object_library_icon_paths', $this->font_icon_paths);
 	}
@@ -164,6 +164,7 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	 * @since: 5.3.0
 	 */
 	public function _get_object_thumb($object_handle, $type, $download = false){
+		global $SR_GLOBALS;
 		if(intval($object_handle) > 0){
 			$object_handle = $this->get_object_handle_by_id($object_handle);
 		}else{ //check if we are original image and if not change it to original image
@@ -184,6 +185,10 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 		if($validated === false && !in_array($type, $this->allowed_types, true)){
 			return array('error' => __('Plugin not activated', 'revslider'));
 		}
+		
+		$mimes = array_merge($this->get_val($SR_GLOBALS, array('mime_types', 'image')), array('mp4' => 'video/mp4'));
+		$file_type = wp_check_filetype($object_handle, $mimes);
+		if($this->get_val($file_type, 'ext', false) === false || $this->get_val($file_type, 'type', false) === false) return array('error' => __('Bad File Format', 'revslider'));
 
 		// Check folder permission and define file location
 		if($_download && $download === true && wp_mkdir_p($this->upload_dir['basedir'].$path)){
@@ -643,8 +648,8 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 	public function get_svg_sets_url(){
 		$svg_sets = array();
 
-		$path	= RS_PLUGIN_PATH . 'public/assets/assets/svg/';
-		$url	= RS_PLUGIN_URL . 'public/assets/assets/svg/';
+		$path	= RS_PLUGIN_PATH . 'public/assets/svg/';
+		$url	= RS_PLUGIN_URL_CLEAN . 'public/assets/svg/';
 
 		if(!file_exists($path.'action/ic_3d_rotation_24px.svg')){ //the path needs to be changed to the uploads folder then
 			$path	= $this->upload_dir['basedir'].'/revslider/assets/svg/';
@@ -740,6 +745,7 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 				foreach($values['items'] as $item){
 					$id = $this->get_val($item, 'id');
 					$item['favorite'] = $favorite->is_favorite('svgcustom', $id);
+					$item['img'] = $this->remove_http($item['img']); //Fix for B-5762994580
 					$svgcustom[] = $item;
 				}
 			}
@@ -1168,11 +1174,20 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 				}
 			break;
 		}
+		
+		// initialize sanitizer
+		$sanitizer = new RevSliderSvgSanitizer();
 
-		if(!empty($import)){
-			foreach($import as $k => $v){
-				$check = $wp_filesystem->exists($v) ? $wp_filesystem->get_contents($v) : '';
-				if(empty($check)) unset($import[$k]);
+		foreach($import ?? [] as $k => $v){
+			$check = $wp_filesystem->exists($v) ? $wp_filesystem->get_contents($v) : '';
+			if(empty($check)){
+				unset($import[$k]);
+				continue;
+			}
+			
+			$clean = $sanitizer->sanitize($check);
+			if($clean === false || !$wp_filesystem->put_contents($v, $clean, FS_CHMOD_FILE)){
+				unset($import[$k]);
 			}
 		}
 		
@@ -1181,26 +1196,24 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 			$this->throw_error(__('No valid file sent.', 'revslider'));
 		}
 		
-		$tags = get_option('rs-custom-library-tags', array());
+		$tags = (array)get_option('rs-custom-library-tags', array());
 		$found = false;
-		if(!empty($tags)){
-			foreach($tags as $t => $_v){
-				if($t !== $lib_type) continue;
-				
-				foreach($_v as $k => $v){
-					if($tagID !== false){
-						if(strval($k) === strval($tagID)){
-							$found	= true;
-							$tag	= $v;
-							break;
-						}
-					}else{
-						if($this->get_val($v, 'name', -1) === $tag){
-							$found	= true;
-							$tag	= $v;
-							$tagID	= $k;
-							break;
-						}
+		foreach($tags ?? [] as $t => $_v){
+			if($t !== $lib_type) continue;
+			
+			foreach($_v as $k => $v){
+				if($tagID !== false){
+					if(strval($k) === strval($tagID)){
+						$found	= true;
+						$tag	= $v;
+						break;
+					}
+				}else{
+					if($this->get_val($v, 'name', -1) === $tag){
+						$found	= true;
+						$tag	= $v;
+						$tagID	= $k;
+						break;
 					}
 				}
 			}
@@ -1261,7 +1274,7 @@ class RevSliderObjectLibrary extends RevSliderFunctions {
 				'id'	 => $_id,
 				'handle' => $handle,
 				'title'	 => $this->sanitize_tag_name($_name),
-				'img'	 => $url
+				'img'	 => $this->remove_http($url) //Fix for B-5762994580
 			);
 			
 			if($tagID !== 0 && $tagID !== false){

@@ -64,7 +64,7 @@ class RevsliderDivi extends DiviExtension {
 		    //load revslider styles and scripts needed for shortcode wizard
             require_once(RS_PLUGIN_PATH . 'admin/includes/shortcode_generator/shortcode_generator.class.php');
             RevSliderShortcodeWizard::add_styles();
-            wp_enqueue_style('rs-new-plugin-settings', RS_PLUGIN_URL . 'admin/assets/css/builder.css', array('revslider-basics-css'), RS_REVISION);
+            wp_enqueue_style('rs-new-plugin-settings', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/builder.css', array('revslider-basics-css'), RS_REVISION);
             add_action( 'wp_enqueue_scripts', array($this, 'add_scripts') );
         }
 		//load revslider modals html via separate ajax request

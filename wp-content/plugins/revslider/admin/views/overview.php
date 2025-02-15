@@ -2,16 +2,15 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
-
+global $SR_GLOBALS;
 
 $system_config	= $rsaf->get_system_requirements();
 $current_user	= wp_get_current_user();
 $revslider_valid = $rsaf->_truefalse(get_option('revslider-valid', 'false'));
-$show_trustpilot = $rsaf->_truefalse(get_option('revslider-trustpilot', 'true'));
 $latest_version	= get_option('revslider-latest-version', RS_REVISION);
 $stable_version	= get_option('revslider-stable-version', '4.2');
 $latest_version	= ($revslider_valid !== true && version_compare($latest_version, $stable_version, '<')) ? $stable_version : $latest_version;
@@ -19,7 +18,7 @@ $code			= get_option('revslider-code', '');
 $time			= date('H');
 $timezone		= date('e');/* Set the $timezone variable to become the current timezone */
 $hi				= __('Good Evening ', 'revslider');
-$selling 		= $rsaf->get_addition('selling');
+$rs_front_version = $rsaf->get_val($SR_GLOBALS, 'front_version', 7);
 if($time < '12'){
 	$hi = __('Good Morning ', 'revslider');
 }elseif($time >= '12' && $time < '17'){
@@ -27,6 +26,10 @@ if($time < '12'){
 }
 $rs_languages	= $rsaf->get_available_languages();
 ?>
+<script type="text/javascript">
+	RVS.LIB.FONTS			= <?php echo json_encode($rs_font_familys, true); ?>;
+</script>
+
 <div id="rb_tlw">
 	<?php
 	// INCLUDE NEEDED CONTAINERS
@@ -55,10 +58,35 @@ $rs_languages	= $rsaf->get_available_languages();
 	<div id="rs_welcome_header_area">
 		<h2 id="rs_welcome_h2" class="title"><?php echo $hi; echo $current_user->display_name; echo '!'; ?></h2>
 		<h3 id="rs_welcome_h3" class="subtitle"><?php _e('You are running Slider Revolution ', 'revslider'); echo RS_REVISION; ?></h3>
-		<?php if ($selling === true) { ?>	
-			<a href="https://account.sliderrevolution.com/portal/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=members" target="_blank" rel="noopener" id="rs_memarea_registered" class="basic_action_button longbutton basic_action_lilabutton"><i class="material-icons">person_outline</i><?php _e('Members Area', 'revslider');?></a>
-			<!-- <a href="https://account.sliderrevolution.com/portal/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=members" target="_blank" rel="noopener" id="rs_memarea"></a>					  -->
-		<?php } ?>		
+		<a href="https://account.sliderrevolution.com/portal/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=members" target="_blank" rel="noopener" id="rs_memarea_registered" class="basic_action_button longbutton basic_action_lilabutton"><i class="material-icons">person_outline</i><?php _e('Members Area', 'revslider');?></a>
+	</div>
+	
+	<div id="sr67-versionbadge" class="<?php echo ($rs_front_version == 7) ? 'v_velocity' : 'v_genesis'; ?>">
+		<i class="sr67-badgeicon"><svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M440-280h80v-240h-80v240Zm40-320q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 520q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></i>
+		<div class="sr67-badge-left">
+			<div class="simpletext"><?php _e('Frontend Engine', 'revslider');?></div>
+			<div id="sr67-engine">SR<?php echo $rs_front_version; ?></div>
+		</div><!--
+		--><div class="sr67-badge-right">
+			<a class="lilasmallbutton" href="https://www.sliderrevolution.com/sr7-velocity-frontend-engine-update/" target="_blank" rel="noopener"><?php _e('Update Guide', 'revslider');?></a>			
+			<div id="open_velocity_checklist" class="is_genesis bluesmallbutton" style="margin-left:8px;"><?php _e('Switch to SR7 Engine', 'revslider');?></div>
+		</div>
+		<div class="sr67-tooltip">
+			<div class="is_velocity sr67-tooptip-title"><?php _e("Congratulations!",'revslider');?><br><?php _e("You're running the new",'revslider');?><br><?php _e('SR7 "Velocity" Frontend Engine,', 'revslider');?><br><?php _e("ensuring Future-Proof Performance.", 'revslider');?></div>
+			<div class="is_genesis sr67-tooptip-title"><?php _e("Get Future-Proof and Enhanced",'revslider');?><br><?php _e("Performance Now by Switching to the",'revslider');?><br><?php _e('SR7 "Velocity" Engine.', 'revslider');?></div>
+			<div class="div20"></div>
+			<div class="is_velocity simpletext"><?php _e("For a full guide & change history, please click",'revslider');?><br><?php _e('"Update Guide" on the left','revslider');?></div>
+			<div class="is_genesis simpletext"><?php _e("Not sure what you need to do?",'revslider');?><br><?php _e("No problem. We will handhold you through the",'revslider');?><br><?php _e('process in our "Engine guide" on the left.', 'revslider');?></div>
+			<div class="sr67-tooltip-arrow"></div>
+		</div>
+	</div>
+
+	<div id="sr67-minimigration" class="<?php echo ($rs_front_version == 7) ? 'v_velocity' : 'v_genesis'; ?>">
+		<i id="sr7_migration_badgeicon" class="sr67-badgeicon"><sr_pulsing_dot></sr_pulsing_dot></i>
+		<div class="sr67-badge-left">
+			<div class="simpletext"><?php _e('SR7 Data Migration', 'revslider');?></div>
+			<div id="sr67-engine"><span id="sr7_migratedcount">0</span>/<span id="sr7_alltomigrate">0</span></div>
+		</div>
 	</div>
 
 	<!-- CREATE YOUR SLIDERS -->
@@ -82,7 +110,7 @@ $rs_languages	= $rsaf->get_available_languages();
 		</div>
 		<div class="div15"></div>
 		<div class="overview_elements" style="z-index:2"><div class="overview_elements_overlay"></div></div>
-		<div class="overview_slide_elements" style="z-index:1"><div class="overview_slide_elements_overlay"></div>
+		<div class="overview_slide_elements" style="z-index:1"><div class="overview_slide_elements_overlay"></div></div>
 		<div id="modulesoverviewfooter" class="overview_header_footer">
 			<div class="rs_fh_right" style="margin-right:23px">
 				<div class="ov-pagination"></div>			
@@ -113,10 +141,10 @@ $rs_languages	= $rsaf->get_available_languages();
 			<h3 class="pli_title"><?php _e('System Requirements', 'revslider');?></h3>
 			<div id="system_requirements">
 				<div id="syscheck_upload_folder_writable" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Upload folder writable', 'revslider');?></div>
-				<div id="syscheck_memory_limit" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Memory Limit (256M)', 'revslider');?></div>
-				<div id="syscheck_upload_max_filesize" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Upload Max. Filesize (256M)', 'revslider');?></div>
-				<div id="syscheck_post_max_size" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Max. Post Size (256M)', 'revslider');?></div>
-				<div id="syscheck_max_allowed_packet" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Max. Allowed Package (16M)', 'revslider');?></div>
+				<div id="syscheck_memory_limit" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Memory Limit', 'revslider');?>&nbsp;(<span>256M</span>)</div>
+				<div id="syscheck_upload_max_filesize" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Upload Max. Filesize', 'revslider');?>&nbsp;(<span>256M</span>)</div>
+				<div id="syscheck_post_max_size" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Max. Post Size', 'revslider');?>&nbsp;(<span>256M</span>)</div>
+				<div id="syscheck_max_allowed_packet" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Max. Allowed Package', 'revslider');?>&nbsp;(<span>16M</span>)</div>
 				<div id="syscheck_zlib_enabled" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Zlib Library', 'revslider');?></div>
 				<div id="syscheck_object_library_writable" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('Object Library', 'revslider');?></div>
 				<div id="syscheck_server_connect" class="system_requirement"><i class="material-icons done_icon">done</i><i class="material-icons warning_icon">warning</i><?php _e('ThemePunch Server', 'revslider');?><darkiconbox id="check_for_themepunchserver" class="rfloated"><i class="material-icons">refresh</i></darkiconbox><darkiconbox id="faq_to_systemrequirements" class="rfloated"><a href="https://www.sliderrevolution.com/documentation/system-requirements/" target="_blank" rel="noopener"><i class="material-icons">question_mark</i></a></darkiconbox></div>
@@ -129,39 +157,29 @@ $rs_languages	= $rsaf->get_available_languages();
 		</div>
 	</div>
 
-	<div class="div100"></div>
-	<!--Show Trustpilot Message-->	
-	<div id="register_trustpilot_wrap" data-state="<?php echo ($show_trustpilot) ? '' : 'closed'; ?>">
-		<div class="pli_left"><a id="trustpilotlink" class="purplesmallbutton" href="https://www.trustpilot.com/evaluate/sliderrevolution.com" target="_blank" rel="noopener"><?php _e('Review us on', 'revslider');?><span class="rs_trustpilot_bg"></span></a></div>
-		<div class="pli_right"><h3 class="pli_title"><?php _e('Thank you for using Slider Revolution!', 'revslider');?><span class="thicon"></span></h3></div>
-		<div id="trust_closer"><i class="material-icons">close</i></div>
-	</div>
+	<div class="div150"></div>
 
 	<!-- PLUGIN INFORMATIONS -->	
 	<div id="plugin_activation_row" class="plugin_inforow">
 		<!-- PLUGIN UPDATE -->
 		<div id="activation_area" class="pli_left">	
-			<h3 id="activateplugintitle" class="pli_title"><?php echo ($selling === true) ? __('Register License Key', 'revslider') : __('Register Purchase Code', 'revslider');?></h3>
+			<h3 id="activateplugintitle" class="pli_title"><?php echo __('Register License Key', 'revslider');?></h3>
 			<row>
 
 				<onehalf style="padding-right:5px"><div id="activated_ornot_box" class="box_with_icon"><i class="material-icons">done</i><?php _e('Registered', 'revslider');?></div></onehalf>
-				<onehalf style="padding-left:5px"><a target="_blank" rel="noopener" href="<?php echo ($selling === true) ? 'https://www.sliderrevolution.com/faq/where-to-find-purchase-code/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=findkey' : 'https://themepunch.com/faq/where-to-find-the-purchase-code/'; ?>" class="box_with_icon"><i class="material-icons">vpn_key</i><?php echo ($selling === true) ? __('Find My Key', 'revslider') : __('Find My Code', 'revslider');?></a></onehalf>
+				<onehalf style="padding-left:5px"><a target="_blank" rel="noopener" href="<?php echo 'https://www.sliderrevolution.com/faq/where-to-find-purchase-code/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=findkey'; ?>" class="box_with_icon"><i class="material-icons">vpn_key</i><?php echo __('Find My Key', 'revslider');?></a></onehalf>
 			</row>
 			<div class="div10"></div>
 			<div id="purchasekey_wrap" class="activated">
 				<div id="hide_purchasekey"><?php _e('xxxx xxxx xxxx xxxx', 'revslider');?></div>				
-				<input class="codeinput" id="purchasekey" placeholder="<?php echo ($selling === true) ? __('Enter License Key', 'revslider') : __('Enter Purchase Code', 'revslider');?>"/>	
+				<input class="codeinput" id="purchasekey" placeholder="<?php echo __('Enter License Key', 'revslider');?>"/>
 			</div>
 			<div class="div25"></div>
-			<bluebutton id="activateplugin"><?php echo ($selling === true) ? __('Deregister this Key', 'revslider') : __('Deregister this Code', 'revslider');?></bluebutton>
+			<bluebutton id="activateplugin"><?php echo __('Deregister this Key', 'revslider');?></bluebutton>
 			<div class="div25"></div>
 			<div class="infobox">
-				<div class="whitetitle"><?php echo ($selling === true) ? __('1 License Key per Website', 'revslider') : __('1 Purchase Code per Website', 'revslider');?></div>
-				<?php if ($selling === true) { ?>
+				<div class="whitetitle"><?php echo __('1 License Key per Website', 'revslider');?></div>
 				<div class="simpletext"><?php _e('If you want to use Slider Revolution on another domain, you need to use a different license key.', 'revslider');?></div>
-				<?php } else { ?>
-				<div class="simpletext"><?php _e('If you want to use Slider Revolution on another domain, you need to use a different license key.', 'revslider');?></div>
-				<?php } ?>
 				<div class="div25"></div>
 				<a class="lilabuybutton" href="https://account.sliderrevolution.com/portal/pricing/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=buykey" target="_blank" rel="noopener"><?php _e('Buy License Key', 'revslider');?></a>
 			</div>
@@ -209,7 +227,7 @@ $rs_languages	= $rsaf->get_available_languages();
 			<div class="div10"></div>
 			<a class="cwt_link" target="_blank" rel="noopener" href="https://twitter.com/revslider"><grayiconbox class="cwt_twitter"></grayiconbox><div class="pli_twoline"><div class="pli_subtitle"><?php _e('Twitter', 'revslider');?></div><div class="dynamicval pli_subtitle">twitter.com/revslider</div></div></a>
 			<div class="div10"></div>
-			<a class="cwt_link" target="_blank" rel="noopener" href="https://www.facebook.com/wordpress.slider.revolution"><grayiconbox class="cwt_facebook"></grayiconbox><div class="pli_twoline"><div class="pli_subtitle"><?php _e('Facebook', 'revslider');?></div><div class="dynamicval pli_subtitle">facebook.com/wordpress.slider.revolution</div></div></a>
+			<a class="cwt_link" target="_blank" rel="noopener" href="https://www.facebook.com/groups/sliderrevolution.community"><grayiconbox class="cwt_facebook"></grayiconbox><div class="pli_twoline"><div class="pli_subtitle"><?php _e('Facebook', 'revslider');?></div><div class="dynamicval pli_subtitle">facebook.com/.../sliderrevolution.community</div></div></a>
 			<div class="div10"></div>
 			<a class="cwt_link" target="_blank" rel="noopener" href="https://instagram.com/sliderrevolution"><grayiconbox class="cwt_instagram"></grayiconbox><div class="pli_twoline"><div class="pli_subtitle"><?php _e('Instagram', 'revslider');?></div><div class="dynamicval pli_subtitle">instagram.com/sliderrevolution</div></div></a>
 			<div class="div10"></div>			
@@ -225,11 +243,10 @@ $rs_languages	= $rsaf->get_available_languages();
 			</div>
 		</div>
 
-		<!-- PLUGIN HISTORY -->
-		<div id="twitter_wrapper" class="pli_right" style="width:100%">
+		<!-- YT NEWS -->
+		<div class="pli_right" style="width:100%">
 			<h3 class="pli_title"><?php _e('Whats New?', 'revslider');?></h3>
-			<a id="twitter_timeline" class="twitter-timeline" data-height="750" data-theme="dark" href="https://twitter.com/revslider?include_rtf=false">Tweets Liked by @ThemePunch</a> 
-
+			<div id="rvs_yt_wrapper" class="features_wrapper"></div>
 		</div>
 	</div>
 </div>

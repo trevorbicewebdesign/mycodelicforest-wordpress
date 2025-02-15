@@ -5,7 +5,7 @@
  * This file is used to markup the admin-facing aspects of the plugin.
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
  
 if(!defined('ABSPATH')) exit();
@@ -134,7 +134,7 @@ if(!defined('ABSPATH')) exit();
 								<div class="div15"></div>
 								<div class="mcg_page_content"><?php _e('.. however, as soon as you reactivate your license, our top-rated support team will<br>ensure that your website is fully functional.', 'revslider');?></div>
 								<div class="div25"></div>
-								<purplebutton id="pb_closeandregister" style="display:inline-block; margin-right:10px" class="mcg_next_page"><?php _e('Register Licence Key', 'revslider');?></purplebutton>							
+								<purplebutton id="pb_closeandregister" style="display:inline-block; margin-right:10px" class="mcg_next_page"><?php _e('Register Licence Key', 'revslider');?></purplebutton>
 								<a target="_blank" rel="noopener"  href="https://account.sliderrevolution.com/portal/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=members" style="display:inline-block;" class="bluebutton normal mcg_quit_page"><?php _e('Buy License Key', 'revslider');?></a>
 								<div class="div10"></div>
 							</div>													
@@ -165,6 +165,70 @@ if(!defined('ABSPATH')) exit();
 							<div class="div40"></div>
 							<purplebutton id="naa_install_all" class="mcg_next_page"><?php _e('Fix All Addons', 'revslider');?></purplebutton>							
 							<div class="div40"></div>
+						</div>						
+					</div>										
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<!--DEACTIVATED ADDONS WARNING MODAL-->
+<div class="_TPRB_ rb-modal-wrapper" data-modal="rbm_notmigrated_sr7">
+	<div class="rb-modal-inner">
+		<div class="rb-modal-content">
+			<div id="rbm_notmigrated_sr7" class="rb_modal form_inner">
+				<div class="rbm_header"><i class="rbm_close material-icons">close</i></div>	
+				<div class="rbm_content">
+					<div class="mcg_page mcg_selected">
+						<div class="dcenter">							
+							<div class="bigyellowwarning"><i class="material-icons">lan</i></div>
+							<div class="mcg_page_title"><?php _e('Attention Required:<br>Some Slider Revolution modules encountered errors during SR7 Engine migration.', 'revslider');?></div>							
+							<div class="simpletext"><?php _e('Below is a list of modules that need your attention.<br>Despite these issues, affected modules will still function using the old data structure.<br>This may result in reduced performance and lack of future compatibility.','revslider'); ?></div>
+							<div class="div45"></div>
+							<div id="list_of_tomigrate_modules"></div>		
+							<div class="div55"></div>
+							<div class="simpletext"><?php _e('To address these migration issues and leverage the full potential of the SR7 Engine, we recommend following our detailed guide. It provides step-by-step instructions to resolve errors and fully upgrade your modules for improved performance and future-proofing.','revslider'); ?></div>					
+							<div class="div40"></div>
+							<a target="_blank" rel="noopener"  href="https://www.sliderrevolution.com/sr7-velocity-frontend-engine-update/#guidestep7" style="display:inline-block;" class="bluebutton normal mcg_quit_page"><?php _e('Fix Migration Issues', 'revslider');?></a>
+							<div class="div40"></div>
+						</div>						
+					</div>										
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+<!--CHECKLIST FOR UPDATE-->
+<div class="_TPRB_ rb-modal-wrapper" data-modal="rbm_velocity_checklist">
+	<div class="rb-modal-inner">
+		<div class="rb-modal-content">
+			<div id="rbm_velocity_checklist" class="rb_modal form_inner">
+				<div class="rbm_header"><i class="rbm_close material-icons">close</i></div>	
+				<div class="rbm_content">
+					<div class="mcg_page mcg_selected">
+						<div class="dcenter">							
+							<div class="biglilawarning"></div>							
+							<div class="mcg_page_title"><?php _e('Start Using the SR7 "Velocity" Engine for', 'revslider'); ?><br><?php _e('Future-Proof and Enhanced Performance', 'revslider');?></div>
+							<div class="div35"></div>
+							<div class="dr_warningbox">
+								<div class="mcg_page_subtitle"><?php _e('Please check every item on the list in order to unlock','revslider');?><br><?php _e('the power of the SR7 Engine:','revslider') ?></div>
+								<div class="div45"></div>
+								<div class="v_checkrow" id="velocity_check_1"><div class="v_checklist"><i class="material-icons">check</i></div><div class="mcg_page_content"><?php _e('Yes, I read the','revslider')?></div> <a class="mcg_page_content" href="https://www.sliderrevolution.com/sr7-velocity-frontend-engine-update/" target="_blank" rel="noopener"><?php _e('Update Guide','revslider'); ?></a></div>
+								<div class="div20"></div>
+								<div class="v_checkrow" id="velocity_check_2"><div class="v_checklist"><i class="material-icons">check</i></div><div class="mcg_page_content" style="opacity:1"><span style="opacity:0.5"><?php _e('Yes, I ran a','revslider')?></span> <a class="mcg_page_content" href="https://www.sliderrevolution.com/sr7-velocity-frontend-engine-update/#guidestep2" target="_blank" rel="noopener"><?php _e('SR7 Engine Pre-Check using the ?srengine=7','revslider'); ?></a><br><span style="opacity:0.5"><?php _e('URL parameter on every page using Slider Revolution','revslider'); ?></span></div></div>
+								<div class="div20"></div>
+								<div class="v_checkrow" id="velocity_check_3"><div class="v_checklist"><i class="material-icons">check</i></div><div class="mcg_page_content"><?php _e('Yes, I updated any custom or third-party','revslider'); ?></div> <a  class="mcg_page_content" href="https://www.sliderrevolution.com/manual/custom-code-porting-api-reference/" target="_blank"><?php _e('Scripts/CSS','revslider'); ?></a></div>
+								<div class="div50"></div>
+								<div class="lilabuybutton disabled" id="velocity_go_sr7" style="display:inline-block;width:250px;"><?php _e('Enable SR7 Engine Now', 'revslider');?></div>
+								<div class="div10"></div>
+								<div class="graybutton" id="velocity_close_checklist" style="display:inline-block; width:250px;"><?php _e("I'm not Ready, yet", 'revslider');?></div>
+							</div>
+							<div class="div30"></div>
+							<a target="_blank" rel="noopener"  href="https://account.sliderrevolution.com/portal/?redirect_to=supportsystem" style="display:inline-block;" class="normal normallink"><?php _e('Feel free to contact us if you have any questions', 'revslider');?></a>
 						</div>						
 					</div>										
 				</div>
