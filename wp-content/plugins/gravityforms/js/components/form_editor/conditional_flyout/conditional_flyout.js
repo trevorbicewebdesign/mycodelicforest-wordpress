@@ -254,22 +254,48 @@ function getAddressOptions( field, inputId, value ) {
 
 	var fieldAddressOptions = addressOptions[ field.addressType ];
 
-	// Address options are grouped by a key; parse them as sub-items.
+	// Associative arrays are expected to have alphanumeric keys (country codes).
+	// If asort() is used in the gform_countries filter, the resulting array will be
+	// associative even if the original array was plain, we only need the values.
+	if ( ! Array.isArray( fieldAddressOptions ) ) {
+		var allNumericKeys = true;
+		for ( var key in fieldAddressOptions ) {
+			if ( isNaN( key ) ) {
+				allNumericKeys = false;
+				break;
+			}
+		}
+		if ( allNumericKeys ) {
+			fieldAddressOptions = Object.values( fieldAddressOptions );
+		}
+	}
+
+	// True associative arrays (country codes) are handled here.
 	if ( ! Array.isArray( fieldAddressOptions ) ) {
 
 		for ( var locale in fieldAddressOptions ) {
 			var group = fieldAddressOptions[ locale ];
+			var config;
 
-			for ( var i = 0; i < group.length; i++ ) {
-				var option = group[ i ];
+			if( Array.isArray( group ) ) {
+				// Address options are grouped by a key; parse them as sub-items.
+				for (var i = 0; i < group.length; i++) {
+					var option = group[i];
 
-				var config = {
-					label: option,
-					value: option,
-					selected: option == value ? 'selected="selected"' : '',
+					config = {
+						label: option,
+						value: option,
+						selected: option == value ? 'selected="selected"' : '',
+					}
+					options.push(config);
 				}
-
-				options.push( config );
+			} else {
+				config = {
+					label: group,
+					value: locale,
+					selected: locale == value ? 'selected="selected"' : '',
+				}
+				options.push(config);
 			}
 		}
 
@@ -299,20 +325,32 @@ function getAddressOptions( field, inputId, value ) {
  * @param {string} objectType The object type of the current field.
  */
 function generateGFConditionalLogic( fieldId, objectType ) {
-	if ( GF_CONDITIONAL_INSTANCE && GF_CONDITIONAL_INSTANCE.fieldId != fieldId  ) {
-		GF_CONDITIONAL_INSTANCES_COLLECTION.forEach( function( instance, instanceIndex ) {
+
+	// If this flyout is already loaded, do nothing.
+	const isAlreadyLoaded = GF_CONDITIONAL_INSTANCES_COLLECTION.filter( function( instance ) {
+		return instance.deactivated !== true && instance.fieldId === fieldId && instance.objectType === objectType;
+	}).length > 0;
+	if ( isAlreadyLoaded ) {
+		return;
+	}
+
+	// If we're changing fields, deactivate and hide all current instances of the flyout and update the flyout collection.
+	const isChangingFields = GF_CONDITIONAL_INSTANCE && GF_CONDITIONAL_INSTANCE.fieldId !== fieldId;
+	if ( isChangingFields ) {
+		GF_CONDITIONAL_INSTANCES_COLLECTION.forEach(function (instance, instanceIndex) {
 			instance.hideFlyout();
 			instance.removeEventListeners();
 			instance.deactivated = true;
 		});
+
+		// Remove deactivated instances from the collection.
+		GF_CONDITIONAL_INSTANCES_COLLECTION = GF_CONDITIONAL_INSTANCES_COLLECTION.filter( function( instance ) {
+			return instance.deactivated !== true;
+		});
 	}
 
+	// Create new flyout instance and add it to the collection.
 	GF_CONDITIONAL_INSTANCE = new GFConditionalLogic( fieldId, objectType );
-
-	GF_CONDITIONAL_INSTANCES_COLLECTION = GF_CONDITIONAL_INSTANCES_COLLECTION.filter( function( instance ) {
-		return instance.deactivated !== true;
-	});
-
 	GF_CONDITIONAL_INSTANCES_COLLECTION.push( GF_CONDITIONAL_INSTANCE );
 }
 
@@ -328,7 +366,8 @@ function isValidFlyoutClick( e ) {
 		'jsConditonalToggle' in e.target.dataset ||
 		'jsAddRule' in e.target.dataset ||
 		'jsDeleteRule' in e.target.dataset ||
-		e.target.classList.contains( 'gform-field__toggle-input' )
+		e.target.classList.contains( 'gform-field__toggle-input' ) ||
+		e.target.closest( '.gform-dialog__mask' ) !== null
 	);
 	return gform.applyFilters( 'gform_conditional_logic_is_valid_flyout_click', isValidFlyoutClick, e );
 }
@@ -362,7 +401,7 @@ function GFConditionalLogic( fieldId, objectType ) {
 	this.objectType = objectType;
 	this.els        = this.gatherElements();
 	this.state      = this.getStateForField( fieldId );
-	this.visible    = false;
+	this.visible    = document.querySelector( '.editor-sidebar .conditional_logic_flyout_container.anim-in-active' ) ? true : false;
 
 	// Prebind event listener callbacks to maintain references
 	this._handleToggleClick    = this.handleToggleClick.bind( this );
@@ -510,7 +549,7 @@ GFConditionalLogic.prototype.renderFieldOptions = function( rule ) {
 			continue;
 		}
 
-		if ( field.inputs && jQuery.inArray( GetInputType( field ), [ 'checkbox', 'email', 'consent' ] ) == -1 ) {
+		if ( field.inputs && jQuery.inArray( GetInputType( field ), [ 'checkbox', 'email', 'consent' ] ) == -1 && GetInputType( field ) !== 'radio' ) {
 			for ( var j = 0; j < field.inputs.length; j++ ) {
 				var input = field.inputs[ j ];
 
@@ -1347,4 +1386,3 @@ GFConditionalLogic.prototype.init = function() {
 
 	this.renderSidebar();
 };
-

@@ -529,13 +529,17 @@ Class GFNotification {
 		 *
 		 * @deprecated
 		 * @since 1.7
-		 *
+		 * @remove-in 3.0
 		 * @param array $ui_settings  An array of settings for the notification UI.
 		 * @param array $notification The current notification object being edited.
 		 * @param array $form         The current form object to which the notification being edited belongs.
 		 * @param null  $is_valid     Whether or not the current notification has passed validation. (Deprecated.)
 		 */
 		$legacy_settings = apply_filters( 'gform_notification_ui_settings', array(), $notification, $form, null );
+
+		if ( has_filter( 'gform_notification_ui_settings' ) ) {
+			trigger_error( 'gform_notification_ui_settings is deprecated and will be removed in version 3.0.', E_USER_DEPRECATED );
+		}
 
 		if ( empty( $legacy_settings ) ) {
 			return $fields;
@@ -1040,7 +1044,7 @@ Class GFNotification {
 			$email            = trim( $email );
 			$invalid_email    = GFCommon::is_invalid_or_empty_email( $email );
 			// this used to be more strict; updated to match any merge-tag-like string
-			$invalid_variable = ! preg_match( '/^{.+}$/', $email );
+			$invalid_variable = ! preg_match( '/\{.*?\}/', $email );
 
 			if ( $invalid_email && $invalid_variable ) {
 				return false;
@@ -1495,10 +1499,18 @@ class GFNotificationTable extends WP_List_Table {
 			$text  = esc_html__( 'Inactive', 'gravityforms' );
 		}
 		?>
-		<button type="button" class="gform-status-indicator <?php echo esc_attr( $class ); ?>" onclick="ToggleActive( this, '<?php echo esc_js( $item['id'] ); ?>' );" onkeypress="ToggleActive( this, '<?php echo esc_js( $item['id'] ); ?>' );">
-			<svg role="presentation" focusable="false" viewBox="0 0 6 6" xmlns="http://www.w3.org/2000/svg"><circle cx="3" cy="2" r="1" stroke-width="2"/></svg>
-			<span class="gform-status-indicator-status"><?php echo esc_html( $text ); ?></span>
+
+		<button
+			type="button"
+			class="gform-status-indicator gform-status-indicator--size-sm gform-status-indicator--theme-cosmos <?php echo esc_attr( $class ); ?>"
+			onclick="ToggleActive( this, '<?php echo esc_js( $item['id'] ); ?>' );"
+			onkeypress="ToggleActive( this, '<?php echo esc_js( $item['id'] ); ?>' );"
+		>
+			<span class="gform-status-indicator-status gform-typography--weight-medium gform-typography--size-text-xs">
+				<?php echo esc_html( $text ); ?>
+			</span>
 		</button>
+
 		<?php
 	}
 
@@ -1533,9 +1545,15 @@ class GFNotificationTable extends WP_List_Table {
 			unset( $actions['delete'] );
 		}
 
+		$aria_label = sprintf(
+			/* translators: %s: Notification name */
+			__( '%s (Edit)', 'gravityforms' ),
+			$item['name']
+		);
+
 		?>
 
-		<a href="<?php echo esc_url( $edit_url ); ?>"><strong><?php echo esc_html( rgar( $item, 'name' ) ); ?></strong></a>
+		<a href="<?php echo esc_url( $edit_url ); ?>" aria-label="<?php echo esc_attr( $aria_label ); ?>"><strong><?php echo esc_html( rgar( $item, 'name' ) ); ?></strong></a>
 		<div class="row-actions">
 
 			<?php

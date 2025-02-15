@@ -22,23 +22,28 @@ if ( ! GFCommon::current_user_can_any( array( 'gravityforms_edit_forms', 'gravit
 	die( esc_html__( "You don't have adequate permission to preview forms.", 'gravityforms' ) );
 }
 
+// Get form ID.
+$form_id = absint( rgget( 'id' ) );
+
 /**
  * Fires when a Form Preview is loaded.
  *
  * The hook fires when a Form Preview is initialized and before it is rendered.
  *
  * @since 2.5
+ * @since 2.9 Added the $form_id parameter.
  */
-do_action( 'gform_preview_init' );
+do_action( 'gform_preview_init', $form_id );
 
 // Load form display class.
 require_once( GFCommon::get_base_path() . '/form_display.php' );
 
-// Get form ID.
-$form_id = absint( rgget( 'id' ) );
-
 // Get form object.
-$form = RGFormsModel::get_form_meta( $_GET['id'] );
+$form       = RGFormsModel::get_form_meta( $_GET['id'] );
+$form_title = rgar( $form, 'title', __( 'Untitled Form', 'gravityforms' ) );
+
+/* translators: Form preview page title. 1: form title, 2: site title. */
+$admin_title = sprintf( __( '%1$s &lsaquo; Form Preview - Gravity Forms &lsaquo; %2$s &#8212; WordPress', 'gravityforms' ), esc_html( $form_title ), esc_html( get_bloginfo( 'name' ) ) );
 
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -47,7 +52,7 @@ $form = RGFormsModel::get_form_meta( $_GET['id'] );
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 	<meta http-equiv="Imagetoolbar" content="No" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title><?php esc_html_e( 'Form Preview - Gravity Forms', 'gravityforms' ) ?></title>
+	<title><?php echo esc_html( $admin_title ); ?></title>
 	<?php
 
 		// If form exists, enqueue its scripts.

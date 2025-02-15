@@ -1044,6 +1044,27 @@ class GFFormsModel {
 	}
 
 	/**
+	 * Query request checking if the site contains any forms with Legacy markup.
+	 *
+	 * @since 2.9.1
+	 *
+	 * @returns bool
+	 */
+	public static function has_legacy_markup() {
+		global $wpdb;
+
+		$table_name             = self::get_meta_table_name();
+		$like                   = '%' . $wpdb->esc_like( '"markupVersion":1' ) . '%';
+		$count_legacy_markup    = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE display_meta LIKE %s", $like ) );
+
+		if ( $count_legacy_markup > 0 ) {
+			return true;
+		}
+		return false;
+	}
+
+
+	/**
 	 * Recursively checks the highest ID for all the fields in the form and then returns the highest ID + 1.
 	 *
 	 * @since 2.4.6.12
@@ -1360,6 +1381,7 @@ class GFFormsModel {
 	 * Adds default form properties
 	 *
 	 * @deprecated 1.9
+	 * @remove-in 3.0
 	 */
 	public static function add_default_properties( $form ) {
 		_deprecated_function( 'GFFormsModel::add_default_properties', '1.9' );
@@ -1540,6 +1562,88 @@ class GFFormsModel {
 		}
 	}
 
+	/**
+	 * Changes the status of multiple entries.
+	 *
+	 * @since 2.9.0
+	 * @access public
+	 *
+	 * @param array  $leads  The entries to transition.
+	 * @param string $status The new status.
+	 *
+	 * @return void
+	 */
+	public static function change_entries_status( $leads, $status ) {
+		foreach ( $leads as $lead ) {
+			self::change_entry_status( $lead, $status );
+		}
+	}
+
+	/**
+	 * Changes the status of a single entry.
+	 *
+	 * @since 2.9.0
+	 * @access public
+	 *
+	 * @param int    $lead_id The entry ID.
+	 * @param string $status  The new status.
+	 *
+	 * @return void
+	 */
+	public static function change_entry_status( $lead_id, $status ) {
+		$lead = self::get_entry( $lead_id );
+
+		// If the entry is already in the desired status, return.
+		if ( $lead['status'] == $status ) {
+			return;
+		}
+
+		// save the current status in the entry meta in case we need to revert
+		$previous_status = $lead['status'];
+		gform_update_meta( $lead_id, 'previous_status', $previous_status );
+		self::update_entry_property( $lead_id, 'status', $status );
+	}
+
+	/**
+	 * Restores the status of a single entry to its previous status.
+	 *
+	 * @since 2.9.0
+	 * @access public
+	 *
+	 * @param int $lead_id The entry ID.
+	 *
+	 * @return void
+	 */
+	public static function restore_entry_status( $lead_id ) {
+		$lead = self::get_entry( $lead_id );
+
+		// If the entry is already active, return.
+		if ( $lead['status'] == 'active' ) {
+			return;
+		}
+
+		// get the previous status from the entry meta
+		$previous_status = gform_get_meta( $lead_id, 'previous_status' );
+		$new_status = $previous_status === false ? 'active' : $previous_status;
+		self::update_entry_property( $lead_id, 'status', $new_status );
+	}
+
+	/**
+	 * Restores the status of multiple entries to their previous status.
+	 *
+	 * @since 2.9.0
+	 * @access public
+	 *
+	 * @param array $leads The entries to restore.
+	 *
+	 * @return void
+	 */
+	public static function restore_entries_status( $leads ) {
+		foreach ( $leads as $lead ) {
+			self::restore_entry_status( $lead );
+		}
+	}
+
 	public static function update_entry_property( $lead_id, $property_name, $property_value, $update_akismet = true, $disable_hook = false ) {
 		global $wpdb, $current_user;
 
@@ -1708,7 +1812,12 @@ class GFFormsModel {
 				 * @param $lead_id
 				 * @deprecated Use gform_delete_entry instead
 				 * @see gform_delete_entry
+				 * @remove-in 3.0
 				 */
+
+			if ( has_action( 'gform_delete_lead' ) ) {
+				trigger_error( 'The gform_delete_lead action is deprecated and will be removed in 3.0. Use gform_delete_entry instead.', E_USER_DEPRECATED );
+			}
 				do_action( 'gform_delete_lead', $entry_id );
 
 			}
@@ -1932,8 +2041,14 @@ class GFFormsModel {
         /**
          * @deprecated
          * @see gform_post_form_duplicated
+         * @remove-in 3.0
          */
+
+		if ( has_action( 'gform_after_duplicate_form' ) ) {
+			trigger_error( 'The gform_after_duplicate_form action is deprecated and will be removed in 3.0. Use gform_post_form_duplicated instead.', E_USER_DEPRECATED );
+		}
         do_action( 'gform_after_duplicate_form', $form_id, $new_id );
+
 
 		/**
 		 * Fires after a form is duplicated
@@ -2639,7 +2754,12 @@ class GFFormsModel {
 		 * @param $lead_id
 		 * @deprecated Use gform_delete_entry instead
 		 * @see gform_delete_entry
+		 * @remove-in 3.0
 		 */
+
+		if ( has_action( 'gform_delete_lead' ) ) {
+			trigger_error( 'The gform_delete_lead action is deprecated and will be removed in version 3.0. Use gform_delete_entry instead.', E_USER_DEPRECATED );
+		}
 		do_action( 'gform_delete_lead', $entry_id );
 
 
@@ -2956,7 +3076,8 @@ class GFFormsModel {
 			 */
 			$currency = gf_apply_filters( array( 'gform_currency_pre_save_entry', $form['id'] ), GFCommon::get_currency(), $form );
 
-			$ip = rgars( $form, 'personalData/preventIP' ) ? '' : self::get_ip();
+			$ip        = rgars( $form, 'personalData/preventIP' ) ? '' : self::get_ip();
+			$source_id = self::get_source_id( $form );
 
 			$wpdb->insert(
 				$entry_table,
@@ -2969,6 +3090,7 @@ class GFFormsModel {
 					'user_agent'   => $user_agent,
 					'currency'     => $currency,
 					'created_by'   => $user_id,
+					'source_id'    => $source_id,
 				),
 				array(
 					'form_id'      => '%d',
@@ -2979,6 +3101,7 @@ class GFFormsModel {
 					'user_agent'   => '%s',
 					'currency'     => '%s',
 					'created_by'   => '%s',
+					'source_id'    => '%d',
 				)
 			);
 
@@ -3011,6 +3134,7 @@ class GFFormsModel {
 				'is_fulfilled'     => null,
 				'created_by'       => (string) $user_id,
 				'transaction_type' => null,
+				'source_id'        => $source_id,
 			);
 
 			GFCommon::log_debug( __METHOD__ . "(): Entry record created in the database. ID: {$lead_id}." );
@@ -3188,6 +3312,34 @@ class GFFormsModel {
 		GFCommon::log_debug( __METHOD__ . sprintf( '(): %s entry completed in %F seconds.', $is_new_lead ? 'Saving' : 'Updating', GFCommon::timer_end( __METHOD__ ) ) );
 	}
 
+	/**
+	 * Helper to get the ID of the post or page where the form submission originated.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param array $form The form the entry is being created for.
+	 *
+	 * @return int|null
+	 */
+	private static function get_source_id( $form ) {
+		if ( defined( 'DOING_AJAX' ) && DOING_AJAX && ! empty( $_SERVER['HTTP_REFERER'] ) ) {
+			$id = url_to_postid( $_SERVER['HTTP_REFERER'] );
+		} elseif ( rgget( 'gf_page' ) === 'preview' ) {
+			return null;
+		} elseif ( is_singular() ) {
+			$id = get_the_ID();
+		}
+
+		/**
+		 * Allows the value to be saved to the entry source_id property to be overridden.
+		 *
+		 * @since 2.9
+		 *
+		 * @param int|null  $id     The ID of the post or page where the form submission originated.
+		 * @param array     $form   The form the entry is being created for.
+		 */
+		return gf_apply_filters( array( 'gform_source_id_pre_save_entry', (int) rgar( $form, 'id' ) ), ! empty( $id ) ? $id : null, $form );
+	}
 
 	/**
 	 * Gets the extra meta data a field wants to save to the entry and updates the entry meta with the retrieved data.
@@ -3314,6 +3466,7 @@ class GFFormsModel {
 		$user_agent           = self::truncate( rgar( $_SERVER, 'HTTP_USER_AGENT' ), 250 );
 		$lead['user_agent']   = sanitize_text_field( $user_agent );
 		$lead['created_by']   = $current_user && $current_user->ID ? $current_user->ID : 'NULL';
+		$lead['source_id']    = self::get_source_id( $form );
 
 		/**
 		 * Allow the currency code to be overridden.
@@ -3435,20 +3588,49 @@ class GFFormsModel {
 				}
 				break;
 
-			case 'fileupload' :
+			case 'fileupload':
+				$tmp_location = GFFormsModel::get_tmp_upload_location( $form['id'] );
+				$tmp_path     = $tmp_location['path'];
+				$tmp_url      = $tmp_location['url'];
+				$value        = array(); // Initialize as empty array to store file info
+				// Check if it's a multiple file upload field
 				if ( $field->multipleFiles ) {
-					if ( ! empty( $value ) ) {
-						$value = json_encode( $value );
+					$temp_files = rgars( GFFormsModel::$uploaded_files, $form['id'] . '/' . $input_name );
+
+					if ( ! empty( $temp_files ) && is_array( $temp_files ) ) {
+						foreach ( $temp_files as $temp_file ) {
+							if ( rgar( $temp_file, 'temp_filename' ) ) {
+								$value[] = array(
+									'tmp_path'      => $tmp_path . $temp_file['temp_filename'],
+									'tmp_url'       => $tmp_url . $temp_file['temp_filename'],
+									'tmp_name'      => $temp_file['temp_filename'],
+									'uploaded_name' => rgar( $temp_file, 'uploaded_filename' ),
+								);
+							}
+						}
 					}
 				} else {
+					// Handle single file upload scenario
 					$file_info = self::get_temp_filename( $form['id'], $input_name );
-					if ( ! empty( $file_info ) ) {
-						$file_path = self::get_file_upload_path( $form['id'], $file_info['uploaded_filename'] );
-						$value     = $file_path['url'];
+					if ( ! empty( $file_info ) && isset( $file_info['temp_filename'] ) ) {
+						$value[] = array(
+							'tmp_path'      => $tmp_path . $file_info['temp_filename'],
+							'tmp_url'       => $tmp_url . $file_info['temp_filename'],
+							'tmp_name'      => $file_info['temp_filename'],
+							'uploaded_name' => rgar( $file_info, 'uploaded_filename' ),
+						);
 					}
 				}
 
+				if ( ! empty( $value ) ) {
+					$value = json_encode( $value ); // Encode the array of temp URLs as JSON string
+				} else {
+					// If no files were uploaded, set the value to an empty string for backwards compatibility
+					$value = '';
+				}
+
 				break;
+
 
 			default:
 
@@ -3627,7 +3809,7 @@ class GFFormsModel {
 			$match_count = 0;
 			foreach ( $field_value as $val ) {
 				$val = GFFormsModel::maybe_trim_input( GFCommon::get_selection_value( $val ), $form_id, $source_field );
-				if ( self::matches_operation( $val, $target_value, $operation ) ) {
+				if ( self::matches_conditional_operation( $val, $target_value, $operation ) ) {
 					$match_count ++;
 				}
 			}
@@ -3637,19 +3819,24 @@ class GFFormsModel {
 			$must_match_all = ( $operation == 'isnot' && ! rgblank( $target_value ) ) || ( $operation == 'is' && rgblank( $target_value ) );
 			$is_match = $must_match_all ? $match_count == count( $field_value ) : $match_count > 0;
 
-		} else if ( self::matches_operation( GFFormsModel::maybe_trim_input( GFCommon::get_selection_value( $field_value ), $form_id, $source_field ), $target_value, $operation ) ) {
+		} else if ( self::matches_conditional_operation( GFFormsModel::maybe_trim_input( GFCommon::get_selection_value( $field_value ), $form_id, $source_field ), $target_value, $operation ) ) {
 			$is_match = true;
 		}
 
 		return apply_filters( 'gform_is_value_match', $is_match, $field_value, $target_value, $operation, $source_field, $rule );
 	}
 
+	/*
+	 * @deprecated 2.9.1.  Use GFCommon::maybe_format_numeric instead.
+	 *
+	 * @remove-in 3.1
+	 */
 	private static function try_convert_float( $text ) {
+		_deprecated_function( __METHOD__, '2.9.1', 'GFCommon::maybe_format_numeric' );
 
 		/*
 		global $wp_locale;
 		$number_format = $wp_locale->number_format['decimal_point'] == ',' ? 'decimal_comma' : 'decimal_dot';
-
 		if ( is_numeric( $text ) && $number_format == 'decimal_comma' ) {
 			return GFCommon::format_number( $text, 'decimal_comma' );
 		} else if ( GFCommon::is_numeric( $text, $number_format ) ) {
@@ -3670,7 +3857,35 @@ class GFFormsModel {
 		return 0;
 	}
 
+	/*
+	 * @deprecated 2.9.1.  Use GFFormsModel::matches_conditional_operation instead.
+	 *
+	 * @remove-in 3.1
+	 */
 	public static function matches_operation( $val1, $val2, $operation ) {
+		_deprecated_function( __METHOD__, '2.9.1', 'GFFormsModel::matches_conditional_operation' );
+
+		if ( in_array( $operation, array( '>', '<', 'greater_than', 'less_than' ) ) ) {
+			$val1 = self::try_convert_float( $val1 );
+			$val2 = self::try_convert_float( $val2 );
+		}
+
+		return self::matches_conditional_operation( $val1, $val2, $operation );
+	}
+
+	/**
+	 * This method will evaluate the specified operation between the two specified values and return the result. If the two values match the operation, the method will return true. Otherwise, it will return false.
+	 * The method supports the following operations: is, isnot, greater_than or >, less_than or <, contains, starts_with, ends_with.
+	 *
+	 * @since 2.9.1
+	 *
+	 * @param string $val1      The first value to be compared. Must be formatted as a valid number for greater_than and less_than operations.
+	 * @param string $val2      The second value to be compared. Must be formatted as a valid number for greater_than and less_than operations.
+	 * @param string $operation The operation to be performed with the specified values.
+	 *
+	 * @return bool Returns true if the two values match the specified operation. Otherwise, it will return false.
+	 */
+	public static function matches_conditional_operation( $val1, $val2, $operation ) {
 		$val1 = ! rgblank( $val1 ) ? strtolower( $val1 ) : '';
 		$val2 = ! rgblank( $val2 ) ? strtolower( $val2 ) : '';
 
@@ -3685,18 +3900,12 @@ class GFFormsModel {
 
 			case 'greater_than':
 			case '>' :
-				$val1 = self::try_convert_float( $val1 );
-				$val2 = self::try_convert_float( $val2 );
-
-				return $val1 > $val2;
+				return $val1 > $val2; // Do not cast these to float because this will compare numbers as well as dates.
 				break;
 
 			case 'less_than':
 			case '<' :
-				$val1 = self::try_convert_float( $val1 );
-				$val2 = self::try_convert_float( $val2 );
-
-				return $val1 < $val2;
+				return $val1 < $val2; // Do not cast these to float because this will compare numbers as well as dates.
 				break;
 
 			case 'contains' :
@@ -3724,7 +3933,6 @@ class GFFormsModel {
 				return $val2 == $tail;
 				break;
 		}
-
 
 		return false;
 	}
@@ -3819,6 +4027,7 @@ class GFFormsModel {
 
 	/**
 	 * @deprecated 2.4
+	 * @remove-in 3.0
 	 *
 	 * @param int $expiration_days
 	 *
@@ -3875,6 +4084,7 @@ class GFFormsModel {
 	/**
 	 *
 	 * @deprecated 2.4
+	 * @remove-in 3.0
 	 *
 	 * @param $token
 	 *
@@ -3906,6 +4116,7 @@ class GFFormsModel {
 	/**
 	 *
 	 * @deprecated 2.4
+	 * @remove-in 3.0
 	 *
 	 * @param        $form
 	 * @param        $entry
@@ -4178,6 +4389,7 @@ class GFFormsModel {
 
 	/**
 	 * @deprecated 2.4
+	 * @remove-in 3.0
 	 *
 	 * @param $resume_token
 	 *
@@ -4252,6 +4464,7 @@ class GFFormsModel {
 	/**
 	 *
 	 * @deprecated 2.4
+	 * @remove-in 3.0
 	 *
 	 * @param $token
 	 * @param $email
@@ -4687,7 +4900,8 @@ class GFFormsModel {
 
 			//check if file has already been uploaded by previous step
 			$file_info     = self::get_temp_filename( $form_id, $input_name );
-			$temp_filepath = self::get_upload_path( $form_id ) . '/tmp/' . $file_info['temp_filename'];
+			$tmp_location  = GFFormsModel::get_tmp_upload_location( $form_id );
+			$temp_filepath = $tmp_location['path'] . $file_info['temp_filename'];
 			GFCommon::log_debug( 'GFFormsModel::get_fileupload_value(): Temp file path: ' . $temp_filepath );
 			if ( $file_info && file_exists( $temp_filepath ) ) {
 				GFCommon::log_debug( 'GFFormsModel::get_fileupload_value(): Moving temp file: ' . $temp_filepath );
@@ -5438,7 +5652,7 @@ class GFFormsModel {
 				}
 			} else {
 				// Deleting details for this field
-				if ( is_array( $field->get_entry_inputs() ) ) {
+				if ( is_a( $field, 'GF_Field' ) && is_array( $field->get_entry_inputs() ) ) {
 					$_input_id = ( false === strpos( $input_id, '.' ) ) ? sprintf( '%d.%%', $input_id ) : $input_id;
 					$sql = $wpdb->prepare( "DELETE FROM $entry_meta_table_name WHERE entry_id=%d AND meta_key LIKE %s ", $entry_id, $_input_id );
 				} else {
@@ -5605,8 +5819,9 @@ class GFFormsModel {
 	private static function move_temp_file( $form_id, $tempfile_info ) {
 		_deprecated_function( 'move_temp_file', '1.9', 'GF_Field_Fileupload::move_temp_file' );
 
-		$target = self::get_file_upload_path( $form_id, $tempfile_info['uploaded_filename'] );
-		$source = self::get_upload_path( $form_id ) . '/tmp/' . $tempfile_info['temp_filename'];
+		$target       = self::get_file_upload_path( $form_id, $tempfile_info['uploaded_filename'] );
+		$tmp_location = GFFormsModel::get_tmp_upload_location( $form_id );
+		$source       = $tmp_location['path'] . $tempfile_info['temp_filename'];
 
 		if ( rename( $source, $target['path'] ) ) {
 			self::set_permissions( $target['path'] );
@@ -5670,6 +5885,31 @@ class GFFormsModel {
 	public static function get_upload_path( $form_id ) {
 		$form_id = absint( $form_id );
 		return self::get_upload_root() . $form_id . '-' . wp_hash( $form_id );
+	}
+
+	/*
+	 * Get the path to the temporary upload directory for a form
+	 *
+	 * @since 2.9.3
+	 *
+	 * @param int $form_id The ID of the form
+	 *
+	 * @return array The path and url to the temporary upload directory for a form
+	 */
+	public static function get_tmp_upload_location( $form_id ) {
+		/*
+		 * Filter the temporary upload directory path for a form
+		 *
+		 * @since 2.9.3
+		 *
+		 * @param array $path    An array containing the path and url of the temporary upload directory
+		 * @param int   $form_id The ID of the form
+		 */
+		$tmp_upload_locations = array(
+			'path' => self::get_upload_path( $form_id ) . DIRECTORY_SEPARATOR . 'tmp' . DIRECTORY_SEPARATOR,
+			'url'  => self::get_upload_url( $form_id ) . '/tmp/',
+		);
+		return gf_apply_filters( array( 'gform_file_upload_tmp_dir', $form_id ), $tmp_upload_locations, $form_id );
 	}
 
 	public static function get_upload_url( $form_id ) {
@@ -5760,14 +6000,12 @@ class GFFormsModel {
 
 	public static function drop_tables() {
 		global $wpdb;
-		remove_filter( 'query', array( 'GFForms', 'filter_query' ) );
 		foreach ( GF_Forms_Model_Legacy::get_legacy_tables() as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS $table" );
 		}
 		foreach ( self::get_tables() as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS $table" );
 		}
-		add_filter( 'query', array( 'GFForms', 'filter_query' ) );
 	}
 
 	/**
@@ -5796,9 +6034,6 @@ class GFFormsModel {
 		$legacy_tables = GF_Forms_Model_Legacy::get_legacy_tables();
 
 		$drop_tables = array_merge( $drop_tables, $legacy_tables );
-
-		// Prevent the legacy table query notice when they are dropped by wp_uninitialize_site().
-		remove_filter( 'query', array( 'GFForms', 'filter_query' ) );
 
 		return $drop_tables;
 	}
@@ -6028,7 +6263,7 @@ class GFFormsModel {
 			"  SELECT n.entry_id, n.id, n.user_id, n.date_created, n.value, n.note_type, n.sub_type, ifnull(u.display_name,n.user_name) as user_name, u.user_email
 												FROM $notes_table n
 												LEFT OUTER JOIN $wpdb->users u ON n.user_id = u.id
-												$where 
+												$where
 												$orderby"
 		);
 	}
@@ -6063,7 +6298,10 @@ class GFFormsModel {
 			// making sure values submitted are sent in the value even if
 			// there isn't an input associated with it
 			$lead_field_keys = array_keys( $lead );
-			natsort( $lead_field_keys );
+			// We don't reorder the keys for Choice or Image Choice fields as they need to be rendered in the same order as they are saved in DB.
+			if ( ! $field->has_persistent_choices() ) {
+				natsort( $lead_field_keys );
+			}
 			foreach ( $lead_field_keys as $input_id ) {
 				if ( is_numeric( $input_id ) && absint( $input_id ) == absint( $field_id ) ) {
 					$val = $lead[ $input_id ];
@@ -6083,6 +6321,8 @@ class GFFormsModel {
 	/**
 	 *
 	 * @deprecated 2.0
+	 * @remove-in 3.0
+	 *
 	 * @param      $lead
 	 * @param      $field_number
 	 * @param      $form
@@ -6151,6 +6391,7 @@ class GFFormsModel {
 	/**
 	 *
 	 * @deprecated 2.3
+	 * @remove-in 3.0
 	 *
 	 * @param $form_id
 	 * @param int $sort_field_number
@@ -6221,6 +6462,7 @@ class GFFormsModel {
 	/**
 	 *
 	 * @deprecated 2.3
+	 * @remove-in 3.0
 	 *
 	 * @param $args
 	 *
@@ -6237,11 +6479,14 @@ class GFFormsModel {
 
 	/**
 	 * @deprecated 2.3
+	 * @remove-in 3.0
+	 *
 	 * @param $results
 	 *
 	 * @return array
 	 */
 	public static function build_lead_array( $results ) {
+		_deprecated_function(__METHOD__, '2.3');
 		return GF_Forms_Model_Legacy::build_lead_array( $results );
 	}
 
@@ -6256,7 +6501,7 @@ class GFFormsModel {
 
 		$new_key      = trim( $new_key );
 		$new_key_md5  = md5( $new_key );
-		$previous_key = get_option( 'rg_gforms_key' );
+		$previous_key = get_option( GFForms::LICENSE_KEY_OPT );
 
 		/**
 		 * @var License\GF_License_API_Connector $license_connector
@@ -6268,15 +6513,7 @@ class GFFormsModel {
 		delete_option( 'gform_version_info' );
 
 		if ( empty( $new_key ) ) {
-
-			if ( is_multisite() && is_main_site() ) {
-				$sites = get_sites();
-				foreach ( $sites as $site ) {
-					delete_blog_option( $site->blog_id, 'rg_gforms_key' );
-				}
-			}
-
-			delete_option( 'rg_gforms_key' );
+			self::update_license_key( '' );
 
 			// Unlink the site with the license key on Gravity API.
 			$license_connector->update_site_registration( '' );
@@ -6302,6 +6539,7 @@ class GFFormsModel {
 	 * Use GFAPI::count_entries() instead.
 	 *
 	 * @deprecated 2.3.0.1
+	 * @remove-in 3.0
 	 *
 	 *
 	 * @param $form_id
@@ -6348,6 +6586,7 @@ class GFFormsModel {
 	 * This function is not used and is only included for backwards compatibility. Use GFAPI::count_entries() instead.
 	 *
 	 * @deprecated 2.3.0.1
+	 * @remove-in 3.0
 	 *
 	 * @since 2.3.0.1
 	 *
@@ -6688,14 +6927,26 @@ class GFFormsModel {
 		}
 	}
 
+	/**
+	 * Returns the URL of the current request.
+	 *
+	 * @since Unknown
+	 * @since 2.9.1 Updated to return the referring URL for requests made via admin-ajax.php.
+	 *
+	 * @param bool $force_ssl Indicates if the URL should start with https.
+	 *
+	 * @return string
+	 */
 	public static function get_current_page_url( $force_ssl = false ) {
 		$pageURL = 'http';
-		if ( RGForms::get( 'HTTPS', $_SERVER ) == 'on' || $force_ssl ) {
+		if ( rgar( $_SERVER, 'HTTPS' ) == 'on' || $force_ssl ) {
 			$pageURL .= 's';
 		}
-		$pageURL .= '://';
+		$pageURL .= '://' . rgar( $_SERVER, 'HTTP_HOST' ) . rgar( $_SERVER, 'REQUEST_URI' );
 
-		$pageURL .= RGForms::get( 'HTTP_HOST', $_SERVER ) . rgget( 'REQUEST_URI', $_SERVER );
+		if ( strpos( $pageURL, admin_url( 'admin-ajax.php' ) ) === 0 ) {
+			return wp_get_referer();
+		}
 
 		return $pageURL;
 	}
@@ -6709,14 +6960,8 @@ class GFFormsModel {
 
 		$entry_meta_table_name = self::get_entry_meta_table_name();
 		$field_list             = '';
-		$fields                 = $wpdb->get_results( $wpdb->prepare( "SELECT DISTINCT meta_key FROM $entry_meta_table_name WHERE form_id=%d", $form_id ) );
-		foreach ( $fields as $field ) {
-			$field_list .= intval( $field->meta_key ) . ',';
-		}
-
-		if ( ! empty( $field_list ) ) {
-			$field_list = substr( $field_list, 0, strlen( $field_list ) - 1 );
-		}
+		$fields                 = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT meta_key FROM $entry_meta_table_name WHERE form_id=%d AND meta_key REGEXP '^[0-9]+(\.[0-9]+)?$'", $form_id ) );
+		$field_list             = implode( ',', array_unique( array_map( 'intval', $fields ) ) );
 
 		return $field_list;
 	}
@@ -6740,15 +6985,15 @@ class GFFormsModel {
 			return null;
 		}
 
-		if ( is_numeric( $field_id ) ) {
-			// Removing floating part of field (i.e 1.3 -> 1) to return field by input id.
+		if ( is_numeric( $field_id ) || preg_match( '/^\d+\.\w+$/', $field_id ) ) {
+			// Removing the input-specific segment from the field ID (i.e 1.3 or 1.something -> 1).
 			$field_id = intval( $field_id );
 		}
 
 		global $_fields;
 		$key = $form['id'] . '_' . $field_id;
 		$return = null;
-		if (isset( $_fields[ $key ] ) ) {
+		if ( isset( $_fields[ $key ] ) ) {
 			return $_fields[ $key ];
 		}
 
@@ -6799,9 +7044,12 @@ class GFFormsModel {
 
 	/**
 	 * @deprecated 2.8 HTML5 setting was removed, and HTML5 is now always enabled.
+	 * @remove-in 3.0
+	 *
 	 * @return true
 	 */
 	public static function is_html5_enabled() {
+		_deprecated_function( __METHOD__ , '2.8' );
 		return true;
 	}
 
@@ -7223,6 +7471,7 @@ class GFFormsModel {
 			'created_by',
 			'transaction_type',
 			'status',
+			'source_id',
 		);
 	}
 
@@ -7312,6 +7561,7 @@ class GFFormsModel {
 
 	/**
 	 * @deprecated 2.2 Use gf_upgrade()->dbDelta() instead
+	 * @remove-in 3.0
 	 */
 	public static function dbDelta( $sql ) {
 		_deprecated_function( 'dbDelta', '2.2', 'gf_upgrade()->dbDelta()' );
@@ -7508,6 +7758,7 @@ class GFFormsModel {
 	 * Returns an array of field IDs that have been encrypted using GFCommon::encrypt()
 	 *
 	 * @deprecated
+	 * @remove-in 3.0
 	 *
 	 * @since unknown
 	 *
@@ -7532,6 +7783,7 @@ class GFFormsModel {
 	 * Stores the field IDs that have been encrypted using GFCommon::encrypt()
 	 *
 	 * @deprecated
+	 * @remove-in 3.0
 	 *
 	 * @since unknown
 	 *
@@ -7559,6 +7811,7 @@ class GFFormsModel {
 	 * Checks whether the given field was encrypted using GFCommon::encrpyt() and registered using GFCommon::set_encrypted_fields()
 	 *
 	 * @deprecated
+	 * @remove-in 3.0
 	 *
 	 * @since unknown
 	 *
@@ -7690,6 +7943,7 @@ class GFFormsModel {
 
 	/**
 	 * @deprecated 2.4.16
+	 * @remove-in 3.0
 	 *
 	 * @param $entry
 	 * @param $form
@@ -7697,6 +7951,7 @@ class GFFormsModel {
 	 * @return mixed
 	 */
 	public static function delete_password( $entry, $form ) {
+		_deprecated_function( __FUNCTION__, '2.4.16' );
 		$password_fields = self::get_fields_by_type( $form, array( 'password' ) );
 		if ( is_array( $password_fields ) ) {
 			foreach ( $password_fields as $password_field ) {
@@ -7733,8 +7988,13 @@ class GFFormsModel {
 		if ( isset( $form['labelPlacement'] ) ) {
 			$form['labelPlacement'] = GFCommon::whitelist( $form['labelPlacement'], array( 'top_label', 'left_label', 'right_label' ) );
 		}
+
 		if ( isset( $form['descriptionPlacement'] ) ) {
 			$form['descriptionPlacement'] = GFCommon::whitelist( $form['descriptionPlacement'], array( 'below', 'above' ) );
+		}
+
+		if ( isset( $form['validationPlacement'] ) ) {
+			$form['validationPlacement'] = GFCommon::whitelist( $form['validationPlacement'], array( 'below', 'above' ) );
 		}
 
 		if ( isset( $form['subLabelPlacement'] ) ) {
@@ -7790,11 +8050,11 @@ class GFFormsModel {
 			$form['scheduleForm']           = (bool) $form['scheduleForm'];
 			$form['scheduleStart']          = $form['scheduleForm'] ? wp_strip_all_tags( $form['scheduleStart'] ) : '';
 			$form['scheduleStartHour']      = $form['scheduleForm'] ? GFCommon::int_range( $form['scheduleStartHour'], 1, 12 ) : '';
-			$form['scheduleStartMinute']    = $form['scheduleForm'] ? GFCommon::int_range( $form['scheduleStartMinute'], 1, 60 ) : '';
+			$form['scheduleStartMinute']    = $form['scheduleForm'] ? GFCommon::int_range( $form['scheduleStartMinute'], 0, 59 ) : '';
 			$form['scheduleStartAmpm']      = $form['scheduleForm'] ? GFCommon::whitelist( $form['scheduleStartAmpm'], array( 'am', 'pm' ) ) : '';
 			$form['scheduleEnd']            = $form['scheduleForm'] ? wp_strip_all_tags( $form['scheduleEnd'] ) : '';
 			$form['scheduleEndHour']        = $form['scheduleForm'] ? GFCommon::int_range( $form['scheduleEndHour'], 1, 12 ) : '';
-			$form['scheduleEndMinute']      = $form['scheduleForm'] ? GFCommon::int_range( $form['scheduleEndMinute'], 1, 60 ) : '';
+			$form['scheduleEndMinute']      = $form['scheduleForm'] ? GFCommon::int_range( $form['scheduleEndMinute'], 0, 59 ) : '';
 			$form['scheduleEndAmpm']        = $form['scheduleForm'] ? GFCommon::whitelist( $form['scheduleEndAmpm'], array( 'am', 'pm' ) ) : '';
 			$form['schedulePendingMessage'] = $form['scheduleForm'] ? self::maybe_wp_kses( $form['schedulePendingMessage'] ) : '';
 			$form['scheduleMessage']        = $form['scheduleForm'] ? self::maybe_wp_kses( $form['scheduleMessage'] ) : '';
@@ -8016,6 +8276,10 @@ class GFFormsModel {
 			$source_field   = RGFormsModel::get_field( $form, $rule['fieldId'] );
 			$source_value   = empty( $entry ) ? self::get_field_value( $source_field, $field_values ) : self::get_lead_field_value( $entry, $source_field );
 
+			// Number format will either be currency or decimal_dot. Numbers formatted with decimal_comma will have their values transformed and stored as decimal_dot.
+			$number_format  = rgobj( $source_field, 'numberFormat' ) == 'currency' ? 'currency' : 'decimal_dot';
+			$source_value = GFCommon::maybe_format_numeric( $source_value, $rule['operator'], $number_format );
+
 			/**
 			 * Filter the source value of a conditional logic rule before it is compared with the target value.
 			 *
@@ -8157,6 +8421,8 @@ class GFFormsModel {
 	 *
 	 * @since 2.4.24
 	 *
+	 * @since 2.7.17 Added support for encrypting settings fields.
+	 *
 	 * @param int    $feed_id        The ID of the feed being updated.
 	 * @param string $property_name  The name of the property (column) being updated.
 	 * @param mixed  $property_value The new value of the specified property.
@@ -8177,13 +8443,18 @@ class GFFormsModel {
 		}
 
 		if ( $property_name === 'meta' ) {
-			if ( is_array( $property_value ) ) {
-				$property_value = json_encode( $property_value );
-			}
-
-			if ( empty( $property_value ) || ! is_string( $property_value ) || $property_value[0] !== '{' ) {
+			$is_valid_format = ( is_array( $property_value ) && is_string( key( $property_value ) ) ) || ( is_string( $property_value ) && strpos( $property_value, '{' ) === 0 );
+			if ( ! $is_valid_format ) {
 				return new WP_Error( 'invalid_meta', __( 'Feed meta should be an associative array or JSON', 'gravityforms' ) );
 			}
+
+			$feed = GFAPI::get_feed( $feed_id );
+			if ( is_wp_error( $feed ) ) {
+				return $feed;
+			}
+			$meta           = is_array( $property_value ) ? $property_value : json_decode( $property_value, true );
+			$encrypted_meta = GFAPI::encrypt_feed_meta( $meta, $feed['addon_slug'] );
+			$property_value = json_encode( $encrypted_meta );
 		}
 
 		global $wpdb;
@@ -8205,21 +8476,44 @@ class GFFormsModel {
 	 * Updates the license key, If multisite, it updates the license key for all sites in the network.
 	 *
 	 * @since 2.7
+	 * @since 2.8.17 Updated to also store the key as a network option.
 	 *
-	 * @param string $license The license key.
+	 * @param string $license The license key MD5.
 	 *
 	 * @return void
 	 */
 	public static function update_license_key( $license ) {
-		if ( is_multisite() && is_main_site() ) {
-			$sites = get_sites();
-			foreach ( $sites as $site ) {
-				update_blog_option( $site->blog_id, 'rg_gforms_key', $license );
-				update_blog_option( $site->blog_id, 'gform_pending_installation', false );
+		if ( is_main_site() && GFCommon::is_network_active() ) {
+			if ( $license ) {
+				update_network_option( null, GFForms::LICENSE_KEY_OPT, $license );
+			} else {
+				delete_network_option( null, GFForms::LICENSE_KEY_OPT );
+			}
+
+			$ids = get_sites( array(
+				'fields'       => 'ids',
+				'number'       => 0,
+				'site__not_in' => array( get_current_blog_id() ),
+			) );
+
+			foreach ( $ids as $id ) {
+				switch_to_blog( $id );
+				if ( $license ) {
+					update_option( GFForms::LICENSE_KEY_OPT, $license );
+					delete_option( 'gform_pending_installation' );
+					delete_option( 'rg_gforms_message' );
+				} else {
+					delete_option( GFForms::LICENSE_KEY_OPT );
+				}
+				restore_current_blog();
 			}
 		}
 
-		update_option( 'rg_gforms_key', $license );
+		if ( $license ) {
+			update_option( GFForms::LICENSE_KEY_OPT, $license );
+		} else {
+			delete_option( GFForms::LICENSE_KEY_OPT );
+		}
 	}
 
 }
