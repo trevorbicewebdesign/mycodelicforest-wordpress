@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -137,17 +137,19 @@ class RevSliderElementorWidget extends \Elementor\Widget_Shortcode {
 	}
 
 	protected function render() {
-		global $rs_loaded_by_editor;
+		global $SR_GLOBALS;
 		
-		if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) $rs_loaded_by_editor = true;
+		if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) $SR_GLOBALS['loaded_by_editor'] = true;
 
+		$f = RevSliderGlobals::instance()->get('RevSliderFunctions');
+		
 		$shortcode = $this->get_settings_for_display( 'shortcode' );
 		$wrapperid = $this->get_settings_for_display( 'wrapperid' );
-		$wrapperid = empty($wrapperid) ? '': 'id="' . $wrapperid . '" ';
+		$wrapperid = empty($wrapperid) ? '': 'id="' . $f->filter_class_name($wrapperid) . '" ';
 		$shortcode = do_shortcode( shortcode_unautop( $shortcode ) );
 
 		$zindex = $this->get_settings_for_display( 'zindex' );
-		$style = $zindex ? ' style="z-index:'.$zindex.';"' : '';
+		$style = $zindex ? ' style="z-index:'.esc_attr($zindex).';"' : '';
 
 		// hack to make sure object library only opens when the user manually adds a slider to the page
 		if(empty($shortcode)) {
@@ -161,7 +163,7 @@ class RevSliderElementorWidget extends \Elementor\Widget_Shortcode {
 
 		<?php
 
-		if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) $rs_loaded_by_editor = false;
+		if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) $SR_GLOBALS['loaded_by_editor'] = false;
 	}
 	
 }

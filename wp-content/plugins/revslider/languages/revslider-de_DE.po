@@ -5,8 +5,8 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2019-06-28 07:35+0000\n"
 "POT-Revision-Date: Tue Aug 04 2015 14:53:44 GMT+0200 (CEST)\n"
-"PO-Revision-Date: 2019-11-12 08:18+0000\n"
-"Last-Translator: admin <info@themepunch.com>\n"
+"PO-Revision-Date: 2024-04-08 07:17+0000\n"
+"Last-Translator: \n"
 "Language-Team: German\n"
 "Language: de_DE\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
@@ -22,7 +22,7 @@ msgstr ""
 "esc_html_x:1,2c;comments_number_link:2,3;t:1;st:1;trans:1;transChoice:1,2\n"
 "X-Loco-Target-Locale: en_US\n"
 "X-Generator: Loco https://localise.biz/\n"
-"X-Loco-Version: 2.3.1; wp-5.2.4\n"
+"X-Loco-Version: 2.6.7; wp-6.5\n"
 "X-Poedit-SearchPath-0: ..\n"
 
 #: revslider.php:147
@@ -4085,7 +4085,7 @@ msgid "HTML5 Autoplay"
 msgstr "HTML5 Autoplay"
 
 #: admin/views/builder-slider-forms.php:961
-msgid "Option is depricated and will be removed in upcoming updates !"
+msgid "Option is deprecated and will be removed in upcoming updates !"
 msgstr "Die Option ist aufgekündigt und wird in zukünftigen Updates entfernt!"
 
 #: admin/views/builder-slider-forms.php:970
@@ -4531,7 +4531,7 @@ msgstr "Festlegen aller Timings"
 
 #: admin/views/builder-timeline.php:70
 msgid "Slide BG Animation"
-msgstr "Silber Hintergrundanimation"
+msgstr "Slider Hintergrundanimation"
 
 #: admin/views/builder-timeline.php:81
 msgid "Global Layers Timeline"
@@ -5362,7 +5362,7 @@ msgid "Layer as jQuery Object"
 msgstr "Layer als jQuery-Objekt"
 
 #: admin/views/modals-builder.php:520
-msgid "Meta Datas"
+msgid "Metadata"
 msgstr "Metadaten"
 
 #: admin/views/modals-builder.php:522
@@ -6610,7 +6610,7 @@ msgstr "Zeile aktualisieren"
 
 #: admin/views/builder-layer-forms.php:79
 msgid "Break At"
-msgstr "Pause bei"
+msgstr "Bruch bei"
 
 #: admin/views/builder-layer-forms.php:86
 msgid "Row Position"
@@ -7351,7 +7351,7 @@ msgstr "Benutzerdefinierte CSS"
 
 #: admin/views/builder-layer-forms.php:909
 msgid ""
-"Depricated Function !<br>Only visible by Rendering. Limited influence on "
+"Deprecated Function !<br>Only visible by Rendering. Limited influence on "
 "Styled Layers. Custom CSS Inline will be removed in Version 6.2"
 msgstr ""
 "Aufgekündigte Funktion!<br>Nur beim Rendern sichtbar. Begrenzter Einfluss "

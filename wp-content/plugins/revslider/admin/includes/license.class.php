@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  * @since	  6.2.0
  */
 
@@ -33,7 +33,6 @@ class RevSliderLicense extends RevSliderFunctions {
 		if($version_info == 'valid'){
 			update_option('revslider-valid', 'true');
 			update_option('revslider-code', $code);
-			update_option('revslider-trustpilot', 'true');
 			update_option('revslider-deregister-popup', 'false');
 
 			return true;
@@ -70,7 +69,6 @@ class RevSliderLicense extends RevSliderFunctions {
 		if($vi == 'valid'){
 			update_option('revslider-valid', 'false');
 			update_option('revslider-code', '');
-			update_option('revslider-trustpilot', 'false');
 			update_option('revslider-deregister-popup', 'true');
 
 			return true;

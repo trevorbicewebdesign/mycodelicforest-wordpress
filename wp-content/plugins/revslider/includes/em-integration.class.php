@@ -2,21 +2,16 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
 
 class RevSliderEventsManager extends RevSliderFunctions {
-	
-	
 	public function __construct(){
 		$this->init_em();
 	}
 	
-	/**
-	 *
-	 **/
 	public function init_em(){
 		add_filter('revslider_get_posts_by_category', array($this, 'add_post_query'), 10, 2);
 	}
@@ -119,7 +114,7 @@ class RevSliderEventsManager extends RevSliderFunctions {
 	 * if the post is not event, return empty array
 	 * @before: RevSliderEventsManager::getEventPostData()
 	 */
-	public static function get_event_post_data($postID){
+	public static function get_event_post_data($postID, $prefix = ''){
 		if(self::isEventsExists() == false) return array();
 		
 		$postType = get_post_type($postID);
@@ -135,21 +130,21 @@ class RevSliderEventsManager extends RevSliderFunctions {
 		$time_format = get_option('time_format');
 		
 		$response = array(
-			'id'				 => $f->get_val($ev, 'event_id'),
-			'start_date'		 => date_format(date_create_from_format('Y-m-d', $f->get_val($ev, 'event_start_date')), $date_format),
-			'end_date'			 => date_format(date_create_from_format('Y-m-d', $f->get_val($ev, 'event_end_date')), $date_format),
-			'start_time'		 => date_format(date_create_from_format('H:i:s', $f->get_val($ev, 'event_start_time')), $time_format),
-			'end_time'			 => date_format(date_create_from_format('H:i:s', $f->get_val($ev, 'event_end_time')), $time_format),
-			'location_name'		 => $f->get_val($loc, 'location_name'),
-			'location_address'	 => $f->get_val($loc, 'location_address'),
-			'location_slug'		 => $f->get_val($loc, 'location_slug'),
-			'location_town'		 => $f->get_val($loc, 'location_town'),
-			'location_state'	 => $f->get_val($loc, 'location_state'),
-			'location_postcode'	 => $f->get_val($loc, 'location_postcode'),
-			'location_region'	 => $f->get_val($loc, 'location_region'),
-			'location_country'	 => $f->get_val($loc, 'location_country'),
-			'location_latitude'	 => $f->get_val($loc, 'location_latitude'),
-			'location_longitude' => $f->get_val($loc, 'location_longitude')
+			$prefix.'id'				 => $f->get_val($ev, 'event_id'),
+			$prefix.'start_date'		 => date_format(date_create_from_format('Y-m-d', $f->get_val($ev, 'event_start_date')), $date_format),
+			$prefix.'end_date'			 => date_format(date_create_from_format('Y-m-d', $f->get_val($ev, 'event_end_date')), $date_format),
+			$prefix.'start_time'		 => date_format(date_create_from_format('H:i:s', $f->get_val($ev, 'event_start_time')), $time_format),
+			$prefix.'end_time'			 => date_format(date_create_from_format('H:i:s', $f->get_val($ev, 'event_end_time')), $time_format),
+			$prefix.'location_name'		 => $f->get_val($loc, 'location_name'),
+			$prefix.'location_address'	 => $f->get_val($loc, 'location_address'),
+			$prefix.'location_slug'		 => $f->get_val($loc, 'location_slug'),
+			$prefix.'location_town'		 => $f->get_val($loc, 'location_town'),
+			$prefix.'location_state'	 => $f->get_val($loc, 'location_state'),
+			$prefix.'location_postcode'	 => $f->get_val($loc, 'location_postcode'),
+			$prefix.'location_region'	 => $f->get_val($loc, 'location_region'),
+			$prefix.'location_country'	 => $f->get_val($loc, 'location_country'),
+			$prefix.'location_latitude'	 => $f->get_val($loc, 'location_latitude'),
+			$prefix.'location_longitude' => $f->get_val($loc, 'location_longitude')
 		);
 		
 		return $response;
@@ -178,4 +173,25 @@ class RevSliderEventsManager extends RevSliderFunctions {
 		return $data;
 	}
 	
+	public static function add_em_layer_v7($post_data, $data, $metas, $slider){
+		if(self::isEventsExists() == false) return $post_data;
+		
+		$f = RevSliderGlobals::instance()->get('RevSliderFunctions');
+
+		foreach($post_data ?? [] as $key => $post){
+			$data = RevSliderEventsManager::get_event_post_data($f->get_val($post, 'id'), 'event_');
+			if($data === false) continue;
+			//modify excerpt if empty to be filled with content
+			if(!isset($post['excerpt']) || trim($post['excerpt']) === ''){
+				$post['excerpt'] = str_replace(array('<br/>', '<br />'), '', strip_tags($f->get_val($post, array('content', 'content')), '<b><br><i><strong><small>'));
+			}
+
+			$post_data[$key] = array_merge($post, $data);
+		}
+
+		return $post_data;
+	}
+	
 }
+
+add_filter('sr_streamline_post_data_post', array('RevSliderEventsManager', 'add_em_layer_v7'), 10, 4);

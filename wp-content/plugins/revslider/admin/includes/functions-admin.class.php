@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
  
 if(!defined('ABSPATH')) exit();
@@ -19,7 +19,7 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 	 * +- Font Icons
 	 * - layers
 	 **/
-	public function get_full_library($include = array('all'), $tmp_slide_uid = array(), $refresh_from_server = false, $get_static_slide = false){
+	public function get_full_library($include = array('all'), $tmp_slide_uid = array(), $refresh_from_server = false, $get_static_slide = false, $page = false){
 		$include	= (array)$include;
 		$template	= new RevSliderTemplate();
 		$library	= new RevSliderObjectLibrary();
@@ -27,98 +27,47 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 		$object		= array();
 		$tmp_slide_uid = ($tmp_slide_uid !== false) ? (array)$tmp_slide_uid : array();
 		
-		if($refresh_from_server){
-			if(in_array('all', $include) || in_array('moduletemplates', $include)){ //refresh template list from server
+		if($refresh_from_server){ //refresh list from server
+			if(in_array('all', $include) || in_array('moduletemplates', $include)){ 
 				$template->_get_template_list(true);
-				if(!isset($object['moduletemplates'])) $object['moduletemplates'] = array();
-				$object['moduletemplates']['tags'] = $template->get_template_categories();
+				$object['moduletemplates']['tags'] = $object['moduletemplates']['tags'] ?? $template->get_template_categories();
 				asort($object['moduletemplates']['tags']);
 			}
-			if(in_array('all', $include) || in_array('layers', $include) || in_array('videos', $include) || in_array('images', $include) || in_array('objects', $include)){ //refresh object list from server
+			if(in_array('all', $include) || in_array('layers', $include) || in_array('videos', $include) || in_array('images', $include) || in_array('objects', $include)){
 				$library->_get_list(true);
 			}
-			if(in_array('all', $include) || in_array('layers', $include)){ //refresh object list from server
-				if(!isset($object['layers'])) $object['layers'] = array();
-				$object['layers']['tags'] = $library->get_objects_categories('4');
+			if(in_array('all', $include) || in_array('layers', $include)){
+				$object['layers']['tags'] = $object['layers']['tags'] ?? $library->get_objects_categories('4');
 				asort($object['layers']['tags']);
 			}
-			if(in_array('all', $include) || in_array('videos', $include)){ //refresh object list from server
-				if(!isset($object['videos'])) $object['videos'] = array();
-				$object['videos']['tags'] = $library->get_objects_categories('3');
+			if(in_array('all', $include) || in_array('videos', $include)){
+				$object['videos']['tags'] = $object['videos']['tags'] ?? $library->get_objects_categories('3');
 				asort($object['videos']['tags']);
 			}
-			if(in_array('all', $include) || in_array('images', $include)){ //refresh object list from server
-				if(!isset($object['images'])) $object['images'] = array();
-				$object['images']['tags'] = $library->get_objects_categories('2');
+			if(in_array('all', $include) || in_array('images', $include)){
+				$object['images']['tags'] = $object['images']['tags'] ?? $library->get_objects_categories('2');
 				asort($object['images']['tags']);
 			}
-			if(in_array('all', $include) || in_array('objects', $include)){ //refresh object list from server
-				if(!isset($object['objects'])) $object['objects'] = array();
-				$object['objects']['tags'] = $library->get_objects_categories('1');
+			if(in_array('all', $include) || in_array('objects', $include)){
+				$object['objects']['tags'] = $object['objects']['tags'] ?? $library->get_objects_categories('1');
 				asort($object['objects']['tags']);
 			}
 			$object = apply_filters('revslider_get_full_library_refresh', $object, $include, $tmp_slide_uid, $refresh_from_server, $get_static_slide, $this);
 		}
 		
-		if(in_array('moduletemplates', $include) || in_array('all', $include)){
-			if(!isset($object['moduletemplates'])) $object['moduletemplates'] = array();
-			$object['moduletemplates']['items']	= $template->get_tp_template_sliders_for_library($refresh_from_server);
-		}
-		if(in_array('moduletemplateslides', $include) || in_array('all', $include)){
-			if(!isset($object['moduletemplateslides'])) $object['moduletemplateslides'] = array();
-			$object['moduletemplateslides']['items'] = $template->get_tp_template_slides_for_library($tmp_slide_uid);
-		}
-		if(in_array('modules', $include) || in_array('all', $include)){
-			if(!isset($object['modules'])) $object['modules'] = array();
-			$object['modules']['items'] = $this->get_slider_overview();
-		}
-		if(in_array('moduleslides', $include) || in_array('all', $include)){
-			if(!isset($object['moduleslides'])) $object['moduleslides'] = array();
-			$object['moduleslides']['items'] = $slide->get_slides_for_library($tmp_slide_uid, $get_static_slide);
-		}
-		if(in_array('svgs', $include) || in_array('all', $include)){
-			if(!isset($object['svgs'])) $object['svgs'] = array();
-			$object['svgs']['items'] = $library->get_svg_sets_full();
-		}
-		if(in_array('svgcustom', $include) || in_array('all', $include)){
-			if(!isset($object['svgcustom'])) $object['svgcustom'] = array();
-			$object['svgcustom']['items'] = $library->get_custom_svgs();
-		}
-		if(in_array('fonticons', $include) || in_array('all', $include)){
-			if(!isset($object['fonticons'])) $object['fonticons'] = array();
-			$object['fonticons']['items'] = $library->get_font_icons();
-		}
-		if(in_array('layers', $include) || in_array('all', $include)){
-			if(!isset($object['layers'])) $object['layers'] = array();
-			$object['layers']['items'] = $library->load_objects('4');
-		}
-		if(in_array('videos', $include) || in_array('all', $include)){
-			if(!isset($object['videos'])) $object['videos'] = array();
-			$object['videos']['items'] = $library->load_objects('3');
-		}
-		if(in_array('images', $include) || in_array('all', $include)){
-			if(!isset($object['images'])) $object['images'] = array();
-			$object['images']['items'] = $library->load_objects('2');
-		}
-		if(in_array('objects', $include) || in_array('all', $include)){
-			if(!isset($object['objects'])) $object['objects'] = array();
-			$object['objects']['items'] = $library->load_objects('1');
-		}
-		/*if(in_array('wpimages', $include) || in_array('all', $include)){
-			$data = $this->get_request_var('data');
-			$after = $this->get_val($data, 'after', false);
-			if(!isset($object['wpimages'])) $object['wpimages'] = array();
-			$object['wpimages']['items'] = $library->load_wp_objects('image', $after);
-		}
-		if(in_array('wpvideos', $include) || in_array('all', $include)){
-			$data = $this->get_request_var('data');
-			$after = $this->get_val($data, 'after', false);
-			if(!isset($object['wpvideos'])) $object['wpvideos'] = array();
-			$object['wpvideos']['items'] = $library->load_wp_objects('video', $after);
-		}*/
-		$object = apply_filters('revslider_get_full_library', $object, $include, $tmp_slide_uid, $refresh_from_server, $get_static_slide, $this);
-		
-		return $object;
+		if(in_array('moduletemplates', $include) || in_array('all', $include))		$object['moduletemplates']['items']	= $object['moduletemplates']['items'] ?? $template->get_tp_template_sliders_for_library($refresh_from_server, $page);
+		if(in_array('moduletemplateslides', $include) || in_array('all', $include))	$object['moduletemplateslides']['items'] = $object['moduletemplateslides']['items'] ?? $template->get_tp_template_slides_for_library($tmp_slide_uid);
+		if(in_array('modules', $include) || in_array('all', $include))				$object['modules']['items'] = $object['modules']['items'] ?? $this->get_slider_overview();
+		if(in_array('moduleslides', $include) || in_array('all', $include))			$object['moduleslides']['items'] = $object['moduleslides']['items'] ?? $slide->get_slides_for_library($tmp_slide_uid, $get_static_slide);
+		if(in_array('svgs', $include) || in_array('all', $include))					$object['svgs']['items'] = $object['svgs']['items'] ?? $library->get_svg_sets_full();
+		if(in_array('svgcustom', $include) || in_array('all', $include))			$object['svgcustom']['items'] = $object['svgcustom']['items'] ?? $library->get_custom_svgs();
+		if(in_array('fonticons', $include) || in_array('all', $include))			$object['fonticons']['items'] = $object['fonticons']['items'] ?? $library->get_font_icons();
+		if(in_array('layers', $include) || in_array('all', $include))				$object['layers']['items'] = $object['layers']['items'] ?? $library->load_objects('4');
+		if(in_array('videos', $include) || in_array('all', $include))				$object['videos']['items'] = $object['videos']['items'] ?? $library->load_objects('3');
+		if(in_array('images', $include) || in_array('all', $include))				$object['images']['items'] = $object['images']['items'] ?? $library->load_objects('2');
+		if(in_array('objects', $include) || in_array('all', $include))				$object['objects']['items'] = $object['objects']['items'] ?? $library->load_objects('1');
+
+		return apply_filters('revslider_get_full_library', $object, $include, $tmp_slide_uid, $refresh_from_server, $get_static_slide, $this);
 	}
 	
 	
@@ -131,54 +80,36 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 		$sliders = ($sliders === false) ? $this->get_slider_overview() : $sliders;
 		
 		$slider_cat = array();
-		if(!empty($sliders)){
-			foreach($sliders as $slider){
-				$tags = $this->get_val($slider, 'tags', array());
-				if(!empty($tags)){
-					foreach($tags as $tag){
-						if(trim($tag) !== '' && !isset($slider_cat[$tag])) $slider_cat[$tag] = ucwords($tag);
-					}
-				}
+		foreach($sliders ?? [] as $slider){
+			$tags = $this->get_val($slider, 'tags', array());
+			foreach($tags ?? [] as $tag){
+				if(trim($tag) !== '' && !isset($slider_cat[$tag])) $slider_cat[$tag] = ucwords($tag);
 			}
 		}
-		
-		$svg_cat = $library->get_svg_categories();
-		$oc	= $library->get_objects_categories('1');
-		$oc2 = $library->get_objects_categories('2');
-		$oc3 = $library->get_objects_categories('3');
-		$oc4 = $library->get_objects_categories('4');
-		$t_cat = $template->get_template_categories();
-		$font_cat = $library->get_font_tags();
-		$custom = $library->get_custom_tags();
-		
-		$wpi = array('jpg' => 'jpg', 'png' => 'png');
-		$wpv = array('mpeg' => 'mpeg', 'mp4' => 'mp4', 'ogv' => 'ogv');
-		
-		asort($wpi);
-		asort($wpv);
-		asort($oc);
-		asort($t_cat);
+
+		$m_templates = $template->get_template_categories();
+		$svgs		 = $library->get_svg_categories();
+		$fonticons	 = $library->get_font_tags();
+		$objects	 = $library->get_objects_categories('1');
+		asort($m_templates);
 		asort($slider_cat);
-		asort($svg_cat);
-		asort($font_cat);
-		
-		$tags = array(
-			'moduletemplates' => array('tags' => $t_cat),
+		asort($svgs);
+		asort($fonticons);
+		asort($objects);
+		$tags		 = array(
+			'moduletemplates' => array('tags' => $m_templates),
 			'modules'	=> array('tags' => $slider_cat),
-			'svgs'		=> array('tags' => $svg_cat),
-			'fonticons'	=> array('tags' => $font_cat),
-			'layers'	=> array('tags' => $oc4),
-			'videos'	=> array('tags' => $oc3),
-			'images'	=> array('tags' => $oc2),
-			'objects'	=> array('tags' => $oc)/*,
-			'wpimages'	=> array('tags' => $wpi),
-			'wpvideos'	=> array('tags' => $wpv)*/
+			'svgs'		=> array('tags' => $svgs),
+			'fonticons'	=> array('tags' => $fonticons),
+			'layers'	=> array('tags' => $library->get_objects_categories('4')),
+			'videos'	=> array('tags' => $library->get_objects_categories('3')),
+			'images'	=> array('tags' => $library->get_objects_categories('2')),
+			'objects'	=> array('tags' => $objects)
 		);
-		
-		if(!empty($custom)){
-			foreach($custom as $tag_name => $tag_value){
-				$tags[$tag_name] = array('tags' => $tag_value);
-			}
+
+		$custom = $library->get_custom_tags();
+		foreach($custom ?? [] as $tag_name => $tag_value){
+			$tags[$tag_name] = array('tags' => $tag_value);
 		}
 		
 		return apply_filters('revslider_get_short_library', $tags, $library, $this);
@@ -189,17 +120,17 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 	 * Get Sliders data for the overview page
 	 **/
 	public function get_slider_overview(){
-		global $rs_do_init_action;
-		$rs_do_init_action = false;
+		global $SR_GLOBALS;
+		$SR_GLOBALS['data_init'] = false;
 		
 		$rs_slider	= new RevSliderSlider();
 		$rs_slide	= new RevSliderSlide();
 		$sliders	= $rs_slider->get_sliders(false);
 		$rs_folder	= new RevSliderFolder();
 		$folders	= $rs_folder->get_folders();
-		
 		$sliders 	= array_merge($sliders, $folders);
 		$data		= array();
+
 		if(!empty($sliders)){
 			$slider_list = array();
 			foreach($sliders as $slider){
@@ -236,7 +167,7 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 			}
 		}
 		
-		$rs_do_init_action = true;
+		$SR_GLOBALS['data_init'] = true;
 		
 		return $data;
 	}
@@ -294,9 +225,7 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 	public function delete_animation($animation_id){
 		global $wpdb;
 		
-		$result = $wpdb->delete($wpdb->prefix . RevSliderFront::TABLE_LAYER_ANIMATIONS, array('id' => $animation_id));
-		
-		return $result;
+		return $wpdb->delete($wpdb->prefix . RevSliderFront::TABLE_LAYER_ANIMATIONS, array('id' => $animation_id));
 	}
 	
 	
@@ -386,115 +315,25 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 		$notices = (array)get_option('revslider-notices', false);
 		$rs_valid = $this->_truefalse(get_option('revslider-valid', 'false'));
 		
-		if(!empty($notices) && is_array($notices)){
-			$n_discarted = get_option('revslider-notices-dc', array());
-			foreach($notices as $notice){
-				if(in_array($notice->code, $n_discarted)) continue;
-				if(isset($notice->version) && version_compare($notice->version, RS_REVISION, '<=')) continue;
-				if(isset($notice->registered)){ //if this is set, only show the notice if the plugin state is the same
-					$registered = $this->_truefalse($notice->registered);
-					if($registered !== $rs_valid) continue;
-				}
-				if(isset($notice->show_until) && $notice->show_until !== '0000-00-00 00:00:00'){
-					if(strtotime($notice->show_until) < time()) continue;
-				}
+		if(empty($notices) || !is_array($notices)) return $_n;
 
-				$_n[] = $notice;
+		$n_discarted = get_option('revslider-notices-dc', array());
+		foreach($notices as $notice){
+			if(in_array($notice->code, $n_discarted)) continue;
+			if(isset($notice->version) && version_compare($notice->version, RS_REVISION, '<=')) continue;
+			if(isset($notice->registered)){ //if this is set, only show the notice if the plugin state is the same
+				$registered = $this->_truefalse($notice->registered);
+				if($registered !== $rs_valid) continue;
 			}
+			if(isset($notice->show_until) && $notice->show_until !== '0000-00-00 00:00:00'){
+				if(strtotime($notice->show_until) < time()) continue;
+			}
+
+			$_n[] = $notice;
 		}
 		
-		//push whatever notices we might need
 		return $_n;
 	}
-	
-	/**
-	 * get basic v5 Slider data
-	 **/
-	public function get_v5_slider_data(){
-		global $wpdb;
-		
-		$sliders	= array();
-		$do_order	= 'id';
-		$direction	= 'ASC';
-		
-		$slider_data = $wpdb->get_results($wpdb->prepare("SELECT `id`, `title`, `alias`, `type` FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDER."_bkp ORDER BY %s %s", array($do_order, $direction)), ARRAY_A);
-		
-		if(!empty($slider_data)){
-			foreach($slider_data as $data){
-				if($this->get_val($data, 'type') == 'template') continue;
-				
-				$sliders[] = $data;
-			}
-		}
-		
-		return $sliders;
-	}
-	
-	/**
-	 * get basic v5 Slider data
-	 **/
-	public function reimport_v5_slider($id){
-		global $wpdb;
-		
-		$done = false;
-		
-		$slider_data = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDER."_bkp WHERE `id` = %s", $id), ARRAY_A);
-		
-		if(!empty($slider_data)){
-			$slides_data = $wpdb->get_results($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES."_bkp WHERE `slider_id` = %s", $id), ARRAY_A);
-			$static_slide_data = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES."_bkp WHERE `slider_id` = %s", $id), ARRAY_A);
-			
-			if(!empty($slides_data)){
-				//check if the ID's exist in the new tables, if yes overwrite, if not create
-				$slider_v6 = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDER." WHERE `id` = %s", $id), ARRAY_A);
-				unset($slider_data['id']);
-				if(!empty($slider_v6)){
-					/**
-					 * push the old data to the already imported Slider
-					 **/
-					$result = $wpdb->update($wpdb->prefix . RevSliderFront::TABLE_SLIDER, $slider_data, array('id' => $id));
-				}else{
-					$result	= $wpdb->insert($wpdb->prefix . RevSliderFront::TABLE_SLIDER, $slider_data);
-					$id		= ($result) ? $wpdb->insert_id : false;
-				}
-				if($id !== false){
-					foreach($slides_data as $k => $slide_data){
-						$slide_data['slider_id'] = $id;
-						$slide_v6 = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_SLIDES." WHERE `id` = %s", $slide_data['id']), ARRAY_A);
-						$slide_id = $slide_data['id'];
-						unset($slide_data['id']);
-						if(!empty($slide_v6)){
-							$result = $wpdb->update($wpdb->prefix . RevSliderFront::TABLE_SLIDES, $slide_data, array('id' => $slide_id));
-						}else{
-							$result	= $wpdb->insert($wpdb->prefix . RevSliderFront::TABLE_SLIDES, $slide_data);
-						}
-					}
-					if(!empty($static_slide_data)){
-						$static_slide_data['slider_id'] = $id;
-						$slide_v6 = $wpdb->get_row($wpdb->prepare("SELECT * FROM ".$wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES." WHERE `id` = %s", $static_slide_data['id']), ARRAY_A);
-						$slide_id = $static_slide_data['id'];
-						unset($static_slide_data['id']);
-						if(!empty($slide_v6)){
-							$result = $wpdb->update($wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES, $static_slide_data, array('id' => $slide_id));
-						}else{
-							$result	= $wpdb->insert($wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES, $static_slide_data);
-						}
-					}
-					
-					$slider = new RevSliderSlider();
-					$slider->init_by_id($id);
-					
-					$upd = new RevSliderPluginUpdate();
-					
-					$upd->upgrade_slider_to_latest($slider);
-					$done = true;
-				}
-			}
-		}
-		
-		return $done;
-	}
-	
 	
 	/**
 	 * returns an object of current system values
@@ -550,6 +389,7 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 	 * import a media file uploaded through the browser to the media library
 	 **/
 	public function import_upload_media(){
+		global $SR_GLOBALS;
 		require_once(ABSPATH . 'wp-admin/includes/file.php');
 		
 		global $wp_filesystem;
@@ -574,26 +414,18 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 		
 		if(file_exists($path) == false) return array('error' => __('File not found', 'revslider'));
 		if($this->get_val($import_file, 'size') > wp_max_upload_size()) return array('error' => __('Exceeded filesize limit', 'revslider'));
-		
-		$file_mime = mime_content_type($path);
-		$allow = array(
-			'jpg|jpeg|jpe'	=> 'image/jpeg',
-			'gif'			=> 'image/gif',
-			'png'			=> 'image/png',
-			'bmp'			=> 'image/bmp',
-			'mpeg|mpg|mpe'	=> 'video/mpeg',
-			'mp4|m4v'		=> 'video/mp4',
-			'ogv'			=> 'video/ogg',
-			'webm'			=> 'video/webm'
-		);
-		
-		if(!in_array($file_mime, $allow)) return array('error' => __('WordPress doesn\'t allow this filetype', 'revslider'));
+
+		$mime_types = array_merge($this->get_val($SR_GLOBALS, array('mime_types', 'image')), $this->get_val($SR_GLOBALS, array('mime_types', 'video')));
+		$file_mime	= mime_content_type($path);
+		if(!in_array($file_mime, $mime_types)) return array('error' => __('WordPress doesn\'t allow this filetype', 'revslider'));
+
+		$file_name	= basename($this->get_val($import_file, 'name'));
+		$file_type	= wp_check_filetype($file_name, $mime_types);
+		if($this->get_val($file_type, 'ext', false) === false || $this->get_val($file_type, 'type', false) === false) return array('error' => __('WordPress doesn\'t allow this filetype', 'revslider'));
 		
 		$upload_dir = wp_upload_dir();
-		
-		$new_path = $path;
-		$file_name = basename($this->get_val($import_file, 'name'));
-		$i = 0;
+		$new_path	= $path;
+		$i			= 0;
 		while(file_exists($new_path)){
 			$i++;
 			$new_path = $upload_dir['path']. '/' .$i. '-' .$file_name;
@@ -626,10 +458,6 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 		}
 		
 		return $return;
-	}
-	
-	public function sort_by_slide_order($a, $b) {
-		return $a['slide_order'] - $b['slide_order'];
 	}
 	
 	
@@ -1127,9 +955,7 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 			'active_sr_to_access' => __('Register Slider Revolution<br>to Unlock Premium Features', 'revslider'),
 			'membersarea' => __('Members Area', 'revslider'),
 			'onelicensekey' => __('1 License Key per Website!', 'revslider'),
-			'onepurchasekey' => __('1 Purchase Code per Website!', 'revslider'),
 			'onelicensekey_info' => __('If you want to use your license key on another domain, please<br> deregister it in the members area or use a different key.', 'revslider'),
-			'onepurchasekey_info' => __('If you want to use your purchase code on<br>another domain, please deregister it first or', 'revslider'),
 			'registeredlicensekey' => __('Registered License Key', 'revslider'),
 			'registeredpurchasecode' => __('Registered Purchase Code', 'revslider'),
 			'registerlicensekey' => __('Register License Key', 'revslider'),
@@ -1138,14 +964,10 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 			'registerKey' => __('Register this License Key', 'revslider'),
 			'deregisterCode' => __('Deregister this Code', 'revslider'),
 			'deregisterKey' => __('Deregister this License Key', 'revslider'),
-			'active_sr_plg_activ' => __('Register Purchase Code', 'revslider'),
 			'active_sr_plg_activ_key' => __('Register License Key', 'revslider'),
-			'getpurchasecode' => __('Get a Purchase Code', 'revslider'),
 			'getlicensekey' => __('Get a License Key', 'revslider'),
-			'ihavepurchasecode' => __('I have a Purchase Code', 'revslider'),
 			'ihavelicensekey' => __('I have a License Key', 'revslider'),
 			'enterlicensekey' => __('Enter License Key', 'revslider'),
-			'enterpurchasecode' => __('Enter Purchase Code', 'revslider'),
 			'colrskinhas' => __('This Skin use', 'revslider'),
 			'deleteskin' => __('Delete Skin', 'revslider'),
 			'references' => __('References', 'revslider'),
@@ -1217,83 +1039,79 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 	public function get_same_aspect_ratio_images($images){
 		$return = array();
 		$images = (array)$images;
+		$objlib = new RevSliderObjectLibrary();
+		$upload_dir = wp_upload_dir();
 		
-		if(!empty($images)){
-			$objlib = new RevSliderObjectLibrary();
-			$upload_dir = wp_upload_dir();
+		foreach($images ?? [] as $key => $image){
+			//check if we are from object library
+			if($objlib->_is_object($image)){
+				$_img = $image;
+				$image = $objlib->get_correct_size_url($image, 100, true);
+				$objlib->_check_object_exist($image); //check to redownload if not downloaded yet
+				
+				$sizes = $objlib->get_sizes();
+				$return[$key] = array();
+				
+				if(empty($sizes)) continue;
+					
+				foreach($sizes ?? [] as $size){
+					$url = $objlib->get_correct_size_url($image, $size);
+					$file = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $url);
+					$_size = getimagesize($file);
+					$return[$key][$size] = array(
+						'url'	=> $url,
+						'width'	=> $this->get_val($_size, 0),
+						'height'=> $this->get_val($_size, 1),
+						'size'	=> filesize($file)
+					);
+					
+					if($_img === $url) $return[$key][$size]['default'] = true;
+				}
+				
+				//$image = $objlib->get_correct_size_url($image, 100, true);
+				$file = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $image);
+				$_size = getimagesize($file);
+				$return[$key][100] = array(
+					'url'	=> $image,
+					'width'	=> $this->get_val($_size, 0),
+					'height'=> $this->get_val($_size, 1),
+					'size'	=> filesize($file)
+				);
+				if($_img === $return[$key][100]['url']) $return[$key][100]['default'] = true;
+			}else{
+				$_img = (intval($image) === 0) ? $this->get_image_id_by_url($image) : $image;
+				$img_data = wp_get_attachment_metadata($_img);
+				
+				if(empty($img_data)) continue;
+				if(intval($this->get_val($img_data, 'width', 1)) === 0 || intval($this->get_val($img_data, 'height', 1)) === 0) continue;
+				$return[$key] = array();
+				$ratio = round($this->get_val($img_data, 'width', 1) / $this->get_val($img_data, 'height', 1), 2);
+				$sizes = $this->get_val($img_data, 'sizes', array());
+				$file = $upload_dir['basedir'] .'/'. $this->get_val($img_data, 'file');
+				$return[$key]['orig'] = array(
+					'url'	=> $upload_dir['baseurl'] .'/'. $this->get_val($img_data, 'file'),
+					'width'	=> $this->get_val($img_data, 'width'),
+					'height'=> $this->get_val($img_data, 'height'),
+					'size'	=> filesize($file)
+				);
+				if($image === $return[$key]['orig']['url']) $return[$key]['orig']['default'] = true;
 			
-			foreach($images as $key => $image){
-				//check if we are from object library
-				if($objlib->_is_object($image)){
-					$_img = $image;
-					$image = $objlib->get_correct_size_url($image, 100, true);
-					$objlib->_check_object_exist($image); //check to redownload if not downloaded yet
-					
-					$sizes = $objlib->get_sizes();
-					$return[$key] = array();
-					
-					if(!empty($sizes)){
-						foreach($sizes as $size){
-							$url = $objlib->get_correct_size_url($image, $size);
-							$file = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $url);
-							$_size = getimagesize($file);
-							$return[$key][$size] = array(
-								'url'	=> $url,
-								'width'	=> $this->get_val($_size, 0),
-								'height'=> $this->get_val($_size, 1),
-								'size'	=> filesize($file)
-							);
-							
-							if($_img === $url) $return[$key][$size]['default'] = true;
-						}
+				foreach($sizes ?? [] as $sn => $sv){
+					if(intval($this->get_val($sv, 'width', 1)) === 0 || intval($this->get_val($sv, 'height', 1)) === 0) continue;
+					$_ratio = round($this->get_val($sv, 'width', 1) / $this->get_val($sv, 'height', 1), 2);
+					if($_ratio !== $ratio) continue;
 						
-						//$image = $objlib->get_correct_size_url($image, 100, true);
-						$file = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $image);
-						$_size = getimagesize($file);
-						$return[$key][100] = array(
-							'url'	=> $image,
-							'width'	=> $this->get_val($_size, 0),
-							'height'=> $this->get_val($_size, 1),
-							'size'	=> filesize($file)
-						);
-						if($_img === $return[$key][100]['url']) $return[$key][100]['default'] = true;
-					}
-				}else{
-					$_img = (intval($image) === 0) ? $this->get_image_id_by_url($image) : $image;
-					$img_data = wp_get_attachment_metadata($_img);
+					$i = wp_get_attachment_image_src($_img, $sn);
+					if($i === false) continue;
 					
-					if(!empty($img_data)){
-						$return[$key] = array();
-						$ratio = round($this->get_val($img_data, 'width', 1) / $this->get_val($img_data, 'height', 1), 2);
-						$sizes = $this->get_val($img_data, 'sizes', array());
-						$file = $upload_dir['basedir'] .'/'. $this->get_val($img_data, 'file');
-						$return[$key]['orig'] = array(
-							'url'	=> $upload_dir['baseurl'] .'/'. $this->get_val($img_data, 'file'),
-							'width'	=> $this->get_val($img_data, 'width'),
-							'height'=> $this->get_val($img_data, 'height'),
-							'size'	=> filesize($file)
-						);
-						if($image === $return[$key]['orig']['url']) $return[$key]['orig']['default'] = true;
-						
-						if(!empty($sizes)){
-							foreach($sizes as $sn => $sv){
-								$_ratio = round($this->get_val($sv, 'width', 1) / $this->get_val($sv, 'height', 1), 2);
-								if($_ratio === $ratio){
-									$i = wp_get_attachment_image_src($_img, $sn);
-									if($i === false) continue;
-									
-									$file = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $this->get_val($i, 0));
-									$return[$key][$sn] = array(
-										'url'	=> $this->get_val($i, 0),
-										'width'	=> $this->get_val($sv, 'width'),
-										'height'=> $this->get_val($sv, 'height'),
-										'size'	=> filesize($file)
-									);
-									if($image === $return[$key][$sn]['url']) $return[$key][$sn]['default'] = true;
-								}
-							}
-						}
-					}
+					$file = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $this->get_val($i, 0));
+					$return[$key][$sn] = array(
+						'url'	=> $this->get_val($i, 0),
+						'width'	=> $this->get_val($sv, 'width'),
+						'height'=> $this->get_val($sv, 'height'),
+						'size'	=> filesize($file)
+					);
+					if($image === $return[$key][$sn]['url']) $return[$key][$sn]['default'] = true;
 				}
 			}
 		}
@@ -1310,8 +1128,8 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 		
 		if(empty($addons) || !is_array($addons)) return $sizes;
 		
-		$_css = '/public/assets/css/';
-		$_js = '/public/assets/js/';
+		$_css = '/sr6/assets/css/';
+		$_js = '/sr6/assets/js/';
 		//these are the sizes before the AddOns where updated
 		$_a = array(
 			'revslider-404-addon' => array(),
@@ -1464,15 +1282,10 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 	public function is_edit_page(){
 		if(!is_admin()) return false;
 
-		global $pagenow;
-		global $wp_version;
+		global $pagenow, $wp_version;
 
-		if(version_compare($wp_version, '5.8', '>=')){
-			return in_array($pagenow, array('post.php', 'post-new.php', 'widgets.php'));
-		}
-		else{
-			return in_array($pagenow, array('post.php', 'post-new.php'));
-		}
+		$edit_pages = (version_compare($wp_version, '5.8', '>=')) ? array('post.php', 'post-new.php', 'widgets.php') : array('post.php', 'post-new.php');
+
+		return in_array($pagenow, $edit_pages);
 	}
-	
 }

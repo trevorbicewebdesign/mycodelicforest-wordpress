@@ -2,7 +2,7 @@
 /**
 * @author    ThemePunch <info@themepunch.com>
 * @link      https://www.themepunch.com/
-* @copyright 2022 ThemePunch
+* @copyright 2024 ThemePunch
 */
 if(!defined('ABSPATH')) exit();
 
@@ -718,15 +718,6 @@ class RevSliderHelp {
 								$a => $u . "module-content/#instagram",
 								$hl => array($m => "#module_settings_trigger, #gst_sl_4", $st => '#form_slider_content_content', $f => "*[name='slider_sourcetype'][value='instagram']")
 							),
-							'twitter' => array(
-								$di => "slider_sourcetype_twitter",
-								$t => __("Twitter", 'revsliderhelp'),
-								$h => "sourcetype.twitter",
-								$k => array("twitter", "source", "tweet", "stream"),
-								$d => __("Populate the Slider from a Twitter account", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array($m => "#module_settings_trigger, #gst_sl_4", $st => '#form_slider_content_content', $f => "*[name='slider_sourcetype'][value='twitter']")
-							),
 							'facebook' => array(
 								$di => "slider_sourcetype_facebook",
 								$t => __("Facebook", 'revsliderhelp'),
@@ -1151,138 +1142,6 @@ class RevSliderHelp {
 									$m => "#module_settings_trigger, #gst_sl_4", 
 									$st => '#form_slider_content_insta', 
 									$f => "*[name='sr_src_instagram_userid']"
-								)
-							)
-						),
-						'twitter_settings' => array(
-							'num_slides' => array(
-								$t => __("Total Slides", 'revsliderhelp'),
-								$h => "source.twitter.count",
-								$k => array("twitter"),
-								$d => __("Choose how many Slides should be created from the Twitter source", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array(
-									$dp => array(array($p => 'settings.sourcetype', $v => 'twitter', $o => 'slider_sourcetype_twitter')), 
-									$m => "#module_settings_trigger, #gst_sl_4", 
-									$st => '#form_slider_content_twitter', 
-									$f => "#sr_source_twitter_count"
-								)
-							),
-							'cache' => array(
-								$t => __("API Cache", 'revsliderhelp'),
-								$h => "source.twitter.transient",
-								$k => array("twitter", "gallery", "cache"),
-								$d => __("Cache the Twitter API results for faster loading", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array(
-									$dp => array(array($p => 'settings.sourcetype', $v => 'twitter', $o => 'slider_sourcetype_twitter')), 
-									$m => "#module_settings_trigger, #gst_sl_4", 
-									$st => '#form_slider_content_twitter', 
-									$f => "#sr_source_twitter_transient"
-								)
-							),
-							'user_name' => array(
-								$t => __("User Handle", 'revsliderhelp'),
-								$h => "source.twitter.userId",
-								$k => array("twitter", "api", "userid", "user id"),
-								$d => __("Enter your Twitter User Name/Handle for the API query", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array(
-									$dp => array(array($p => 'settings.sourcetype', $v => 'twitter', $o => 'slider_sourcetype_twitter')), 
-									$m => "#module_settings_trigger, #gst_sl_4", 
-									$st => '#form_slider_content_twitter', 
-									$f => "*[name='sr_src_twitter_userid']"
-								)
-							),
-							'text_tweets' => array(
-								$t => __("Text Tweets", 'revsliderhelp'),
-								$h => "source.twitter.imageOnly",
-								$k => array("twitter", "tweets", "text tweets"),
-								$d => __("Include text-only Tweets (tweets that do not contain an image)", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array(
-									$dp => array(array($p => 'settings.sourcetype', $v => 'twitter', $o => 'slider_sourcetype_twitter')), 
-									$m => "#module_settings_trigger, #gst_sl_4", 
-									$st => '#form_slider_content_twitter', 
-									$f => "#sr_src_twitter_imageonly"
-								)
-							),
-							'retweets' => array(
-								$t => __("Re-Tweets", 'revsliderhelp'),
-								$h => "source.twitter.includeRetweets",
-								$k => array("twitter", "tweets", "retweets", "re-tweets"),
-								$d => __("Include both tweets and re-tweets in the Slider", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array(
-									$dp => array(array($p => 'settings.sourcetype', $v => 'twitter', $o => 'slider_sourcetype_twitter')), 
-									$m => "#module_settings_trigger, #gst_sl_4", 
-									$st => '#form_slider_content_twitter', 
-									$f => "#sr_src_twitter_includeretweets"
-								)
-							),
-							'replies' => array(
-								$t => __("Replies", 'revsliderhelp'),
-								$h => "source.twitter.excludeReplies",
-								$k => array("twitter", "tweets", "replies"),
-								$d => __("Include both tweets and replies in the Slider", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array(
-									$dp => array(array($p => 'settings.sourcetype', $v => 'twitter', $o => 'slider_sourcetype_twitter')), 
-									$m => "#module_settings_trigger, #gst_sl_4", 
-									$st => '#form_slider_content_twitter', 
-									$f => "#sr_src_twitter_excludereplies"
-								)
-							),
-							'consumer_key' => array(
-								$t => __("Consumer Key", 'revsliderhelp'),
-								$h => "source.twitter.consumerKey",
-								$k => array("twitter", "api key", "consumer", "consumer key"),
-								$d => __("Your <a href='https://dev.twitter.com/apps' target='_blank'>Twitter App's</a> Consumer Key", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array(
-									$dp => array(array($p => 'settings.sourcetype', $v => 'twitter', $o => 'slider_sourcetype_twitter')), 
-									$m => "#module_settings_trigger, #gst_sl_4", 
-									$st => '#form_slider_content_twitter', 
-									$f => "*[name='sr_src_twitter_consumerKey']"
-								)
-							),
-							'consumer_secret' => array(
-								$t => __("Consumer Secret", 'revsliderhelp'),
-								$h => "source.twitter.consumerSecret",
-								$k => array("twitter", "api key", "consumer", "consumer secret", "secret"),
-								$d => __("Your <a href='https://dev.twitter.com/apps' target='_blank'>Twitter App's</a> Consumer Secret", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array(
-									$dp => array(array($p => 'settings.sourcetype', $v => 'twitter', $o => 'slider_sourcetype_twitter')), 
-									$m => "#module_settings_trigger, #gst_sl_4", 
-									$st => '#form_slider_content_twitter', 
-									$f => "*[name='sr_src_twitter_consumerSecret']"
-								)
-							),
-							'access_token' => array(
-								$t => __("Access Token", 'revsliderhelp'),
-								$h => "source.twitter.accessToken",
-								$k => array("twitter", "api key", "access token", "token"),
-								$d => __("Your <a href='https://dev.twitter.com/apps' target='_blank'>Twitter App's</a> Access Token", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array(
-									$dp => array(array($p => 'settings.sourcetype', $v => 'twitter', $o => 'slider_sourcetype_twitter')), 
-									$m => "#module_settings_trigger, #gst_sl_4", 
-									$st => '#form_slider_content_twitter', 
-									$f => "*[name='sr_src_twitter_accessToken']"
-								)
-							),
-							'access_secret' => array(
-								$t => __("Access Secret", 'revsliderhelp'),
-								$h => "source.twitter.accessSecret",
-								$k => array("twitter", "api key", "access secret. secret"),
-								$d => __("Your <a href='https://dev.twitter.com/apps' target='_blank'>Twitter App's</a> Access Secret", 'revsliderhelp'),
-								$a => $u . "module-content/#twitter",
-								$hl => array(
-									$dp => array(array($p => 'settings.sourcetype', $v => 'twitter', $o => 'slider_sourcetype_twitter')), 
-									$m => "#module_settings_trigger, #gst_sl_4", 
-									$st => '#form_slider_content_twitter', 
-									$f => "*[name='sr_src_twitter_accessSecret']"
 								)
 							)
 						),

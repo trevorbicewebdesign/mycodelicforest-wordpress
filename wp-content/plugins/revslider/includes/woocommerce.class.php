@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
  
 if(!defined('ABSPATH')) exit();
@@ -208,6 +208,7 @@ class RevSliderWooCommerce extends RevSliderFunctions {
 			'meta_num__regular_price'	=> __('Regular Price', 'revslider'),
 			'meta_num__sale_price'		=> __('Sale Price', 'revslider'),
 			'meta_num_total_sales'		=> __('Number Of Sales', 'revslider'),
+			'meta_num__wc_average_rating' => __('Rating', 'revslider'),
 			//'meta__featured'			=> __('Featured Products', 'revslider'),
 			'meta__sku'					=> __('SKU', 'revslider'),
 			'meta_num_stock'			=> __('Stock Quantity', 'revslider')
@@ -236,5 +237,123 @@ class RevSliderWooCommerce extends RevSliderFunctions {
 		
 		return wc_stock_amount( $total_stock );
 	}
+
+	public static function get_wc_data($post_id, $text = ''){
+		global $SR_GLOBALS;
+		$is_30 = RevSliderWooCommerce::version_check('3.0');
+		$product = ($is_30) ? wc_get_product($post_id) : get_product($post_id);
+
+		if($product === false) return false;
+
+		$f = RevSliderGlobals::instance()->get('RevSliderFunctions');
+
+		$wc_stock		= ($is_30) ? RevSliderWooCommerce::get_total_stock($product) : $product->get_total_stock();
+		$wc_rating		= ($is_30) ? wc_get_rating_html($product->get_average_rating()) : $product->get_rating_html();
+		$wc_categories	= ($is_30) ? wc_get_product_category_list($product->get_id(), ',') : $product->get_categories(',');
+		$wc_tags		= ($is_30) ? wc_get_product_tag_list($product->get_id()) : $product->get_tags();
+		$wc_add_to_cart_button = '';
+		$wc_star_rating = ($SR_GLOBALS['front_version'] === 7) ? '<div class="sr-starring">' : '<div class="rs-starring">';
+		preg_match_all('#<strong class="rating">.*?</span>#', $wc_rating, $match);
+		if(!empty($match) && isset($match[0]) && isset($match[0][0])){
+			$wc_star_rating .= str_replace($match[0][0], '', $wc_rating);
+			$wc_star_rating = str_replace("Rated ","",$wc_star_rating);
+		}
+		$wc_star_rating .= '</div>';
+		
+		if(strpos($text, 'wc_add_to_cart_button') !== false){
+			$pr_id			= ($is_30) ? $product->get_id() : $product->id;
+			$pr_type		= ($is_30) ? $product->get_type() : $product->product_type;
+			$suffix			= defined('SCRIPT_DEBUG') && SCRIPT_DEBUG ? '' : '.min';
+			$ajax_cart_en	= get_option('woocommerce_enable_ajax_add_to_cart') == 'yes' ? true : false;
+			$assets_path	= $f->remove_http(WC()->plugin_url()) . '/assets/';
+			
+			if($ajax_cart_en){
+				wp_enqueue_script( 'wc-add-to-cart', $assets_path.'js/frontend/'.'add-to-cart'.$suffix.'.js', array('jquery'), WC_VERSION, true);
+				
+				global $wc_is_localized;
+				if($wc_is_localized === false){ //load it only one time
+					wp_localize_script('wc-add-to-cart', 'wc_add_to_cart_params', apply_filters('wc_add_to_cart_params', array(
+						'ajax_url'			=> WC()->ajax_url(),
+						'ajax_loader_url'	=> apply_filters('woocommerce_ajax_loader_url', $assets_path . 'images/ajax-loader@2x.gif'),
+						'i18n_view_cart'	=> esc_attr__('View Cart', 'woocommerce'),
+						'cart_url'			=> get_permalink(wc_get_page_id('cart')),
+						'is_cart'			=> is_cart(),
+						'cart_redirect_after_add' => get_option('woocommerce_cart_redirect_after_add')
+					)));
+					$wc_is_localized = true;
+				}
+			}
+			
+			$wc_add_to_cart_button = apply_filters(
+				'woocommerce_loop_add_to_cart_link',
+				sprintf('<a href="%s" rel="nofollow" data-product_id="%s" data-product_sku="%s" class="button %s product_type_%s">%s</a>',
+					esc_url($product->add_to_cart_url()),
+					esc_attr($pr_id),
+					esc_attr($product->get_sku()),
+					$product->is_purchasable() ? 'add_to_cart_button' : '',
+					esc_attr($pr_type),
+					esc_html($product->add_to_cart_text())
+				),
+				$product
+			);
+		}
+		
+		return array(
+			'wc_full_price'		=> $product->get_price_html(),
+			'wc_price'			=> wc_price($product->get_price()),
+			'wc_price_no_cur'	=> $product->get_price(),
+			'wc_stock'			=> $wc_stock,
+			'wc_rating'			=> $wc_rating,
+			'wc_star_rating'	=> $wc_star_rating,
+			'wc_categories'		=> $wc_categories,
+			'wc_add_to_cart'	=> $product->add_to_cart_url(),
+			'wc_add_to_cart_button'	=> $wc_add_to_cart_button,
+			'wc_sku'			=> $product->get_sku(),
+			'wc_stock_quantity'	=> $product->get_stock_quantity(),
+			'wc_rating_count'	=> $product->get_rating_count(),
+			'wc_review_count'	=> $product->get_review_count(),
+			'wc_tags'			=> $wc_tags,
+		);
+	}
+
+	/**
+	 * modify layer text, to replace all meta
+	 */
+	public static function add_wc_layer($text, $post_id, $slide){
+		if(RevSliderWooCommerce::woo_exists() === false) return $text;
+
+		$data = RevSliderWooCommerce::get_wc_data($post_id, $text);
+		if($data === false) return $text;
+		
+		foreach($data ?? [] as $tag => $value){
+			$value = (empty($value)) ? '' : $value; //fix is null issue
+			$text = str_replace(array('%'.$tag.'%', '{{'.$tag.'}}'), $value, $text);
+		}
+		
+		return $text;
+	}
+
+	public static function add_wc_layer_v7($post_data, $data, $metas, $slider){
+		if(RevSliderWooCommerce::woo_exists() === false) return $post_data;
+		$f = RevSliderGlobals::instance()->get('RevSliderFunctions');
+
+		foreach($post_data ?? [] as $key => $post){
+			$content = $f->get_val($post, array('content', 'content'));
+			$data = RevSliderWooCommerce::get_wc_data($f->get_val($post, 'id'), $content);
+			if($data === false) continue;
+
+			//modify excerpt if empty to be filled with content
+			if(!isset($post['excerpt']) || trim($post['excerpt']) === ''){
+				$post['excerpt'] = str_replace(array('<br/>', '<br />'), '', strip_tags($content, '<b><br><i><strong><small>'));
+			}
+
+			$post_data[$key] = array_merge($post, $data);
+		}
+
+		return $post_data;
+	}
 	
 }	//end of the class
+
+add_filter('sr_modify_layer_text', array('RevSliderWooCommerce', 'add_wc_layer'), 10, 3);
+add_filter('sr_streamline_post_data_post', array('RevSliderWooCommerce', 'add_wc_layer_v7'), 10, 4);

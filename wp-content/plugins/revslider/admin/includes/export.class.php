@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -66,15 +66,15 @@ class RevSliderSliderExport extends RevSliderSlider {
 	 */
 	public function export_slider($id = 0){
 		//slider needs to be initialized :)
-		if($id > 0){
-			$this->init_by_id($id);
-		}
+		if($id > 0) $this->init_by_id($id);
 		
-		//check if an update is needed
-		if(version_compare($this->get_param(array('settings', 'version')), get_option('revslider_update_version', '6.0.0'), '<')){
-			$upd = new RevSliderPluginUpdate();
-			$upd->upgrade_slider_to_latest($this);
-			$this->init_by_id($id);
+		if($this->v7 !== true){
+			//check if an update is needed
+			if(version_compare($this->get_param(array('settings', 'version')), get_option('revslider_update_version', '6.0.0'), '<')){
+				$upd = new RevSliderPluginUpdate();
+				$upd->upgrade_slider_to_latest($this);
+				$this->init_by_id($id);
+			}
 		}
 		
 		$this->set_parameters();
@@ -139,41 +139,19 @@ class RevSliderSliderExport extends RevSliderSlider {
 		
 		if(!empty($this->export_slides)){
 			foreach($this->export_slides as $k => $s){
-				if($this->get_val($this->export_slides[$k], array('params', 'bg', 'imageId'), false) !== false){
-					unset($this->export_slides[$k]['params']['bg']['imageId']);
-				}
-				/*if($this->get_val($this->export_slides[$k], array('params', 'bg', 'videoId'), false) !== false){ //TODO maybe not delete, depending on if this is a wordpress media library id (then yes) or not
-					unset($this->export_slides[$k]['params']['bg']['videoId']);
-				}*/
-				if($this->get_val($this->export_slides[$k], array('params', 'thumb', 'customThumbSrcId'), false) !== false){
-					unset($this->export_slides[$k]['params']['thumb']['customThumbSrcId']);
-				}
-				if($this->get_val($this->export_slides[$k], array('params', 'thumb', 'customAdminThumbSrcId'), false) !== false){
-					unset($this->export_slides[$k]['params']['thumb']['customAdminThumbSrcId']);
-				}
-				if($this->get_val($this->export_slides[$k], array('params', 'bg', 'lastLoadedImage'), false) !== false){
-					unset($this->export_slides[$k]['params']['bg']['lastLoadedImage']);
-				}
+				if($this->get_val($this->export_slides[$k], array('params', 'bg', 'imageId'), false) !== false)						unset($this->export_slides[$k]['params']['bg']['imageId']);
+				if($this->get_val($this->export_slides[$k], array('params', 'thumb', 'customThumbSrcId'), false) !== false)			unset($this->export_slides[$k]['params']['thumb']['customThumbSrcId']);
+				if($this->get_val($this->export_slides[$k], array('params', 'thumb', 'customAdminThumbSrcId'), false) !== false)	unset($this->export_slides[$k]['params']['thumb']['customAdminThumbSrcId']);
+				if($this->get_val($this->export_slides[$k], array('params', 'bg', 'lastLoadedImage'), false) !== false)				unset($this->export_slides[$k]['params']['bg']['lastLoadedImage']);
 			}
 		}
 		
 		if(!empty($this->static_slide)){
 			foreach($this->static_slide as $k => $s){
-				if($this->get_val($this->static_slide[$k], array('params', 'bg', 'imageId'), false) !== false){
-					unset($this->static_slide[$k]['params']['bg']['imageId']);
-				}
-				/*if($this->get_val($this->static_slide[$k], array('params', 'bg', 'videoId'), false) !== false){ //TODO maybe not delete, depending on if this is a wordpress media library id (then yes) or not
-					unset($this->static_slide[$k]['params']['bg']['videoId']);
-				}*/
-				if($this->get_val($this->static_slide[$k], array('params', 'thumb', 'customThumbSrcId'), false) !== false){
-					unset($this->static_slide[$k]['params']['thumb']['customThumbSrcId']);
-				}
-				if($this->get_val($this->static_slide[$k], array('params', 'thumb', 'customAdminThumbSrcId'), false) !== false){
-					unset($this->static_slide[$k]['params']['thumb']['customAdminThumbSrcId']);
-				}
-				if($this->get_val($this->static_slide[$k], array('params', 'bg', 'lastLoadedImage'), false) !== false){
-					unset($this->static_slide[$k]['params']['bg']['lastLoadedImage']);
-				}
+				if($this->get_val($this->static_slide[$k], array('params', 'bg', 'imageId'), false) !== false)					unset($this->static_slide[$k]['params']['bg']['imageId']);
+				if($this->get_val($this->static_slide[$k], array('params', 'thumb', 'customThumbSrcId'), false) !== false)		unset($this->static_slide[$k]['params']['thumb']['customThumbSrcId']);
+				if($this->get_val($this->static_slide[$k], array('params', 'thumb', 'customAdminThumbSrcId'), false) !== false)	unset($this->static_slide[$k]['params']['thumb']['customAdminThumbSrcId']);
+				if($this->get_val($this->static_slide[$k], array('params', 'bg', 'lastLoadedImage'), false) !== false)			unset($this->static_slide[$k]['params']['bg']['lastLoadedImage']);
 			}
 		}
 	}
@@ -186,16 +164,14 @@ class RevSliderSliderExport extends RevSliderSlider {
 		if(!empty($this->export_slides)){
 			foreach($this->export_slides as $k => $s){
 				if(isset($this->export_slides[$k]['params']) && (in_array($this->get_val($this->export_slides[$k]['params'], array('bg', 'type')), array('solid', 'trans', 'transparent'), true))){
-					if($this->get_val($this->export_slides[$k]['params'], array('bg', 'image'), false) !== false)
-						$this->export_slides[$k]['params']['layout']['bg']['image'] = '';
+					if($this->get_val($this->export_slides[$k]['params'], array('bg', 'image'), false) !== false)	$this->export_slides[$k]['params']['layout']['bg']['image'] = '';
 				}
 			}
 		}
 		if(!empty($this->static_slide)){
 			foreach($this->static_slide as $k => $s){
 				if(isset($this->static_slide[$k]['params']) && (in_array($this->get_val($this->static_slide[$k]['params'], array('bg', 'type')), array('solid', 'trans', 'transparent'), true))){
-					if($this->get_val($this->static_slide[$k]['params'], array('bg', 'image'), false) !== false)
-						$this->static_slide[$k]['params']['bg']['image'] = '';
+					if($this->get_val($this->static_slide[$k]['params'], array('bg', 'image'), false) !== false)	$this->static_slide[$k]['params']['bg']['image'] = '';
 				}
 			}
 		}
@@ -214,11 +190,10 @@ class RevSliderSliderExport extends RevSliderSlider {
 		
 		if(!empty($this->all_slides) && count($this->all_slides) > 0){
 			foreach($this->all_slides as $key => $slide){
-				$params = $this->get_val($slide, 'params', array());
-				$layers = $this->get_val($slide, 'layers', array());
-				
-				$image = $this->get_val($params, array('bg', 'image'));
-				$thumb = $this->get_val($params, array('thumb', 'customThumbSrc'));
+				$params	 = $this->get_val($slide, 'params', array());
+				$layers	 = $this->get_val($slide, 'layers', array());
+				$image	 = $this->get_val($params, array('bg', 'image'));
+				$thumb	 = $this->get_val($params, array('thumb', 'customThumbSrc'));
 				$a_thumb = $this->get_val($params, array('thumb', 'customAdminThumbSrc'));
 				
 				if($image != '') $this->used_images[$image] = true;
@@ -366,15 +341,17 @@ class RevSliderSliderExport extends RevSliderSlider {
 		
 		$navigations = $nav->get_all_navigations(false, true);
 		
-		$arrows	 = $this->get_val($this->slider_params, array('nav', 'arrows', 'style'), false);
-		$bullets = $this->get_val($this->slider_params, array('nav', 'bullets', 'style'), false);
-		$thumbs	 = $this->get_val($this->slider_params, array('nav', 'thumbs', 'style'), false);
-		$tabs	 = $this->get_val($this->slider_params, array('nav', 'tabs', 'style'), false);
+		$arrows	  = $this->get_val($this->slider_params, array('nav', 'arrows', 'style'), false);
+		$bullets  = $this->get_val($this->slider_params, array('nav', 'bullets', 'style'), false);
+		$thumbs	  = $this->get_val($this->slider_params, array('nav', 'thumbs', 'style'), false);
+		$tabs	  = $this->get_val($this->slider_params, array('nav', 'tabs', 'style'), false);
+		$scrubber = $this->get_val($this->slider_params, array('nav', 'scrubber', 'style'), false);
 		
 		if($arrows !== false)	$this->used_navigations[$arrows] = true;
 		if($bullets !== false)	$this->used_navigations[$bullets] = true;
 		if($thumbs !== false)	$this->used_navigations[$thumbs] = true;
 		if($tabs !== false)		$this->used_navigations[$tabs] = true;
+		if($scrubber !== false)	$this->used_navigations[$scrubber] = true;
 	}
 	
 	
@@ -390,9 +367,7 @@ class RevSliderSliderExport extends RevSliderSlider {
 					foreach($layers as $lk => $layer){
 						if($this->get_val($layer, 'type') == 'svg'){
 							$svg = $this->get_val($layer, array('svg', 'source'));
-							if($svg !== ''){
-								$this->used_svg[$svg] = true;
-							}
+							if($svg !== '') $this->used_svg[$svg] = true;
 						}
 					}
 				}
@@ -485,12 +460,12 @@ class RevSliderSliderExport extends RevSliderSlider {
 	 * @before: RevSliderOperations::getFullCustomAnimationByID()
 	 */
 	public function get_custom_animation_by_id($id){
-		global $revslider_animations;
+		global $SR_GLOBALS;
 
 		$this->fill_animations();
-		if(empty($revslider_animations)) return false;
+		if(empty($SR_GLOBALS['animations'])) return false;
 		
-		foreach($revslider_animations as $animation){
+		foreach($SR_GLOBALS['animations'] as $animation){
 			if($animation['id'] == $id){
 				return array(
 					'id'	 => $animation['id'],
@@ -511,16 +486,13 @@ class RevSliderSliderExport extends RevSliderSlider {
 	public function create_export_zip(){
 		$this->usepcl = false;
 		
-		if(file_exists($this->export_path_zip)){
-			@unlink($this->export_path_zip); //delete file to start with a fresh one
-		}
+		if(file_exists($this->export_path_zip)) @unlink($this->export_path_zip); //delete file to start with a fresh one
 		
 		if(class_exists('ZipArchive')){
 			$this->zip = new ZipArchive;
 			$success = $this->zip->open($this->export_path_zip, ZIPARCHIVE::CREATE | ZipArchive::OVERWRITE);
 			
-			if($success !== true)
-				$this->throw_error(__("Can't create zip file: ", 'revslider').$this->export_path_zip);
+			if($success !== true) $this->throw_error(__("Can't create zip file: ", 'revslider').$this->export_path_zip);
 		}else{
 			//fallback to pclzip
 			require_once(ABSPATH . 'wp-admin/includes/class-pclzip.php');
@@ -539,17 +511,17 @@ class RevSliderSliderExport extends RevSliderSlider {
 	public function add_svg_to_zip(){
 		if(empty($this->used_svg)) return;
 		
-		$c_url	= str_replace(array('http:', 'https:'), '', content_url());
+		$c_url	= $this->remove_http(content_url());
 		$c_path	= ABSPATH . 'wp-content';
 		$ud		= wp_upload_dir();
 		$up_dir	= $this->get_val($ud, 'baseurl');
-		$up_dir	= str_replace(array('http:', 'https:'), '', $up_dir);
-		$cont_url			= str_replace(array('http:', 'https:'), '', $this->get_val($ud, 'baseurl'));
+		$up_dir	= $this->remove_http($up_dir);
+		$cont_url			= $this->remove_http($this->get_val($ud, 'baseurl'));
 		$cont_url_no_www	= str_replace('www.', '', $cont_url);
 		
 		foreach($this->used_svg as $file => $val){
-			if(strpos($file, 'http') !== false){ //remove all up to wp-content folder
-				$file		= str_replace(array('http:', 'https:'), '', $file);
+			if(strpos($file, 'http') !== false || substr($file, 0, 2) === '//' || substr($file, 0, 4) === '\/\/'){ //remove all up to wp-content folder
+				$file		= $this->remove_http($file);
 				$_checkpath = str_replace(array($cont_url.'/', $cont_url_no_www.'/'), '', $file);
 				$checkpath = str_replace($c_url, '', $file);
 				$checkpath2 = str_replace($up_dir, '', $file);
@@ -565,12 +537,11 @@ class RevSliderSliderExport extends RevSliderSlider {
 						$this->pclzip->add($c_path.$checkpath, PCLZIP_OPT_REMOVE_PATH, $c_path, PCLZIP_OPT_ADD_PATH, $_checkpath);
 					}
 				}
-				$file = str_replace('/', '\/', $file);
+				$_file = str_replace('/', '\/', $file);
 				$checkpath2 = str_replace('/', '\/', str_replace('/revslider/assets/svg', '', $checkpath2));
 
-				if(is_file($c_path.$checkpath)){
-					$this->export_data = str_replace(array('http:'.$file, 'https:'.$file), $checkpath2, $this->export_data);
-				}
+				$replace = (is_file($c_path.$checkpath)) ? $checkpath2 : '';
+				$this->export_data = str_replace(array('http:'.$_file, 'https:'.$_file, $_file, 'http:'.$file, 'https:'.$file, $file), $replace, $this->export_data);
 			}
 		}
 	}
@@ -611,7 +582,7 @@ class RevSliderSliderExport extends RevSliderSlider {
 					}
 				}
 				
-				if(strpos($file, 'http') !== false){
+				if(strpos($file, 'http') !== false || substr($file, 0, 2) === '//' || substr($file, 0, 4) === '\/\/'){
 					//check if we are in objects folder, if yes take the original image into the zip-
 					$remove		= false;
 					$checkpath	= str_replace(array($cont_url.'/', $cont_url_no_www.'/', $cont_url2.'/', $cont_url2_no_www.'/'), '', $file);
@@ -698,9 +669,7 @@ class RevSliderSliderExport extends RevSliderSlider {
 				$this->zip->addFromString('custom_animations.txt', $this->animations_data); //add custom animations
 			}else{
 				$list = $this->pclzip->add(array(array(PCLZIP_ATT_FILE_NAME => 'custom_animations.txt', PCLZIP_ATT_FILE_CONTENT => $this->animations_data)));
-				if($list == 0){
-					die("ERROR : '".$this->pclzip->errorInfo(true)."'");
-				}
+				if($list == 0) die("ERROR : '".$this->pclzip->errorInfo(true)."'");
 			}
 		}
 	}
@@ -715,9 +684,7 @@ class RevSliderSliderExport extends RevSliderSlider {
 				$this->zip->addFromString('styles.txt', $this->style_data);
 			}else{
 				$list = $this->pclzip->add(array(array(PCLZIP_ATT_FILE_NAME => 'styles.txt', PCLZIP_ATT_FILE_CONTENT => $this->style_data)));
-				if($list == 0){
-					die("ERROR : '".$this->pclzip->errorInfo(true)."'");
-				}
+				if($list == 0) die("ERROR : '".$this->pclzip->errorInfo(true)."'");
 			}
 		}
 	}
@@ -732,9 +699,7 @@ class RevSliderSliderExport extends RevSliderSlider {
 				$this->zip->addFromString('navigation.txt', $this->navigation_data);
 			}else{
 				$list = $this->pclzip->add(array(array(PCLZIP_ATT_FILE_NAME => 'navigation.txt', PCLZIP_ATT_FILE_CONTENT => $this->navigation_data)));
-				if($list == 0){
-					die("ERROR : '".$this->pclzip->errorInfo(true)."'");
-				}
+				if($list == 0) die("ERROR : '".$this->pclzip->errorInfo(true)."'");
 			}
 		}
 	}
@@ -750,7 +715,7 @@ class RevSliderSliderExport extends RevSliderSlider {
 				$this->zip->addFromString("static-captions.css", $static_css); //add slider settings
 			}else{
 				$list = $this->pclzip->add(array(array( PCLZIP_ATT_FILE_NAME => 'static-captions.css',PCLZIP_ATT_FILE_CONTENT => $static_css)));
-				if ($list == 0) { die("ERROR : '".$this->pclzip->errorInfo(true)."'"); }
+				if($list == 0) die("ERROR : '".$this->pclzip->errorInfo(true)."'");
 			}
 		}
 	}
@@ -766,9 +731,7 @@ class RevSliderSliderExport extends RevSliderSlider {
 				$this->zip->addFromString('info.cfg', md5($this->alias)); //add slider settings
 			}else{
 				$list = $this->pclzip->add(array(array(PCLZIP_ATT_FILE_NAME => 'info.cfg', PCLZIP_ATT_FILE_CONTENT => md5($this->alias))));
-				if($list == 0){
-					die("ERROR : '".$this->pclzip->errorInfo(true)."'");
-				}
+				if($list == 0) die("ERROR : '".$this->pclzip->errorInfo(true)."'");
 			}
 		}
 	}
@@ -778,9 +741,7 @@ class RevSliderSliderExport extends RevSliderSlider {
 	 * close the zip if we are not in pcl
 	 **/
 	public function close_export_zip(){
-		if(!$this->usepcl){
-			$this->zip->close();
-		}
+		if(!$this->usepcl) $this->zip->close();
 	}
 	
 	

@@ -3974,7 +3974,7 @@ msgid "HTML5 Autoplay"
 msgstr "HTML5自动播放"
 
 #: admin/views/builder-slider-forms.php:961
-msgid "Option is depricated and will be removed in upcoming updates !"
+msgid "Option is deprecated and will be removed in upcoming updates !"
 msgstr "选项已被删除，将在即将发布的更新中删除！"
 
 #: admin/views/builder-slider-forms.php:970
@@ -5236,8 +5236,8 @@ msgid "Layer as jQuery Object"
 msgstr "图层为jQuery对象"
 
 #: admin/views/modals-builder.php:520
-msgid "Meta Datas"
-msgstr "Meta Datas"
+msgid "Metadata"
+msgstr "Metadata"
 
 #: admin/views/modals-builder.php:522
 msgid "Basic"
@@ -7226,7 +7226,7 @@ msgstr "习惯 CSS"
 
 #: admin/views/builder-layer-forms.php:909
 msgid ""
-"Depricated Function !<br>Only visible by Rendering. Limited influence on "
+"Deprecated Function !<br>Only visible by Rendering. Limited influence on "
 "Styled Layers. Custom CSS Inline will be removed in Version 6.2"
 msgstr "已删除的功能！<br>仅可通过渲染查看。对样式图层的影响有限。习惯CSS 内联将在版本中删除 6.2"
 

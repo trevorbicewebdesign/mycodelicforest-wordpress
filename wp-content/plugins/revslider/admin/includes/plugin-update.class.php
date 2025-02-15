@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -17,7 +17,7 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 	public $_corners		= array('cornerLeft' => array('nothing' => 'none', 'curved' => 'rs-fcr', 'reverced' => 'rs-fcrt'), 'cornerRight' => array('nothing' => 'none', 'curved' => 'rs-bcr', 'reverced' => 'rs-bcrt'));
 	public $_metas			= array('home_url', 'current_page_link', 'link', 'title', 'excerpt', 'alias', 'content', 'link', 'date', 'date_modified', 'author_name', 'author_posts', 'author_website', 'num_comments', 'catlist', 'catlist_raw', 'taglist', 'id', 'wc_full_price', 'wc_price', 'wc_price_no_cur', 'wc_stock', 'wc_rating', 'wc_star_rating', 'wc_categories', 'wc_add_to_cart', 'wc_add_to_cart_button', 'wc_sku', 'wc_stock_quantity', 'wc_rating_count', 'wc_review_count', 'wc_tags', 'link', 'title', 'excerpt', 'description', 'alias', 'content', 'link', 'date_published', 'date_modified', 'author_name', 'num_comments', 'catlist', 'catlist_raw', 'taglist', 'likes', 'retweet_count', 'favorite_count', 'views', 't_days', 't_hours', 't_minutes', 't_seconds', 'event_start_date', 'event_end_date', 'event_start_tim', 'event_end_time', 'event_event_id', 'event_location_name', 'event_location_slug', 'event_location_address', 'event_location_town', 'event_location_state', 'event_location_postcode', 'event_location_region', 'event_location_country', 'param1', 'param2', 'param3', 'param4', 'param5', 'param6', 'param7', 'param8', 'param9', 'param10', '/%meta:\w+%/', '/%content:\w+[\:]\w+%/', '/%author_avatar:\w+%/', '/%image_url_\w+%/', '/%image_\w+%/', '/%featured_image_url_\w+%/', '/%featured_image_\w+%/');
 	public $z_index			= 5;
-	public $navtypes		= array('arrows', 'thumbs', 'bullets', 'tabs');
+	public $navtypes		= array('arrows', 'thumbs', 'bullets', 'tabs', 'scrubber');
 	public $blank_slide		= false; //holds a blank slide to remove unneeded values in slides as a compare
 	public $blank_layer		= array(); //holds a blank layer to remove unneeded values in layers as a compare, as more than one type of layer exists, it fills with keys as the type
 	public $current_parent	= false; //holds the parent key for the compare function, which allows for deeper checks to remove/not remove keys depending on where in the tree we are
@@ -58,6 +58,38 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 			'ease_adv_modifier' => array('easeIn' => 'in', 'easeOut' => 'out', 'easeInOut' => 'inOut'),
 			'ease_adv_from' => array('Linear.easeNone', 'SlowMo.ease'),
 			'ease_adv_to' => array('none', 'slow')
+		),
+		/**
+		 * for update to 6.6.10
+		 * it holds all file path that need to be changed inside the sliders
+		 **/
+		'6101' => array(
+			'url_from' => array(
+				'\/public\/assets\/assets\/dummy.png',
+				'\/public\/assets\/assets\/coloredbg-old.png',
+				'\/public\/assets\/assets\/coloredbg.png',
+				'\/public\/assets\/assets\/gridtile_3x3_white.png',
+				'\/public\/assets\/assets\/gridtile_3x3.png',
+				'\/public\/assets\/assets\/gridtile_white.png',
+				'\/public\/assets\/assets\/gridtile.png',
+				'\/public\/assets\/assets\/loader.gif',
+				'\/public\/assets\/assets\/transparent.png',
+				'\/public\/assets\/assets\/svg/',
+				'\/public\/assets\/assets\/sources/'
+			),
+			'url_to' => array(
+				'\/sr6\/assets\/assets\/dummy.png',
+				'\/sr6\/assets\/assets\/coloredbg-old.png',
+				'\/sr6\/assets\/assets\/coloredbg.png',
+				'\/sr6\/assets\/assets\/gridtile_3x3_white.png',
+				'\/sr6\/assets\/assets\/gridtile_3x3.png',
+				'\/sr6\/assets\/assets\/gridtile_white.png',
+				'\/sr6\/assets\/assets\/gridtile.png',
+				'\/sr6\/assets\/assets\/loader.gif',
+				'\/sr6\/assets\/assets\/transparent.png',
+				'\/public\/assets\/svg\/',
+				'\/public\/assets\/sources\/'
+			)
 		)
 	);
 	
@@ -102,7 +134,8 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 	 */
 	public function get_version(){
 		$real_version = get_option('revslider_update_version', 1.0);
-
+		if(in_array($real_version, array('6.10.0', '6.10.1'), true)) $real_version = '6.6.20'; //this were dev versions
+		
 		return $real_version;
 	}
 
@@ -111,7 +144,6 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 	 * @since 5.0
 	 */
 	public function set_version($set_to){
-
 		update_option('revslider_update_version', $set_to);
 	}
 
@@ -135,7 +167,6 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 			$upd->update_css_styles(); //update styles to the new 5.0 way
 			$upd->add_v5_styles(); //add the version 5 styles that are new!
 			$upd->check_settings_table(); //remove the usage of the settings table
-			$upd->move_template_slider(); //move template sliders slides to the post based sliders and delete them/move them if not used
 			$upd->add_animation_settings_to_layer(); //set missing animation fields to the slides layers
 			$upd->add_style_settings_to_layer(); //set missing styling fields to the slides layers
 			$upd->change_settings_on_layers(); //change settings on layers, for example, add the new structure of actions
@@ -215,25 +246,40 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 			$upd->set_version('6.4.10');
 		}
 
-		//add this so that sliders will be updated if under 6.4.11
 		if(version_compare($version, '6.5.12', '<')){
 			//$upd->set_version('6.5.12');
 		}
 
-		//add this so that sliders will be updated if under 6.4.11
 		if(version_compare($version, '6.5.20', '<')){
 			$upd->set_version('6.5.20');
 		}
 		
-		//add this so that sliders will be updated if under 6.5.26
 		if(version_compare($version, '6.5.26', '<')){
 			$upd->set_version('6.5.26');
 		}
-		//add this so that sliders will be updated if under 6.4.11
+
 		if(version_compare($version, '6.6.0', '<')){
 			$upd->set_version('6.6.0');
 		}
-		
+
+		if(version_compare($version, '6.6.10', '<')){
+			//remove templates from the database
+			$upd->remove_template_sliders();
+			$upd->set_version('6.6.10');
+		}
+
+		if(version_compare($version, '6.6.20', '<')){
+			$upd->set_version('6.6.20');
+		}
+
+		if(version_compare($version, '6.6.21', '<')){
+			$upd->set_version('6.6.21');
+		}
+
+		if(version_compare($version, '6.7.24', '<')){
+			$upd->update_post_slide_template_v7();
+			$upd->set_version('6.7.24');
+		}
 	}
 	
 	/**
@@ -242,6 +288,8 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 	 **/
 	public function upgrade_slider_to_latest($slider){
 		$version = $slider->get_setting('version', '1.0.0');
+		if(in_array($version, array('6.10.0', '6.10.1'), true)) $version = '6.6.20'; //this were dev versions
+		
 		if(version_compare($version, '6.0.0', '<')){
 			//$this->update_css_styles(); //set to version 5
 			$this->add_animation_settings_to_layer($slider); //set to version 5
@@ -289,6 +337,22 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 		if(version_compare($version, '6.6.0', '<')){
 			$this->upgrade_slider_to_6_6_0($slider);
 		}
+		
+		if(version_compare($version, '6.6.10', '<')){
+			$this->upgrade_slider_to_6_6_10($slider);
+		}
+		
+		if(version_compare($version, '6.6.20', '<')){
+			$this->upgrade_slider_to_6_6_20($slider);
+		}
+		
+		if(version_compare($version, '6.7.21', '<')){
+			$this->upgrade_slider_to_6_7_21($slider);
+		}
+		
+		if(version_compare($version, '6.7.24', '<')){
+			$this->upgrade_slider_to_6_7_24($slider);
+		}
 	}
 	
 	/**
@@ -309,6 +373,7 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 	 **/
 	public function slider_need_update_checks(){
 		$finished = get_option('revslider_update_revision_current', '1.0.0');
+		if(in_array($finished, array('6.10.0', '6.10.1'), true)) $finished = '6.6.20'; //this were dev versions
 
 		return (version_compare($finished, $this->revision, '<')) ? true : false;
 	}
@@ -324,18 +389,10 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 		$sliders = $slr->get_sliders();
 		if(!empty($sliders)){
 			foreach($sliders as $slider){
-				if(version_compare($this->get_val($slider, array('settings', 'version')), $this->revision, '<')){
-					$this->upgrade_slider_to_latest($slider);
-					return array('status' => 'next');
-				}
-			}
-		}
-		
-		//template sliders
-		$sliders = $slr->get_sliders(true);
-		if(!empty($sliders)){
-			foreach($sliders as $slider){
-				if(version_compare($this->get_val($slider, array('settings', 'version')), $this->revision, '<')){
+				$version = $this->get_val($slider, array('settings', 'version'));
+				if(in_array($version, array('6.10.0', '6.10.1'), true)) $version = '6.6.20'; //this were dev versions
+
+				if(version_compare($version, $this->revision, '<')){
 					$this->upgrade_slider_to_latest($slider);
 					return array('status' => 'next');
 				}
@@ -923,7 +980,203 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 			}
 		}
 	}
+
 	
+	/** check to convert the given Slider to latest versions
+	 * @since: 6.6.10
+	 **/
+	public function upgrade_slider_to_6_6_10($sliders = false){
+		$sr = new RevSliderSlider();
+		
+		$sliders = ($sliders === false) ? $sr->get_sliders() : array($sliders); //do it on all Sliders if false
+		
+		if(!empty($sliders) && is_array($sliders)){
+			foreach($sliders as $slider){
+				if(version_compare($slider->get_setting('version', '1.0.0'), '6.6.10', '<')){
+					$params = $slider->get_params();
+					$params['version'] = '6.6.10';
+					
+					$slider->update_params($params, true);
+					
+					$slider->update_settings(array('version' => '6.6.10'));
+				}
+			}
+		}
+	}
+
+	
+	/** check to convert the given Slider to latest versions
+	 * @since: 6.6.10
+	 **/
+	public function upgrade_slider_to_6_6_20($sliders = false){
+		$sr = new RevSliderSlider();
+		$sl = new RevSliderSlide();
+
+		$sliders = ($sliders === false) ? $sr->get_sliders() : array($sliders); //do it on all Sliders if false
+		
+		if(!empty($sliders) && is_array($sliders)){
+			foreach($sliders as $slider){
+				if(version_compare($slider->get_setting('version', '1.0.0'), '6.6.20', '<')){
+					$params			= $slider->get_params();
+					$json_params	= $_json_params = json_encode($params);
+					$_json_params	= str_replace($this->update['6101']['url_from'], $this->update['6101']['url_to'], $_json_params);
+					
+					if($_json_params !== $json_params){
+						$params = (array)json_decode($_json_params, true);
+						$params['version'] = '6.6.20';
+						$slider->update_params($params, true);
+					}
+				}
+
+				$slides = $slider->get_slides(false, true);
+				$static_id = $sl->get_static_slide_id($slider->get_id());
+				if($static_id !== false){
+					$msl = new RevSliderSlide();
+					if(strpos($static_id, 'static_') === false){
+						$static_id = 'static_'. $static_id;
+					}
+					$msl->init_by_id($static_id);
+					if($msl->get_id() !== ''){
+						$slides = array_merge($slides, array($msl));
+					}
+				}
+
+				if(!empty($slides) && is_array($slides)){
+					foreach($slides as $slide){
+						$settings = $slide->get_settings();
+						//on slides
+						if(version_compare($this->get_val($settings, 'version', '1.0.0'), '6.6.20', '<')){
+							$params			= $slide->get_params();
+							$json_params	= $_json_params = json_encode($params);
+							$_json_params	= str_replace($this->update['6101']['url_from'], $this->update['6101']['url_from'], $_json_params);
+							$params			= ($_json_params !== $json_params) ? (array)json_decode($_json_params, true) : $params;
+							$params['version'] = '6.6.20';
+							
+							$slide->set_params($params);
+							$slide->save_params();
+							
+							$slide->settings['version'] = '6.6.20';
+							$slide->save_settings();
+						}
+						
+						//on layers
+						$layers = $slide->get_layers();
+						
+						if(!empty($layers) && is_array($layers)){
+							$save = false;
+							foreach($layers as $lk => $layer){
+								$version = $this->get_val($layer, 'version', '1.0.0');
+								
+								if(version_compare($version, '6.6.20', '<')){
+									$save		 = true;
+									$json_layer	 = $_json_layer = json_encode($layer);
+									$_json_layer = str_replace($this->update['6101']['url_from'], $this->update['6101']['url_from'], $_json_layer);
+									if($_json_layer !== $json_layer){
+										$layers[$lk] = (array)json_decode($_json_layer, true);
+									}
+									$layers[$lk]['version'] = '6.6.20';
+								}
+							}
+							
+							if($save){
+								$slide->set_layers_raw($layers);
+								$slide->save_layers();
+							}
+						}
+					}
+				}
+
+				$slider->update_settings(array('version' => '6.6.20'));
+			}
+		}
+	}
+
+	/**
+	 * change svg path of all layers from the upload folder if 5.2.5.3+ was installed
+	 * @since 5.2.5.5
+	 */
+	public function upgrade_slider_to_6_7_21($sliders = false){
+		$sr = new RevSliderSlider();
+		$sl = new RevSliderSlide();
+		$upload_dir = wp_upload_dir();
+		$path = $this->remove_http(RS_PLUGIN_URL.'public/assets/assets/svg/');
+		$new_path = $this->remove_http(RS_PLUGIN_URL .'public/assets/svg/');
+
+		if($sliders === false){
+			//do it on all Sliders
+			$sliders = $sr->get_sliders();
+		}else{
+			$sliders = array($sliders);
+		}
+
+		if(!empty($sliders) && is_array($sliders)){
+			foreach($sliders as $slider){
+				$slides = $slider->get_slides(false, true);
+
+				$staticID = $sl->get_static_slide_id($slider->get_id());
+				if($staticID !== false){
+					$msl = new RevSliderSlide();
+					if(strpos($staticID, 'static_') === false){
+						$staticID = 'static_'. $staticID; //$slider->get_id();
+					}
+					$msl->init_by_id($staticID);
+					if($msl->get_id() !== ''){
+						$slides = array_merge($slides, array($msl));
+					}
+				}
+
+				if(!empty($slides) && is_array($slides)){
+					foreach($slides as $slide){
+						$layers = $slide->get_layers();
+						if(!empty($layers) && is_array($layers)){
+							foreach($layers as $lk => $layer){
+								if(isset($layer['type']) && $layer['type'] == 'svg'){
+									if(isset($layer['svg']) && isset($layer['svg']['source'])){
+										//change newer path to older path
+										if(strpos($layers[$lk]['svg']['source'], $path) !== false){
+											$layers[$lk]['svg']['source'] = str_replace($path, $new_path, $layers[$lk]['svg']['source']);
+										}
+									}
+								}
+								
+								$layers[$lk]['version'] = '6.6.21';
+							}
+							
+							$slide->set_layers_raw($layers);
+							$slide->save_layers();
+						}
+
+						$slide->settings['version'] = '6.6.21';
+						$slide->save_settings();
+					}
+				}
+				
+				$slider->update_settings(array('version' => '6.6.21'));
+			}
+		}
+	}
+	
+	/** check to convert the given Slider to latest versions
+	 * @since: 6.6.10
+	 **/
+	public function upgrade_slider_to_6_7_24($sliders = false){
+		$sr = new RevSliderSlider();
+		
+		$sliders = ($sliders === false) ? $sr->get_sliders() : array($sliders); //do it on all Sliders if false
+		
+		if(!empty($sliders) && is_array($sliders)){
+			foreach($sliders as $slider){
+				if(version_compare($slider->get_setting('version', '1.0.0'), '6.7.24', '<')){
+					$params = $slider->get_params();
+					$params['version'] = '6.7.24';
+					
+					$slider->update_params($params, true);
+					
+					$slider->update_settings(array('version' => '6.7.24'));
+				}
+			}
+		}
+	}
 	
 	/**
 	 * translates removed settings from Slider Settings from version <= 4.x to 5.0
@@ -1160,6 +1413,7 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 			}
 
 			//only do this to styles prior 5.0
+			if(empty($attr['settings'])) $attr['settings'] = ''; //PHP 8.3 fix for null
 			$settings = json_decode($attr['settings'], true);
 			if(!empty($settings) && isset($settings['translated'])){
 				if(version_compare($settings['translated'], 5.0, '>=')){
@@ -1168,6 +1422,8 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 
 			}
 
+			if(empty($attr['params'])) $attr['params'] = ''; //PHP 8.3 fix for null
+			if(empty($attr['hover'])) $attr['hover'] = ''; //PHP 8.3 fix for null
 			$idle = json_decode($attr['params'], true);
 			$hover = json_decode($attr['hover'], true);
 
@@ -1240,85 +1496,6 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 				update_option('revslider-global-settings', $result['general']);
 			}
 		}
-	}
-
-	/**
-	 * move the template sliders and add the slides to corresponding post based slider or simply move them and change them to post based slider if no slider is using them
-	 * @since 5.0
-	 */
-	public function move_template_slider(){
-		global $wpdb;
-
-		$used = array(); //will store all template IDs that are used by post based Sliders, these can be deleted after the progress.
-		$sr = new RevSliderSlider();
-		$sl = new RevSliderSlide();
-		$sliders = $sr->get_sliders(false);
-		$temp_sliders = $sr->get_sliders(true);
-
-		if(empty($temp_sliders) || !is_array($temp_sliders)){
-			return true;
-		}
-		//as we do not have any template sliders, we do not need to run further here
-
-		if(!empty($sliders) && is_array($sliders)){
-			foreach($sliders as $slider){
-				if($slider->get_param('source_type', 'gallery') !== 'posts'){
-					continue;
-				}
-				//only check Slider with type of posts
-
-				$slider_id = $slider->get_id();
-				$template_id = $slider->get_param('slider_template_id', 0);
-
-				if($template_id > 0){
-					//initialize slider to see if it exists. Then copy over the Template Sliders Slides to the Post Based Slider
-					foreach($temp_sliders as $t_slider){
-						if($t_slider->get_id() === $template_id){
-							//copy over the slides
-							//get all slides from template, then copy to Slider
-
-							$slides = $t_slider->get_slides(false, true);
-
-							if(!empty($slides) && is_array($slides)){
-								foreach($slides as $slide){
-									$slide_id = $slide->get_id();
-									$slider->copy_slide_to_slider(array('slider_id' => $slider_id, 'slide_id' => $slide_id));
-								}
-							}
-
-							$static_id = $sl->get_static_slide_id($template_id);
-							if($static_id !== false){
-								$record = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES . " WHERE id = %d", $static_id), ARRAY_A);
-								unset($record['id']);
-								$record['slider_id'] = $slider_id;
-
-								$wpdb->insert($wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES, $record);
-							}
-
-							$used[$template_id] = $t_slider;
-							break;
-						}
-					}
-				}
-
-			}
-		}
-
-		if(!empty($used)){
-			foreach($used as $tid => $t_slider){
-				$t_slider->delete_slider();
-			}
-		}
-
-		//translate all other template Sliders to normal sliders and set them to post based
-		$temp_sliders = $sr->get_sliders(true);
-
-		if(!empty($temp_sliders) && is_array($temp_sliders)){
-			foreach($temp_sliders as $slider){
-				$slider->update_params(array('template' => 'false', 'source_type' => 'posts'));
-			}
-		}
-
 	}
 
 	/**
@@ -6828,7 +7005,67 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 		
 		return $loop;
 	}
+
+	/**
+	 * remove all sliders that have type => template
+	 **/
+	public function remove_template_sliders(){
+		global $wpdb;
+		$slider_data = $wpdb->get_results("SELECT id FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDER ." WHERE `type` = 'template' ORDER BY id ASC", ARRAY_A);
+		if(empty($slider_data)) return true;
+		
+		$ids = array();
+		foreach($slider_data as $data){
+			$ids[] = $data['id'];
+		}
+
+		$wpdb->query("DELETE FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDER ." WHERE `type` = 'template'");
+		$wpdb->query("DELETE FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDES ." WHERE `slider_id` IN ('". implode("', '", $ids) ."')");
+		$wpdb->query("DELETE FROM ". $wpdb->prefix . RevSliderFront::TABLE_STATIC_SLIDES ." WHERE `slider_id` IN ('". implode("', '", $ids) ."')");
+	}
+
+	/**
+	 * get in all posts the slide_template variable and migrate to slide_template_v7
+	 * $slide_id needs to be a v6 slide id
+	 **/
+	public function update_post_slide_template_v7($slide_id = false){
+		global $wpdb;
+
+		if(!isset($_GET['pk'])) return true;
+
+		if($slide_id !== false){
+			$results = $wpdb->get_results($wpdb->prepare("SELECT post_id, meta_value FROM ".$wpdb->postmeta." WHERE meta_key = 'slide_template' AND meta_value = %s", $slide_id), ARRAY_A);
+		}else{
+			$results = $wpdb->get_results("SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = 'slide_template'", ARRAY_A);
+		}
+		
+		foreach($results ?? [] as $row){
+			$slide_template_v7 = $this->get_v7_slide_map($row['meta_value']);
+			if($slide_template_v7 !== false){
+				update_post_meta($row['post_id'], 'slide_template_v7', $slide_template_v7);
+			}else{
+				delete_post_meta($row['post_id'], 'slide_template_v7');
+			}
+		}
+	}
 	
+	/**
+	 * check all folders, and move them to the v7 tables once
+	 */
+	public function move_folder(){
+		global $wpdb;
+		$folders = $wpdb->get_results("SELECT * FROM ". $wpdb->prefix . RevSliderFront::TABLE_SLIDER ." WHERE `type` = 'folder' ORDER BY id ASC", ARRAY_A);
+		foreach($folders ?? [] as $folder){
+			$add = [
+				'id'	=> $this->get_val($folder, 'id'),
+				'title'	=> $this->get_val($folder, 'title'),
+				'alias'	=> $this->get_val($folder, 'alias'),
+				'settings'	=> $this->get_val($folder, 'settings'),
+				'type'	=> $this->get_val($folder, 'type'),
+			];
+			$wpdb->insert($wpdb->prefix . RevSliderFront::TABLE_SLIDER . "7", $add);
+		}
+	}
 	
 	/**
 	 * compare and remove unneeded defaults
@@ -6843,17 +7080,10 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 					/**
 					 * Little hacks to modify if/if not things need to be deleted
 					 **/
-					if($key === 'frameOrder' || $key === 'alias' || $key === 'intelligentInherit'){ //with in_array we receive unexpected results
-						continue;
-					}
-					if($this->upgrade_layer_type === 'shape'){
-						if($this->current_parent === 'idle'){
-							if($key === 'backgroundColor'){ //leave it as it is
-								continue;
-							}
-						}
-						
-					}
+					if($key === 'frameOrder' || $key === 'alias' || $key === 'intelligentInherit') continue; //with in_array we receive unexpected results
+
+					if($this->upgrade_layer_type === 'shape' && $this->current_parent === 'idle' && $key === 'backgroundColor') continue; //leave it as it is
+
 					/**
 					 * END OF
 					 * Little hacks to modify if/if not things need to be deleted
@@ -6870,23 +7100,15 @@ class RevSliderPluginUpdate extends RevSliderFunctions {
 						}
 					}elseif($this->get_val($emp, $key, '######') !== '######'){
 						if(in_array($key, array('v', 'borderWidth'), true) && is_array($o[$key])){
-							if(json_encode($emp[$key]) == json_encode($o[$key])){
-								unset($o[$key]);
-							}
+							if(json_encode($emp[$key]) == json_encode($o[$key])) unset($o[$key]);
 						}else{
-							if($key === 'idle'){ //we check for idle, as we want to leave backgroundColor within idle 
-								$this->current_parent = $key;
-							}
+							if($key === 'idle') $this->current_parent = $key; //we check for idle, as we want to leave backgroundColor within idle 
 							$o[$key] = $this->_compare($emp[$key], $o[$key]); //, $d
-							if($key === 'idle'){ //we check for idle, as we want to leave backgroundColor within idle and we can set it only back to false if we are out of the idle tree
-								$this->current_parent = false;
-							}
+							if($key === 'idle') $this->current_parent = false; //we check for idle, as we want to leave backgroundColor within idle and we can set it only back to false if we are out of the idle tree
 						}
 						
 						//CHECK IF OBJECT IS EMPTY ?
-						if($this->isEmptyObject($this->get_val($o, $key, ''))){
-							unset($o[$key]);
-						}
+						if($this->isEmptyObject($this->get_val($o, $key, ''))) unset($o[$key]);
 					}
 				}
 			}

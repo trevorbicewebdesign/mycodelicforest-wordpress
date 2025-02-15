@@ -33,7 +33,7 @@ $page_bg = ($page_bg == '' || $page_bg == 'transparent') ? 'transparent' : $page
 			while(have_posts()) : the_post();
 
 				// Include the page content template.
-				if(!isset($revslider_is_preview_mode) || $revslider_is_preview_mode === false){
+				if(!isset($SR_GLOBALS['preview_mode']) || $SR_GLOBALS['preview_mode'] === false){
 					the_content();
 				}else{
 					echo do_shortcode(get_the_content());

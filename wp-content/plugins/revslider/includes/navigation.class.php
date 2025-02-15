@@ -3,7 +3,7 @@
  * @package   Revolution Slider
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.sliderrevolution.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -16,10 +16,7 @@ class RevSliderNavigation extends RevSliderFunctions {
 
 		global $wpdb;
 
-		$row = $wpdb->get_row($wpdb->prepare("SELECT `id`, `handle`, `type`, `css`, `settings` FROM ".$wpdb->prefix.RevSliderFront::TABLE_NAVIGATIONS." WHERE `id` = %d", $nav_id), ARRAY_A);
-
-		return $row;
-
+		return $wpdb->get_row($wpdb->prepare("SELECT `id`, `handle`, `type`, `css`, `settings` FROM ".$wpdb->prefix.RevSliderFront::TABLE_NAVIGATIONS." WHERE `id` = %d", $nav_id), ARRAY_A);
 	}
 
 
@@ -30,9 +27,7 @@ class RevSliderNavigation extends RevSliderFunctions {
 	public function get_all_navigations_short(){
 		global $wpdb;
 
-		$navigations = $wpdb->get_results("SELECT `id`, `handle`, `name` FROM ".$wpdb->prefix.RevSliderFront::TABLE_NAVIGATIONS, ARRAY_A);
-
-		return $navigations;
+		return $wpdb->get_results("SELECT `id`, `handle`, `name` FROM ".$wpdb->prefix.RevSliderFront::TABLE_NAVIGATIONS, ARRAY_A);
 	}
 
 
@@ -43,13 +38,14 @@ class RevSliderNavigation extends RevSliderFunctions {
 			'arrows'	=> array(),
 			'thumbs'	=> array(),
 			'bullets'	=> array(),
-			'tabs'		=> array()
+			'tabs'		=> array(),
+			'scrubber'	=> array()
 		);
 
-		if(!empty($navs)){
-			foreach($navs as $nav){
-				$real_navs[$this->get_val($nav, 'type')][$this->get_val($nav, 'id')] = $nav;
-			}
+		if(empty($navs)) return $real_navs;
+	
+		foreach($navs as $nav){
+			$real_navs[$this->get_val($nav, 'type')][$this->get_val($nav, 'id')] = $nav;
 		}
 
 		return $real_navs;
@@ -78,7 +74,7 @@ class RevSliderNavigation extends RevSliderFunctions {
 				$navigations[$key]['css']		= ($old === true) ? $navigations[$key]['css'] : stripslashes($navigations[$key]['css']);
 				$navigations[$key]['markup']	= ($old === true) ? $navigations[$key]['markup'] : stripslashes($navigations[$key]['markup']);
 
-				if(isset($navigations[$key]['settings'])){
+				if(isset($navigations[$key]['settings']) && !empty($navigations[$key]['settings'])){
 					$navigations[$key]['settings'] = RevSliderFunctions::stripslashes_deep(json_decode($navigations[$key]['settings'], true));
 					if(!is_array($navigations[$key]['settings'])){
 						$navigations[$key]['settings'] = json_decode($navigations[$key]['settings'], true);
@@ -235,12 +231,8 @@ class RevSliderNavigation extends RevSliderFunctions {
 		global $wpdb;
 
 		if(!isset($nav_id) || intval($nav_id) == 0) return __('Invalid ID', 'revslider');
-
-		$response = $wpdb->delete($wpdb->prefix.RevSliderFront::TABLE_NAVIGATIONS, array('id' => $nav_id));
-		if($response === false) return __('Navigation could not be deleted', 'revslider');
-
-		return true;
-
+		
+		return ($wpdb->delete($wpdb->prefix.RevSliderFront::TABLE_NAVIGATIONS, array('id' => $nav_id)) === false) ? __('Navigation could not be deleted', 'revslider') : true;
 	}
 
 
@@ -317,7 +309,7 @@ class RevSliderNavigation extends RevSliderFunctions {
 		$type	= $this->get_val($def_navi, 'type');
 		$handle	= $this->get_val($def_navi, 'handle');
 
-		if(!in_array($type, array('arrows', 'bullets', 'thumbs', 'tabs'))) return $css;
+		if(!in_array($type, array('arrows', 'bullets', 'thumbs', 'tabs', 'scrubber'))) return $css;
 
 		$placeholders = $this->get_val($def_navi, 'placeholders', array());
 
@@ -573,7 +565,7 @@ class RevSliderNavigation extends RevSliderFunctions {
 					if(!empty($placeholders)){
 						foreach($placeholders as $k => $pl){
 							if(isset($pl['data'])){
-								$placeholders[$k]['data'] = addslashes($pl['data']);
+								$placeholders[$k]['data'] = (!empty($pl['data'])) ? addslashes($pl['data']) : $pl['data'];
 							}
 						}
 					}

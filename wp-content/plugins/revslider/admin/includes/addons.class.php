@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -11,36 +11,41 @@ class RevSliderAddons extends RevSliderFunctions { //before: Rev_addon_Admin
 	//private $addon_version_required = '2.0.0'; //this holds the globally needed addon version for the current RS version
 	
 	private $addon_version_required = array(
-		'revslider-404-addon' => '2.0.0',
-		'revslider-backup-addon' => '2.0.0',
-		'revslider-beforeafter-addon' => '3.0.0',
-		'revslider-bubblemorph-addon' => '3.0.0',
-		'revslider-charts-addon' => '3.0.0',
-		'revslider-duotonefilters-addon' => '3.0.0',
-		'revslider-explodinglayers-addon' => '3.0.0',
-		'revslider-featured-addon' => '2.0.0',
-		'revslider-filmstrip-addon' => '3.0.0',
-		'revslider-gallery-addon' => '2.0.0',
-		'revslider-liquideffect-addon' => '3.0.0',
-		'revslider-login-addon' => '2.0.0',
-		'revslider-lottie-addon' => '3.0.0',
-		'revslider-maintenance-addon' => '2.0.0',
-		'revslider-mousetrap-addon' => '3.0.0',
-		'revslider-paintbrush-addon' => '3.0.0',
-		'revslider-panorama-addon' => '3.0.0',
-		'revslider-particles-addon' => '3.0.0',
-		'revslider-polyfold-addon' => '3.0.0',
-		'revslider-prevnext-posts-addon' => '2.0.0',
-		'revslider-rel-posts-addon' => '2.0.0',
-		'revslider-refresh-addon' => '3.0.0',
-		'revslider-revealer-addon' => '3.0.0',
-		'revslider-scrollvideo-addon' => '3.0.0',
-		'revslider-sharing-addon' => '3.0.0',
-		'revslider-slicey-addon' => '3.0.0',
-		'revslider-snow-addon' => '3.0.0',
-		'revslider-typewriter-addon' => '3.0.0',
-		'revslider-weather-addon' => '2.0.0',
-		'revslider-whiteboard-addon' => '3.0.0',
+		'revslider-404-addon'				=> '2.0.0',
+		'revslider-backup-addon'			=> '2.0.0',
+		'revslider-featured-addon'			=> '2.0.0',
+		'revslider-gallery-addon'			=> '2.0.0',
+		'revslider-login-addon'				=> '2.0.0',
+		'revslider-prevnext-posts-addon'	=> '2.0.0',
+		'revslider-rel-posts-addon'			=> '2.0.0',
+		
+		'revslider-beforeafter-addon'		=> '6.7.0',
+		'revslider-bubblemorph-addon'		=> '6.7.0',
+		'revslider-charts-addon'			=> '6.7.0',
+		'revslider-duotonefilters-addon'	=> '6.7.0',
+		'revslider-explodinglayers-addon'	=> '6.7.0',
+		'revslider-filmstrip-addon'			=> '6.7.0',
+		'revslider-fluiddynamics-addon'		=> '6.7.0',
+		'revslider-liquideffect-addon'		=> '6.7.0',
+		'revslider-lottie-addon'			=> '6.7.0',
+		'revslider-maintenance-addon'		=> '6.7.0',
+		'revslider-mousetrap-addon'			=> '6.7.0',
+		'revslider-paintbrush-addon'		=> '6.7.0',
+		'revslider-panorama-addon'			=> '6.7.0',
+		'revslider-particles-addon'			=> '6.7.0',
+		'revslider-particlewave-addon'		=> '6.7.0',
+		'revslider-polyfold-addon'			=> '6.7.0',
+		'revslider-refresh-addon'			=> '6.7.0',
+		'revslider-revealer-addon'			=> '6.7.0',
+		'revslider-scrollvideo-addon'		=> '6.7.0',
+		'revslider-sharing-addon'			=> '6.7.0',
+		'revslider-slicey-addon'			=> '6.7.0',
+		'revslider-snow-addon'				=> '6.7.0',
+		'revslider-thecluster-addon'		=> '6.7.0',
+		'revslider-transitionpack-addon'	=> '6.7.0',
+		'revslider-typewriter-addon'		=> '6.7.0',
+		'revslider-weather-addon'			=> '6.7.0',
+		'revslider-whiteboard-addon'		=> '6.7.0',
 	);
 	
 	public function __construct(){

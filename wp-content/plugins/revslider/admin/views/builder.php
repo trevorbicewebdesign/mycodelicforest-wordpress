@@ -2,26 +2,21 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
 
 $rs_data = new RevSliderData();
-$rs_f = RevSliderGlobals::instance()->get('RevSliderFunctions');
-$slider = new RevSliderSlider();
-$slide = new RevSliderSlide();
-$rs_nav = new RevSliderNavigation();
-$wpml = new RevSliderWpml();
+$rs_f	 = RevSliderGlobals::instance()->get('RevSliderFunctions');
+$slider	 = new RevSliderSlider();
+$slide	 = new RevSliderSlide();
+$rs_nav	 = new RevSliderNavigation();
+$wpml	 = new RevSliderWpml();
 $rs_favorite = RevSliderGlobals::instance()->get('RevSliderFavorite');
 
-$slide_id = RevSliderFunctions::esc_attr_deep($rs_f->get_get_var('id'));
+$slide_id	 = RevSliderFunctions::esc_attr_deep($rs_f->get_get_var('id'));
 $slide_alias = RevSliderFunctions::esc_attr_deep($rs_f->get_get_var('alias'));
-
-//GoogleFontFamilies
-$font_familys = $rs_f->get_font_familys();
-
-$json_font_familys = $rs_f->json_encode_client_side($font_familys);
 
 //get Navigation Styles 
 $arr_navigations = $rs_nav->get_all_navigations_builder();
@@ -239,7 +234,7 @@ require_once(RS_PLUGIN_PATH . 'admin/views/modals-copyright.php');
 								<div id="screen_selecotr_ss_t" class="screen_selector ss_t callEvent" data-evt="screenSelectorChanged"  data-screenicon="tablet_mac" data-triggerinp="#screenselector" data-triggerinpval="t"><i class="material-icons">tablet_mac</i><?php _e('Tablet', 'revslider');?><input type="checkbox" id="sr_custom_t_opt" class="sliderinput easyinit" data-evt="device_area_availibity" data-r="size.custom.t"></div>
 								<div id="screen_selecotr_ss_m" class="screen_selector ss_m no_rm callEvent" data-evt="screenSelectorChanged"  data-screenicon="phone_android" data-triggerinp="#screenselector" data-triggerinpval="m"><i class="material-icons">phone_android</i><?php _e('Mobile', 'revslider');?><input type="checkbox" id="sr_custom_m_opt" class="sliderinput easyinit" data-evt="device_area_availibity" data-r="size.custom.m"></div>
 							</div>
-						</div>
+						</div><!--
 					--></div>
 				</div><!-- END OF MAIN HORIZONTAL TOOLBAR -->
 				<div id="rev_builder_wrapper">
@@ -408,8 +403,8 @@ if(isset($animationsRaw['out'])){ ?>
 
 
 		//Init Font Types
-		<?php if (!empty($json_font_familys)) {?>
-		RVS.F.initFontTypes(<?php echo $json_font_familys; ?>);
+		<?php if (!empty($rs_font_familys)) {?>
+		RVS.F.initFontTypes(<?php echo $rsaf->json_encode_client_side($rs_font_familys); ?>);
 		<?php }?>
 
 		if (!RVS.V.ignoreAutoStart) RVS.F.loadSlider({id:"<?php echo $slide_id; ?>", alias: "<?php echo $slide_alias; ?>"});

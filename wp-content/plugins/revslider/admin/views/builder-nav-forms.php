@@ -2,7 +2,7 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2022 ThemePunch
+ * @copyright 2024 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
@@ -20,11 +20,12 @@ if(!defined('ABSPATH')) exit();
 			--><div id="gst_nav_3" data-select="#gst_nav_3" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_bullets"]'><i class="material-icons">more_horiz</i><span class="gso_title"><?php _e('Bullets', 'revslider');?></span></div><!--
 			--><div id="gst_nav_4" data-select="#gst_nav_4" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_tabs"]'><i class="material-icons">view_column</i><span class="gso_title"><?php _e('Tabs', 'revslider');?></span></div><!--
 			--><div id="gst_nav_5" data-select="#gst_nav_5" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_thumbs"]'><i class="material-icons">filter_frames</i><span class="gso_title"><?php _e('Thumbs', 'revslider');?></span></div><!--
-			--><div id="gst_nav_6" data-select="#gst_nav_6" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_pprevima"]'><i class="material-icons">image</i><span class="gso_title"><?php _e('Prev Size', 'revslider');?></span></div><!--
-			--><div id="gst_nav_7" data-select="#gst_nav_7" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_touch"]'><i class="material-icons">pan_tool</i><span class="gso_title"><?php _e('Touch', 'revslider');?></span></div><!--
-			--><div id="gst_nav_8" data-select="#gst_nav_8" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_misc"]'><i class="material-icons">keyboard</i><span class="gso_title"><?php _e('Keyboard', 'revslider');?></span></div><!--
-			--><div id="gst_nav_9" data-select="#gst_nav_9" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_mousescroll"]'><i class="material-icons">mouse</i><span class="gso_title"><?php _e('Mouse', 'revslider');?></span></div><!--
-			--><div id="gst_nav_10" class="callEvent general_submodule_trigger openmodaltrigger" data-evt="openNavigationEditor"><i class="material-icons">games</i><span class="gso_title"><?php _e('Nav Editor', 'revslider');?></span></div>
+			--><div id="gst_nav_6" data-select="#gst_nav_6" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_scrubber"]'><i class="material-icons">settings_ethernet</i><span class="gso_title"><?php _e('Scrubber', 'revslider');?></span></div><!--
+			--><div id="gst_nav_7" data-select="#gst_nav_7" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_pprevima"]'><i class="material-icons">image</i><span class="gso_title"><?php _e('Prev Size', 'revslider');?></span></div><!--
+			--><div id="gst_nav_8" data-select="#gst_nav_8" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_touch"]'><i class="material-icons">pan_tool</i><span class="gso_title"><?php _e('Touch', 'revslider');?></span></div><!--
+			--><div id="gst_nav_9" data-select="#gst_nav_9" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_misc"]'><i class="material-icons">keyboard</i><span class="gso_title"><?php _e('Keyboard', 'revslider');?></span></div><!--
+			--><div id="gst_nav_10" data-select="#gst_nav_10" data-unselect=".nav_submodule_trigger" class="nav_submodule_trigger opensettingstrigger" data-collapse="true" data-forms='["#form_nav_mousescroll"]'><i class="material-icons">mouse</i><span class="gso_title"><?php _e('Mouse', 'revslider');?></span></div><!--
+			--><div id="gst_nav_11" class="callEvent general_submodule_trigger openmodaltrigger" data-evt="openNavigationEditor"><i class="material-icons">games</i><span class="gso_title"><?php _e('Nav Editor', 'revslider');?></span></div>
 
 		</div>
 	</div>
@@ -838,8 +839,234 @@ if(!defined('ABSPATH')) exit();
 
 		</div><!-- END OF THUMB SETTINGS -->
 
+		<!--  SCRUBBER SETTING -->
+		<div id="form_nav_scrubber" data-select="#gst_nav_6" data-unselect=".nav_submodule_trigger" class="formcontainer form_menu_inside carouselenable standardenable herodisable collapsed">
+			<div class="collectortabwrap"><div id="collectortab_form_nav_scrubber" class="collectortab form_menu_inside" data-forms='["#form_nav_scrubber"]'><i class="material-icons">filter_frames</i><?php _e('Scrubber', 'revslider');?></div></div>
+
+			<ul class="form_menu_level_1">
+				<li data-target="#form_nav_scrubber_mainstyle" class="selected form_menu_level_1_li" id="sr_na_scrubber_0"><?php _e('Main Style', 'revslider');?></li>
+				<li data-target="#form_nav_scrubber_visi" class="selected form_menu_level_1_li" id="sr_na_scrubber_1"><?php _e('Visibility', 'revslider');?></li>
+				<li data-target="#form_nav_scrubber_posi" class="selected form_menu_level_1_li" id="sr_na_scrubber_11"><?php _e('Position', 'revslider');?></li>
+			</ul>
+
+			<div id="form_nav_scrubber_mainstyle" class="form_inner form_menu_inside open">
+				<div class="form_inner_header"><i class="material-icons">opacity</i><?php _e('Scrubber Type', 'revslider');?></div>
+				<div class="on_off_navig_wrap"><input type="checkbox"  id="sr_usenavscrubber" class="sliderinput easyinit nav-enable" data-evt="sliderNavUpdate" data-evtparam="scrubber" data-showhide="#scrubber_style_collapsable, #form_nav_scrubber_posi,#form_nav_scrubber_arrow, #form_nav_scrubber_handle, #form_nav_scrubber_size,#form_nav_scrubber_offsets,#form_nav_scrubber_wrap,#form_nav_scrubber_visi,#form_nav_scrubber_style,#form_slide_nav_scrubber" data-showhidedep="true"  data-r="nav.scrubber.set" /></div>
+
+				<div id="scrubber_style_collapsable" class="collapsable">
+					<label_a><?php _e('Scrubber Style', 'revslider');?></label_a><select  id="sr_scrubber_style"  data-evt="sliderNavUpdate" data-evtparam="scrubber" data-r="nav.scrubber.style" class="sliderinput tos2 nosearchbox easyinit sr_nav_style_tos">
+						<option value=""><?php _e('No Style', 'revslider');?></option>
+					</select>
+					<row class="directrow">
+						<longoption><label_a><?php _e('Slide Change on Release', 'revslider');?></label_a><input type="checkbox"  id="nav_scrubber_changeOnRelease" class="sliderinput easyinit" data-r="nav.scrubber.changeOnRelease" data-showhide="#nav_scrubber_changOnRelease" data-showhidedep="false"/></longoption>
+					</row>
+				</div>
+			</div>
+
+			<div id="form_nav_scrubber_posi" class="form_inner form_menu_inside open">
+				<div class="form_inner_header"><i class="material-icons">open_with</i><?php _e('Position', 'revslider');?></div>
+
+				<div class="collapsable">
+					<label_a><?php _e('Orientation', 'revslider');?></label_a>
+					<div class="radiooption">
+						<input class="sliderinput easyinit" type="radio" name="sr_scrubberdirection" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-r="nav.scrubber.direction" value="horizontal"><label_sub><?php _e('Horizontal', 'revslider');?></label_sub><span class="linebreak"></span>
+						<input class="sliderinput easyinit" type="radio" name="sr_scrubberdirection" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-r="nav.scrubber.direction" value="vertical"><label_sub><?php _e('Vertical', 'revslider');?></label_sub>
+					</div>
+					<div class="div10"></div>
+
+					<!-- scrubber POSITION -->
+					<label_a><?php _e('Aligned by', 'revslider');?></label_a>
+					<div class="radiooption">
+						<input class="sliderinput easyinit" type="radio" name="sr_scrubberalign" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-r="nav.scrubber.align" value="slider"><label_sub><?php _e('Slider', 'revslider');?></label_sub><span class="linebreak"></span>
+						<input class="sliderinput easyinit" type="radio" name="sr_scrubberalign" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-r="nav.scrubber.align" value="grid"><label_sub><?php _e('Content', 'revslider');?></label_sub>
+					</div>
+					<div class="div10"></div>
+
+
+					<label_a><?php _e('Inner / Outer', 'revslider');?></label_a>
+					<div class="radiooption">
+						<input class="sliderinput easyinit" type="radio" name="sr_scrubberinnerouter" data-evt="navinnerouter" data-evtparam="scrubber" data-r="nav.scrubber.innerOuter" value="inner"><label_sub><?php _e('Inner', 'revslider');?></label_sub><span class="linebreak"></span>
+						<input class="sliderinput easyinit" type="radio" name="sr_scrubberinnerouter" data-evt="navinnerouter" data-evtparam="scrubber" data-r="nav.scrubber.innerOuter" value="outer-vertical"><label_sub><?php _e('Outer Vertical', 'revslider');?></label_sub><span class="linebreak"></span>
+						<input class="sliderinput easyinit" type="radio" name="sr_scrubberinnerouter" data-evt="navinnerouter" data-evtparam="scrubber" data-r="nav.scrubber.innerOuter" value="outer-horizontal"><label_sub><?php _e('Outer Horizontal', 'revslider');?></label_sub>
+					</div>
+
+					<div class="div20"></div>
+					<select style="display:none" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" id="sr_scrubberhor" data-unselect=".scrubberpos_selector" data-select="#scrubberpos_selector_*val*-*RVAL*" data-rval="settings.nav.scrubber.vertical" class="sliderinput easyinit" data-r="nav.scrubber.horizontal" data-triggerinp="#nav_scrubber_offsetx" data-triggerinpval="0"><option value="left"><?php _e('Left', 'revslider');?></option><option value="center"><?php _e('Center', 'revslider');?></option><option value="right"><?php _e('Right', 'revslider');?></option></select>
+					<select style="display:none" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" id="sr_scrubberver" data-unselect=".scrubberpos_selector" data-select="#scrubberpos_selector_*RVAL*-*val*" data-rval="settings.nav.scrubber.horizontal" class="sliderinput easyinit" data-r="nav.scrubber.vertical" data-triggerinp="#nav_scrubber_offsety" data-triggerinpval="0"><option value="top"><?php _e('Top', 'revslider');?></option><option value="center"><?php _e('Center', 'revslider');?></option><option value="bottom"><?php _e('Bottom', 'revslider');?></option></select>
+					<row class="direktrow">
+						<onelong>
+							<label_a><?php _e('Alignment', 'revslider');?></label_a>
+							<div class="bg_alignselector_wrap">
+								<div class="bg_align_row">
+									<div data-type="scrubber" class="navaligntrigger scrubberpos_selector bg_alignselector" data-select="#sr_scrubberhor,#sr_scrubberver" data-val="left,top" id="scrubberpos_selector_left-top"></div>
+									<div data-type="scrubber" class="navaligntrigger scrubberpos_selector bg_alignselector" data-select="#sr_scrubberhor,#sr_scrubberver" data-val="center,top" id="scrubberpos_selector_center-top"></div>
+									<div data-type="scrubber" class="navaligntrigger scrubberpos_selector bg_alignselector" data-select="#sr_scrubberhor,#sr_scrubberver" data-val="right,top" id="scrubberpos_selector_right-top"></div>
+								</div>
+								<div class="bg_align_row">
+									<div data-type="scrubber" class="navaligntrigger scrubberpos_selector bg_alignselector" data-select="#sr_scrubberhor,#sr_scrubberver" data-val="left,center" id="scrubberpos_selector_left-center"></div>
+									<div data-type="scrubber" class="navaligntrigger scrubberpos_selector bg_alignselector" data-select="#sr_scrubberhor,#sr_scrubberver" data-val="center,center" id="scrubberpos_selector_center-center"></div>
+									<div data-type="scrubber" class="navaligntrigger scrubberpos_selector bg_alignselector" data-select="#sr_scrubberhor,#sr_scrubberver" data-val="right,center" id="scrubberpos_selector_right-center"></div>
+								</div>
+								<div class="bg_align_row">
+									<div data-type="scrubber" class="navaligntrigger scrubberpos_selector bg_alignselector" data-select="#sr_scrubberhor,#sr_scrubberver" data-val="left,bottom" id="scrubberpos_selector_left-bottom"></div>
+									<div data-type="scrubber" class="navaligntrigger scrubberpos_selector bg_alignselector" data-select="#sr_scrubberhor,#sr_scrubberver" data-val="center,bottom" id="scrubberpos_selector_center-bottom"></div>
+									<div data-type="scrubber" class="navaligntrigger scrubberpos_selector bg_alignselector" data-select="#sr_scrubberhor,#sr_scrubberver" data-val="right,bottom" id="scrubberpos_selector_right-bottom"></div>
+								</div>
+							</div>
+						</onelong>
+						<oneshort>
+							<label_icon class="ui_x"></label_icon><input class="sliderinput valueduekeyboard  easyinit" data-r="nav.scrubber.offsetX" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-min="-1200" data-max="1200" type="text" id="nav_scrubber_offsetx">
+							<label_icon class="ui_y"></label_icon><input class="sliderinput valueduekeyboard  easyinit" data-r="nav.scrubber.offsetY" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-min="-1200" data-max="1200" type="text" id="nav_scrubber_offsety" >
+						</oneshort>
+					</row>
+				</div>
+			</div>
+
+			<div id="form_nav_scrubber_size" class="form_inner form_menu_inside open">
+				<div class="form_inner_header"><i class="material-icons">photo_size_select_large</i><?php _e('Size', 'revslider');?></div>
+
+				<div class="collapsable">
+					<row class="directrow">
+						<onelong><label_icon class="ui_gap"></label_icon><input class="sliderinput valueduekeyboard  easyinit" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-r="nav.scrubber.space" data-min="-500" data-max="500" type="text" id="nav_scrubber_space" ></onelong>
+						<oneshort><label_icon class="ui_minwidth"></label_icon><input class="sliderinput valueduekeyboard  easyinit" data-r="nav.scrubber.widthMin" data-min="0" data-max="5000" type="text" id="nav_scrubber_widthMin" ></oneshort>
+					</row>
+					<!-- scrubber SIZING -->
+					<row class="directrow">
+						<onelong><label_icon class="ui_width"></label_icon><input class="sliderinput valueduekeyboard  easyinit" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-r="nav.scrubber.width" data-min="0" data-max="5000" type="text" id="nav_scrubber_width" ></onelong>
+						<oneshort><label_icon class="ui_height"></label_icon><input class="sliderinput valueduekeyboard  easyinit" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-r="nav.scrubber.height" data-min="0" data-max="5000" type="text" id="nav_scrubber_height" ></oneshort>
+					</row>
+
+				</div>
+			</div>
+
+			<div id="form_nav_scrubber_arrow" class="form_inner form_menu_inside open">
+				<div class="form_inner_header"><i class="material-icons">swap_horiz</i><?php _e('Arrow Settings', 'revslider');?></div>
+
+				<div class="collapsable">
+					<row class="directrow"><onelong><label_a><?php _e('Handle Arrows', 'revslider');?></label_a><input type="checkbox"  id="nav_scrubber_handleArrows" class="sliderinput easyinit" data-r="nav.scrubber.handleArrows" data-showhide="#nav_scrubber_handleArrows" data-showhidedep="false"/></onelong></row>
+					<row class="directrow"><onelong><label_a><?php _e('Fade', 'revslider');?></label_a><input type="checkbox"  id="nav_scrubber_fade" class="sliderinput easyinit" data-r="nav.scrubber.fade" data-showhide="#nav_scrubber_fade" data-showhidedep="false"/></onelong></row>
+					<row class="directrow"><onelong><label_a><?php _e('Scale', 'revslider');?></label_a><input type="checkbox"  id="nav_scrubber_animScale" class="sliderinput easyinit" data-r="nav.scrubber.animScale" data-showhide="#nav_scrubber_animScale" data-showhidedep="false"/></onelong></row>
+					<label_a><?php _e('Translate', 'revslider');?></label_a><input class="sliderinput valueduekeyboard  easyinit" data-numeric="true" data-allowed="px" data-r="nav.scrubber.translate" data-min="-1000" data-max="1000" type="text" id="nav_scrubber_translate"><span class="linebreak"></span>
+					<row class="directrow"><onelong><label_a><?php _e('Spin', 'revslider');?></label_a><input type="checkbox"  id="nav_scrubber_spin" class="sliderinput easyinit" data-r="nav.scrubber.spin" data-showhide="#nav_scrubber_spin" data-showhidedep="false"/></onelong></row>					
+				</div>
+			</div>
+
+			<div id="form_nav_scrubber_handle" class="form_inner form_menu_inside open">
+				<div class="form_inner_header"><i class="material-icons">photo_size_select_large</i><?php _e('Handle Settings', 'revslider');?></div>
+
+				<div class="collapsable">
+					<row class="directrow">
+						<onelong><label_a><?php _e('Thumbnail', 'revslider');?></label_a><input type="checkbox"  id="nav_scrubber_thumbnail" class="sliderinput easyinit" data-r="nav.scrubber.thumbnail" data-showhide="#nav_scrubber_thumbnail" data-showhidedep="false"/></onelong>
+					</row>
+					<label_a><?php _e('Skew', 'revslider');?></label_a><input class="sliderinput valueduekeyboard easyinit" data-numeric="true" data-allowed="deg" data-r="nav.scrubber.skew" data-min="-100" data-max="100" type="text" id="nav_scrubber_skew"><span class="linebreak"></span>
+					<label_a><?php _e('Thumb. Offset', 'revslider');?></label_a><input class="sliderinput valueduekeyboard easyinit" data-numeric="true" data-allowed="%" data-r="nav.scrubber.thumbOffset" data-min="0" data-max="500" type="text" id="nav_scrubber_thumbOffset"><span class="linebreak"></span>
+					<label_a><?php _e('Thumb. Scale', 'revslider');?></label_a><input class="sliderinput valueduekeyboard easyinit" data-numeric="true" data-allowed="%" data-r="nav.scrubber.thumbScale" data-min="100" data-max="1000" type="text" id="nav_scrubber_thumbScale"><span class="linebreak"></span>
+					<label_a><?php _e('Handle Scale', 'revslider');?></label_a><input class="sliderinput valueduekeyboard easyinit" data-numeric="true" data-allowed="%" data-r="nav.scrubber.handleScale" data-min="100" data-max="1000" type="text" id="nav_scrubber_handleScale"><span class="linebreak"></span>
+					<row class="directrow">
+						<onelong><label_a><?php _e('Hover Scale', 'revslider');?></label_a><input type="checkbox"  id="nav_scrubber_hoverScale" class="sliderinput easyinit" data-r="nav.scrubber.hoverScale" data-showhide="#nav_scrubber_hoverScale" data-showhidedep="false"/></onelong>
+					</row>
+					<row class="directrow">
+						<onelong><label_a><?php _e('Show Progress', 'revslider');?></label_a><input type="checkbox"  id="nav_scrubber_handleProgress" class="sliderinput easyinit" data-r="nav.scrubber.handleProgress" data-showhide="#nav_scrubber_handleProgress" data-showhidedep="false"/></onelong>
+					</row>
+					<label_a><?php _e('Progress Align', 'revslider');?></label_a><select  id="nav_scrubber_progressAlign"  data-r="nav.scrubber.progressAlign" class="sliderinput tos2 nosearchbox easyinit">						
+						<option value="left"><?php _e('Left', 'revslider');?></option>
+						<option value="center"><?php _e('Center', 'revslider');?></option>
+						<option value="right"><?php _e('Right', 'revslider');?></option>
+					</select>
+
+				</div>
+			</div>
+
+			<div id="form_nav_scrubber_wrap" class="form_inner form_menu_inside open">
+				<div class="form_inner_header"><i class="material-icons">more</i><?php _e('Wrapper', 'revslider');?></div>
+				<!--<div class="form_intoaccordion" data-trigger="#sr_na_tab_13"><i class="material-icons">arrow_drop_down</i></div>-->
+				<div class="collapsable">
+					<!-- WRAPPER -->
+					<label_a style="padding:0px"><label_icon class="ui_bg"></label_icon></label_a><input type="text" data-editing="Tab Wrapper BG Color" data-evt="sliderTabBgColor" name="sliderTabBgColor" id="sliderTabBgColor" data-visible="true" class="my-color-field sliderinput easyinit" data-r="nav.scrubber.wrapperColor" value="transparent">
+					<div class="div10"></div>
+					<label_a style="padding:0px"><label_icon class="ui_padding"></label_icon></label_a><input class="sliderinput valueduekeyboard  easyinit" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-r="nav.scrubber.padding" data-min="0" data-max="5000" type="text" id="nav_scrubber_padding" >
+					<span class="linebreak"></span>
+					<label_a><?php _e('Min. Size', 'revslider');?></label_a><input class="sliderinput valueduekeyboard easyinit" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber" data-r="nav.scrubber.minSize" data-numeric="true" data-allowed="%" data-min="0" data-max="100" type="text" id="nav_scrubber_minSize" >
+					<span class="linebreak"></span>
+					<label_a><?php _e('Span', 'revslider');?></label_a><input type="checkbox" id="nav_scrubber_spanWrapper" class="sliderinput easyinit" data-r="nav.scrubber.spanWrapper" data-evt="sliderNavPositionUpdate" data-evtparam="scrubber"/><span class="linebreak"></span>
+					<label_a><?php _e('Track Pattern', 'revslider');?></label_a><select  id="nav_scrubber_trackPattern"  data-r="nav.scrubber.trackPattern" class="sliderinput tos2 nosearchbox easyinit">						
+						<option value="none"><?php _e('None', 'revslider');?></option>	
+						<option value="dots"><?php _e('Dots', 'revslider');?></option>
+						<option value="hlines"><?php _e('Horizontal Lines', 'revslider');?></option>
+						<option value="vlines"><?php _e('Vertical Lines', 'revslider');?></option>
+					</select>
+				</div>
+			</div>
+
+			<div id="form_nav_scrubber_visi" class="form_inner form_menu_inside open">
+				<div class="form_inner_header"><i class="material-icons">visibility</i><?php _e('scrubber Visibility', 'revslider');?></div>
+				<div class="collapsable">
+					<label_a><?php _e('Scale', 'revslider');?></label_a><input class="sliderinput valueduekeyboard  easyinit" data-numeric="true" data-allowed="%" data-r="nav.scrubber.scale" data-min="0" data-max="100" type="text" id="nav_scrubber_scale"><span class="linebreak"></span>
+					<label_a><?php _e('Animation', 'revslider');?></label_a><select  id="sr_scrubber_animation"  data-r="nav.scrubber.anim" class="sliderinput tos2 nosearchbox easyinit">						
+						<option value="fade"><?php _e('Fade', 'revslider');?></option>
+						<option value="left"><?php _e('From Left', 'revslider');?></option>
+						<option value="right"><?php _e('From Right', 'revslider');?></option>
+						<option value="top"><?php _e('From Top', 'revslider');?></option>
+						<option value="bottom"><?php _e('From Bottom', 'revslider');?></option>
+						<option value="zoomin"><?php _e('Zoom In', 'revslider');?></option>
+						<option value="zoomout"><?php _e('Zoom Out', 'revslider');?></option>
+					</select>
+					<label_a><?php _e('Show Speed', 'revslider');?></label_a><input class="sliderinput valueduekeyboard  easyinit" data-numeric="true" data-allowed="ms" data-r="nav.scrubber.animSpeed" data-min="1" data-max="10000" type="text" id="nav_scrubber_animSpeed"><span class="linebreak"></span>
+					<label_a><?php _e('Show Delay', 'revslider');?></label_a><input class="sliderinput valueduekeyboard easyinit" data-numeric="true" data-allowed="ms" data-r="nav.scrubber.animDelay" data-min="1" data-max="10000" type="text" id="nav_scrubber_animDelay"><span class="linebreak"></span>
+					<label_a><?php _e('RTL Direction', 'revslider');?></label_a><input type="checkbox"  id="sr_scrubberrtl" class="sliderinput easyinit" data-r="nav.scrubber.rtl"/><span class="linebreak"></span>
+					<row class="directrow">
+						<onelong><label_a><?php _e('Show Always', 'revslider');?></label_a><input type="checkbox"  id="sr_scrubberalwshow" class="sliderinput easyinit" data-r="nav.scrubber.alwaysOn" data-showhide="#nav_scrubber_alwaysshow" data-showhidedep="false"/></onelong>
+						<oneshort id="nav_scrubber_alwaysshow">
+							<label_icon class="ui_desktop"></label_icon><input data-numeric="true" data-allowed="ms" class="sliderinput valueduekeyboard  easyinit" data-r="nav.scrubber.hideDelay" data-min="0" data-max="5000" type="text" id="nav_scrubber_hideDelay"/><span class="linebreak"></span>
+							<label_icon class="ui_notebook"></label_icon><input data-numeric="true" data-allowed="ms" class="sliderinput valueduekeyboard  easyinit" data-r="nav.scrubber.hideDelayMobile" data-min="0" data-max="5000" type="text" id="nav_scrubber_hideDelayMobile"/>
+							<div class="div10"></div>
+						</oneshort>
+					</row>
+
+
+
+					<row class="direktrow">
+						<onelong><label_a><?php _e('Hide Under', 'revslider');?></label_a><input type="checkbox"  id="sr_scrubberhideunder" class="sliderinput easyinit" data-r="nav.scrubber.hideUnder" data-showhide="#nav_scrubber_hideunderlimit_wr" data-showhidedep="true"/></onelong>
+						<oneshort id="nav_scrubber_hideunderlimit_wr"><label_icon class="ui_maxwidth"></label_icon><input data-numeric="true" data-allowed="px" class="sliderinput valueduekeyboard  easyinit" data-r="nav.scrubber.hideUnderLimit" data-min="0" data-max="2400" type="text" id="nav_scrubber_hideunderlimit" ></oneshort>
+					</row>
+
+					<row class="direktrow">
+						<onelong><label_a><?php _e('Hide Over', 'revslider');?></label_a><input type="checkbox"  id="sr_scrubberhideover" class="sliderinput easyinit" data-r="nav.scrubber.hideOver" data-showhide="#nav_scrubber_hideoverlimit_wr" data-showhidedep="true"/></onelong>
+						<oneshort id="nav_scrubber_hideoverlimit_wr"><label_icon class="ui_minwidth"></label_icon><input data-numeric="true" data-allowed="px" class="sliderinput valueduekeyboard  easyinit" data-r="nav.scrubber.hideOverLimit" data-min="0" data-max="2400" type="text" id="nav_scrubber_hideoverlimit" ></oneshort>
+					</row>
+				</div>
+			</div>
+
+			<div id="form_nav_scrubber_style" class="form_inner form_menu_inside open">
+				<div class="form_inner_header"><i class="material-icons">palette</i><?php _e('Style Global', 'revslider');?></div>
+				<div class="collapsable">
+					<div id="sr_scrubber_styles_fieldset"></div>
+				</div>
+			</div>
+
+			<div id="form_nav_scrubber_style" class="form_inner open">
+				<div class="form_inner_header"><i class="material-icons">palette</i><?php _e('Global Style Presets', 'revslider');?></div>
+				<div class="collapsable">
+					<label_a><?php _e('Preset', 'revslider');?></label_a><select id="sr_scrubber_style_preset" data-tags="true" data-r="nav.scrubber.preset" class="searchbox sliderinput tos2 easyinit" ></select>
+					<label_a></label_a><div data-evt="sliderNavPreset" data-evtparam="scrubber" class="callEventButton basic_action_button autosize"><i class="material-icons">save</i><?php _e('Load', 'revslider');?></div>
+					<div data-evt="saveNavPreset" data-evtparam="scrubber" class="callEventButton basic_action_button autosize"><i class="material-icons">save</i><?php _e('Save', 'revslider');?></div><span class="linebreak"></span>
+					<label_a></label_a><div data-evt="deleteNavPreset" data-evtparam="scrubber" class="callEventButton basic_action_button autosize"><i class="material-icons">delete</i><?php _e('Delete', 'revslider');?></div>
+				</div>
+			</div>
+
+			<!-- SLIDE SCRUBBER STYLE -->
+			<div id="form_slide_nav_scrubber" class="form_inner form_menu_inside open">
+				<div class="form_inner_header"><i class="material-icons">texture</i><?php _e('Override Style on Slide', 'revslider');?></div>
+
+				<div class="collapsable carouselenable standardenable herodisable">
+					<div id="sl_scrubber_styles_fieldset">
+					</div>
+				</div>
+			</div><!-- SLIDE SCRUBBER STYLE -->
+		</div><!-- SCRUBBER SETTINGS END -->
+
 		<!-- PREVIEW IMAGE SETTINGS -->
-		<div id="form_nav_pprevima" data-select="#gst_nav_6" data-unselect=".nav_submodule_trigger" class="formcontainer form_menu_inside collapsed">
+		<div id="form_nav_pprevima" data-select="#gst_nav_7" data-unselect=".nav_submodule_trigger" class="formcontainer form_menu_inside collapsed">
 			<div class="collectortabwrap"><div id="collectortab_form_pprevima" class="collectortab form_menu_inside" data-forms='["#form_nav_pprevima"]'><i class="material-icons">image</i><?php _e('Nav Image Dimensions', 'revslider');?></div></div>
 			<!--<div class="form_intoaccordion"><i class="material-icons">arrow_drop_down</i></div>-->
 			<div class="form_inner">
@@ -858,7 +1085,7 @@ if(!defined('ABSPATH')) exit();
 		</div><!-- PREVIEW IMAGE SETTINGS END -->
 
 		<!-- TOUCH  SETTINGS -->
-		<div id="form_nav_touch" data-select="#gst_nav_7" data-unselect=".nav_submodule_trigger" class="formcontainer form_menu_inside collapsed carouselenable standardenable herodisable">
+		<div id="form_nav_touch" data-select="#gst_nav_8" data-unselect=".nav_submodule_trigger" class="formcontainer form_menu_inside collapsed carouselenable standardenable herodisable">
 			<div class="collectortabwrap"><div id="collectortab_form_touch" class="collectortab form_menu_inside" data-forms='["#form_nav_touch"]'><i class="material-icons">pan_tool</i><?php _e('Swipe Settings', 'revslider');?></div></div>
 			<!--<div class="form_intoaccordion"><i class="material-icons">arrow_drop_down</i></div>-->
 			<div class="form_inner">
@@ -889,7 +1116,7 @@ if(!defined('ABSPATH')) exit();
 		</div><!-- TOUCH SETTINGS END -->
 
 		<!-- KEYBOARD  SETTINGS -->
-		<div id="form_nav_misc" data-select="#gst_nav_8" data-unselect=".nav_submodule_trigger" class="formcontainer form_menu_inside collapsed carouselenable standardenable herodisable">
+		<div id="form_nav_misc" data-select="#gst_nav_9" data-unselect=".nav_submodule_trigger" class="formcontainer form_menu_inside collapsed carouselenable standardenable herodisable">
 			<div class="collectortabwrap"><div id="collectortab_form_misc" class="collectortab form_menu_inside" data-forms='["#form_nav_misc"]'><i class="material-icons">keyboard</i><?php _e('Keyboard Settings', 'revslider');?></div></div>
 			<!--<div class="form_intoaccordion"><i class="material-icons">arrow_drop_down</i></div>-->
 			<div class="form_inner">
@@ -907,7 +1134,7 @@ if(!defined('ABSPATH')) exit();
 		</div><!-- KEYBOARD SETTINGS END -->
 
 		<!-- MOUSE  SETTINGS -->
-		<div id="form_nav_mousescroll" data-select="#gst_nav_9" data-unselect=".nav_submodule_trigger" class="formcontainer form_menu_inside collapsed carouselenable standardenable herodisable">
+		<div id="form_nav_mousescroll" data-select="#gst_nav_10" data-unselect=".nav_submodule_trigger" class="formcontainer form_menu_inside collapsed carouselenable standardenable herodisable">
 			<div class="collectortabwrap"><div id="collectortab_form_misc" class="collectortab form_menu_inside" data-forms='["#form_nav_mousescroll"]'><i class="material-icons">mouse</i><?php _e('Mouse Wheel Navigation', 'revslider');?></div></div>
 			<!--<div class="form_intoaccordion"><i class="material-icons">arrow_drop_down</i></div>-->
 			<div class="form_inner">

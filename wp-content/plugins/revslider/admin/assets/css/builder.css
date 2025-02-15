@@ -1304,7 +1304,7 @@ label_a.long,
 label_a.halflong,
 .label_a.halflong { min-width: 150px; }
 
-longoption label_a { min-width: 150px; text-align: left; margin-left: 15px;vertical-align: top; line-height: 38px; padding: 0px; margin-right: 10px; }
+longoption label_a { min-width: 150px; text-align: left; margin-left: 15px;vertical-align: top; line-height: 38px; padding: 0px; margin-right: 10px; overflow: visible; }
 longoption label_a.longlabellength { min-width: 220px }
 
 longoption i.material-icons { color: #b7bbc0; font-size: 20px; margin-left: 15px; vertical-align: top; line-height:38px;}
@@ -3237,7 +3237,7 @@ li.slide_list_child_element { margin-bottom: 0px }
 - VALUE SLIDERS -
 *******************/
 .withvalslider { position: relative; display: inline-block;}
-.rs_vswrap {border-radius:4px; height:5px; padding:10px 0px; width:100%; bottom:-2px; position:absolute; display: block; opacity:0; left:0px;box-sizing: border-box;}
+.rs_vswrap {border-radius:4px; height:5px; padding:10px 0px; width:100%; bottom:-2px; position:absolute; display: block; opacity:0; left:0px;box-sizing: border-box; cursor: pointer}
 .rs_vsdone { width: 0px; height: 2px; border-radius: 4px; background: #006dd2;position: absolute; left: 0px;top: 10px; }
 .rs_vsrail { width: 100%; pointer-events:none; height:2px; border-radius: 4px; background: #2a2c2f;position: absolute; left: 0px;top: 10px; }
 .rs_vspin { width: 9px; height: 9px; position: absolute; left: -2px;top: 6px; border-radius: 5px; background: #b7bbc0; cursor: pointer}
@@ -4321,7 +4321,9 @@ oneshort .input_presets { right: 0px !important; left:auto !important; }
 
 /*WRAP LEVEL 3*/
 ._lc_content_            { position: relative; width:auto;height:auto;box-sizing: border-box; vertical-align: inherit}
-._lc_image_inside_       {  width: 100%;height:100%; z-index: 2; position: relative; vertical-align: top; 
+._lc_fw_img ._lc_image_inside_ { height: auto; width: 100%; }
+._lc_fh_img ._lc_image_inside_ { height: 100%; width: auto; }
+._lc_image_inside_       {  height:100%; z-index: 2; position: relative; vertical-align: top; top: 50%; left: 50%; transform: translate(-50%, -50%);
                           -webkit-touch-callout: none; /* iOS Safari */
                             -webkit-user-select: none; /* Safari */
                              -khtml-user-select: none; /* Konqueror HTML */
@@ -4668,9 +4670,11 @@ a.box_with_icon:hover { background: #006dd2; color: #fff; }
 #rs_overview .title     { font-size: 30px; font-weight: 600; color: #fff; line-height: 40px; padding:0px; margin:0px;}
 #rs_overview .subtitle  { font-size: 20px; font-weight: 500; color:#797b7e; line-height: 25px; padding:0px; margin:0px}
 
-
+.featurebox.ytbox { max-width: 800px; width:100%;}
+.featurebox.ytbox iframe { position: relative;  width: 100%;aspect-ratio: 16/9; }
+	
 /*Main Creation Modules*/
-#add_new_slider_wrap { margin-top: 90px; }
+#add_new_slider_wrap { margin-top: 70px; }
 .new_slider_block { color: #b7bbc0; width: 267px; height: 150px; position: relative; display: inline-block; background: #2a2c2f; margin-right: 20px; margin-bottom: 20px; cursor:pointer; box-sizing: border-box; padding: 30px 0px; vertical-align: top; }
 
 .new_slider_block .nsb_title,
