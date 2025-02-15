@@ -80,9 +80,7 @@ jobs:
           git config --global user.name "GitHub Action"
           git add composer.json composer.lock
           git commit -m "Update dependencies"
-          
-          # Remove untracked files except for our PR body file
-          git clean -fdX
+          git reset --hard
           ls -la
 
       - name: Restore PR body and create PR
