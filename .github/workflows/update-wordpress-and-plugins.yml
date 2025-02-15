@@ -26,7 +26,7 @@ jobs:
       - name: Install Composer dependencies
         run: |
           composer install
-          git checkout composer.json
+          git checkout composer.json -f
 
       - name: Capture initial plugin versions
         run: |
@@ -34,7 +34,6 @@ jobs:
 
       - name: Update Composer dependencies
         run: |
-          git checkout composer.json -f
           rm -r wp-content
           rm -r vendor
           composer update
