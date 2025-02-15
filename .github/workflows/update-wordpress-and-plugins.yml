@@ -25,7 +25,7 @@ jobs:
 
       - name: Install Composer dependencies
         run: |
-          composer install
+          composer install --prefer-dist --no-progress
           git checkout composer.json -f
 
       - name: Capture initial plugin versions
