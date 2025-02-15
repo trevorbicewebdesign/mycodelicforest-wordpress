@@ -35,6 +35,7 @@ jobs:
       - name: Update Composer dependencies
         run: |
           rm -r wp-content
+          rm -r vendor
           composer update
 
       - name: Capture final plugin versions
