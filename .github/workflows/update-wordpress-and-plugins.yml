@@ -76,7 +76,7 @@ jobs:
           git config --global user.name "GitHub Action"
           git add composer.json composer.lock
           git commit -m "Update dependencies"
-          git clean -fdX -e pr_body.txt
+          git clean -fd --pr_body.txt
           ls -la
           
       - name: Create or update PR
