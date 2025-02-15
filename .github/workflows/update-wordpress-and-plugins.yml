@@ -76,6 +76,7 @@ jobs:
           git config --global user.name "GitHub Action"
           git add composer.json composer.lock
           git commit -m "Update dependencies"
+          git clean -fdX -e pr_body.txt
           
       - name: Create or update PR
         uses: peter-evans/create-pull-request@v7
