@@ -36,6 +36,7 @@ jobs:
         run: |
           git clean -fdx -e composer_initial.json
           git rm -r wp-content
+          git checkout composer.json -f
           
       - name: Update Composer dependencies
         run: composer update
