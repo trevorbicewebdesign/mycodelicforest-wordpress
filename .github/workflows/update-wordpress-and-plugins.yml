@@ -34,6 +34,7 @@ jobs:
 
       - name: Update Composer dependencies
         run: |
+          git checkout composer.json -f
           rm -r wp-content
           rm -r vendor
           composer update
