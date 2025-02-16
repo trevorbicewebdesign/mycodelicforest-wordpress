@@ -10,6 +10,7 @@
 /codeception.yml
 /docker-compose.yml
 /Gruntfile.js
+/codeception.yml
 /composer.json
 /composer.lock
 /package-lock.json
