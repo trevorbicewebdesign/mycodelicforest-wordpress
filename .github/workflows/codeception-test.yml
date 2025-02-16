@@ -149,14 +149,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-composer
 
-      # Configure GitHub OAuth token for Composer if cache is missing
-      - name: Configure Composer GitHub OAuth
-        run: ${{ env.GITHUB_OAUTH_COMMAND }}
-
-      # Install dependencies if cache is missing
-      - name: Install Dependencies if no cache hit
-        run: composer install --no-interaction --no-progress --optimize-autoloader
-
       # Create .env file for testing
       - name: Create .env file for tests
         run: cp ./tests/.env.ci ./tests/.env
