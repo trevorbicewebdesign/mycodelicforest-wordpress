@@ -84,9 +84,6 @@ define( 'LOGGED_IN_SALT',    'g5a?iWt`z2T7bXVd|k,j%2~W|vS fjmgs0d5iw&%(qQCF)muCw
 define( 'NONCE_SALT',        '*F A1Y~$aAU8|uuM7e&[xliKFq0u>3c){xc_EzerB0%z^3sh{|rwf1AMn ^>%9Kj' );
 define( 'WP_CACHE_KEY_SALT', 'q%4=iq:^l`]~^F<42@p&#{dwi:|-9SWA{&TeeTyEcLBn;_%)IV+pdsXjTu`|nM[?' );
 
-define("WP_HOME", "https://local.mycodelicforest.org");
-define("WP_SITEURL", "https://local.mycodelicforest.org");
-
 // log errors
 @ini_set('log_errors', 'On');
 @ini_set('error_log', '/var/log/php_errors.log');
