@@ -122,10 +122,9 @@ jobs:
       fail-fast: false  # Allow tests to continue even if some fail
       matrix:
         include:
-          # - test-type: integration
+          - test-type: integration
           - test-type: functional
           - test-type: acceptance
-
     steps:
       # Check out repository for tests
       - name: Checkout repository
