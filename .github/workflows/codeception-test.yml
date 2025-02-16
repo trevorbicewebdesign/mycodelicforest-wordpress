@@ -40,6 +40,7 @@ env:
     wp-trackback.php
     xmlrpc.php
   # GITHUB_OAUTH_COMMAND: 'composer config --global github-oauth.github.com ${{ secrets.GH_TOKEN }}' # OAuth configuration command for Composer
+  COMPOSER_VERSION: 'v2'  # Composer version for setup
 
 # Job to cache Composer dependencies
 jobs:
