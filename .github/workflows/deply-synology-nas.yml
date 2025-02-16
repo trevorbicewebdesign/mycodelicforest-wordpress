@@ -83,10 +83,6 @@ jobs:
           echo "Files in deploy/wp-content after rsync:"
           ls -la deploy/wp-content
 
-      - name: Copy .gitignore file
-        run: |
-          wget -O deploy/.gitignore https://wpengine.com/wp-content/uploads/2020/02/recommended-gitignore-wp.txt
-
       - name: Delete unwanted folders in deploy
         run: |
           cd deploy
