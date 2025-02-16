@@ -71,7 +71,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          tools: composer:v2
+          tools: composer:${{ env.COMPOSER_VERSION }}
 
       # Generate a unique cache key based on the `composer.lock` file
       - name: Generate cache key from composer.lock
