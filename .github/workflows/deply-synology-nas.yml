@@ -92,7 +92,7 @@ jobs:
       - name: Remove ignored files after deployment
         run: |
           set -x
-          cat .deployignore | xargs -I {} find deploy/ -name "{}" -exec rm -rf {} \;
+          cat .deployignore | xargs -I {} find deploy/ -name "{}" -print0 | xargs -0 rm -rf
           echo "Files after cleanup:"
           ls -la deploy
 
