@@ -8,9 +8,10 @@ class MycodelicForestDiscordTest extends \lucatume\WPBrowser\TestCase\WPTestCase
 
     protected function _before()
     {
+        
     }
 
-    public function testGetChapterProjectUpdates()
+    public function testSendDiscordMessage()
     {
 
         $MycodelicForestDiscord = $this->make('MycodelicForestDiscord', []);

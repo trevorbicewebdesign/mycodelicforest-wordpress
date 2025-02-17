@@ -17,6 +17,8 @@ require_once(MYCO_CORE_ABS_PATH . 'classes/class-forms.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-install.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-profile.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-roles.php');
+require_once(MYCO_CORE_ABS_PATH . 'classes/class-twilio.php');
+require_once(MYCO_CORE_ABS_PATH . 'classes/class-civicrm.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-shortcodes.php');
  
 class MycodelicForestInit {
@@ -28,6 +30,8 @@ class MycodelicForestInit {
     public $MycodelicForestProfile;
     public $MycodelicForestRoles;
     public $MycodelicForestShortcodes;
+    public $MycodelicForestTwilio;
+    public $MycodelicForestCiviCRM;
 
     public function __construct() {
         $this->MycodelicForestCore = new MycodelicForestCore();
@@ -36,7 +40,9 @@ class MycodelicForestInit {
         $this->MycodelicForestInstall = new MycodelicForestInstall();
         $this->MycodelicForestProfile = new MycodelicForestProfile();
         $this->MycodelicForestRoles = new MycodelicForestRoles();
-        $this->MycodelicForestShortcodes = new MycodelicForestShortcodes();
+        $this->MycodelicForestCiviCRM = new MycodelicForestCiviCRM();
+        $this->MycodelicForestShortcodes = new MycodelicForestShortcodes($this->MycodelicForestCiviCRM);
+        $this->MycodelicForestTwilio = new MycodelicForestTwilio();
     }
 
     public function init()
@@ -47,7 +53,9 @@ class MycodelicForestInit {
         $this->MycodelicForestInstall->init();
         $this->MycodelicForestProfile->init();
         $this->MycodelicForestRoles->init();
+        $this->MycodelicForestCiviCRM->init();
         $this->MycodelicForestShortcodes->init();
+        $this->MycodelicForestTwilio->init();
     }
 }
 

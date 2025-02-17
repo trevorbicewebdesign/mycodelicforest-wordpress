@@ -2,28 +2,28 @@
 
 namespace Tests\Acceptance;
 
-use Tests\Support\AcceptanceTester;
+use Tests\Support\FunctionalTester;
 class BasicCest
 {
-    public function _before(AcceptanceTester $I)
+    public function _before(FunctionalTester $I)
     {
 
     }
-    public function homePageIsVisible(AcceptanceTester $I)
+    public function homePageIsVisible(FunctionalTester $I)
     {
         $I->amOnPage("/");
         $I->see("Mycodelic Forest", "h1");
         $I->takeFullPageScreenshot("home-page");
     }
 
-    public function aboutPageIsVisible(AcceptanceTester $I)
+    public function aboutPageIsVisible(FunctionalTester $I)
     {
         $I->amOnPage("/contact");
         $I->see("Contact Us");
         $I->takeFullPageScreenshot("contact-page");
     }
 
-    public function faqsPageIsVisible(AcceptanceTester $I)
+    public function faqsPageIsVisible(FunctionalTester $I)
     {
         $I->amOnPage("/faqs");
         $I->wait(1);
@@ -31,7 +31,7 @@ class BasicCest
         $I->takeFullPageScreenshot("faqs-page");
     }
 
-    public function resourcesPageIsVisible(AcceptanceTester $I)
+    public function resourcesPageIsVisible(FunctionalTester $I)
     {
         $I->amOnPage("/resources");
         $I->wait(1);
@@ -39,7 +39,7 @@ class BasicCest
         $I->takeFullPageScreenshot("resources-page");
     }
 
-    public function registerPageIsVisible(AcceptanceTester $I)
+    public function registerPageIsVisible(FunctionalTester $I)
     {
         $faker = \Faker\Factory::create();
         $I->amOnPage("/register");
@@ -109,7 +109,7 @@ class BasicCest
         $I->see("Thank you for registering!");
     }
 
-    public function calendarPageIsVisible(AcceptanceTester $I)
+    public function calendarPageIsVisible(FunctionalTester $I)
     {
         $I->amOnPage("/calendar");
         $I->wait(1);
@@ -117,7 +117,7 @@ class BasicCest
         $I->takeFullPageScreenshot("calendar-page");
     }
 
-    public function contactPageIsVisible(AcceptanceTester $I)
+    public function contactPageIsVisible(FunctionalTester $I)
     {
         $I->amOnPage("/contact");
         $I->wait(1);
