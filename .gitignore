@@ -32,6 +32,7 @@
 *.asf
 *.wmv
 *.avi
+/tests/.env
 
 # OS Files
 *~
