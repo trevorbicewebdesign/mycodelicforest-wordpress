@@ -1,10 +1,4 @@
 <?php
-//Begin Really Simple Security session cookie settings
-@ini_set('session.cookie_httponly', true);
-@ini_set('session.cookie_secure', true);
-@ini_set('session.use_only_cookies', true);
-//END Really Simple Security cookie settings
-
 /**
  * The base configuration for WordPress
  *
@@ -28,7 +22,6 @@
 // ** Database settings - You can get this info from your web host ** //
 /** The name of the database for WordPress */
 //var_dump($_COOKIE);
-
 if (
     (isset($_SERVER['HTTP_X_TEST_REQUEST']) && $_SERVER['HTTP_X_TEST_REQUEST'] == 1)
     || (isset($_COOKIE['webdriver_test_request']) && $_COOKIE['webdriver_test_request'] == 1)
@@ -36,14 +29,12 @@ if (
     || (isset($_SERVER['APPLICATION_ENV']) && $_SERVER['APPLICATION_ENV'] == 'test')
 ) {
     define( 'DB_NAME', 'seed' );
-
     $table_prefix = 'wp_';
 }
-else if (getenv('APPLICATION_ENV') == 'test') {
+else if (getenv('APPLICATION_ENV') == 'test' || getenv('WORDPRESS_DB_TEST_URL') !== false) {
 	define( 'DB_NAME', 'test' );
-    $table_prefix = 'wp_';
+    $table_prefix = 'test_';
 } else {
-	
     define( 'DB_NAME', 'local' );
     $table_prefix = 'wp_';
 }
