@@ -151,7 +151,9 @@ jobs:
 
       # Create .env file for testing
       - name: Create .env file for tests
-        run: cp ./tests/.env.ci ./tests/.env
+        run: |
+          cp ./tests/.env.ci ./tests/.env
+          echo "DISCORD_CHANNEL_ANNOUNCEMENT_TESTS=${{ secrets.DISCORD_CHANNEL_ANNOUNCEMENT_TESTS }}" >> ./tests/.env
 
            # Start MySQL and setup databases
       - name: Start and Setup MySQL
