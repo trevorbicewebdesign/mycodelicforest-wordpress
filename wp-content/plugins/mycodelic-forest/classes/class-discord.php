@@ -16,8 +16,8 @@ class MycodelicForestDiscord
     {
 
         $channels = [
-            'announcements' => 'https://discordapp.com/api/webhooks/1082841714479333376/Fo-ftkWpsgJ_vJgimZSTUrDM1i9lYHYd4JER2EC07hfDfTGNQ-mrpv9bRvVoT5sWHMzP',
-            'announcement-test' => 'https://discordapp.com/api/webhooks/1339765096884342804/NVis4YMB4RxPda2pBFefvjc2zHupI_dfTN2MUGwpfsLbklcWfTxBv7lGeAFziOEP7OC3',
+            'announcements' => getenv('DISCORD_WEBHOOK_ANNOUNCEMENTS'),
+            'announcement-test' => getenv('DISCORD_WEBHOOK_ANNOUNCEMENT_TEST'),
         ];
 
         $url = $channels['announcement-test'];
