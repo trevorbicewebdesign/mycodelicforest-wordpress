@@ -18,9 +18,9 @@ class BasicCest
 
     public function aboutPageIsVisible(AcceptanceTester $I)
     {
-        $I->amOnPage("/contact");
-        $I->see("Contact Us");
-        $I->takeFullPageScreenshot("contact-page");
+        $I->amOnPage("/about-us");
+        $I->see("About Us");
+        $I->takeFullPageScreenshot("about-page");
     }
 
     public function faqsPageIsVisible(AcceptanceTester $I)
@@ -146,9 +146,6 @@ class BasicCest
 
         $I->wait(1);
         $I->takeFullPageScreenshot("contact-page-thank-you");
-        $I->see("Contact Form Was Submitted");
-
+        $I->see("Thanks for contacting us! We will get in touch with you shortly.");
     }
-
-
 }
