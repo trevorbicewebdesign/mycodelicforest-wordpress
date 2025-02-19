@@ -163,9 +163,9 @@ jobs:
           # Set up test databases
           mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS seed;"
           mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS test;"
-          cp -v ./wp-content/mysql.sql ./tests/_support/Data/db/dump.sql
-          # Load initial database data
-          mysql -u root -proot -h localhost seed < ./tests/_support/Data/db/dump.sql
+          
+      - name: Run Setup
+        run: make setup
 
       # Restart Chromedriver for acceptance tests
       - name: Restart Chromedriver
