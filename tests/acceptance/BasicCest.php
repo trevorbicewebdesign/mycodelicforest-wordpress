@@ -88,8 +88,7 @@ class BasicCest
 
         Please click the following link to activate your account and set a new password:
 
-        
-        {$domain}/wp-login.php?action=rp&key={$user_activation_key}&login={$user_login}";
+        {$domain}/wp-login.php?action=rp&key={$user_activation_key}&login={$user_login}
 
         If you did not register, please ignore this email.
 
