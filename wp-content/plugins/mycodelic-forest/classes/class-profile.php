@@ -18,7 +18,7 @@ class MycodelicForestProfile
         // Other hooks (recaptcha, redirection, etc.) remain the same.
         add_action('wp_enqueue_scripts', [$this, 'enqueue_recaptcha_script']);
         add_action('register_form', [$this, 'add_recaptcha_to_registration']);
-        //add_action('template_redirect', [$this, 'mycodelic_redirect_incomplete_profile']);
+        add_action('template_redirect', [$this, 'mycodelic_redirect_incomplete_profile']);
 
         // add_action( 'init', [$this, 'mycodelic_add_rewrite_rules'] );
         //add_filter( 'query_vars', [$this, 'mycodelic_query_vars'] );
@@ -36,6 +36,7 @@ class MycodelicForestProfile
         add_filter('gform_field_value_address_1', [$this, 'populate_address']);
         add_filter('gform_field_value_city', [$this, 'populate_city']);
         add_filter('gform_field_value_state', [$this, 'populate_state']);
+        add_filter('gform_field_value_country', [$this, 'populate_country']);
         add_filter('gform_field_value_zip', [$this, 'populate_zip']);
         add_filter('gform_field_value_user_about_me', [$this, 'populate_user_about_me']);
         add_filter('gform_field_value_attended_burning_man', [$this, 'populate_attended_burning_man']);
@@ -99,24 +100,60 @@ class MycodelicForestProfile
         }
     }
 
-
-
     public function profileComplete()
     {
         $user_id = get_current_user_id();
-        $fields = $this->get_extra_fields_definitions();
-
-        $required_fields = ['address_1', 'city', 'state', 'zip', 'phone', 'years_attended']; // Define required fields
-
+        if (!$user_id) {
+            return false; // User must be logged in
+        }
+    
+        // Required fields for a valid profile
+        $required_fields = [
+            'address_1',
+            'city',
+            'state',
+            'zip',
+            'country',
+            'user_phone',
+        ];
+    
+        // Check required text fields are not empty
         foreach ($required_fields as $key) {
             $value = get_user_meta($user_id, $key, true);
             if (empty($value)) {
                 return false;
             }
         }
-
-        return true;
+    
+        // Validate phone number (basic format check)
+        $phone = get_user_meta($user_id, 'phone', true);
+        if (!preg_match('/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/', $phone)) {
+            return false; // Invalid phone format
+        }
+    
+        // Validate ZIP code (basic check for numbers only, can be expanded)
+        $zip = get_user_meta($user_id, 'zip', true);
+        if (!preg_match('/^\d{5}(-\d{4})?$/', $zip)) {
+            return false; // Invalid ZIP format
+        }
+    
+        // Check if "Has Attended Burning Man" is set
+        $has_attended = get_user_meta($user_id, 'has_attended_burning_man', true) == '1';
+        $years_attended = json_decode(get_user_meta($user_id, 'years_attended', true), true);
+    
+        if ($has_attended) {
+            // If user has attended, they must have at least one year selected
+            if (empty($years_attended) || !is_array($years_attended)) {
+                return false;
+            }
+        } else {
+            // If user has NOT attended, remove any stored years
+            delete_user_meta($user_id, 'years_attended');
+        }
+    
+        return true; // All checks passed, profile is complete
     }
+    
 
 
     /**
@@ -346,7 +383,11 @@ class MycodelicForestProfile
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'zip', true) : '';
     }
-
+    
+    public function populate_country(){
+        $user_id = get_current_user_id();
+        return $user_id ? get_user_meta($user_id, 'country', true) : '';
+    }
     public function populate_playa_name() {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'playa_name', true) : '';
@@ -393,6 +434,7 @@ class MycodelicForestProfile
             'city'                   => rgar($entry, '9.3'),
             'state'                  => rgar($entry, '9.4'),
             'zip'                    => rgar($entry, '9.5'),
+            'country'                => rgar($entry, '9.6'),
             'user_about_me'          => rgar($entry, '13'),
             'has_attended_burning_man' => rgar($entry, '19'),
         ];
