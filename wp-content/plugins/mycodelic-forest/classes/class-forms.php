@@ -32,8 +32,8 @@ class MycodelicForestForms
         // Sanitize user input
         $username = sanitize_user($entry[1]);
         $email = sanitize_email($entry[2]);
-        $first_name = sanitize_text_field($entry[4.4]);
-        $last_name = sanitize_text_field($entry[4.8]);
+        $first_name = sanitize_text_field($entry[4.3]);
+        $last_name = sanitize_text_field($entry[4.6]);
         $phone = sanitize_text_field($entry[5]);
 
         // Prepare usermeta
@@ -82,44 +82,33 @@ class MycodelicForestForms
                 'role' => 'subscriber',  // Or any default role
             );
 
-            $user_id = wp_insert_user($userdata);
-
-            if (is_wp_error($user_id)) {
-                // Handle error returned from user creation
-                echo '<p>Error: ' . esc_html($user_id->get_error_message()) . '</p>';
+            // Insert the user
+            $user_id = wp_insert_user( $userdata );
+            if ( is_wp_error( $user_id ) ) {
+                echo '<p>Error: ' . esc_html( $user_id->get_error_message() ) . '</p>';
             } else {
-                // Insert the user meta
-                foreach ($usermeta as $key => $value) {
-                    update_user_meta($user_id, $key, $value);
+                // Insert the user meta.
+                foreach ( $usermeta as $key => $value ) {
+                    update_user_meta( $user_id, $key, $value );
                 }
-
-                // Generate a unique confirmation token
-                $confirmation_token = wp_generate_password(20, false);
-                update_user_meta($user_id, 'account_activation_token', $confirmation_token);
-                update_user_meta($user_id, 'account_activation_status', 'pending');
-
-                // Prepare the confirmation URL
-                // Make sure to create a page or endpoint that handles this action.
-                $confirm_url = add_query_arg(
-                    array(
-                        'action' => 'confirm_registration',
-                        'user_id' => $user_id,
-                        'token' => $confirmation_token,
-                    ),
-                    home_url('/confirm-registration/')
-                );
-
-                // Send the confirmation email
+            
+                // Get the user object.
+                $user = get_userdata( $user_id );
+            
+                // Generate a proper password reset key.
+                $reset_key = get_password_reset_key( $user );
+            
+                // Build the confirmation URL.
+                $confirm_url = home_url( "/wp-login.php?action=rp&key={$reset_key}&login=" . rawurlencode( $user->user_login ) );
+            
+                // Send the confirmation email.
                 $subject = 'Please confirm your registration';
-                $message = "Hi {$username},\n\n";
-                $message .= "Please click the following link to activate your account:\n\n";
+                $message  = "Hi {$user->user_login},\n\n";
+                $message .= "Please click the following link to activate your account and set a new password:\n\n";
                 $message .= $confirm_url . "\n\n";
                 $message .= "If you did not register, please ignore this email.";
-
-                wp_mail($email, $subject, $message);
-
-                // Inform the user to check their email for confirmation (do not log them in)
-                // echo '<p>Thank you for registering! Please check your email to confirm your account before logging in.</p>';
+                $headers  = array( 'From: Mycodelic Forest <no-reply@mycodelicforest.org>' );
+                wp_mail( $email, $subject, $message, $headers );
             }
         } else {
             // Store error messages in a session variable
