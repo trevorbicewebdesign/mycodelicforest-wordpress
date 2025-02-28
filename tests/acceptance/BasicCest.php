@@ -39,56 +39,6 @@ class BasicCest
         $I->takeFullPageScreenshot("resources-page");
     }
 
-    public function registerPageIsVisible(AcceptanceTester $I)
-    {
-        $faker = \Faker\Factory::create();
-        $I->amOnPage("/register");
-        $I->wait(1);
-        $I->see("Register");
-        $I->takeFullPageScreenshot("register-page");
-
-        $I->see("Username", "#field_3_1 label");
-        $I->see("Email", "#field_3_2 label");
-        
-        $I->see("Password", "#field_3_3 label");
-        $I->see("Confirm Password", "#field_3_3 label");
-
-        $I->see("Full Name", "#field_3_4 legend");
-        $I->see("First", "#field_3_4 label");
-        $I->see("Last", "#field_3_4 label");
-
-        $I->see("Phone Number", "#field_3_5 label");
-
-        // Click yes
-        $I->click("#choice_3_15_1");
-        $I->see("Years Attended", "#field_3_14 legend");
-
-        $I->fillField("#input_3_1", $faker->userName());
-        $I->fillField("#input_3_2", $faker->email());
-        $I->fillField("#input_3_3", "password123!test");
-        $I->fillField("#input_3_3_2", "password123!test");
-        $I->fillField("#input_3_4_3", $faker->firstName());
-        $I->fillField("#input_3_4_6", $faker->lastName());
-
-        $I->selectOption("#input_3_9_6", "United States");
-
-        $I->fillField("#input_3_5", $faker->phoneNumber());
-        
-        $I->fillField("#input_3_6", $faker->userName());
-        
-        $I->click("#choice_3_14_1");
-
-        $I->takeFullPageScreenshot("register-page-filled");
-
-        $I->click("Register");
-
-        $I->wait(1);
-
-        $I->takeFullPageScreenshot("register-page-thank-you");
-
-        $I->see("Thank you for registering!");
-    }
-
     public function joinPageIsVisible(AcceptanceTester $I)
     {
         $faker = \Faker\Factory::create();

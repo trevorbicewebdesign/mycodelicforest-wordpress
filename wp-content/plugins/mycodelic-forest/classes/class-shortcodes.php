@@ -11,6 +11,7 @@ class MycodelicForestShortcodes
     public function init()
     {
         add_shortcode('civi_group_contacts', array($this, 'my_civicrm_group_shortcode'));
+        add_shortcode('mycodelic_profile_form', [$this, 'render_profile_form']);
     }
 
     /**
@@ -59,4 +60,6 @@ class MycodelicForestShortcodes
 
         return $html;
     }
+
+    
 }

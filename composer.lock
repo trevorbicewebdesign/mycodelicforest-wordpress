@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5f278abdf2939c9eab3cc8718a2e7660",
+    "content-hash": "c7c3154cc46229efe51bd34df971e292",
     "packages": [
         {
             "name": "composer/installers",
@@ -6258,6 +6258,45 @@
             "time": "2024-03-03T12:36:25+00:00"
         },
         {
+            "name": "trevorbicewebdesign/codeception-mailpit",
+            "version": "0.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/trevorbicewebdesign/codeception-mailpit.git",
+                "reference": "644a18b69727671ecc7e63ba24e93c1b21518548"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/trevorbicewebdesign/codeception-mailpit/zipball/644a18b69727671ecc7e63ba24e93c1b21518548",
+                "reference": "644a18b69727671ecc7e63ba24e93c1b21518548",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Codeception\\Module\\": "src"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Trevor Bice",
+                    "email": "trevorbicewebdesign@gmail.com"
+                }
+            ],
+            "description": "Provides test helpers for Codeception when testing email functionality with Mailpit",
+            "support": {
+                "source": "https://github.com/trevorbicewebdesign/codeception-mailpit/tree/0.0.2",
+                "issues": "https://github.com/trevorbicewebdesign/codeception-mailpit/issues"
+            },
+            "time": "2025-02-28T01:52:02+00:00"
+        },
+        {
             "name": "vlucas/phpdotenv",
             "version": "v5.6.1",
             "source": {
@@ -6344,10 +6383,10 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": {},
-    "platform-dev": {},
+    "platform": [],
+    "platform-dev": [],
     "plugin-api-version": "2.6.0"
 }
