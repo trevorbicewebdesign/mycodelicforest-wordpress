@@ -61,8 +61,9 @@ class CleanDatabase
 
             // Import dev-drop-tables.sql
             "wp db import bin/dev-drop-tables.sql",
+            "wp db import bin/dev-drop-civicrm-tables.sql",
             // Optionally import dev-truncate-tables if you separated that logic
-            "wp db import bin/dev-truncate-tables.sql",
+            // "wp db import bin/dev-truncate-tables.sql",
         ];
 
         $this->runCommands($commands);
