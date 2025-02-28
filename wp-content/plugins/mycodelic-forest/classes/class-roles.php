@@ -11,6 +11,16 @@ class MycodelicForestRoles {
         add_action('init', [$this, 'add_roles']);
         add_action('wp_login', [$this, 'lastLogin']);
         add_action('rtcamp.google_user_logged_in', [$this, 'lastGoogleLogin'], 10, 2);
+        // Block subscribers from accessing the admin.
+        add_action('admin_init', [$this, 'blockAdminForSubscribers']);
+    }
+
+    public function blockAdminForSubscribers() {
+        // Only redirect in admin area and not during AJAX requests.
+        if ( is_admin() && ! defined('DOING_AJAX') && current_user_can('subscriber') ) {
+            wp_redirect( home_url() );
+            exit;
+        }
     }
 
     public function add_roles()
