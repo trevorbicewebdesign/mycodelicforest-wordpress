@@ -11,7 +11,10 @@ modules:
         - lucatume\WPBrowser\Module\WPWebDriver
         - Tests\Support\Helper\Acceptance
         - Asserts
+        - Mailpit
     config:
+        Mailpit:
+            base_uri: http://localhost:10006
         lucatume\WPBrowser\Module\WPWebDriver:
           url: '%WORDPRESS_URL%'
           adminUsername: '%WORDPRESS_ADMIN_USER%'
