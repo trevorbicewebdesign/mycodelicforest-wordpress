@@ -49,44 +49,71 @@ class BasicCest
 
         $I->see("Username", "#field_3_1 label");
         $I->see("Email", "#field_3_2 label");
-        
-        $I->see("Password", "#field_3_3 label");
-        $I->see("Confirm Password", "#field_3_3 label");
-
         $I->see("Full Name", "#field_3_4 legend");
         $I->see("First", "#field_3_4 label");
         $I->see("Last", "#field_3_4 label");
-
         $I->see("Phone Number", "#field_3_5 label");
 
-        // Click yes
-        $I->click("#choice_3_15_1");
-        $I->see("Years Attended", "#field_3_14 legend");
+        $user_login = $faker->userName();
 
-        $I->fillField("#input_3_1", $faker->userName());
+        $I->fillField("#input_3_1", $user_login);
         $I->fillField("#input_3_2", $faker->email());
-        $I->fillField("#input_3_3", "password123!test");
-        $I->fillField("#input_3_3_2", "password123!test");
         $I->fillField("#input_3_4_3", $faker->firstName());
         $I->fillField("#input_3_4_6", $faker->lastName());
-
-        $I->selectOption("#input_3_9_6", "United States");
-
         $I->fillField("#input_3_5", $faker->phoneNumber());
-        
-        $I->fillField("#input_3_6", $faker->userName());
-        
-        $I->click("#choice_3_14_1");
 
         $I->takeFullPageScreenshot("register-page-filled");
 
         $I->click("Register");
-
         $I->wait(1);
 
         $I->takeFullPageScreenshot("register-page-thank-you");
-
         $I->see("Thank you for registering!");
+        $I->wait(1);        
+        $email_id = $I->getLastEmailId();
+        $email = $I->getEmailById($email_id);
+        codecept_debug($email);
+
+        if (preg_match('/[?&]key=([^&]+)/', $email['Text'], $matches)) {
+            $user_activation_key = $matches[1];
+            echo "Extracted key: " . $user_activation_key;
+        } else {
+            echo "Key not found.";
+        }        
+
+        $domain = "https://local.mycodelicforest.org";
+
+        $expectedMessageText = <<<EOT
+        Hi {$user_login},
+
+        Please click the following link to activate your account and set a new password:
+
+        
+        {$domain}/wp-login.php?action=rp&key={$user_activation_key}&login={$user_login}";
+
+        If you did not register, please ignore this email.
+
+
+        EOT;
+        $I->assertEmailTextEquals($email_id, $expectedMessageText);
+    
+        $I->amOnPage("/wp-login.php?login=$user_login&key=$user_activation_key&action=rp");
+        $I->wait(1);
+        $I->takeFullPageScreenshot("register-page-reset-password");
+        $I->see("Enter your new password below or generate one.");
+        $password = $I->grabAttributeFrom("#pass1", "value");
+        $I->click("Save Password");
+        $I->wait(1);
+        $I->see("Your password has been reset.");
+        $I->see("Log in");
+        $I->click("Log in");
+        $I->wait(1);
+        $I->see("Log In");
+        $I->fillField("#user_login", $user_login);
+        $I->fillField("#user_pass", $password);
+        $I->click("#wp-submit");
+        $I->wait(1);
+        $I->seeCurrentUrlEquals("/");
     }
 
     public function joinPageIsVisible(AcceptanceTester $I)
