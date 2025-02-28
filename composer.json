@@ -24,6 +24,10 @@
         {
             "type": "composer",
             "url": "https://wpackagist.org"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/trevorbicewebdesign/codeception-mailpit"
         }
     ],
     "require": {
@@ -46,7 +50,8 @@
         "codeception/module-rest": "^3.3",
         "league/factory-muffin": "^3.0",
         "league/factory-muffin-faker": "^2.0",
-        "10up/wp_mock": "*"
+        "10up/wp_mock": "*",
+        "trevorbicewebdesign/codeception-mailpit": "*"
     },
     "autoload": {
         "psr-4": {
