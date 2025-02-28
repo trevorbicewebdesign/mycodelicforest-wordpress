@@ -20,7 +20,7 @@ class MycodelicForestProfile{
 
          add_action( 'register_form', [ $this, 'add_recaptcha_to_registration'] );
 
-         add_filter( 'registration_errors', 'verify_recaptcha_on_registration', 10, 3 );
+         // add_filter( 'registration_errors', 'verify_recaptcha_on_registration', 10, 3 );
     }
 
     public function enqueue_recaptcha_script() {
