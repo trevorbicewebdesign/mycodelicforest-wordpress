@@ -9,5 +9,15 @@ class ProfileCest
     {
 
     }
+
+    public function profilePageIsVisible(AcceptanceTester $I)
+    {
+        $I->amOnPage("/profile/");
+        $I->see("Profile");
+        $I->takeFullPageScreenshot("profile-page");
+
+        $I->see("Name (Required)", "legend.gfield_label");
+
+    }
     
 }
