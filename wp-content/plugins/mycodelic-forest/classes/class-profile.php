@@ -184,16 +184,42 @@ class MycodelicForestProfile
                 'label' => __('Zip', 'textdomain'),
                 'type' => 'text',
             ],
-            'phone' => [
+            'user_phone' => [
                 'label' => __('Phone', 'textdomain'),
                 'type' => 'text',
             ],
             'has_attended_burning_man' => [
                 'label' => __('Has attended Burning Man', 'textdomain'),
-                'type' => 'checkbox',
+                'type' => 'radio',
+                'options' => [
+                    'Yes' => __('Yes', 'textdomain'),
+                    'No' => __('No', 'textdomain'),
+                ],
             ],
             'years_attended' => [
                 'label' => __('Years attended', 'textdomain'),
+                'type' => 'checkbox',
+                'options' => [
+                    '2023' => __('2023', 'textdomain'),
+                    '2022' => __('2022', 'textdomain'),
+                    '2021' => __('2021', 'textdomain'),
+                    '2020' => __('2020', 'textdomain'),
+                    '2019' => __('2019', 'textdomain'),
+                    '2018' => __('2018', 'textdomain'),
+                    '2017' => __('2017', 'textdomain'),
+                    '2016' => __('2016', 'textdomain'),
+                    '2015' => __('2015', 'textdomain'),
+                    '2014' => __('2014', 'textdomain'),
+                    '2013' => __('2013', 'textdomain'),
+                    '2012' => __('2012', 'textdomain'),
+                ],
+            ],
+            'playa_name' => [
+                'label' => __('Playa Name', 'textdomain'),
+                'type' => 'text',
+            ],
+            'user_about_me' => [
+                'label' => __('About Me', 'textdomain'),
                 'type' => 'text',
             ],
         ];
@@ -221,10 +247,30 @@ class MycodelicForestProfile
                         <?php
                         $value = get_user_meta($user->ID, $key, true);
                         if ('checkbox' === $field['type']) {
-                            ?>
-                            <input type="checkbox" name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>" value="1"
-                                <?php checked($value, 1); ?> />
-                            <?php
+                            if (!empty($field['options']) && is_array($field['options'])) {
+                                $value = json_decode($value, true); // Decode the JSON value
+                                foreach ($field['options'] as $option_value => $option_label) {
+                                    ?>
+                                    <label>
+                                        <input type="checkbox" name="<?php echo esc_attr($key); ?>[]" value="<?php echo esc_attr($option_value); ?>"
+                                            <?php if (is_array($value) && in_array($option_value, $value)) echo 'checked="checked"'; ?> />
+                                        <?php echo esc_html($option_label); ?>
+                                    </label><br>
+                                    <?php
+                                }
+                            }
+                        } elseif ('radio' === $field['type']) {
+                            if (!empty($field['options']) && is_array($field['options'])) {
+                                foreach ($field['options'] as $option_value => $option_label) {
+                                    ?>
+                                    <label>
+                                        <input type="radio" name="<?php echo esc_attr($key); ?>" value="<?php echo esc_attr($option_value); ?>"
+                                            <?php checked($value, $option_value); ?> />
+                                        <?php echo esc_html($option_label); ?>
+                                    </label><br>
+                                    <?php
+                                }
+                            }
                         } else {
                             ?>
                             <input type="text" name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>"
@@ -253,7 +299,7 @@ class MycodelicForestProfile
         foreach ($fields as $key => $field) {
             if (isset($data[$key])) {
                 if ('checkbox' === $field['type']) {
-                    update_user_meta($user_id, $key, 1);
+                    update_user_meta($user_id, $key, json_encode($data[$key]));
                 } else {
                     update_user_meta($user_id, $key, sanitize_text_field($data[$key]));
                 }
