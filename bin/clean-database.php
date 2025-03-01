@@ -58,6 +58,7 @@ class CleanDatabase
 
             // Run search-replace
             "wp search-replace '//wordpress.mycodelicforest.org' \"//{$this->wordpressDomain}\" --all-tables",
+            "wp search-replace 'wordpress.mycodelicforest.org' \"{$this->wordpressDomain}\" --all-tables",
 
             // Import dev-drop-tables.sql
             "wp db import bin/dev-drop-tables.sql",
