@@ -49,15 +49,15 @@ class ProfileCest
 
         $I->fillField("#input_6_16_3", "Test");
         $I->fillField("#input_6_16_6", "User");
-        $I->fillFIeld("#input_6_5", "555-555-5555");
+        $I->fillField("#input_6_5", "555-555-5555");
         $I->fillField("#input_6_9_1", "123 Main St");
         $I->fillField("#input_6_9_3", "Anytown");
         $I->fillField("#input_6_9_4", "CA");
         $I->fillField("#input_6_9_5", "12345");
-        $I->fillField("#input_6_9_6", "United States");
+        $I->selectOption("#input_6_9_6", ["value" => "US"]);
         $I->fillField("#input_6_13", "This is a test.");
         $I->fillField("#input_6_6", "TestBurner");
-        $I->selectOption("#input_6_19_0", "Yes");
+        $I->selectOption("#input_6_19_0", ["value" => "No"]);
         $I->click("Save");
         $I->wait(2);
         $I->see("Profile updated successfully.");
