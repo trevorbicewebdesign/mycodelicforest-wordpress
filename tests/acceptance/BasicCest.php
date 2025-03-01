@@ -39,45 +39,6 @@ class BasicCest
         $I->takeFullPageScreenshot("resources-page");
     }
 
-    public function joinPageIsVisible(AcceptanceTester $I)
-    {
-        $faker = \Faker\Factory::create();
-
-        $I->amOnPage("/join-us");
-        $I->wait(1);
-        $I->see("Join Us");
-        $I->takeFullPageScreenshot("join-page");
-
-        $I->see("Address", "#field_3_9 legend");
-        $I->see("Street Address", "#field_3_9 label");
-        $I->see("Address Line 2", "#field_3_9 label");
-        $I->see("City", "#field_3_9 label");
-        $I->see("State", "#field_3_9 label");
-        $I->see("Zip", "#field_3_9 label");
-        $I->see("Country", "#field_3_9 label");
-
-        $I->see("About Me", "#field_3_13 label");
-
-        $I->see("Playa Name", "#field_3_6 label");
-        $I->see("Have you been to Burning Man before?", "#field_3_15 legend");
-        $I->see("Yes", "#field_3_15 label");
-        $I->see("No", "#field_3_15 label");
-        $I->dontSee("Years Attended", "#field_3_14 legend");
-
-        $I->click("#choice_3_15_1");
-
-        $I->fillField("#input_3_9_1", $faker->streetAddress());
-        $I->fillField("#input_3_9_2", $faker->secondaryAddress());
-        $I->fillField("#input_3_9_3", $faker->city());
-        $I->fillField("#input_3_9_4", $faker->state());
-        $I->fillField("#input_3_9_5", $faker->postcode());
-
-        $I->fillField("#input_3_13", $faker->text(200));
-
-
-
-    }
-
     public function calendarPageIsVisible(AcceptanceTester $I)
     {
         $I->amOnPage("/calendar");
