@@ -64,6 +64,7 @@ class CleanDatabase
             "wp db import bin/dev-drop-civicrm-tables.sql",
             // Optionally import dev-truncate-tables if you separated that logic
             // "wp db import bin/dev-truncate-tables.sql",
+            "wp option update wp_mail_smtp \"\"",
         ];
 
         $this->runCommands($commands);
@@ -76,14 +77,14 @@ class CleanDatabase
         $this->runCommands($finalCommands);
 
         $this->activatePlugins([
-            "civicrm",
+            // "civicrm",
             "email-address-obfuscation",
             "google-site-kit",
             "gravityforms",
             "really-simple-ssl",
             "redirection",
             "revslider",
-            "wp-mail-smtp",
+            // "wp-mail-smtp",
             "ultimate-addons-for-gutenberg",
             "ultimate-faqs",
             "mycodelic-forest",
