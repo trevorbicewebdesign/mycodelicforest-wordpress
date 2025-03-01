@@ -2,9 +2,10 @@
 class MycodelicForestProfile
 {
 
-    public function __construct()
+    protected $messages;
+    public function __construct(MycodelicForestMessages $messages)
     {
-        // You can hook in during construction or later via an init() method.
+        $this->messages = $messages;
     }
 
     public function init()
@@ -44,9 +45,22 @@ class MycodelicForestProfile
         add_filter('gform_field_value_years_attended', [$this, 'populate_years_attended']);
 
         add_filter('gform_entry_id_pre_save_lead', [$this, 'prevent_gravity_entry_save'], 10, 2);
+
+        add_filter('gform_form_tag', function ($form_tag, $form) {
+            if ($form['id'] == 6) {
+                $form_tag = preg_replace('/action=[\'"].*?[\'"]/', 'action="' . esc_url($_SERVER['REQUEST_URI']) . '"', $form_tag);
+            }
+            return $form_tag;
+        }, 10, 2);        
+
+        add_action('gform_after_submission_6', [$this, 'gform_after_submission_6'], 10, 2);
     }
 
-    
+    public function gform_after_submission_6($entry, $form) {
+        $this->messages->set_message('Profile updated successfully!', 'success');
+        
+    }
+
     public function prevent_gravity_entry_save($entry_id, $form) {
     if ($form['id'] == 6) {
         return null; // Prevents the entry from being saved
