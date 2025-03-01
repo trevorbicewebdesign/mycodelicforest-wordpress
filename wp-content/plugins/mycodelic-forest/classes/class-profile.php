@@ -126,7 +126,7 @@ class MycodelicForestProfile
         }
     
         // Validate phone number (basic format check)
-        $phone = get_user_meta($user_id, 'phone', true);
+        $phone = get_user_meta($user_id, 'user_phone', true);
         if (!preg_match('/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/', $phone)) {
             return false; // Invalid phone format
         }
@@ -444,7 +444,7 @@ class MycodelicForestProfile
     
         // Handle Multi-Checkbox Field: "Years Attended" (Field ID: 14)
         $years_attended = [];
-        if ($attended_burning_man == '1') { // User has attended
+        if ($attended_burning_man == 'Yes') { // User has attended
             foreach ($form['fields'] as $field) {
                 if ($field->id == 14 && !empty($field->inputs) && is_array($field->inputs)) {
                     foreach ($field->inputs as $input) {
