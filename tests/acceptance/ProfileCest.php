@@ -60,5 +60,23 @@ class ProfileCest
         $I->click("#choice_6_19_1");
         $I->click("Save");
         $I->wait(2);
+
+        $I->takeFullPageScreenshot("profile-page-saved");
+
+        $I->seeInField("#input_6_16_3", "Test");
+        $I->seeInField("#input_6_16_6", "User");
+        $I->seeInFIeld("#input_6_18", "testuser@example.com");
+        $I->seeInField("input[name=input_5]", "(555) 555-5555");
+        $I->seeInField("#input_6_9_1", "123 Main St");
+        $I->seeInField("#input_6_9_3", "Anytown");
+        $I->seeInField("#input_6_9_4", "CA");
+        $I->seeInField("#input_6_9_5", "12345");
+        $I->seeOptionIsSelected("#input_6_9_6", "US");
+        $I->seeInField("#input_6_13", "This is a test.");
+        $I->seeInField("#input_6_6", "TestBurner");
+        $I->seeCheckboxIsChecked("#choice_6_19_1");
+
+        
+   
     }
 }
