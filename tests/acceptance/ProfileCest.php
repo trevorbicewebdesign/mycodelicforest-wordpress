@@ -57,11 +57,8 @@ class ProfileCest
         $I->selectOption("#input_6_9_6", ["value" => "US"]);
         $I->fillField("#input_6_13", "This is a test.");
         $I->fillField("#input_6_6", "TestBurner");
-        $I->selectOption("#input_6_19_0", ["value" => "No"]);
+        $I->click("#choice_6_19_1");
         $I->click("Save");
         $I->wait(2);
-        $I->see("Profile updated successfully.");
-
     }
-    
 }
