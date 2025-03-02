@@ -73,4 +73,27 @@ class MycodelicForestCiviCRM
 
     }
 
+    public function getContact($contact_id)
+    {
+        $contact = [];
+        /*
+        try {
+            $contact = civicrm_api3( 'Contact', 'get', [
+                'sequential' => 1,
+                'id'         => $contact_id,
+            ] );
+        } catch ( \CiviCRM_API3_Exception $e ) {
+            throw new Exception( 'Error fetching contact: ' . $e->getMessage() );
+        }
+        */
+
+        $contact = [
+            'contact_id'   => 1,
+            'display_name' => 'John Doe',
+            'email'        => 'john.doe@mailinator.com',
+        ];
+
+        return $contact;
+    }
+
 }
