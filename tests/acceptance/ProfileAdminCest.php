@@ -6,6 +6,7 @@ use Tests\Support\AcceptanceTester;
 class ProfileAdminCest
 {
     protected $userId;
+    protected $adminId;
     public function _before(AcceptanceTester $I)
     {
         $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
@@ -124,7 +125,7 @@ class ProfileAdminCest
         $I->see("Years Attended", "label[for='years_attended']");
 
         $I->seeInField("#first_name", "Test");
-        $I->seeInField("#last_name", "User");
+        $I->seeInField("#last_name", "Admin");
         $I->seeInField("#user_phone", "(123) 456-7890");
         $I->seeInField("#address_1", "123 Main St");
         $I->seeInField("#city", "Anytown");
@@ -134,20 +135,20 @@ class ProfileAdminCest
         $I->seeInField("#user_about_me", "This is a test.");
         $I->seeInField("#playa_name", "TestBurner");
         
-        $I->click("Update User");   
+        $I->click("Update Profile");   
 
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "first_name","meta_value" => "Test"]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "last_name","meta_value" => "User"]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "user_phone","meta_value" => "(123) 456-7890"]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "address_1","meta_value" => "123 Main St"]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "city","meta_value" => "Anytown"]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "state","meta_value" => "CA"]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "zip","meta_value" => "12345"]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "country","meta_value" => "United States"]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "user_about_me","meta_value" => "This is a test."]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "playa_name","meta_value" => "TestBurner"]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "has_attended_burning_man","meta_value" => "Yes"]);
-        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "years_attended","meta_value" => '["2024"]']);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "first_name","meta_value" => "Test"]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "last_name","meta_value" => "Admin"]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "user_phone","meta_value" => "(123) 456-7890"]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "address_1","meta_value" => "123 Main St"]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "city","meta_value" => "Anytown"]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "state","meta_value" => "CA"]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "zip","meta_value" => "12345"]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "country","meta_value" => "United States"]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "user_about_me","meta_value" => "This is a test."]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "playa_name","meta_value" => "TestBurner"]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "has_attended_burning_man","meta_value" => "Yes"]);
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "years_attended","meta_value" => '["2024"]']);
 
     }
 }
