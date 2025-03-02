@@ -219,6 +219,7 @@ class MycodelicForestProfile
                 'label' => __('Years attended', 'textdomain'),
                 'type' => 'checkbox',
                 'options' => [
+                    '2024' => __('2024', 'textdomain'),
                     '2023' => __('2023', 'textdomain'),
                     '2022' => __('2022', 'textdomain'),
                     '2021' => __('2021', 'textdomain'),
@@ -265,7 +266,7 @@ class MycodelicForestProfile
             ],
             'user_about_me' => [
                 'label' => __('About Me', 'textdomain'),
-                'type' => 'text',
+                'type' => 'textarea',
             ],
         ];
     }
@@ -308,193 +309,66 @@ class MycodelicForestProfile
      *
      * @param WP_User $user
      */
-    public function show_extra_fields($user) {
+    public function show_extra_fields($user)
+    {
+        // Security check.
         if (!current_user_can('edit_user', $user->ID)) {
             return;
         }
-        
-        // Get Gravity Form ID 6.
-        $form = GFAPI::get_form(6); 
-
-        print_r($form);
-        
-        echo '<style>
-                .gform-grid-col { width: 100%; display: inline-block; direction: rtl; text-align: left; }
-                .gform-grid-col label { display: inline-block; min-width: 160px; }
-              </style>';
-        echo '<h3>MyCodelic Profile Fields</h3>';
-        echo '<table class="form-table">';
-        
-        foreach ($form['fields'] as $field) {
-            // Skip fields that you don't want to show.
-            if ( in_array($field->id, [16, 18]) ) {
-                continue;
-            }
-        
-            $meta_key = '';
-            $value = '';
-        
-            // Special handling for field 14 (years_attended)
-            if ($field->id == 14) {
-                // Retrieve the stored value (assumed to be JSON)
-                $stored = get_user_meta($user->ID, 'years_attended', true);
-                $stored = json_decode($stored, true);
-                // Generate the field HTML with the pre-populated value.
-                $field_html = GFCommon::get_field_input($field, $stored, $form);
-                // Force all checkboxes for field 14 to have the same name attribute.
-                $field_html = preg_replace('/name=[\'"]years_attended\.\d+[\'"]/', 'name="years_attended[]"', $field_html);
-            } else {
-                // For non–field 14, use your mapping.
-                // Check for composite fields (with multiple inputs)
-                if (!empty($field->inputs) && is_array($field->inputs)) {
-                    $composite_values = array();
-                    foreach ($field->inputs as $input) {
-                        $input_id = (string)$input['id'];
-                        // Map the input id to a meta key.
-                        switch ($input_id) {
-                            case '16.3':
-                                $meta_key = 'first_name';
-                                break;
-                            case '16.6':
-                                $meta_key = 'last_name';
-                                break;
-                            case '5':
-                                $meta_key = 'user_phone';
-                                break;
-                            case '9.1':
-                                $meta_key = 'address_1';
-                                break;
-                            case '9.2':
-                                $meta_key = 'address_2';
-                                break;
-                            case '9.3':
-                                $meta_key = 'city';
-                                break;
-                            case '9.4':
-                                $meta_key = 'state';
-                                break;
-                            case '9.5':
-                                $meta_key = 'zip';
-                                break;
-                            case '9.6':
-                                $meta_key = 'country';
-                                break;
-                            case '13':
-                                $meta_key = 'user_about_me';
-                                break;
-                            case '6':
-                                $meta_key = 'playa_name';
-                                break;
-                            case '19':
-                                $meta_key = 'has_attended_burning_man';
-                                break;
-                            default:
-                                $meta_key = 'input_' . $input_id;
+        $fields = $this->get_extra_fields_definitions();
+        ?>
+        <h3><?php esc_html_e('Extra Profile Fields', 'textdomain'); ?></h3>
+        <table class="form-table">
+            <?php foreach ($fields as $key => $field): ?>
+                <tr>
+                    <th><label for="<?php echo esc_attr($key); ?>"><?php echo esc_html($field['label']); ?></label></th>
+                    <td>
+                        <?php
+                        $value = get_user_meta($user->ID, $key, true);
+                        if ('checkbox' === $field['type']) {
+                            if (!empty($field['options']) && is_array($field['options'])) {
+                                $value = json_decode($value, true); // Decode the JSON value
+                                foreach ($field['options'] as $option_value => $option_label) {
+                                    ?>
+                                    <label>
+                                        <input type="checkbox" name="<?php echo esc_attr($key); ?>[]" value="<?php echo esc_attr($option_value); ?>"
+                                            <?php if (is_array($value) && in_array($option_value, $value)) echo 'checked="checked"'; ?> />
+                                        <?php echo esc_html($option_label); ?>
+                                    </label><br>
+                                    <?php
+                                }
+                            }
+                        } elseif ('radio' === $field['type']) {
+                            if (!empty($field['options']) && is_array($field['options'])) {
+                                foreach ($field['options'] as $option_value => $option_label) {
+                                    ?>
+                                    <label>
+                                        <input type="radio" name="<?php echo esc_attr($key); ?>" value="<?php echo esc_attr($option_value); ?>"
+                                            <?php checked($value, $option_value); ?> />
+                                        <?php echo esc_html($option_label); ?>
+                                    </label><br>
+                                    <?php
+                                }
+                            }
+                        } 
+                        elseif ('textarea' === $field['type']) {
+                            ?>
+                            <textarea name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>" rows="5" cols="30"><?php echo esc_textarea($value); ?></textarea>
+                            <?php
                         }
-                        $composite_values[$input['id']] = get_user_meta($user->ID, $meta_key, true);
-                    }
-                    $value = $composite_values;
-                } else {
-                    // Single input field.
-                    if (!empty($field->adminLabel)) {
-                        $meta_key = $field->adminLabel;
-                    } else {
-                        $field_id = (string)$field->id;
-                        switch ($field_id) {
-                            case '16.3':
-                                $meta_key = 'first_name';
-                                break;
-                            case '16.6':
-                                $meta_key = 'last_name';
-                                break;
-                            case '5':
-                                $meta_key = 'user_phone';
-                                break;
-                            case '6':
-                                $meta_key = 'playa_name';
-                                break;
-                            case '13':
-                                $meta_key = 'user_about_me';
-                                break;
-                            case '19':
-                                $meta_key = 'has_attended_burning_man';
-                                break;
-                            case '9.1':
-                                $meta_key = 'address_1';
-                                break;
-                            case '9.2':
-                                $meta_key = 'address_2';
-                                break;
-                            case '9.3':
-                                $meta_key = 'city';
-                                break;
-                            case '9.4':
-                                $meta_key = 'state';
-                                break;
-                            case '9.5':
-                                $meta_key = 'zip';
-                                break;
-                            case '9.6':
-                                $meta_key = 'country';
-                                break;
-                            default:
-                                $meta_key = 'input_' . $field->id;
+                        else {
+                            ?>
+                            <input type="text" name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>"
+                                value="<?php echo esc_attr($value); ?>" class="regular-text" />
+                            <?php
                         }
-                    }
-                    $value = get_user_meta($user->ID, $meta_key, true);
-                }
-        
-                $field_html = GFCommon::get_field_input($field, $value, $form);
-        
-                // Replace default input markers with your custom names.
-                $patterns = [
-                    '/input_5/',
-                    '/input_9_1/',
-                    '/input_9\.1/',
-                    '/input_9_2/',
-                    '/input_9\.2/',
-                    '/input_9_3/',
-                    '/input_9_4/',
-                    '/input_9_5/',
-                    '/input_9_6/',
-                    '/input_13/',
-                    '/input_6/',
-                    '/input_19/',
-                    '/input_14/',
-                ];
-                $replacements = [
-                    'user_phone',
-                    'address_1',
-                    'address_1',
-                    'address_2',
-                    'address_2',
-                    'city',
-                    'state',
-                    'zip',
-                    'country',
-                    'user_about_me',
-                    'playa_name',
-                    'has_attended_burning_man',
-                    'years_attended',
-                ];
-                $field_html = preg_replace($patterns, $replacements, $field_html);
-            }
-            
-            echo '<tr>';
-            echo '<th><label>' . esc_html($field->label) . '</label></th>';
-            echo "<td>{$field_html}</td>";
-            echo '</tr>';
-        }
-        
-        echo '</table>';
+                        ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+        <?php
     }
-    
-    
-    
-
-
-
-    
 
     /**
      * Update extra fields based on a provided data array.
@@ -666,6 +540,7 @@ class MycodelicForestProfile
         $years_attended = $user_id ? get_user_meta($user_id, 'years_attended', true) : '';
         if (!empty($years_attended)) {
             return json_decode($years_attended);
+            // return maybe_unserialize($years_attended); // Use this if saving as serialized array
         }
         return '';
     }
