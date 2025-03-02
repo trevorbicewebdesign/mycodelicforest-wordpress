@@ -44,10 +44,9 @@ class ProfileAdminCest
         $I->see("About Me", "label[for='user_about_me']");
         $I->see("Playa Name", "label[for='playa_name']");
 
-        $I->see("Have you been to Burning Man before?", "legend.gfield_label");
-        $I->see("Yes", "label[for='choice_6_19_0']");
-        $I->see("No", "label[for='choice_6_19_1']");
+        $I->see("Have you been to Burning Man before?", "label[for='has_attended_burning_man']");
+        $I->see("Years Attended", "label[for='years_attended']");
 
-        $I->click("Save");   
+        $I->click("Update User");   
     }
 }
