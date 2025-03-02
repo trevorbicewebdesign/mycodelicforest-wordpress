@@ -20,12 +20,6 @@ class MycodelicForestProfile
         add_action('wp_enqueue_scripts', [$this, 'enqueue_recaptcha_script']);
         add_action('register_form', [$this, 'add_recaptcha_to_registration']);
         add_action('template_redirect', [$this, 'mycodelic_redirect_incomplete_profile']);
-
-        // add_action( 'init', [$this, 'mycodelic_add_rewrite_rules'] );
-        //add_filter( 'query_vars', [$this, 'mycodelic_query_vars'] );
-
-        add_shortcode('mycodelic_profile_form', [$this, 'render_profile_form']);
-        
         
         add_action('gform_after_submission_6', [$this, 'update_user_profile_from_gravity'], 10, 2);
 
@@ -197,7 +191,15 @@ class MycodelicForestProfile
             ],
             'country' => [
                 'label' => __('Country', 'textdomain'),
-                'type' => 'text',
+                'type' => 'select',
+                'options' => [
+                    '' => __('Please select a country', 'textdomain'),
+                    'United States' => __('United States', 'textdomain'),
+                    'Canada' => __('Canada', 'textdomain'),
+                    'United Kingdom' => __('United Kingdom', 'textdomain'),
+                    'Australia' => __('Australia', 'textdomain'),
+                    'France' => __('France', 'textdomain'),
+                ],
             ],
             'zip' => [
                 'label' => __('ZIP / Postal Code', 'textdomain'),
@@ -350,13 +352,23 @@ class MycodelicForestProfile
                                     <?php
                                 }
                             }
-                        } 
-                        elseif ('textarea' === $field['type']) {
+                        } elseif ('select' === $field['type']) {
+                            if (!empty($field['options']) && is_array($field['options'])) {
+                                ?>
+                                <select name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>">
+                                    <?php foreach ($field['options'] as $option_value => $option_label) { ?>
+                                        <option value="<?php echo esc_attr($option_value); ?>" <?php selected($value, $option_value); ?>>
+                                            <?php echo esc_html($option_label); ?>
+                                        </option>
+                                    <?php } ?>
+                                </select>
+                                <?php
+                            }
+                        } elseif ('textarea' === $field['type']) {
                             ?>
                             <textarea name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>" rows="5" cols="30"><?php echo esc_textarea($value); ?></textarea>
                             <?php
-                        }
-                        else {
+                        } else {
                             ?>
                             <input type="text" name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>"
                                 value="<?php echo esc_attr($value); ?>" class="regular-text" />
@@ -422,49 +434,6 @@ class MycodelicForestProfile
         $query_vars[] = 'profile_page';
         return $query_vars;
     }
-
-    public function render_profile_form()
-    {
-        if (!is_user_logged_in()) {
-            return '<p>' . esc_html__('You must be logged in to update your profile.', 'textdomain') . '</p>';
-        }
-
-        $user_id  = get_current_user_id();
-        $fields   = $this->get_extra_fields_definitions();
-        $output   = '';
-
-        // Handle form submission
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_profile'])) {
-            check_admin_referer('update_profile_nonce');
-
-            $this->update_extra_fields($user_id, $_POST);
-            $output .= '<p>' . esc_html__('Profile updated successfully.', 'textdomain') . '</p>';
-        }
-
-        // Start form
-        $output .= '<form method="post">';
-        $output .= wp_nonce_field('update_profile_nonce', '_wpnonce', true, false);
-
-        foreach ($fields as $key => $field) {
-            $value = get_user_meta($user_id, $key, true);
-            $output .= '<p>';
-            $output .= '<label for="' . esc_attr($key) . '">' . esc_html($field['label']) . ':</label><br>';
-
-            if ('checkbox' === $field['type']) {
-                $output .= '<input type="checkbox" name="' . esc_attr($key) . '" id="' . esc_attr($key) . '" value="1" ' . checked($value, 1, false) . ' />';
-            } else {
-                $output .= '<input type="text" name="' . esc_attr($key) . '" id="' . esc_attr($key) . '" value="' . esc_attr($value) . '" />';
-            }
-
-            $output .= '</p>';
-        }
-
-        $output .= '<p><input type="submit" name="submit_profile" value="' . esc_attr__('Update Profile', 'textdomain') . '"></p>';
-        $output .= '</form>';
-
-        return $output;
-    }
-
 
 
     // Populate first name
