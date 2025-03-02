@@ -54,6 +54,8 @@ class MycodelicForestProfile
         }, 10, 2);        
 
         add_action('gform_after_submission_6', [$this, 'gform_after_submission_6'], 10, 2);
+
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_phone_mask']);
     }
 
     public function gform_after_submission_6($entry, $form) {
@@ -191,11 +193,15 @@ class MycodelicForestProfile
                 'type' => 'text',
             ],
             'state' => [
-                'label' => __('"State / Province / Region', 'textdomain'),
+                'label' => __('State / Province / Region', 'textdomain'),
+                'type' => 'text',
+            ],
+            'country' => [
+                'label' => __('Country', 'textdomain'),
                 'type' => 'text',
             ],
             'zip' => [
-                'label' => __('Zip', 'textdomain'),
+                'label' => __('ZIP / Postal Code', 'textdomain'),
                 'type' => 'text',
             ],
             'user_phone' => [
@@ -203,7 +209,7 @@ class MycodelicForestProfile
                 'type' => 'text',
             ],
             'has_attended_burning_man' => [
-                'label' => __('Has attended Burning Man', 'textdomain'),
+                'label' => __('Have you been to Burning Man before?', 'textdomain'),
                 'type' => 'radio',
                 'options' => [
                     'Yes' => __('Yes', 'textdomain'),
@@ -265,65 +271,180 @@ class MycodelicForestProfile
         ];
     }
 
+    public function enqueue_admin_phone_mask($hook) {
+        // Only load on profile pages
+        if ($hook === 'user-edit.php' || $hook === 'profile.php') {
+
+            // Custom script to apply the mask
+            wp_enqueue_script('jquery-masked-input', 'https://cdnjs.cloudflare.com/ajax/libs/jquery.maskedinput/1.4.1/jquery.maskedinput.min.js', ['jquery'], '1.4.1', true);
+            wp_add_inline_script('jquery-masked-input', "
+                jQuery(document).ready(function($) {
+                    jQuery('#user_phone').mask('(999) 999-9999');
+                });
+            ");
+        }
+    }
+
     /**
      * Output extra fields for the admin profile pages.
      *
      * @param WP_User $user
      */
-    public function show_extra_fields($user)
-    {
-        // Security check.
-        if (!current_user_can('edit_user', $user->ID)) {
-            return;
-        }
-        $fields = $this->get_extra_fields_definitions();
-        ?>
-        <h3><?php esc_html_e('MyCodelic Extra Profile Fields', 'textdomain'); ?></h3>
-        <table class="form-table">
-            <?php foreach ($fields as $key => $field): ?>
-                <tr>
-                    <th><label for="<?php echo esc_attr($key); ?>"><?php echo esc_html($field['label']); ?></label></th>
-                    <td>
-                        <?php
-                        $value = get_user_meta($user->ID, $key, true);
-                        if ('checkbox' === $field['type']) {
-                            if (!empty($field['options']) && is_array($field['options'])) {
-                                $value = json_decode($value, true); // Decode the JSON value
-                                foreach ($field['options'] as $option_value => $option_label) {
-                                    ?>
-                                    <label>
-                                        <input type="checkbox" name="<?php echo esc_attr($key); ?>[]" value="<?php echo esc_attr($option_value); ?>"
-                                            <?php if (is_array($value) && in_array($option_value, $value)) echo 'checked="checked"'; ?> />
-                                        <?php echo esc_html($option_label); ?>
-                                    </label><br>
-                                    <?php
-                                }
-                            }
-                        } elseif ('radio' === $field['type']) {
-                            if (!empty($field['options']) && is_array($field['options'])) {
-                                foreach ($field['options'] as $option_value => $option_label) {
-                                    ?>
-                                    <label>
-                                        <input type="radio" name="<?php echo esc_attr($key); ?>" value="<?php echo esc_attr($option_value); ?>"
-                                            <?php checked($value, $option_value); ?> />
-                                        <?php echo esc_html($option_label); ?>
-                                    </label><br>
-                                    <?php
-                                }
-                            }
-                        } else {
-                            ?>
-                            <input type="text" name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>"
-                                value="<?php echo esc_attr($value); ?>" class="regular-text" />
-                            <?php
-                        }
-                        ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-        </table>
-        <?php
+    /**
+ * Output extra fields for the admin profile pages.
+ *
+ * @param WP_User $user
+ */
+public function show_extra_fields($user) {
+    if (!current_user_can('edit_user', $user->ID)) {
+        return;
     }
+    
+    // Get Gravity Form ID 6.
+    $form = GFAPI::get_form(6); 
+    echo '<style>
+            .gform-grid-col { width: 100%; display: inline-block; direction: rtl; text-align: left; }
+            .gform-grid-col label { display: inline-block; min-width: 160px; }
+          </style>';
+    echo '<h3>MyCodelic Profile Fields</h3>';
+    echo '<table class="form-table">';
+    
+    foreach ($form['fields'] as $field) {
+        // Skip fields that should not be displayed (adjust as needed).
+        if ( in_array($field->id, [16, 18]) ) {
+            continue;
+        }
+    
+        $meta_key = '';
+        $value = '';
+        
+        // If the field has multiple inputs (composite field)
+        if (!empty($field->inputs) && is_array($field->inputs)) {
+            $composite_values = array();
+            foreach ($field->inputs as $input) {
+                $input_id = (string)$input['id'];
+                // Map composite inputs to meta keys
+                if ($input_id === '16.3') {
+                    $meta_key = 'first_name';
+                } elseif ($input_id === '16.6') {
+                    $meta_key = 'last_name';
+                } elseif ($input_id === '5') {
+                    $meta_key = 'user_phone';
+                } elseif ($input_id === '9.1') {
+                    $meta_key = 'address_1';
+                } elseif ($input_id === '9.2') {
+                    $meta_key = 'address_2';
+                } elseif ($input_id === '9.3') {
+                    $meta_key = 'city';
+                } elseif ($input_id === '9.4') {
+                    $meta_key = 'state';
+                } elseif ($input_id === '9.5') {
+                    $meta_key = 'zip';
+                } elseif ($input_id === '9.6') {
+                    $meta_key = 'country';
+                } elseif ($input_id === '13') {
+                    $meta_key = 'user_about_me';
+                } elseif ($input_id === '6') {
+                    $meta_key = 'playa_name';
+                } elseif ($input_id === '19') {
+                    $meta_key = 'has_attended_burning_man';
+                } elseif ($input_id === '14') {
+                    $meta_key = 'years_attended';
+                } else {
+                    $meta_key = 'input_' . $input_id;
+                }
+                // Retrieve each sub-input value
+                $composite_values[$input['id']] = get_user_meta($user->ID, $meta_key, true);
+            }
+            $value = $composite_values;
+        } else {
+            // Single-input field: first use adminLabel if set.
+            if (!empty($field->adminLabel)) {
+                $meta_key = $field->adminLabel;
+            } else {
+                // Otherwise, map based on the field id.
+                $field_id = (string)$field->id;
+                if ($field_id === '16.3') {
+                    $meta_key = 'first_name';
+                } elseif ($field_id === '16.6') {
+                    $meta_key = 'last_name';
+                } elseif ($field_id === '5') {
+                    $meta_key = 'user_phone';
+                } elseif ($field_id === '6') {
+                    $meta_key = 'playa_name';
+                } elseif ($field_id === '13') {
+                    $meta_key = 'user_about_me';
+                } elseif ($field_id === '19') {
+                    $meta_key = 'has_attended_burning_man';
+                } elseif ($field_id === '14') {
+                    $meta_key = 'years_attended';
+                } elseif ($field_id === '9.1') {
+                    $meta_key = 'address_1';
+                } elseif ($field_id === '9.2') {
+                    $meta_key = 'address_2';
+                } elseif ($field_id === '9.3') {
+                    $meta_key = 'city';
+                } elseif ($field_id === '9.4') {
+                    $meta_key = 'state';
+                } elseif ($field_id === '9.5') {
+                    $meta_key = 'zip';
+                } elseif ($field_id === '9.6') {
+                    $meta_key = 'country';
+                } else {
+                    $meta_key = 'input_' . $field->id;
+                }
+            }
+            $value = get_user_meta($user->ID, $meta_key, true);
+        }
+    
+        // Generate the field HTML using Gravity Forms' method.
+        $field_html = GFCommon::get_field_input($field, $value, $form);
+    
+        // Replace default input id markers with our custom meta key names.
+        $patterns = [
+            '/input_5/',
+            '/input_9_1/',
+            '/input_9\.1/',
+            '/input_9_2/',
+            '/input_9\.2/',
+            '/input_9_3/',
+            '/input_9_4/',
+            '/input_9_5/',
+            '/input_9_6/',
+            '/input_13/',
+            '/input_6/',
+            '/input_19/',
+            '/input_14/',
+        ];
+        $replacements = [
+            'user_phone',
+            'address_1',
+            'address_1',
+            'address_2',
+            'address_2',
+            'city',
+            'state',
+            'zip',
+            'country',
+            'user_about_me',
+            'playa_name',
+            'has_attended_burning_man',
+            'years_attended',
+        ];
+        $field_html = preg_replace($patterns, $replacements, $field_html);
+    
+        echo '<tr>';
+        echo '<th><label>' . esc_html($field->label) . '</label></th>';
+        echo "<td>{$field_html}</td>";
+        echo '</tr>';
+    }
+    
+    echo '</table>';
+}
+
+    
+    
+    
 
     /**
      * Update extra fields based on a provided data array.
