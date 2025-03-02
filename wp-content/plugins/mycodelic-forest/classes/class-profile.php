@@ -179,11 +179,11 @@ class MycodelicForestProfile
     {
         return [
             'address_1' => [
-                'label' => __('Address 1', 'textdomain'),
+                'label' => __('Street Address', 'textdomain'),
                 'type' => 'text',
             ],
             'address_2' => [
-                'label' => __('Address 2', 'textdomain'),
+                'label' => __('Address Line 2', 'textdomain'),
                 'type' => 'text',
             ],
             'city' => [
@@ -191,7 +191,7 @@ class MycodelicForestProfile
                 'type' => 'text',
             ],
             'state' => [
-                'label' => __('State', 'textdomain'),
+                'label' => __('"State / Province / Region', 'textdomain'),
                 'type' => 'text',
             ],
             'zip' => [
@@ -199,7 +199,7 @@ class MycodelicForestProfile
                 'type' => 'text',
             ],
             'user_phone' => [
-                'label' => __('Phone', 'textdomain'),
+                'label' => __('Phone Number', 'textdomain'),
                 'type' => 'text',
             ],
             'has_attended_burning_man' => [
