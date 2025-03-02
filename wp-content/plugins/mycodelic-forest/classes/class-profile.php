@@ -287,6 +287,34 @@ class MycodelicForestProfile
         }
     }
 
+    
+    /**
+     * Retrieves the profile information for a given user.
+     *
+     * @param int|null $user_id The ID of the user whose profile is to be retrieved. If null, the current user's ID will be used.
+     * @return array An associative array containing the user's profile information.
+     * @throws \Exception If no user ID is provided and the current user is not logged in.
+     */
+    public function get_profile($user_id=NULL)
+    {
+        if ($user_id==NULL) {
+            $user_id = get_current_user_id();
+            if (!$user_id) {
+                throw new \Exception('User ID is required to fetch a profile.');
+            }
+        }
+        $fields = $this->get_extra_fields_definitions();
+        $profile = [];
+        foreach ($fields as $key => $field) {
+            $profile[$key] = get_user_meta($user_id, $key, true);
+        }
+        $user = get_userdata($user_id);
+        if ($user) {
+            $profile['user_email'] = $user->user_email;
+        }
+        return $profile;
+    }
+
     public function gravity_forms_profile_field_map()
     {
         return [
