@@ -297,16 +297,39 @@ class MycodelicForestProfile
      */
     public function get_profile($user_id=NULL)
     {
+        print_r($user_id);
+
         if ($user_id==NULL) {
             $user_id = get_current_user_id();
-            if (!$user_id) {
-                throw new \Exception('User ID is required to fetch a profile.');
+            if(is_wp_error($user_id)) {
+                throw new \Exception('Error getting current user ID.');
             }
         }
-        $fields = $this->get_extra_fields_definitions();
+
+        if(is_wp_error($user_id) || $user_id==0) {
+            throw new \Exception('No user ID provided and no user is logged in.');
+        }
+
+        // Removed debug lines
+
+        $fields = [
+            'first_name',
+            'last_name',
+            'playa_name',
+            'user_phone',
+            'address_1',
+            'address_2',
+            'city',
+            'state',
+            'zip',
+            'country',
+            'user_about_me',
+            'has_attended_burning_man',
+            'years_attended',
+        ];
         $profile = [];
-        foreach ($fields as $key => $field) {
-            $profile[$key] = get_user_meta($user_id, $key, true);
+        foreach ($fields as $field) {
+            $profile[$field] = get_user_meta($user_id, $field, true);
         }
         $user = get_userdata($user_id);
         if ($user) {
