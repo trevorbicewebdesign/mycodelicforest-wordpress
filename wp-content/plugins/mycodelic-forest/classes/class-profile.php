@@ -372,6 +372,7 @@ class MycodelicForestProfile
         // Get current value for the burning man attendance
         $has_attended = get_user_meta($user->ID, 'has_attended_burning_man', true);
         ?>
+        <hr/>
         <h3><?php esc_html_e('Extra Profile Fields', 'textdomain'); ?></h3>
         <table class="form-table">
             <?php foreach ($fields as $key => $field): 
@@ -445,6 +446,7 @@ class MycodelicForestProfile
                 </tr>
             <?php endforeach; ?>
         </table>
+        <hr/>
         <script type="text/javascript">
         jQuery(document).ready(function($){
             // Listen for changes on the "has_attended_burning_man" radio buttons
