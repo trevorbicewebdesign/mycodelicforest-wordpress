@@ -234,7 +234,7 @@ class MycodelicForestProfile
         $has_attended = get_user_meta($user_id, 'has_attended_burning_man', true) == '1';
         $years_attended = json_decode(get_user_meta($user_id, 'years_attended', true), true);
 
-        if ($has_attended) {
+        if ($has_attended=="Yes") {
             // If user has attended, they must have at least one year selected
             if (empty($years_attended) || !is_array($years_attended)) {
                 return false;
@@ -378,8 +378,6 @@ class MycodelicForestProfile
      */
     public function get_profile($user_id = NULL)
     {
-        print_r($user_id);
-
         if ($user_id == NULL) {
             $user_id = get_current_user_id();
             if (is_wp_error($user_id)) {
