@@ -617,6 +617,7 @@ class MycodelicForestProfile
             'country' => rgar($entry, '9.6'),
             'user_about_me' => rgar($entry, '13'),
             'has_attended_burning_man' => rgar($entry, '19'),
+            'years_attended' => rgar($entry, '14'),
         ];
 
         // Check if the user has attended Burning Man
