@@ -20,12 +20,6 @@ class MycodelicForestProfile
         add_action('wp_enqueue_scripts', [$this, 'enqueue_recaptcha_script']);
         add_action('register_form', [$this, 'add_recaptcha_to_registration']);
         add_action('template_redirect', [$this, 'mycodelic_redirect_incomplete_profile']);
-
-        // add_action( 'init', [$this, 'mycodelic_add_rewrite_rules'] );
-        //add_filter( 'query_vars', [$this, 'mycodelic_query_vars'] );
-
-        add_shortcode('mycodelic_profile_form', [$this, 'render_profile_form']);
-        
         
         add_action('gform_after_submission_6', [$this, 'update_user_profile_from_gravity'], 10, 2);
 
@@ -54,6 +48,8 @@ class MycodelicForestProfile
         }, 10, 2);        
 
         add_action('gform_after_submission_6', [$this, 'gform_after_submission_6'], 10, 2);
+
+        add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_phone_mask']);
     }
 
     public function gform_after_submission_6($entry, $form) {
@@ -114,11 +110,10 @@ class MycodelicForestProfile
         }
     }
 
-    public function profileComplete()
+    public function profileComplete($user_id=NULL)
     {
-        $user_id = get_current_user_id();
-        if (!$user_id) {
-            return false; // User must be logged in
+        if ($user_id==NULL) {
+            $user_id = get_current_user_id();
         }
     
         // Required fields for a valid profile
@@ -179,11 +174,11 @@ class MycodelicForestProfile
     {
         return [
             'address_1' => [
-                'label' => __('Address 1', 'textdomain'),
+                'label' => __('Street Address', 'textdomain'),
                 'type' => 'text',
             ],
             'address_2' => [
-                'label' => __('Address 2', 'textdomain'),
+                'label' => __('Address Line 2', 'textdomain'),
                 'type' => 'text',
             ],
             'city' => [
@@ -191,19 +186,31 @@ class MycodelicForestProfile
                 'type' => 'text',
             ],
             'state' => [
-                'label' => __('State', 'textdomain'),
+                'label' => __('State / Province / Region', 'textdomain'),
                 'type' => 'text',
             ],
+            'country' => [
+                'label' => __('Country', 'textdomain'),
+                'type' => 'select',
+                'options' => [
+                    '' => __('Please select a country', 'textdomain'),
+                    'United States' => __('United States', 'textdomain'),
+                    'Canada' => __('Canada', 'textdomain'),
+                    'United Kingdom' => __('United Kingdom', 'textdomain'),
+                    'Australia' => __('Australia', 'textdomain'),
+                    'France' => __('France', 'textdomain'),
+                ],
+            ],
             'zip' => [
-                'label' => __('Zip', 'textdomain'),
+                'label' => __('ZIP / Postal Code', 'textdomain'),
                 'type' => 'text',
             ],
             'user_phone' => [
-                'label' => __('Phone', 'textdomain'),
+                'label' => __('Phone Number', 'textdomain'),
                 'type' => 'text',
             ],
             'has_attended_burning_man' => [
-                'label' => __('Has attended Burning Man', 'textdomain'),
+                'label' => __('Have you been to Burning Man before?', 'textdomain'),
                 'type' => 'radio',
                 'options' => [
                     'Yes' => __('Yes', 'textdomain'),
@@ -214,6 +221,7 @@ class MycodelicForestProfile
                 'label' => __('Years attended', 'textdomain'),
                 'type' => 'checkbox',
                 'options' => [
+                    '2024' => __('2024', 'textdomain'),
                     '2023' => __('2023', 'textdomain'),
                     '2022' => __('2022', 'textdomain'),
                     '2021' => __('2021', 'textdomain'),
@@ -260,8 +268,92 @@ class MycodelicForestProfile
             ],
             'user_about_me' => [
                 'label' => __('About Me', 'textdomain'),
-                'type' => 'text',
+                'type' => 'textarea',
             ],
+        ];
+    }
+
+    public function enqueue_admin_phone_mask($hook) {
+        // Only load on profile pages
+        if ($hook === 'user-edit.php' || $hook === 'profile.php') {
+
+            // Custom script to apply the mask
+            wp_enqueue_script('jquery-masked-input', 'https://cdnjs.cloudflare.com/ajax/libs/jquery.maskedinput/1.4.1/jquery.maskedinput.min.js', ['jquery'], '1.4.1', true);
+            wp_add_inline_script('jquery-masked-input', "
+                jQuery(document).ready(function($) {
+                    jQuery('#user_phone').mask('(999) 999-9999');
+                });
+            ");
+        }
+    }
+
+    
+    /**
+     * Retrieves the profile information for a given user.
+     *
+     * @param int|null $user_id The ID of the user whose profile is to be retrieved. If null, the current user's ID will be used.
+     * @return array An associative array containing the user's profile information.
+     * @throws \Exception If no user ID is provided and the current user is not logged in.
+     */
+    public function get_profile($user_id=NULL)
+    {
+        print_r($user_id);
+
+        if ($user_id==NULL) {
+            $user_id = get_current_user_id();
+            if(is_wp_error($user_id)) {
+                throw new \Exception('Error getting current user ID.');
+            }
+        }
+
+        if(is_wp_error($user_id) || $user_id==0) {
+            throw new \Exception('No user ID provided and no user is logged in.');
+        }
+
+        // Removed debug lines
+
+        $fields = [
+            'first_name',
+            'last_name',
+            'playa_name',
+            'user_phone',
+            'address_1',
+            'address_2',
+            'city',
+            'state',
+            'zip',
+            'country',
+            'user_about_me',
+            'has_attended_burning_man',
+            'years_attended',
+        ];
+        $profile = [];
+        foreach ($fields as $field) {
+            $profile[$field] = get_user_meta($user_id, $field, true);
+        }
+        $user = get_userdata($user_id);
+        if ($user) {
+            $profile['user_email'] = $user->user_email;
+        }
+        return $profile;
+    }
+
+    public function gravity_forms_profile_field_map()
+    {
+        return [
+            'first_name' => 'input_16_3',
+            'last_name' => 'input_16_6',
+            'user_phone' => 'input_5',
+            'address_1' => 'input_9_1',
+            'address_2' => 'input_9_2',
+            'city' => 'input_9_3',
+            'state' => 'input_9_4',
+            'zip' => 'input_9_5',
+            'country' => 'input_9_6',
+            'user_about_me' => 'input_13',
+            'playa_name' => 'input_6',
+            'has_attended_burning_man' => 'input_19',
+            'years_attended' => 'input_14',
         ];
     }
 
@@ -277,11 +369,21 @@ class MycodelicForestProfile
             return;
         }
         $fields = $this->get_extra_fields_definitions();
+        // Get current value for the burning man attendance
+        $has_attended = get_user_meta($user->ID, 'has_attended_burning_man', true);
         ?>
-        <h3><?php esc_html_e('MyCodelic Extra Profile Fields', 'textdomain'); ?></h3>
+        <hr/>
+        <h3><?php esc_html_e('Extra Profile Fields', 'textdomain'); ?></h3>
         <table class="form-table">
-            <?php foreach ($fields as $key => $field): ?>
-                <tr>
+            <?php foreach ($fields as $key => $field): 
+                // If this is the years_attended field, add an ID and conditional style
+                $row_attributes = '';
+                if ('years_attended' === $key) {
+                    $display = ('Yes' === $has_attended) ? 'table-row' : 'none';
+                    $row_attributes = 'id="years_attended_row" style="display:' . $display . ';"';
+                }
+                ?>
+                <tr <?php echo $row_attributes; ?>>
                     <th><label for="<?php echo esc_attr($key); ?>"><?php echo esc_html($field['label']); ?></label></th>
                     <td>
                         <?php
@@ -289,15 +391,21 @@ class MycodelicForestProfile
                         if ('checkbox' === $field['type']) {
                             if (!empty($field['options']) && is_array($field['options'])) {
                                 $value = json_decode($value, true); // Decode the JSON value
+                                $counter = 0;
                                 foreach ($field['options'] as $option_value => $option_label) {
+                                    if ($counter % 3 == 0) {
+                                        echo '<div style="clear:both;"></div>'; // Clear floats every 3 items
+                                    }
                                     ?>
-                                    <label>
+                                    <label style="display:inline-block;">
                                         <input type="checkbox" name="<?php echo esc_attr($key); ?>[]" value="<?php echo esc_attr($option_value); ?>"
                                             <?php if (is_array($value) && in_array($option_value, $value)) echo 'checked="checked"'; ?> />
                                         <?php echo esc_html($option_label); ?>
-                                    </label><br>
+                                    </label>
                                     <?php
+                                    $counter++;
                                 }
+                                echo '<div style="clear:both;"></div>'; // Clear floats at the end
                             }
                         } elseif ('radio' === $field['type']) {
                             if (!empty($field['options']) && is_array($field['options'])) {
@@ -311,6 +419,22 @@ class MycodelicForestProfile
                                     <?php
                                 }
                             }
+                        } elseif ('select' === $field['type']) {
+                            if (!empty($field['options']) && is_array($field['options'])) {
+                                ?>
+                                <select name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>">
+                                    <?php foreach ($field['options'] as $option_value => $option_label) { ?>
+                                        <option value="<?php echo esc_attr($option_value); ?>" <?php selected($value, $option_value); ?>>
+                                            <?php echo esc_html($option_label); ?>
+                                        </option>
+                                    <?php } ?>
+                                </select>
+                                <?php
+                            }
+                        } elseif ('textarea' === $field['type']) {
+                            ?>
+                            <textarea name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>" rows="5" cols="30"><?php echo esc_textarea($value); ?></textarea>
+                            <?php
                         } else {
                             ?>
                             <input type="text" name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>"
@@ -322,8 +446,22 @@ class MycodelicForestProfile
                 </tr>
             <?php endforeach; ?>
         </table>
+        <hr/>
+        <script type="text/javascript">
+        jQuery(document).ready(function($){
+            // Listen for changes on the "has_attended_burning_man" radio buttons
+            $('input[name="has_attended_burning_man"]').on('change', function(){
+                if($('input[name="has_attended_burning_man"]:checked').val() == 'Yes'){
+                    $('#years_attended_row').show();
+                } else {
+                    $('#years_attended_row').hide();
+                }
+            });
+        });
+        </script>
         <?php
     }
+
 
     /**
      * Update extra fields based on a provided data array.
@@ -349,6 +487,11 @@ class MycodelicForestProfile
                     update_user_meta($user_id, $key, 0);
                 }
             }
+        }
+
+        // If the user indicates they have NOT attended Burning Man, clear the years_attended data.
+        if (isset($data['has_attended_burning_man']) && $data['has_attended_burning_man'] === 'No') {
+            delete_user_meta($user_id, 'years_attended');
         }
     }
 
@@ -377,49 +520,6 @@ class MycodelicForestProfile
         $query_vars[] = 'profile_page';
         return $query_vars;
     }
-
-    public function render_profile_form()
-    {
-        if (!is_user_logged_in()) {
-            return '<p>' . esc_html__('You must be logged in to update your profile.', 'textdomain') . '</p>';
-        }
-
-        $user_id  = get_current_user_id();
-        $fields   = $this->get_extra_fields_definitions();
-        $output   = '';
-
-        // Handle form submission
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_profile'])) {
-            check_admin_referer('update_profile_nonce');
-
-            $this->update_extra_fields($user_id, $_POST);
-            $output .= '<p>' . esc_html__('Profile updated successfully.', 'textdomain') . '</p>';
-        }
-
-        // Start form
-        $output .= '<form method="post">';
-        $output .= wp_nonce_field('update_profile_nonce', '_wpnonce', true, false);
-
-        foreach ($fields as $key => $field) {
-            $value = get_user_meta($user_id, $key, true);
-            $output .= '<p>';
-            $output .= '<label for="' . esc_attr($key) . '">' . esc_html($field['label']) . ':</label><br>';
-
-            if ('checkbox' === $field['type']) {
-                $output .= '<input type="checkbox" name="' . esc_attr($key) . '" id="' . esc_attr($key) . '" value="1" ' . checked($value, 1, false) . ' />';
-            } else {
-                $output .= '<input type="text" name="' . esc_attr($key) . '" id="' . esc_attr($key) . '" value="' . esc_attr($value) . '" />';
-            }
-
-            $output .= '</p>';
-        }
-
-        $output .= '<p><input type="submit" name="submit_profile" value="' . esc_attr__('Update Profile', 'textdomain') . '"></p>';
-        $output .= '</form>';
-
-        return $output;
-    }
-
 
 
     // Populate first name

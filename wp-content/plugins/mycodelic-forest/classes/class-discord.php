@@ -16,9 +16,11 @@ class MycodelicForestDiscord
     {
 
         $channels = [
-            'announcements' => getenv('DISCORD_WEBHOOK_ANNOUNCEMENTS'),
-            'announcement-test' => getenv('DISCORD_WEBHOOK_ANNOUNCEMENT_TEST'),
+            'announcements' => getenv('DISCORD_CHANNEL_ANNOUNCEMENT'),
+            'announcement-test' => getenv('DISCORD_CHANNEL_ANNOUNCEMENT_TEST'),
         ];
+
+        codecept_debug($channels);
 
         $url = $channels['announcement-test'];
         $data = array('content' => $message);
