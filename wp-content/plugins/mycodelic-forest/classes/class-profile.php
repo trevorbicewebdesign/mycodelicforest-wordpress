@@ -55,12 +55,14 @@ class MycodelicForestProfile
 
         add_filter('manage_users_columns', [$this, 'my_custom_user_columns']);
         add_filter('manage_users_custom_column', [$this, 'my_custom_user_column_content'], 10, 3);
-
+        add_filter('manage_users_sortable_columns', [$this, 'my_sortable_user_columns']);
+        add_action('pre_get_users', [$this, 'my_users_orderby']);
     }
 
 
     // Add custom columns to the Users table.
-    public function my_custom_user_columns($columns) {
+    public function my_custom_user_columns($columns)
+    {
         // Insert custom columns after the username column.
         $new_columns = [];
         foreach ($columns as $key => $value) {
@@ -73,15 +75,16 @@ class MycodelicForestProfile
         }
         return $new_columns;
     }
-    
+
 
     // Output the content for our custom columns.
-    public function my_custom_user_column_content($value, $column_name, $user_id) {
+    public function my_custom_user_column_content($value, $column_name, $user_id)
+    {
         switch ($column_name) {
             case 'playa_name':
                 $playa_name = get_user_meta($user_id, 'playa_name', true);
                 return $playa_name ? esc_html($playa_name) : '—';
-            
+
             case 'profile_updated':
                 // Example: Check if the user profile is complete.
                 // Adjust this logic according to how you store/update profile data.
@@ -105,12 +108,40 @@ class MycodelicForestProfile
         }
         return $value;
     }
-    
-    public function hide_admin_bar_for_non_privileged_users() {
-        if ( ! current_user_can('administrator') &&
-             ! current_user_can('editor') &&
-             ! current_user_can('author') &&
-             ! current_user_can('contributor') ) {
+
+    // Make the Playa Name and Profile Updated columns sortable.
+    public function my_sortable_user_columns($columns)
+    {
+        $columns['playa_name'] = 'playa_name';
+        $columns['profile_updated'] = 'profile_updated';
+        return $columns;
+    }
+
+    // Adjust the query to sort by our custom meta keys.
+    public function my_users_orderby($query)
+    {
+        $orderby = $query->get('orderby');
+        if ('playa_name' === $orderby) {
+            $query->set('meta_key', 'playa_name');
+            $query->set('orderby', 'meta_value');
+        }
+        if ('profile_updated' === $orderby) {
+            $query->set('meta_key', 'profile_updated');
+            // If profile_updated is stored as a numeric value, you might use meta_value_num:
+            // $query->set('orderby', 'meta_value_num');
+            $query->set('orderby', 'meta_value');
+        }
+    }
+
+
+    public function hide_admin_bar_for_non_privileged_users()
+    {
+        if (
+            !current_user_can('administrator') &&
+            !current_user_can('editor') &&
+            !current_user_can('author') &&
+            !current_user_can('contributor')
+        ) {
             show_admin_bar(false);
         }
     }
