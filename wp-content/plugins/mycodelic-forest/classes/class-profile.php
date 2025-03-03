@@ -17,8 +17,6 @@ class MycodelicForestProfile
         add_action('edit_user_profile_update', [$this, 'admin_save_extra_fields']);
 
         // Other hooks (recaptcha, redirection, etc.) remain the same.
-        add_action('wp_enqueue_scripts', [$this, 'enqueue_recaptcha_script']);
-        add_action('register_form', [$this, 'add_recaptcha_to_registration']);
         add_action('template_redirect', [$this, 'mycodelic_redirect_incomplete_profile']);
         
         add_action('gform_after_submission_6', [$this, 'update_user_profile_from_gravity'], 10, 2);
@@ -40,12 +38,14 @@ class MycodelicForestProfile
 
         add_filter('gform_entry_id_pre_save_lead', [$this, 'prevent_gravity_entry_save'], 10, 2);
 
+        
         add_filter('gform_form_tag', function ($form_tag, $form) {
             if ($form['id'] == 6) {
                 $form_tag = preg_replace('/action=[\'"].*?[\'"]/', 'action="' . esc_url($_SERVER['REQUEST_URI']) . '"', $form_tag);
             }
             return $form_tag;
-        }, 10, 2);        
+        }, 10, 2);     
+        
 
         add_action('gform_after_submission_6', [$this, 'gform_after_submission_6'], 10, 2);
 
@@ -58,38 +58,10 @@ class MycodelicForestProfile
     }
 
     public function prevent_gravity_entry_save($entry_id, $form) {
-    if ($form['id'] == 6) {
-        return null; // Prevents the entry from being saved
-    }
-    return $entry_id;
-}
-
-    public function enqueue_recaptcha_script()
-    {
-        wp_enqueue_script('google-recaptcha', 'https://www.google.com/recaptcha/api.js', array(), null, true);
-    }
-
-    public function add_recaptcha_to_registration()
-    {
-        echo '<div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>';
-    }
-
-    public function verify_recaptcha_on_registration($errors, $sanitized_user_login, $user_email)
-    {
-        if (isset($_POST['g-recaptcha-response'])) {
-            $recaptcha_response = sanitize_text_field($_POST['g-recaptcha-response']);
-            $response = wp_remote_get("https://www.google.com/recaptcha/api/siteverify?secret=YOUR_SECRET_KEY&response={$recaptcha_response}");
-            $response_body = wp_remote_retrieve_body($response);
-            $result = json_decode($response_body, true);
-
-            if (!isset($result['success']) || true !== $result['success']) {
-                $errors->add('captcha_invalid', __('<strong>ERROR</strong>: reCAPTCHA verification failed, please try again.'));
-            }
-        } else {
-            $errors->add('captcha_missing', __('<strong>ERROR</strong>: Please complete the reCAPTCHA.'));
+        if ($form['id'] == 6) {
+            return null; // Prevents the entry from being saved
         }
-
-        return $errors;
+        return $entry_id;
     }
 
     public function mycodelic_redirect_incomplete_profile()
