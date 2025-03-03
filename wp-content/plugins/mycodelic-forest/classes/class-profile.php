@@ -18,7 +18,7 @@ class MycodelicForestProfile
 
         // Other hooks (recaptcha, redirection, etc.) remain the same.
         add_action('template_redirect', [$this, 'mycodelic_redirect_incomplete_profile']);
-        
+
         add_action('gform_after_submission_6', [$this, 'update_user_profile_from_gravity'], 10, 2);
 
         // Hook into Gravity Forms dynamic population for form ID 6
@@ -38,26 +38,28 @@ class MycodelicForestProfile
 
         add_filter('gform_entry_id_pre_save_lead', [$this, 'prevent_gravity_entry_save'], 10, 2);
 
-        
+
         add_filter('gform_form_tag', function ($form_tag, $form) {
             if ($form['id'] == 6) {
                 $form_tag = preg_replace('/action=[\'"].*?[\'"]/', 'action="' . esc_url($_SERVER['REQUEST_URI']) . '"', $form_tag);
             }
             return $form_tag;
-        }, 10, 2);     
-        
+        }, 10, 2);
+
 
         add_action('gform_after_submission_6', [$this, 'gform_after_submission_6'], 10, 2);
 
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_phone_mask']);
     }
 
-    public function gform_after_submission_6($entry, $form) {
+    public function gform_after_submission_6($entry, $form)
+    {
         $this->messages->set_message('Profile updated successfully!', 'success');
-        
+
     }
 
-    public function prevent_gravity_entry_save($entry_id, $form) {
+    public function prevent_gravity_entry_save($entry_id, $form)
+    {
         if ($form['id'] == 6) {
             return null; // Prevents the entry from being saved
         }
@@ -83,12 +85,12 @@ class MycodelicForestProfile
         }
     }
 
-    public function profileComplete($user_id=NULL)
+    public function profileComplete($user_id = NULL)
     {
-        if ($user_id==NULL) {
+        if ($user_id == NULL) {
             $user_id = get_current_user_id();
         }
-    
+
         // Required fields for a valid profile
         $required_fields = [
             'address_1',
@@ -98,7 +100,7 @@ class MycodelicForestProfile
             'country',
             'user_phone',
         ];
-    
+
         // Check required text fields are not empty
         foreach ($required_fields as $key) {
             $value = get_user_meta($user_id, $key, true);
@@ -106,23 +108,23 @@ class MycodelicForestProfile
                 return false;
             }
         }
-    
+
         // Validate phone number (basic format check)
         $phone = get_user_meta($user_id, 'user_phone', true);
         if (!preg_match('/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/', $phone)) {
             return false; // Invalid phone format
         }
-    
+
         // Validate ZIP code (basic check for numbers only, can be expanded)
         $zip = get_user_meta($user_id, 'zip', true);
         if (!preg_match('/^\d{5}(-\d{4})?$/', $zip)) {
             return false; // Invalid ZIP format
         }
-    
+
         // Check if "Has Attended Burning Man" is set
         $has_attended = get_user_meta($user_id, 'has_attended_burning_man', true) == '1';
         $years_attended = json_decode(get_user_meta($user_id, 'years_attended', true), true);
-    
+
         if ($has_attended) {
             // If user has attended, they must have at least one year selected
             if (empty($years_attended) || !is_array($years_attended)) {
@@ -132,10 +134,10 @@ class MycodelicForestProfile
             // If user has NOT attended, remove any stored years
             delete_user_meta($user_id, 'years_attended');
         }
-    
+
         return true; // All checks passed, profile is complete
     }
-    
+
 
 
     /**
@@ -246,7 +248,8 @@ class MycodelicForestProfile
         ];
     }
 
-    public function enqueue_admin_phone_mask($hook) {
+    public function enqueue_admin_phone_mask($hook)
+    {
         // Only load on profile pages
         if ($hook === 'user-edit.php' || $hook === 'profile.php') {
 
@@ -260,7 +263,7 @@ class MycodelicForestProfile
         }
     }
 
-    
+
     /**
      * Retrieves the profile information for a given user.
      *
@@ -268,18 +271,18 @@ class MycodelicForestProfile
      * @return array An associative array containing the user's profile information.
      * @throws \Exception If no user ID is provided and the current user is not logged in.
      */
-    public function get_profile($user_id=NULL)
+    public function get_profile($user_id = NULL)
     {
         print_r($user_id);
 
-        if ($user_id==NULL) {
+        if ($user_id == NULL) {
             $user_id = get_current_user_id();
-            if(is_wp_error($user_id)) {
+            if (is_wp_error($user_id)) {
                 throw new \Exception('Error getting current user ID.');
             }
         }
 
-        if(is_wp_error($user_id) || $user_id==0) {
+        if (is_wp_error($user_id) || $user_id == 0) {
             throw new \Exception('No user ID provided and no user is logged in.');
         }
 
@@ -345,10 +348,10 @@ class MycodelicForestProfile
         // Get current value for the burning man attendance
         $has_attended = get_user_meta($user->ID, 'has_attended_burning_man', true);
         ?>
-        <hr/>
+        <hr />
         <h3><?php esc_html_e('Extra Profile Fields', 'textdomain'); ?></h3>
         <table class="form-table">
-            <?php foreach ($fields as $key => $field): 
+            <?php foreach ($fields as $key => $field):
                 // If this is the years_attended field, add an ID and conditional style
                 $row_attributes = '';
                 if ('years_attended' === $key) {
@@ -371,8 +374,9 @@ class MycodelicForestProfile
                                     }
                                     ?>
                                     <label style="display:inline-block;">
-                                        <input type="checkbox" name="<?php echo esc_attr($key); ?>[]" value="<?php echo esc_attr($option_value); ?>"
-                                            <?php if (is_array($value) && in_array($option_value, $value)) echo 'checked="checked"'; ?> />
+                                        <input type="checkbox" name="<?php echo esc_attr($key); ?>[]"
+                                            value="<?php echo esc_attr($option_value); ?>" <?php if (is_array($value) && in_array($option_value, $value))
+                                                   echo 'checked="checked"'; ?> />
                                         <?php echo esc_html($option_label); ?>
                                     </label>
                                     <?php
@@ -406,7 +410,8 @@ class MycodelicForestProfile
                             }
                         } elseif ('textarea' === $field['type']) {
                             ?>
-                            <textarea name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>" rows="5" cols="30"><?php echo esc_textarea($value); ?></textarea>
+                            <textarea name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>" rows="5"
+                                cols="30"><?php echo esc_textarea($value); ?></textarea>
                             <?php
                         } else {
                             ?>
@@ -419,18 +424,18 @@ class MycodelicForestProfile
                 </tr>
             <?php endforeach; ?>
         </table>
-        <hr/>
+        <hr />
         <script type="text/javascript">
-        jQuery(document).ready(function($){
-            // Listen for changes on the "has_attended_burning_man" radio buttons
-            $('input[name="has_attended_burning_man"]').on('change', function(){
-                if($('input[name="has_attended_burning_man"]:checked').val() == 'Yes'){
-                    $('#years_attended_row').show();
-                } else {
-                    $('#years_attended_row').hide();
-                }
+            jQuery(document).ready(function ($) {
+                // Listen for changes on the "has_attended_burning_man" radio buttons
+                $('input[name="has_attended_burning_man"]').on('change', function () {
+                    if ($('input[name="has_attended_burning_man"]:checked').val() == 'Yes') {
+                        $('#years_attended_row').show();
+                    } else {
+                        $('#years_attended_row').hide();
+                    }
+                });
             });
-        });
         </script>
         <?php
     }
@@ -483,87 +488,102 @@ class MycodelicForestProfile
         $this->update_extra_fields($user_id, $_POST);
     }
 
-    public function mycodelic_add_rewrite_rules() {
+    public function mycodelic_add_rewrite_rules()
+    {
         // Add a rewrite rule for the URL /profile/
-        add_rewrite_rule( '^profile/?$', 'index.php?profile_page=1', 'top' );
+        add_rewrite_rule('^profile/?$', 'index.php?profile_page=1', 'top');
     }
-    
-    
-    public function mycodelic_query_vars( $query_vars ) {
+
+
+    public function mycodelic_query_vars($query_vars)
+    {
         $query_vars[] = 'profile_page';
         return $query_vars;
     }
 
 
     // Populate first name
-    public function populate_first_name() {
+    public function populate_first_name()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'first_name', true) : '';
     }
 
     // Populate last name
-    public function populate_last_name() {
+    public function populate_last_name()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'last_name', true) : '';
     }
 
     // Populate email
-    public function populate_user_email() {
+    public function populate_user_email()
+    {
         $user = wp_get_current_user();
         return $user->user_email;
     }
 
     // Populate phone
-    public function populate_user_phone() {
+    public function populate_user_phone()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'user_phone', true) : '';
     }
 
     // Populate street address
-    public function populate_address() {
+    public function populate_address()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'address_1', true) : '';
     }
 
     // Populate city
-    public function populate_city() {
+    public function populate_city()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'city', true) : '';
     }
 
     // Populate state
-    public function populate_state() {
+    public function populate_state()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'state', true) : '';
     }
 
     // Populate zip code
-    public function populate_zip() {
+    public function populate_zip()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'zip', true) : '';
     }
-    
-    public function populate_country(){
+
+    public function populate_country()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'country', true) : '';
     }
-    public function populate_playa_name() {
+    public function populate_playa_name()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'playa_name', true) : '';
     }
 
     // Populate "About Me" field
-    public function populate_user_about_me() {
+    public function populate_user_about_me()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'user_about_me', true) : '';
     }
 
-    public function populate_attended_burning_man() {
+    public function populate_attended_burning_man()
+    {
         $user_id = get_current_user_id();
         return $user_id ? get_user_meta($user_id, 'has_attended_burning_man', true) : '';
     }
 
-    public function populate_years_attended() {
+    public function populate_years_attended()
+    {
         $user_id = get_current_user_id();
         $years_attended = $user_id ? get_user_meta($user_id, 'years_attended', true) : '';
         if (!empty($years_attended)) {
@@ -573,34 +593,35 @@ class MycodelicForestProfile
         return '';
     }
 
-    public function update_user_profile_from_gravity($entry, $form) {
+    public function update_user_profile_from_gravity($entry, $form)
+    {
         // Get current user ID
         $user_id = get_current_user_id();
-        
+
         // Ensure user is logged in
         if (!$user_id) {
             return;
         }
-    
+
         // Map Gravity Forms fields to user meta fields
         $fields = [
-            'first_name'             => rgar($entry, '16.3'),
-            'last_name'              => rgar($entry, '16.6'),
-            'playa_name'             => rgar($entry, '6'),
-            'user_phone'             => rgar($entry, '5'),
-            'address_1'              => rgar($entry, '9.1'),
-            'address_2'              => rgar($entry, '9.2'),
-            'city'                   => rgar($entry, '9.3'),
-            'state'                  => rgar($entry, '9.4'),
-            'zip'                    => rgar($entry, '9.5'),
-            'country'                => rgar($entry, '9.6'),
-            'user_about_me'          => rgar($entry, '13'),
+            'first_name' => rgar($entry, '16.3'),
+            'last_name' => rgar($entry, '16.6'),
+            'playa_name' => rgar($entry, '6'),
+            'user_phone' => rgar($entry, '5'),
+            'address_1' => rgar($entry, '9.1'),
+            'address_2' => rgar($entry, '9.2'),
+            'city' => rgar($entry, '9.3'),
+            'state' => rgar($entry, '9.4'),
+            'zip' => rgar($entry, '9.5'),
+            'country' => rgar($entry, '9.6'),
+            'user_about_me' => rgar($entry, '13'),
             'has_attended_burning_man' => rgar($entry, '19'),
         ];
-    
+
         // Check if the user has attended Burning Man
         $attended_burning_man = rgar($entry, '19'); // Checkbox field, should be 1 if checked
-    
+
         // Handle Multi-Checkbox Field: "Years Attended" (Field ID: 14)
         $years_attended = [];
         if ($attended_burning_man == 'Yes') { // User has attended
@@ -613,7 +634,7 @@ class MycodelicForestProfile
                     }
                 }
             }
-    
+
             // Save the selected years if any
             if (!empty($years_attended)) {
                 update_user_meta($user_id, 'years_attended', json_encode($years_attended));
@@ -622,21 +643,21 @@ class MycodelicForestProfile
             // If user has not attended, remove any previously stored years
             delete_user_meta($user_id, 'years_attended');
         }
-    
+
         // Update user meta for other fields
         foreach ($fields as $key => $value) {
             if (!empty($value)) {
                 update_user_meta($user_id, $key, sanitize_text_field($value));
             }
         }
-    
+
         // Update user email if provided
         if (!empty($fields['user_email'])) {
             wp_update_user([
-                'ID'         => $user_id,
+                'ID' => $user_id,
                 'user_email' => sanitize_email($fields['user_email']),
             ]);
         }
-    }   
+    }
 
 }
