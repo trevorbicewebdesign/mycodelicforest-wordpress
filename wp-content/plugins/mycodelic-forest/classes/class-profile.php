@@ -50,6 +50,18 @@ class MycodelicForestProfile
         add_action('gform_after_submission_6', [$this, 'gform_after_submission_6'], 10, 2);
 
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_phone_mask']);
+        
+        add_action('after_setup_theme', [$this, 'hide_admin_bar_for_non_privileged_users']);
+        
+    }
+
+    public function hide_admin_bar_for_non_privileged_users() {
+        if ( ! current_user_can('administrator') &&
+             ! current_user_can('editor') &&
+             ! current_user_can('author') &&
+             ! current_user_can('contributor') ) {
+            show_admin_bar(false);
+        }
     }
 
     public function gform_after_submission_6($entry, $form)
