@@ -77,6 +77,7 @@ class MycodelicForestProfile
 
         // Check if the user has completed their profile
         if (!$this->profileComplete()) {
+            $this->messages->set_message("You must complete your profile before you can access the logged in portion of the site.", 'error');
             wp_redirect(home_url('/profile/'));
             exit;
         }
