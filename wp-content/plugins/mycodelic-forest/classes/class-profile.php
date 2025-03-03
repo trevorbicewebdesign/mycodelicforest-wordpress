@@ -369,11 +369,20 @@ class MycodelicForestProfile
             return;
         }
         $fields = $this->get_extra_fields_definitions();
+        // Get current value for the burning man attendance
+        $has_attended = get_user_meta($user->ID, 'has_attended_burning_man', true);
         ?>
         <h3><?php esc_html_e('Extra Profile Fields', 'textdomain'); ?></h3>
         <table class="form-table">
-            <?php foreach ($fields as $key => $field): ?>
-                <tr>
+            <?php foreach ($fields as $key => $field): 
+                // If this is the years_attended field, add an ID and conditional style
+                $row_attributes = '';
+                if ('years_attended' === $key) {
+                    $display = ('Yes' === $has_attended) ? 'table-row' : 'none';
+                    $row_attributes = 'id="years_attended_row" style="display:' . $display . ';"';
+                }
+                ?>
+                <tr <?php echo $row_attributes; ?>>
                     <th><label for="<?php echo esc_attr($key); ?>"><?php echo esc_html($field['label']); ?></label></th>
                     <td>
                         <?php
@@ -430,8 +439,21 @@ class MycodelicForestProfile
                 </tr>
             <?php endforeach; ?>
         </table>
+        <script type="text/javascript">
+        jQuery(document).ready(function($){
+            // Listen for changes on the "has_attended_burning_man" radio buttons
+            $('input[name="has_attended_burning_man"]').on('change', function(){
+                if($('input[name="has_attended_burning_man"]:checked').val() == 'Yes'){
+                    $('#years_attended_row').show();
+                } else {
+                    $('#years_attended_row').hide();
+                }
+            });
+        });
+        </script>
         <?php
     }
+
 
     /**
      * Update extra fields based on a provided data array.
