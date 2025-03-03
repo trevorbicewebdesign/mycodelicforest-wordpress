@@ -138,7 +138,10 @@ class ProfileAdminCest
         $I->seeInField("#zip", "12345");
         $I->seeOptionIsSelected("#country", "United States");
         $I->seeInField("#user_about_me", "This is a test.");
-        $I->seeInField("#playa_name", "TestBurner");
+        $I->seeOptionIsSelected("[name=has_attended_burning_man]", "No");
+        $I->selectOption("[name=has_attended_burning_man]", "Yes");
+        $I->checkOption("[name='years_attended[]'][value='2024']");
+        $I->seeCheckboxIsChecked("[name='years_attended[]']", "2024");
         
         $I->click("Update Profile");   
 
