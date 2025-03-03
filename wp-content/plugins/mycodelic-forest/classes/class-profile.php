@@ -390,15 +390,21 @@ class MycodelicForestProfile
                         if ('checkbox' === $field['type']) {
                             if (!empty($field['options']) && is_array($field['options'])) {
                                 $value = json_decode($value, true); // Decode the JSON value
+                                $counter = 0;
                                 foreach ($field['options'] as $option_value => $option_label) {
+                                    if ($counter % 3 == 0) {
+                                        echo '<div style="clear:both;"></div>'; // Clear floats every 3 items
+                                    }
                                     ?>
-                                    <label>
+                                    <label style="display:inline-block;">
                                         <input type="checkbox" name="<?php echo esc_attr($key); ?>[]" value="<?php echo esc_attr($option_value); ?>"
                                             <?php if (is_array($value) && in_array($option_value, $value)) echo 'checked="checked"'; ?> />
                                         <?php echo esc_html($option_label); ?>
-                                    </label><br>
+                                    </label>
                                     <?php
+                                    $counter++;
                                 }
+                                echo '<div style="clear:both;"></div>'; // Clear floats at the end
                             }
                         } elseif ('radio' === $field['type']) {
                             if (!empty($field['options']) && is_array($field['options'])) {
@@ -479,6 +485,11 @@ class MycodelicForestProfile
                     update_user_meta($user_id, $key, 0);
                 }
             }
+        }
+
+        // If the user indicates they have NOT attended Burning Man, clear the years_attended data.
+        if (isset($data['has_attended_burning_man']) && $data['has_attended_burning_man'] === 'No') {
+            delete_user_meta($user_id, 'years_attended');
         }
     }
 
