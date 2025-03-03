@@ -46,8 +46,6 @@ class MycodelicForestInit {
         $this->MycodelicForestRoles = new MycodelicForestRoles();
         $this->MycodelicForestShortcodes = new MycodelicForestShortcodes($this->MycodelicForestCiviCRM);
         $this->MycodelicForestTwilio = new MycodelicForestTwilio();
-        
-
     }
 
     public function init()
