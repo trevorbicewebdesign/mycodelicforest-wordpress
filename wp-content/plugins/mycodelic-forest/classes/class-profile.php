@@ -50,11 +50,62 @@ class MycodelicForestProfile
         add_action('gform_after_submission_6', [$this, 'gform_after_submission_6'], 10, 2);
 
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_phone_mask']);
-        
+
         add_action('after_setup_theme', [$this, 'hide_admin_bar_for_non_privileged_users']);
-        
+
+        add_filter('manage_users_columns', [$this, 'my_custom_user_columns']);
+        add_filter('manage_users_custom_column', [$this, 'my_custom_user_column_content'], 10, 3);
+
     }
 
+
+    // Add custom columns to the Users table.
+    public function my_custom_user_columns($columns) {
+        // Insert custom columns after the username column.
+        $new_columns = [];
+        foreach ($columns as $key => $value) {
+            $new_columns[$key] = $value;
+            if ('username' === $key) {
+                $new_columns['playa_name'] = __('Playa Name', 'textdomain');
+                $new_columns['profile_updated'] = __('Profile Updated', 'textdomain');
+                $new_columns['complete'] = __('Profile Complete', 'textdomain');
+            }
+        }
+        return $new_columns;
+    }
+    
+
+    // Output the content for our custom columns.
+    public function my_custom_user_column_content($value, $column_name, $user_id) {
+        switch ($column_name) {
+            case 'playa_name':
+                $playa_name = get_user_meta($user_id, 'playa_name', true);
+                return $playa_name ? esc_html($playa_name) : '—';
+            
+            case 'profile_updated':
+                // Example: Check if the user profile is complete.
+                // Adjust this logic according to how you store/update profile data.
+                $profile_updated = get_user_meta($user_id, 'profile_updated', true);
+                if ($profile_updated) {
+                    $time_diff = human_time_diff(strtotime($profile_updated), current_time('timestamp'));
+                    return sprintf(__('%s ago', 'textdomain'), $time_diff);
+                } else {
+                    return '—';
+                }
+
+            case 'complete':
+                // Example: Check if the user confirmed their account.
+                // Adjust this logic if you use a different meta key.
+                $confirmed = $this->profileComplete($user_id);
+                if ($confirmed) {
+                    return '<span style="color: green;">&#10004;</span>'; // Green checkmark
+                } else {
+                    return '<span style="color: red;">&#10008;</span>'; // Red X
+                }
+        }
+        return $value;
+    }
+    
     public function hide_admin_bar_for_non_privileged_users() {
         if ( ! current_user_can('administrator') &&
              ! current_user_can('editor') &&
@@ -63,6 +114,7 @@ class MycodelicForestProfile
             show_admin_bar(false);
         }
     }
+
 
     public function gform_after_submission_6($entry, $form)
     {
@@ -663,6 +715,8 @@ class MycodelicForestProfile
                 update_user_meta($user_id, $key, sanitize_text_field($value));
             }
         }
+
+        update_user_meta($user_id, 'profile_updated', current_time('mysql'));
 
         // Update user email if provided
         if (!empty($fields['user_email'])) {
