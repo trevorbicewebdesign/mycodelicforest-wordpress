@@ -41,13 +41,11 @@ class MycodelicForestInit {
         $this->MycodelicForestDiscord = new MycodelicForestDiscord();
         $this->MycodelicForestForms = new MycodelicForestForms();
         $this->MycodelicForestInstall = new MycodelicForestInstall();
-        $this->MycodelicForestProfile = new MycodelicForestProfile($this->MycodelicForestMessages);
-        $this->MycodelicForestRoles = new MycodelicForestRoles();
         $this->MycodelicForestCiviCRM = new MycodelicForestCiviCRM();
+        $this->MycodelicForestProfile = new MycodelicForestProfile($this->MycodelicForestMessages, $this->MycodelicForestCiviCRM);
+        $this->MycodelicForestRoles = new MycodelicForestRoles();
         $this->MycodelicForestShortcodes = new MycodelicForestShortcodes($this->MycodelicForestCiviCRM);
         $this->MycodelicForestTwilio = new MycodelicForestTwilio();
-        
-
     }
 
     public function init()

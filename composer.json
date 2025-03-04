@@ -43,6 +43,8 @@
         "wpackagist-plugin/ultimate-faqs": "*",
         "wpackagist-plugin/wp-mail-smtp": "*",
         "wpackagist-plugin/members": "*",
+        "wpackagist-plugin/loginpress": "*",
+        "wpackagist-plugin/svg-support": "*",
         "wpackagist-theme/spectra-one":"*"
     },
     "require-dev": {

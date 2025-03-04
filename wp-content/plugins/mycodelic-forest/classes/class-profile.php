@@ -3,9 +3,11 @@ class MycodelicForestProfile
 {
 
     protected $messages;
-    public function __construct(MycodelicForestMessages $messages)
+    protected $civicrm;
+    public function __construct(MycodelicForestMessages $messages, MycodelicForestCiviCRM $civicrm)
     {
         $this->messages = $messages;
+        $this->civicrm = $civicrm;
     }
 
     public function init()
@@ -71,6 +73,7 @@ class MycodelicForestProfile
                 $new_columns['playa_name'] = __('Playa Name', 'textdomain');
                 $new_columns['profile_updated'] = __('Profile Updated', 'textdomain');
                 $new_columns['complete'] = __('Profile Complete', 'textdomain');
+                $new_columns['activated'] = __('Activated', 'textdomain');
             }
         }
         return $new_columns;
@@ -87,7 +90,6 @@ class MycodelicForestProfile
 
             case 'profile_updated':
                 // Example: Check if the user profile is complete.
-                // Adjust this logic according to how you store/update profile data.
                 $profile_updated = get_user_meta($user_id, 'profile_updated', true);
                 if ($profile_updated) {
                     $time_diff = human_time_diff(strtotime($profile_updated), current_time('timestamp'));
@@ -98,9 +100,23 @@ class MycodelicForestProfile
 
             case 'complete':
                 // Example: Check if the user confirmed their account.
-                // Adjust this logic if you use a different meta key.
                 $confirmed = $this->profileComplete($user_id);
                 if ($confirmed) {
+                    return '<span style="color: green;">&#10004;</span>'; // Green checkmark
+                } else {
+                    return '<span style="color: red;">&#10008;</span>'; // Red X
+                }
+            
+            case 'activated':
+                // Example: Check if the user confirmed their account.
+                $user = get_userdata($user_id);
+                if ($user && $user->user_activation_key == '') {
+                    return '<span style="color: green;">&#10004;</span>'; // Green checkmark
+                } else {
+                    return '<span style="color: red;">&#10008;</span>'; // Red X
+                }
+                $activated = get_user_meta($user_id, 'user_activation_key', true);
+                if (empty($activated)) {
                     return '<span style="color: green;">&#10004;</span>'; // Green checkmark
                 } else {
                     return '<span style="color: red;">&#10008;</span>'; // Red X
@@ -220,16 +236,12 @@ class MycodelicForestProfile
         $has_attended = get_user_meta($user_id, 'has_attended_burning_man', true) == '1';
         $years_attended = json_decode(get_user_meta($user_id, 'years_attended', true), true);
 
-        if ($has_attended) {
+        if ($has_attended=="Yes") {
             // If user has attended, they must have at least one year selected
             if (empty($years_attended) || !is_array($years_attended)) {
                 return false;
             }
-        } else {
-            // If user has NOT attended, remove any stored years
-            delete_user_meta($user_id, 'years_attended');
-        }
-
+        } 
         return true; // All checks passed, profile is complete
     }
 
@@ -368,8 +380,6 @@ class MycodelicForestProfile
      */
     public function get_profile($user_id = NULL)
     {
-        print_r($user_id);
-
         if ($user_id == NULL) {
             $user_id = get_current_user_id();
             if (is_wp_error($user_id)) {

@@ -89,6 +89,8 @@ class CleanDatabase
             "ultimate-addons-for-gutenberg",
             "ultimate-faqs",
             "mycodelic-forest",
+            "loginpress",
+            "svg-support",
         ]);
 
         echo "Database cleanup and plugin reactivation complete!\n";

@@ -45,7 +45,7 @@ class MycodelicForestCiviCRM
         $contacts = [];
         
         try {
-            $contacts = civicrm_api3( 'Contact', 'get', [
+            $result = civicrm_api3( 'Contact', 'get', [
                 'sequential' => 1,
                 'group'      => $group_id, // filter by group
                 'return'     => $returnColumns,
@@ -59,15 +59,8 @@ class MycodelicForestCiviCRM
         if ( empty( $result['count'] ) ) {
             return '<p>No contacts found in group ' . esc_html( $group_id ) . '.</p>';
         }
-        
 
-        $contacts = [
-            [
-                'contact_id'   => 1,
-                'display_name' => 'John Doe',
-                'email'        => 'john.doe@mailinator.com',
-            ]
-        ];
+        $contacts = $result['values'];
 
         return $contacts;
 
