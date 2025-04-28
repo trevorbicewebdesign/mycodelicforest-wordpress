@@ -45,8 +45,8 @@ modules:
         lucatume\WPBrowser\Module\WPDb:
           dbUrl: '%WORDPRESS_DB_SEED_URL%'
           dump: 'tests/_support/Data/db/dump.sql'
-          populate: true
-          cleanup: true
+          populate: false
+          cleanup: false
           reconnect: false
           url: '%WORDPRESS_URL%'
           urlReplacement: false
