@@ -7,6 +7,7 @@ class ProfileAdminCest
 {
     protected $userId;
     protected $adminId;
+    protected $profileIncompleteId;
     public function _before(AcceptanceTester $I)
     {
         $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
@@ -48,12 +49,22 @@ class ProfileAdminCest
             ]
         ]);
 
-        $I->loginAs("testadmin", "password123!test");
+        $this->profileIncompleteId = $I->haveUserInDatabase("profile-incomplete", "subscriber",[
+            "first_name" => "Profile",
+            "last_name" => "Incomplete",
+            "user_pass" => "password123!test",
+            "meta_input" => [
+                "first_name" => "Profile",
+                "last_name" => "Incomplete",
+            ]
+        ]);
 
+        
     }
 
     public function profileAdminEditUserPage(AcceptanceTester $I)
     {
+        $I->loginAs("testadmin", "password123!test");
         $I->amOnPage("/wp-admin/user-edit.php?user_id=".$this->userId);
         $I->see("Edit User testuser");
         $I->takeFullPageScreenshot("admin-edit-user-page");
@@ -71,7 +82,6 @@ class ProfileAdminCest
         $I->see("About Me", "label[for='user_about_me']");
         $I->see("Playa Name", "label[for='playa_name']");
         $I->see("Have you been to Burning Man before?", "label[for='has_attended_burning_man']");
-
         $I->dontSee("Years Attended", "label[for='years_attended']");
 
         $I->seeInField("#first_name", "Test");
@@ -109,6 +119,7 @@ class ProfileAdminCest
 
     public function profileAdminPageIsVisible(AcceptanceTester $I)
     {
+        $I->loginAs("testadmin", "password123!test");
         $I->amOnPage("/wp-admin/profile.php");
         $I->see("Profile", "h1");
         $I->takeFullPageScreenshot("admin-profile-page");
@@ -159,4 +170,6 @@ class ProfileAdminCest
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "years_attended","meta_value" => '["2024"]']);
 
     }
+
+
 }
