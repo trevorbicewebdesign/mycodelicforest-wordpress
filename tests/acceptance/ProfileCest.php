@@ -6,6 +6,7 @@ use Tests\Support\AcceptanceTester;
 class ProfileCest
 {
     protected $userId;
+    protected $profileIncompleteId;
     public function _before(AcceptanceTester $I)
     {
         $this->userId = $I->haveUserInDatabase("testuser", "subscriber",[
@@ -14,13 +15,11 @@ class ProfileCest
             "user_phone" => "123-456-7890",
             "user_pass" => "password123!test",
         ]);
-
-        $I->loginAs("testuser", "password123!test");
-
     }
 
     public function profilePageIsVisible(AcceptanceTester $I)
     {
+        $I->loginAs("testuser", "password123!test");
         $I->amOnPage("/profile/");
         $I->see("Profile");
         $I->takeFullPageScreenshot("profile-page");
@@ -94,5 +93,14 @@ class ProfileCest
         $I->seeInDatabase("wp_users", ["ID" => $this->userId, "user_email" => "testuser@example.com"]);
 
    
+    }
+
+    public function profileIncompleteFrontEndRedirect(AcceptanceTester $I)
+    {
+        $I->loginAs("testuser", "password123!test");
+        $I->amOnPage("/");
+        $I->wait(1);
+        $I->seeInCurrentUrl("/profile");
+        $I->see("Profile", "h1");
     }
 }
