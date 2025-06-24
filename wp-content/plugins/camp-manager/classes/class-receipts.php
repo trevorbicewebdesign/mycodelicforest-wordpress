@@ -1,7 +1,6 @@
 <?php
 
 class CampManagerReceipts
-
 {
     public function __construct()
     {
@@ -55,6 +54,7 @@ class CampManagerReceipts
     public function camp_manager_receipts_page() {
         echo '<div class="wrap"><h1>Receipts</h1>';
         // Here you can list receipts, use your CampManagerReceipts class, etc.
+        $receipts = $this->get_receipts(); // Assuming you have a method to get all receipts
         echo '</div>';
     }
 
@@ -98,6 +98,14 @@ class CampManagerReceipts
         <?php
     }
 
+    public function get_receipts()
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'mf_receipts';
+        $sql = "SELECT * FROM $table_name";
+        $receipts = $wpdb->get_results($sql);
+        return $receipts;
+    }
 
     public function get_receipt($id)
     {
