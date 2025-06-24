@@ -2,65 +2,124 @@
 
 class CampManagerInstall
 {
-    public function __construct()
+    public function install()
     {
-        $this->init();
+        $this->create_mf_receipts_table();
+        $this->create_mf_receipt_items_table();
+        $this->create_mf_roster();
+        $this->create_mf_budget_table();
+        $this->create_mf_ledger_table();
     }
 
-    public function init()
-    {
-        register_activation_hook( __FILE__, 'myplugin_install' );
-    }
-
-    public function myplugin_install() 
+    public function create_mf_roster()
     {
         global $wpdb;
-        
-        // Table name with WP prefix
-        $table_name = $wpdb->prefix . 'mf_profile';
-        
-        // Get the proper character set and collation for the table.
-        $charset_collate = $wpdb->get_charset_collate();
+        $table = $wpdb->prefix . 'mf_roster';
 
-        // Name
-        // Email
-        // Playa Name
-        // Address 1
-        // Address 2
-        // City
-        // State/Province
-        // Zip/Postal Code
-        // Country
-        // Phone
-        // About Me
-        // Attended Burning Man
-        // Years Attended
-        
-        // SQL statement to create the table.
-        $sql = "CREATE TABLE $table_name (
-            id mediumint(9) NOT NULL AUTO_INCREMENT,
-            name varchar(100) NOT NULL,
-            email varchar(100) NOT NULL,
-            playa_name varchar(100) NOT NULL,
-            address_1 varchar(100) NOT NULL,
-            address_2 varchar(100) NOT NULL,
-            city varchar(100) NOT NULL,
-            state varchar(100) NOT NULL,
-            zip varchar(100) NOT NULL,
-            country varchar(100) NOT NULL,
-            phone varchar(100) NOT NULL,
-            bio text NOT NULL,
-            attended_burningman varchar(100) NOT NULL,
-            years_attended varchar(100) NOT NULL,
-            created datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
-            PRIMARY KEY  (id)
-        ) $charset_collate;";
-        
-        // Include the file that contains dbDelta()
-        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-        
-        // Execute the query to create/update the table
-        dbDelta( $sql );
-    
+        $sql = "
+        CREATE TABLE `$table` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `wpid` INT(11) NOT NULL,
+            `low_income` TINYINT(1) NULL DEFAULT NULL,
+            `fully_paid` TINYINT(1) NULL DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        ";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+    }
+
+    public function create_mf_budget_table()
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_budget';
+
+        $sql = "
+        CREATE TABLE `$table` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `name` VARCHAR(255) DEFAULT NULL,
+            `category` INT(11) DEFAULT NULL,
+            `amount` FLOAT DEFAULT NULL,
+            `quantity` FLOAT DEFAULT NULL,
+            `subtotal` FLOAT DEFAULT NULL,
+            `total` FLOAT DEFAULT NULL,
+            `purchased` TINYINT(1) DEFAULT NULL,
+            `level` INT(11) DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        ";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+    }
+
+    public function create_mf_ledger_table()
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_ledger';
+
+        $sql = "
+        CREATE TABLE `$table` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `amount` FLOAT DEFAULT NULL,
+            `date` DATETIME DEFAULT NULL,
+            `note` TEXT DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        ";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+    }
+
+    public function create_mf_receipts_table()
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_receipts';
+
+        $sql = "
+        CREATE TABLE `$table` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `store` VARCHAR(255) DEFAULT NULL,
+            `date` DATETIME DEFAULT NULL,
+            `subtotal` FLOAT DEFAULT NULL,
+            `tax` FLOAT DEFAULT NULL,
+            `shipping` FLOAT DEFAULT NULL,
+            `total` FLOAT DEFAULT NULL,
+            `reimbursed` TINYINT(1) DEFAULT NULL,
+            `donation` TINYINT(1) DEFAULT NULL,
+            `note` VARCHAR(255) DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        ";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+    }
+
+    public function create_mf_receipt_items_table()
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_receipt_items';
+
+        $sql = "
+        CREATE TABLE `$table` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `receipt_id` INT(11) NOT NULL,
+            `name` VARCHAR(255) NOT NULL DEFAULT '',
+            `price` FLOAT NOT NULL DEFAULT 0,
+            `quantity` FLOAT NOT NULL DEFAULT 1,
+            `subtotal` FLOAT NOT NULL DEFAULT 0,
+            `tax` FLOAT NOT NULL DEFAULT 0,
+            `total` FLOAT NOT NULL DEFAULT 0,
+            `category_id` INT(11) DEFAULT NULL,
+            `link` VARCHAR(255) DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        ";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
     }
 }
