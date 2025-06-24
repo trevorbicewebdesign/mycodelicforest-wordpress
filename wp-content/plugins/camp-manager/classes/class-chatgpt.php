@@ -137,6 +137,11 @@ class CampManagerGPT {
         return $data;
     }
 
+    public function insert_receipt($data, $items)
+    {
+        
+    }
+
 
     public function upload_receipt_page() {
     if (isset($_POST['receipt_submitted'])) {
