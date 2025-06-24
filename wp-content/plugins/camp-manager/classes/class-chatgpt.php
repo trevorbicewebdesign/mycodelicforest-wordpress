@@ -21,7 +21,99 @@ class CampManagerGPT {
         });
 
         add_action('admin_post_camp_manager_upload_receipt', [$this, 'handle_receipt_upload']);
+        add_action('admin_post_camp_manager_save_receipt', [$this, 'handle_receipt_save']);
     }
+
+    public function handle_receipt_save() {
+        global $wpdb;
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        // Sanitize and collect receipt data
+        $store     = sanitize_text_field($_POST['store'] ?? '');
+        $date      = sanitize_text_field($_POST['date'] ?? '');
+        $subtotal  = floatval($_POST['subtotal'] ?? 0);
+        $tax       = floatval($_POST['tax'] ?? 0);
+        $shipping  = floatval($_POST['shipping'] ?? 0);
+        $total     = floatval($_POST['total'] ?? 0);
+
+        // Validate required fields
+        if (empty($store) || empty($date) || empty($_POST['items']) || !is_array($_POST['items'])) {
+            wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&error=missing_fields'));
+            exit;
+        }
+
+        // Insert receipt
+        $receipt_inserted = $wpdb->insert("{$wpdb->prefix}mf_receipts", [
+            'date'       => $date,
+            'subtotal'   => $subtotal,
+            'tax'        => $tax,
+            'total'      => $total,
+            'reimbursed' => 0,
+            'donation'   => 0,
+            'note'       => 0,
+        ]);
+
+        if ($receipt_inserted === false) {
+            wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&error=receipt_insert_failed'));
+            exit;
+        }
+
+        $receipt_id = $wpdb->insert_id;
+
+        $item_categories = $this->getItemCategories();
+        $item_errors = [];
+
+        // Insert receipt items
+        foreach ($_POST['items'] as $item) {
+            $name     = sanitize_text_field($item['name'] ?? '');
+            $price    = floatval($item['price'] ?? 0);
+            $quantity = floatval($item['quantity'] ?? 1);
+            $item_subtotal = floatval($item['subtotal'] ?? 0);
+            $category = sanitize_text_field($item['category'] ?? '');
+
+            // Validate item fields
+            if (empty($name) || $price < 0 || $quantity <= 0) {
+                $item_errors[] = $name ?: 'Unnamed item';
+                continue;
+            }
+
+            $category_id = array_search($category, array_keys($item_categories));
+            if ($category_id === false) {
+                $category_id = null;
+            }
+
+            $item_inserted = $wpdb->insert("{$wpdb->prefix}mf_receipt_items", [
+                'receipt_id' => $receipt_id,
+                'name'       => $name,
+                'price'      => $price,
+                'quantity'   => $quantity,
+                'subtotal'   => $item_subtotal,
+                'tax'        => 0,
+                'total'      => $item_subtotal,
+                'category_id'=> $category_id,
+                'link'       => 0,
+            ]);
+
+            if ($item_inserted === false) {
+                $item_errors[] = $name;
+            }
+        }
+
+        // Redirect with error if any item failed
+        if (!empty($item_errors)) {
+            $error_items = urlencode(implode(', ', $item_errors));
+            wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&error=item_insert_failed&items=' . $error_items));
+            exit;
+        }
+
+        // Redirect back with confirmation
+        wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&saved=1'));
+        exit;
+    }
+
 
     private function extract_json_from_gpt_response($response) {
         if (!is_array($response) || !isset($response['choices'][0]['message']['content'])) {
