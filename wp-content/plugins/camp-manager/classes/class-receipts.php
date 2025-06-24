@@ -105,6 +105,14 @@ class CampManagerReceipts
         $table_name = $wpdb->prefix . 'mf_receipts';
         $sql = "SELECT * FROM $table_name WHERE id = %d";
         $receipt = $wpdb->get_row($wpdb->prepare($sql, $id));
+
+        // get the receipt items and add them to the receipt object
+        if ($receipt) {
+            $receipt->items = $this->get_receipt_items($id);
+        } else {
+            return null; // or throw an exception
+        }   
+
         return $receipt;
     }
 
@@ -129,7 +137,7 @@ class CampManagerReceipts
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_receipts';
         $data = [
-            // 'store'    => sanitize_text_field($store),
+            'store'    => sanitize_text_field($store),
             'date'     => sanitize_text_field($date),
             'subtotal' => $subtotal,
             'tax'      => $tax,
@@ -148,7 +156,10 @@ class CampManagerReceipts
                         'name' => sanitize_text_field($item['name']),
                         'price' => floatval($item['price']),
                     ];
-                    $this->insert_receipt_item($item_data);
+                    $receipt_item = $this->insert_receipt_item($item_data);
+                    if (!$receipt_item) {
+                        throw new \Exception("Failed to insert receipt item: " . $wpdb->last_error);
+                    }
                 }
             }
         }
@@ -156,7 +167,7 @@ class CampManagerReceipts
             throw new \Exception("Failed to insert receipt: " . $wpdb->last_error);
         }
         
-        return $result;
+        return ['id'=>$receipt_id];
     }
     public function insert_receipt_item($data)
     {
