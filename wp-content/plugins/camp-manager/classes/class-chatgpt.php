@@ -2,16 +2,18 @@
 
 class CampManagerChatGPT {
     private $api_key;
-    public function __construct() 
+    private $core;
+    public function __construct(CampManagerCore $core) 
     {
         $this->api_key = defined('CAMP_MANAGER_OPENAI_API_KEY') ? CAMP_MANAGER_OPENAI_API_KEY : '';
+        $this->core = $core;
     }
 
     public function init() {
         
     }
 
-    private function extract_json_from_gpt_response($response) {
+    public function extract_json_from_gpt_response($response) {
 
         if (!is_array($response) || !isset($response['choices'][0]['message']['content'])) {
             return ['error' => 'Invalid response structure'];
@@ -39,7 +41,7 @@ class CampManagerChatGPT {
    
     public function systemPrompt(): string
     {
-        $categories = $this->getItemCategories();
+        $categories = $this->core->getItemCategories();
 
         $prompt = "You are an API that extracts structured data from receipts and returns only valid JSON.\n\n";
         $prompt .= "For each line item, assign a category based on the list below:\n\n";
@@ -84,7 +86,7 @@ class CampManagerChatGPT {
         return $prompt;
     }
 
-    private function analyze_receipt_with_gpt($base64_image) {
+    public function analyze_receipt_with_gpt($base64_image) {
         $url = 'https://api.openai.com/v1/chat/completions';
 
         $payload = [
