@@ -23,6 +23,29 @@ class CampManagerGPT {
         add_action('admin_post_camp_manager_upload_receipt', [$this, 'handle_receipt_upload']);
     }
 
+    private function extract_json_from_gpt_response($response) {
+        if (!is_array($response) || !isset($response['choices'][0]['message']['content'])) {
+            return ['error' => 'Invalid response structure'];
+        }
+
+        $content = $response['choices'][0]['message']['content'];
+
+        // Strip markdown ```json ... ``` if present
+        if (preg_match('/```json(.*?)```/s', $content, $matches)) {
+            $json_string = trim($matches[1]);
+        } else {
+            $json_string = trim($content);
+        }
+
+        $data = json_decode($json_string, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return ['error' => 'JSON decode failed: ' . json_last_error_msg()];
+        }
+
+        return $data;
+    }
+
+
     public function upload_receipt_page() {
     $response_data = get_transient('camp_manager_last_receipt_data');
     delete_transient('camp_manager_last_receipt_data'); // Clean up after showing
@@ -81,9 +104,8 @@ class CampManagerGPT {
         $base64_image = base64_encode(file_get_contents($image_path));
 
         $response = $this->analyze_receipt_with_gpt($base64_image);
-
-        // Store in transient for next page load or redirect with query args
-        set_transient('camp_manager_last_receipt_data', $response, 60);
+        $parsed = $this->extract_json_from_gpt_response($response);
+        set_transient('camp_manager_last_receipt_data', $parsed, 60);
         wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt'));
         exit;
     }
