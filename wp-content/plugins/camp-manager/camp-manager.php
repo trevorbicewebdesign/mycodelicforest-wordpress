@@ -16,6 +16,11 @@ require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-receipts.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-chatgpt.php');
 //require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-googleapi.php');
  
+register_activation_hook(__FILE__, function () {
+    require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-install.php');
+    $installer = new CampManagerInstall();
+    $installer->install();
+});
 class CampManagerInit {
     public $version = '0.0.1';
     public $CampManagerCore;
@@ -36,7 +41,6 @@ class CampManagerInit {
         $this->CampManagerReceipts->init();
         $this->CampManagerChatGPT->init();
         //$this->CampManagerGoogleAPI->init();
-
     }
 }
 
