@@ -2,10 +2,10 @@
 
 class CampManagerReceipts
 {
-    private $chatGPT;
-    public function __construct(CampManagerChatGPT $chatGPT)
+    private $CampManagerChatGPT;
+    public function __construct(CampManagerChatGPT $CampManagerChatGPT)
     {
-        $this->chatGPT = $chatGPT;
+        $this->CampManagerChatGPT = $CampManagerChatGPT;
     }
 
     public function init()
@@ -76,8 +76,8 @@ class CampManagerReceipts
         $image_path = $_FILES['receipt_image']['tmp_name'];
         $base64_image = base64_encode(file_get_contents($image_path));
 
-        $response = $this->analyze_receipt_with_gpt($base64_image);
-        $parsed = $this->extract_json_from_gpt_response($response);
+        $response = $this->CampManagerChatGPT->analyze_receipt_with_gpt($base64_image);
+        $parsed = $this->CampManagerChatGPT->extract_json_from_gpt_response($response);
         set_transient('camp_manager_last_receipt_data', $parsed, 60);
         wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt'));
         exit;
@@ -332,6 +332,61 @@ class CampManagerReceipts
         $items = $wpdb->get_results($wpdb->prepare($sql, $id));
         return $items;
     }
+
+    /**
+     * Checks for possible duplicate receipts based on various criteria.
+     * Returns an array of possible duplicates (empty if none found).
+     */
+    public function checkForDuplicateReceipt($store, $date, $total, $items = [])
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'mf_receipts';
+
+        // 1. Find receipts with same date and total
+        $sql = "SELECT * FROM $table_name WHERE date = %s AND total = %f";
+        $possible = $wpdb->get_results($wpdb->prepare($sql, $date, $total));
+
+        // 2. If store is provided, filter further
+        if ($store && !empty($possible)) {
+            $possible = array_filter($possible, function($r) use ($store) {
+                return strtolower($r->store) === strtolower($store);
+            });
+        }
+
+        // 3. If items are provided, check for matching item names/totals
+        if (!empty($items) && !empty($possible)) {
+            $item_names = array_map(function($item) {
+                return strtolower(trim($item['name'] ?? ''));
+            }, $items);
+            $item_subtotals = array_map(function($item) {
+                return floatval($item['subtotal'] ?? 0);
+            }, $items);
+
+            $filtered = [];
+            foreach ($possible as $receipt) {
+                $receipt_items = $this->get_receipt_items($receipt->id);
+                $receipt_item_names = array_map(function($item) {
+                    return strtolower(trim($item->name ?? ''));
+                }, $receipt_items);
+                $receipt_item_subtotals = array_map(function($item) {
+                    return floatval($item->subtotal ?? 0);
+                }, $receipt_items);
+
+                // Check for at least one matching item name and subtotal
+                $name_match = array_intersect($item_names, $receipt_item_names);
+                $subtotal_match = array_intersect($item_subtotals, $receipt_item_subtotals);
+
+                if (!empty($name_match) || !empty($subtotal_match)) {
+                    $filtered[] = $receipt;
+                }
+            }
+            $possible = $filtered;
+        }
+
+        // Return possible duplicates (could be empty array)
+        return array_values($possible);
+    }
+
     public function insert_receipt(
         string $store,
         string $date,
@@ -342,6 +397,13 @@ class CampManagerReceipts
         array $items
     )
     {
+        try{
+            // $this->checkForDuplicateReceipt($store, $date, $total, $items);
+        }
+        catch (\Exception $e) {
+            throw new \Exception("Error checking for duplicate receipt: " . $e->getMessage());
+        }
+
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_receipts';
         $data = [
