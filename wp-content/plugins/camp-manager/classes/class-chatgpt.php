@@ -46,7 +46,17 @@ class CampManagerGPT {
             'tax'       => $tax,
             'shipping'  => $shipping,
             'total'     => $total,
+        ], [
+            '%s', // store
+            '%s', // date
+            '%f', // subtotal
+            '%f', // tax
+            '%f', // shipping
+            '%f', // total
         ]);
+
+        print_r($receipt_inserted);
+        die();
 
         if ($receipt_inserted === false) {
             throw new Exception('Failed to insert receipt.');
@@ -118,6 +128,7 @@ class CampManagerGPT {
 
 
     private function extract_json_from_gpt_response($response) {
+
         if (!is_array($response) || !isset($response['choices'][0]['message']['content'])) {
             return ['error' => 'Invalid response structure'];
         }
@@ -149,7 +160,7 @@ class CampManagerGPT {
         }
 
         $response_data = get_transient('camp_manager_last_receipt_data');
-        delete_transient('camp_manager_last_receipt_data');
+        // delete_transient('camp_manager_last_receipt_data');
 
         $categories = ['power', 'sojourner', 'sound', 'misc'];
         ?>
