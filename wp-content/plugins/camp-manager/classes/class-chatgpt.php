@@ -51,9 +51,9 @@ class CampManagerGPT {
             'subtotal'   => $subtotal,
             'tax'        => $tax,
             'total'      => $total,
-            'reimbursed' => 0,
-            'donation'   => 0,
-            'note'       => 0,
+            // 'reimbursed' => 0,
+            // 'donation'   => 0,
+            // 'note'       => 0,
         ]);
 
         if ($receipt_inserted === false) {
@@ -93,8 +93,8 @@ class CampManagerGPT {
                 'subtotal'   => $item_subtotal,
                 'tax'        => 0,
                 'total'      => $item_subtotal,
-                'category_id'=> $category_id,
-                'link'       => 0,
+                //'category_id'=> $category_id,
+                //'link'       => 0,
             ]);
 
             if ($item_inserted === false) {
@@ -301,28 +301,28 @@ class CampManagerGPT {
 
         $prompt .= <<<EOD
 
-    Return JSON in this format:
+        Return JSON in this format:
 
-    {
-    "store": "string",
-    "date": "YYYY-MM-DD",
-    "subtotal": "string",
-    "tax": "string",
-    "shipping": "string",
-    "total": "string",
-    "items": [
         {
-        "name": "string",
-        "price": "string",
-        "quantity": number,
+        "store": "string",
+        "date": "YYYY-MM-DD",
         "subtotal": "string",
-        "category": "power | sojourner | sound | misc"
+        "tax": "string",
+        "shipping": "string",
+        "total": "string",
+        "items": [
+            {
+            "name": "string",
+            "price": "string",
+            "quantity": number,
+            "subtotal": "string",
+            "category": "power | sojourner | sound | misc"
+            }
+        ]
         }
-    ]
-    }
 
-    ⚠️ Only output valid JSON. Do not include comments, formatting, or explanations.
-    EOD;
+        ⚠️ Only output valid JSON. Do not include comments, formatting, or explanations.
+        EOD;
 
         return $prompt;
     }
@@ -334,6 +334,7 @@ class CampManagerGPT {
             'power' => 'Anything related to electricity generation or distribution (e.g. generators, cords, lights, solar, batteries)',
             'sojourner' => 'Items related to our school bus (maintenance, upgrades, fuel, storage, hardware)',
             'sound' => 'Audio/music/DJ gear (speakers, mixers, cables, microphones)',
+            'shwag & print' => 'Merchandise, stickers, flyers, posters, etc.',
             'misc' => 'Doesn’t clearly fit the above categories',
         ];
     }
