@@ -139,7 +139,7 @@ class CampManagerGPT {
 
     public function insert_receipt($data, $items)
     {
-        
+
     }
 
 
