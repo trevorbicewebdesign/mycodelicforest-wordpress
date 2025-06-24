@@ -292,7 +292,6 @@ class CampManagerGPT {
         wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt'));
         exit;
     }
-
     public function systemPrompt(): string
     {
         $categories = $this->getItemCategories();
@@ -306,32 +305,39 @@ class CampManagerGPT {
 
         $prompt .= <<<EOD
 
+        Line Item Logic:
+        - If the receipt shows both a quantity and a price, and the price is large (e.g. over \$5), treat the price as a **line total** (not unit price).
+        - In that case, calculate unit price as: **unit price = price ÷ quantity** and round to 2 decimals.
+        - Set both `price` and `subtotal` fields in the JSON:
+        - `price`: unit price
+        - `subtotal`: line total
+
         Return JSON in this format:
 
         {
-        "store": "string",
-        "date": "YYYY-MM-DD",
-        "subtotal": "string",
-        "tax": "string",
-        "shipping": "string",
-        "total": "string",
-        "items": [
-            {
-            "name": "string",
-            "price": "string",
-            "quantity": number,
+            "store": "string",
+            "date": "YYYY-MM-DD",
             "subtotal": "string",
-            "category": "power | sojourner | sound | misc"
-            }
-        ]
+            "tax": "string",
+            "shipping": "string",
+            "total": "string",
+            "items": [
+                {
+                "name": "string",
+                "price": "string",        // calculated unit price
+                "quantity": number,
+                "subtotal": "string",     // total for that item (from receipt)
+                "category": "power | sojourner | sound | misc"
+                }
+            ]
         }
 
-        ⚠️ Only output valid JSON. Do not include comments, formatting, or explanations.
+        ⚠️ Only output valid JSON. Do not include markdown, comments, or explanations.
+
         EOD;
 
         return $prompt;
     }
-
 
     public function getItemCategories(): array
     {
