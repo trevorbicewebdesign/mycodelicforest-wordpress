@@ -30,7 +30,7 @@ class CampManagerInit {
 
     public function __construct() {
         $this->CampManagerCore = new CampManagerCore();
-        $this->CampManagerChatGPT = new CampManagerChatGPT();
+        $this->CampManagerChatGPT = new CampManagerChatGPT($this->CampManagerCore);
         $this->CampManagerReceipts = new CampManagerReceipts($this->CampManagerChatGPT);
         //$this->CampManagerGoogleAPI = new CampManagerGoogleAPI();
     }
