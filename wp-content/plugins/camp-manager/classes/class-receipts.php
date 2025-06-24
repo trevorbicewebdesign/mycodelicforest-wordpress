@@ -116,14 +116,49 @@ class CampManagerReceipts
         $items = $wpdb->get_results($wpdb->prepare($sql, $id));
         return $items;
     }
-    public function add_receipt($data)
+    public function insert_receipt(
+        string $store,
+        string $date,
+        float $subtotal,
+        float $tax,
+        float $shipping,
+        float $total,
+        array $items
+    )
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_receipts';
+        $data = [
+            // 'store'    => sanitize_text_field($store),
+            'date'     => sanitize_text_field($date),
+            'subtotal' => $subtotal,
+            'tax'      => $tax,
+            'shipping' => $shipping,
+            'total'    => $total
+        ];
         $result = $wpdb->insert($table_name, $data);
+
+        if( $result ) {
+            $receipt_id = $wpdb->insert_id; // Get the last inserted ID
+            // Optionally, you can also insert items related to this receipt
+            if (is_array($items)) {
+                foreach ($items as $item) {
+                    $item_data = [
+                        'receipt_id' => $receipt_id,
+                        'name' => sanitize_text_field($item['name']),
+                        'price' => floatval($item['price']),
+                    ];
+                    $this->insert_receipt_item($item_data);
+                }
+            }
+        }
+        else {
+            throw new \Exception("Failed to insert receipt: " . $wpdb->last_error);
+        }
+        
         return $result;
     }
-    public function add_receipt_item($data)
+    public function insert_receipt_item($data)
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_receipt_items';
