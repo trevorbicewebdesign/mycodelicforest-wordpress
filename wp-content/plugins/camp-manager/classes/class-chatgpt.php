@@ -47,118 +47,132 @@ class CampManagerGPT {
 
 
     public function upload_receipt_page() {
-        if (isset($_POST['receipt_submitted'])) {
-            echo '<div class="notice notice-success"><p>✅ Receipt submitted successfully!</p></div>';
-            echo '<h2>Submitted Data</h2>';
-            echo '<pre style="background: #eef; padding: 1em;">';
-            print_r($_POST);
-            echo '</pre>';
-        }
-
-        $response_data = get_transient('camp_manager_last_receipt_data');
-
-        ?>
-        <div class="wrap">
-            <h1 class="wp-heading-inline">Upload Receipt</h1>
-
-            <!-- Upload Form -->
-            <form method="post" enctype="multipart/form-data" action="<?php echo admin_url('admin-post.php'); ?>">
-                <input type="hidden" name="action" value="camp_manager_upload_receipt">
-                <table class="form-table">
-                    <tr>
-                        <th scope="row"><label for="receipt_image">Receipt Image</label></th>
-                        <td><input type="file" name="receipt_image" accept="image/*" required></td>
-                    </tr>
-                </table>
-                <?php submit_button('Analyze Receipt'); ?>
-            </form>
-
-            <?php if (!empty($response_data) && is_array($response_data)): ?>
-                <hr style="margin: 40px 0;">
-                <h2>Review & Submit Receipt</h2>
-
-                <form method="post">
-                    <input type="hidden" name="receipt_submitted" value="1">
-
-                    <table class="form-table">
-                        <tr>
-                            <th><label for="store">Store</label></th>
-                            <td><input type="text" name="store" class="regular-text" value="<?php echo esc_attr($response_data['store'] ?? ''); ?>"></td>
-                        </tr>
-                        <tr>
-                            <th><label for="date">Date</label></th>
-                            <td><input type="date" name="date" value="<?php echo esc_attr($response_data['date'] ?? ''); ?>"></td>
-                        </tr>
-                    </table>
-
-                    <h2 style="margin-top: 40px;">Items</h2>
-                    <table class="widefat striped" style="margin-bottom: 30px;">
-                        <thead>
-                            <tr>
-                                <th style="width: 40%;">Item Name</th>
-                                <th style="width: 15%;">Price</th>
-                                <th style="width: 15%;">Quantity</th>
-                                <th style="width: 20%;">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($response_data['items'] ?? [] as $i => $item): ?>
-                                <tr>
-                                    <td>
-                                        <input type="text" name="items[<?php echo $i; ?>][name]" value="<?php echo esc_attr($item['name'] ?? ''); ?>" class="regular-text" />
-                                    </td>
-                                    <td>
-                                        <input type="text" name="items[<?php echo $i; ?>][price]" value="<?php echo esc_attr($item['price'] ?? ''); ?>" class="small-text" />
-                                    </td>
-                                    <td>
-                                        <input type="number" name="items[<?php echo $i; ?>][quantity]" value="<?php echo esc_attr($item['quantity'] ?? 1); ?>" class="small-text" />
-                                    </td>
-                                    <td>
-                                        <input type="text" name="items[<?php echo $i; ?>][subtotal]" value="<?php echo esc_attr($item['subtotal'] ?? ''); ?>" class="small-text" />
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-
-                    <!-- Totals aligned to right -->
-                    <table style="width: 100%; max-width: 600px; margin-left: auto;">
-                        <tr>
-                            <td style="text-align: right; padding: 5px;"><strong>Subtotal:</strong></td>
-                            <td style="text-align: right; width: 120px;">
-                                <input type="text" name="subtotal" value="<?php echo esc_attr($response_data['subtotal'] ?? ''); ?>" class="small-text" />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: right; padding: 5px;"><strong>Tax:</strong></td>
-                            <td style="text-align: right;">
-                                <input type="text" name="tax" value="<?php echo esc_attr($response_data['tax'] ?? ''); ?>" class="small-text" />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: right; padding: 5px;"><strong>Shipping:</strong></td>
-                            <td style="text-align: right;">
-                                <input type="text" name="shipping" value="<?php echo esc_attr($response_data['shipping'] ?? ''); ?>" class="small-text" />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: right; padding: 5px;"><strong>Total:</strong></td>
-                            <td style="text-align: right;">
-                                <input type="text" name="total" value="<?php echo esc_attr($response_data['total'] ?? ''); ?>" class="small-text" />
-                            </td>
-                        </tr>
-                    </table>
-
-                    <div style="margin-top: 30px;">
-                        <?php submit_button('Save Receipt'); ?>
-                    </div>
-                </form>
-            <?php endif; ?>
-        </div>
-        <?php
+    if (isset($_POST['receipt_submitted'])) {
+        echo '<div class="notice notice-success"><p>✅ Receipt submitted successfully!</p></div>';
+        echo '<h2>Submitted Data</h2>';
+        echo '<pre style="background: #eef; padding: 1em;">';
+        print_r($_POST);
+        echo '</pre>';
     }
 
+    $response_data = get_transient('camp_manager_last_receipt_data');
+    delete_transient('camp_manager_last_receipt_data');
 
+    $categories = ['power', 'sojourner', 'sound', 'misc'];
+    ?>
+    <div class="wrap">
+        <h1 class="wp-heading-inline">Upload Receipt</h1>
+
+        <!-- Upload Form -->
+        <form method="post" enctype="multipart/form-data" action="<?php echo admin_url('admin-post.php'); ?>">
+            <input type="hidden" name="action" value="camp_manager_upload_receipt">
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><label for="receipt_image">Receipt Image</label></th>
+                    <td><input type="file" name="receipt_image" accept="image/*" required></td>
+                </tr>
+            </table>
+            <?php submit_button('Analyze Receipt'); ?>
+        </form>
+
+        <?php if (!empty($response_data) && is_array($response_data)): ?>
+            <hr style="margin: 40px 0;">
+            <h2>Review & Submit Receipt</h2>
+
+            <form method="post">
+                <input type="hidden" name="receipt_submitted" value="1">
+
+                <table class="form-table">
+                    <tr>
+                        <th><label for="store">Store</label></th>
+                        <td><input type="text" name="store" class="regular-text" value="<?php echo esc_attr($response_data['store'] ?? ''); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="date">Date</label></th>
+                        <td><input type="date" name="date" value="<?php echo esc_attr($response_data['date'] ?? ''); ?>"></td>
+                    </tr>
+                </table>
+
+                <h2 style="margin-top: 40px;">Items</h2>
+                <table class="widefat striped" style="margin-bottom: 30px; table-layout: fixed; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: right;">Item Name</th>
+                            <th style="text-align: right;">Price</th>
+                            <th style="text-align: right;">Qty</th>
+                            <th style="text-align: right;">Subtotal</th>
+                            <th style="text-align: right;">Category</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($response_data['items'] ?? [] as $i => $item): ?>
+                            <tr>
+                                <td style="text-align: right;">
+                                    <input type="text" name="items[<?php echo $i; ?>][name]" value="<?php echo esc_attr($item['name'] ?? ''); ?>" style="width: 100%;" />
+                                </td>
+                                <td style="text-align: right;">
+                                    <input type="text" name="items[<?php echo $i; ?>][price]" value="<?php echo esc_attr($item['price'] ?? ''); ?>" style="width: 100%;" />
+                                </td>
+                                <td style="text-align: right;">
+                                    <input type="number" name="items[<?php echo $i; ?>][quantity]" value="<?php echo esc_attr($item['quantity'] ?? 1); ?>" style="width: 100%;" />
+                                </td>
+                                <td style="text-align: right;">
+                                    <input type="text" name="items[<?php echo $i; ?>][subtotal]" value="<?php echo esc_attr($item['subtotal'] ?? ''); ?>" style="width: 100%;" />
+                                </td>
+                                <td style="text-align: right;">
+                                    <?php $categories = $this->getItemCategories(); ?>
+                                    <select name="items[<?php echo $i; ?>][category]" style="width: 100%;">
+                                        <option value="">Please select a category</option>
+                                        <?php foreach ($categories as $catKey => $catLabel): ?>
+                                            <option value="<?php echo esc_attr($catKey); ?>"
+                                                <?php selected(($item['category'] ?? '') === $catKey); ?>>
+                                                <?php echo esc_html(ucfirst($catKey)); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
+                <!-- Totals -->
+                <table style="width: 100%; max-width: 600px; margin-left: auto; font-size: 1.1em;">
+                    <tr>
+                        <td style="text-align: right; padding: 8px;"><strong>Subtotal:</strong></td>
+                        <td style="text-align: right; width: 150px;">
+                            <input type="text" name="subtotal" value="<?php echo esc_attr($response_data['subtotal'] ?? ''); ?>" class="small-text" style="width: 100%;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; padding: 8px;"><strong>Tax:</strong></td>
+                        <td style="text-align: right;">
+                            <input type="text" name="tax" value="<?php echo esc_attr($response_data['tax'] ?? ''); ?>" class="small-text" style="width: 100%;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; padding: 8px;"><strong>Shipping:</strong></td>
+                        <td style="text-align: right;">
+                            <input type="text" name="shipping" value="<?php echo esc_attr($response_data['shipping'] ?? ''); ?>" class="small-text" style="width: 100%;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; padding: 8px;"><strong>Total:</strong></td>
+                        <td style="text-align: right;">
+                            <input type="text" name="total" value="<?php echo esc_attr($response_data['total'] ?? ''); ?>" class="small-text" style="width: 100%;" />
+                        </td>
+                    </tr>
+                </table>
+
+                <div style="margin-top: 30px;">
+                    <?php submit_button('Save Receipt'); ?>
+                </div>
+            </form>
+        <?php endif; ?>
+    </div>
+    <?php
+}
 
 
 
@@ -182,33 +196,56 @@ class CampManagerGPT {
         exit;
     }
 
-    public function systemPrompt()
+    public function systemPrompt(): string
     {
-        return <<<EOT
-    You are an API that extracts structured data from receipts and replies with **only valid JSON**.
+        $categories = $this->getItemCategories();
 
-    Return an object with this exact format:
+        $prompt = "You are an API that extracts structured data from receipts and returns only valid JSON.\n\n";
+        $prompt .= "For each line item, assign a category based on the list below:\n\n";
+
+        foreach ($categories as $key => $desc) {
+            $prompt .= "- **$key**: $desc\n";
+        }
+
+        $prompt .= <<<EOD
+
+    Return JSON in this format:
 
     {
     "store": "string",
     "date": "YYYY-MM-DD",
-    "subtotal": "string (e.g. '123.45')",
-    "tax": "string (e.g. '5.00')",
-    "shipping": "string (e.g. '10.00')",
-    "total": "string (e.g. '138.45')",
+    "subtotal": "string",
+    "tax": "string",
+    "shipping": "string",
+    "total": "string",
     "items": [
         {
         "name": "string",
-        "price": "string (e.g. '54.59')",
-        "quantity": number (e.g. 1),
-        "subtotal": "string (e.g. '54.59')"
+        "price": "string",
+        "quantity": number,
+        "subtotal": "string",
+        "category": "power | sojourner | sound | misc"
         }
     ]
     }
 
-    ⚠️ Only output valid JSON. No extra comments, explanations, or markdown formatting.
-    EOT;
+    ⚠️ Only output valid JSON. Do not include comments, formatting, or explanations.
+    EOD;
+
+        return $prompt;
     }
+
+
+    public function getItemCategories(): array
+    {
+        return [
+            'power' => 'Anything related to electricity generation or distribution (e.g. generators, cords, lights, solar, batteries)',
+            'sojourner' => 'Items related to our school bus (maintenance, upgrades, fuel, storage, hardware)',
+            'sound' => 'Audio/music/DJ gear (speakers, mixers, cables, microphones)',
+            'misc' => 'Doesn’t clearly fit the above categories',
+        ];
+    }
+
 
     private function analyze_receipt_with_gpt($base64_image) {
         $url = 'https://api.openai.com/v1/chat/completions';
