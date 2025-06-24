@@ -2,11 +2,13 @@
 
 class CampManagerGPT {
     private $api_key;
+    private $receipts;
 
-    public function __construct() {
+    public function __construct(CampManagerReceipts $receipts) 
+    {
+        $this->receipts = $receipts;
         $this->api_key = defined('CAMP_MANAGER_OPENAI_API_KEY') ? CAMP_MANAGER_OPENAI_API_KEY : '';
     }
-
 
     public function init() {
         add_action('admin_menu', function () {
@@ -24,91 +26,10 @@ class CampManagerGPT {
         add_action('admin_post_camp_manager_save_receipt', [$this, 'handle_receipt_save']);
     }
 
-    public function insert_receipt(
-        string $store,
-        string $date,
-        float $subtotal,
-        float $tax,
-        float $shipping,
-        float $total,
-        array $items
-    ): int {
-        global $wpdb;
-
-        if (empty($store) || empty($date) || empty($items)) {
-            throw new Exception('Missing required receipt data or items.');
-        }
-
-        $receipt_inserted = $wpdb->insert("{$wpdb->prefix}mf_receipts", [
-            'store'     => $store,
-            'date'      => $date,
-            'subtotal'  => $subtotal,
-            'tax'       => $tax,
-            'shipping'  => $shipping,
-            'total'     => $total,
-        ], [
-            '%s', // store
-            '%s', // date
-            '%f', // subtotal
-            '%f', // tax
-            '%f', // shipping
-            '%f', // total
-        ]);
-
-        print_r($receipt_inserted);
-        die();
-
-        if ($receipt_inserted === false) {
-            throw new Exception('Failed to insert receipt.');
-        }
-
-        $receipt_id = $wpdb->insert_id;
-        $item_categories = $this->getItemCategories();
-        $errors = [];
-
-        foreach ($items as $item) {
-            $name     = sanitize_text_field($item['name'] ?? '');
-            $price    = floatval($item['price'] ?? 0);
-            $quantity = floatval($item['quantity'] ?? 1);
-            $item_subtotal = floatval($item['subtotal'] ?? 0);
-            $category = sanitize_text_field($item['category'] ?? '');
-
-            if (!$name || $price < 0 || $quantity <= 0) {
-                $errors[] = $name ?: 'Unnamed item';
-                continue;
-            }
-
-            $category_id = array_search($category, array_keys($item_categories));
-            if ($category_id === false) {
-                $category_id = null;
-            }
-
-            $item_inserted = $wpdb->insert("{$wpdb->prefix}mf_receipt_items", [
-                'receipt_id' => $receipt_id,
-                'name'       => $name,
-                'price'      => $price,
-                'quantity'   => $quantity,
-                'subtotal'   => $item_subtotal,
-                'tax'        => 0,
-                'total'      => $item_subtotal,
-            ]);
-
-            if ($item_inserted === false) {
-                $errors[] = $name;
-            }
-        }
-
-        if (!empty($errors)) {
-            throw new Exception('Item insert failed: ' . implode(', ', $errors));
-        }
-
-        return $receipt_id;
-    }
-
-
     public function handle_receipt_save() {
+        print_r($_POST);
         try {
-            $this->insert_receipt(
+            $this->receipts->insert_receipt(
                 sanitize_text_field($_POST['store']),
                 sanitize_text_field($_POST['date']),
                 floatval($_POST['subtotal']),
@@ -183,7 +104,8 @@ class CampManagerGPT {
                 <hr style="margin: 40px 0;">
                 <h2>Review & Submit Receipt</h2>
 
-                <form method="post">
+                <form method="post" enctype="multipart/form-data" action="<?php echo admin_url('admin-post.php'); ?>">
+                    <input type="hidden" name="action" value="camp_manager_save_receipt">
                     <input type="hidden" name="receipt_submitted" value="1">
 
                     <table class="form-table">
