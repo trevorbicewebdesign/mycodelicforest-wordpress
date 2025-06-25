@@ -44,11 +44,29 @@ class CampManagerInstall
         CREATE TABLE `$table` (
             `id` INT(11) NOT NULL AUTO_INCREMENT,
             `name` VARCHAR(255) DEFAULT NULL,
-            `category` INT(11) DEFAULT NULL,
-            `amount` FLOAT DEFAULT NULL,
-            `quantity` FLOAT DEFAULT NULL,
-            `subtotal` FLOAT DEFAULT NULL,
-            `total` FLOAT DEFAULT NULL,
+            `description` TEXT DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        ";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+    }
+
+    public function create_mf_budget_items_table()
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_budget_items';
+
+        $sql = "
+        CREATE TABLE `$table` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `budget_id` INT(11) NOT NULL,
+            `name` VARCHAR(255) NOT NULL DEFAULT '',
+            `price` FLOAT NOT NULL DEFAULT 0,
+            `quantity` FLOAT NOT NULL DEFAULT 1,
+            `subtotal` FLOAT NOT NULL DEFAULT 0,
+            `total` FLOAT NOT NULL DEFAULT 0,
             `purchased` TINYINT(1) DEFAULT NULL,
             `level` INT(11) DEFAULT NULL,
             PRIMARY KEY (`id`)
