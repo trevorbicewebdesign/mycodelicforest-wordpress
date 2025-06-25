@@ -51,7 +51,9 @@ class CampManagerReceiptsTable extends WP_List_Table
             case 'id':
                 return esc_html($item['id']);
             case 'store':
-                return esc_html(stripslashes($item['store']));
+                $store = esc_html(stripslashes($item['store']));
+                $url = admin_url('admin.php?page=camp-manager-edit-receipt&id=' . urlencode($item['id']));
+                return sprintf('<a href="%s">%s</a>', esc_url($url), $store);
             case 'date':
                 return esc_html(date('Y-m-d', strtotime($item['date'])));
             case 'total':

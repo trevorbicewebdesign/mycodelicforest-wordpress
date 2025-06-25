@@ -44,7 +44,68 @@ class CampManagerReceipts
                 'camp-manager-upload-receipt',
                 [$this, 'upload_receipt_page']
             );
+
+            // need a new hidden menu page for the edit receipt page
+            add_submenu_page(
+                'camp-manager',
+                'Edit Receipt',
+                'Edit Receipt',
+                'manage_options',
+                'camp-manager-edit-receipt',
+                [$this, 'edit_receipt_page']
+            );
         });
+    }
+
+    public function edit_receipt_page()
+    {
+        $receipt_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+        if (!$receipt_id) {
+            wp_die('Invalid receipt ID.');
+        }
+
+        $receipt = $this->get_receipt($receipt_id);
+        if (!$receipt) {
+            wp_die('Receipt not found.');
+        }
+
+        ?>
+        <div class="wrap">
+            <h1 class="wp-heading-inline">Edit Receipt</h1>
+            <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+                <input type="hidden" name="action" value="camp_manager_save_receipt">
+                <input type="hidden" name="receipt_id" value="<?php echo esc_attr($receipt_id); ?>">
+                <table class="form-table">
+                    <tr>
+                        <th><label for="store">Store</label></th>
+                        <td><input type="text" name="store" class="regular-text" value="<?php echo esc_attr(str_replace('/', '', $receipt->store)); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="date">Date</label></th>
+                        <td><input type="date" name="date" value="<?php echo esc_attr(date('Y-m-d', strtotime($receipt->date))); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="subtotal">Subtotal</label></th>
+                        <td><input type="number" step="0.01" name="subtotal" value="<?php echo esc_attr($receipt->subtotal); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="tax">Tax</label></th>
+                        <td><input type="number" step="0.01" name="tax" value="<?php echo esc_attr($receipt->tax); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="shipping">Shipping</label></th>
+                        <td><input type="number" step="0.01" name="shipping" value="<?php echo esc_attr($receipt->shipping); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="total">Total</label></th>
+                        <td><input type="number" step="0.01" name="total" value="<?php echo esc_attr($receipt->total); ?>"></td>
+                    </tr>
+                </table>
+
+                <?php submit_button('Save Receipt'); ?>
+            </form>
+        </div>
+        <?php
     }
 
     public function receipts_page() {
@@ -82,7 +143,8 @@ class CampManagerReceipts
                 floatval($_POST['tax']),
                 floatval($_POST['shipping']),
                 floatval($_POST['total']),
-                $_POST['items']
+                $_POST['items'],
+                $_POST['raw']
             );
 
             wp_redirect(admin_url('admin.php?page=camp-manager-view-receipts&receipt_submitted=1'));
@@ -155,6 +217,7 @@ class CampManagerReceipts
                 <form method="post" enctype="multipart/form-data" action="<?php echo admin_url('admin-post.php'); ?>">
                     <input type="hidden" name="action" value="camp_manager_save_receipt">
                     <input type="hidden" name="receipt_submitted" value="1">
+                    <input type='hidden' name='raw' value='<?php echo esc_attr(json_encode($response_data)); ?>'>
 
                     <table class="form-table">
                         <tr>
@@ -380,7 +443,8 @@ class CampManagerReceipts
         float $tax,
         float $shipping,
         float $total,
-        array $items
+        array $items,
+        string $raw
     )
     {
         global $wpdb;
@@ -391,7 +455,8 @@ class CampManagerReceipts
             'subtotal' => $subtotal,
             'tax'      => $tax,
             'shipping' => $shipping,
-            'total'    => $total
+            'total'    => $total,
+            'raw'      => $raw // Store raw items data as JSON    
         ];
         $result = $wpdb->insert($table_name, $data);
 
