@@ -77,18 +77,72 @@ class CampManagerReceipts
 
             add_submenu_page(
                 'camp-manager',
-                'Budgets',
-                'Budgets',
+                'Budget Items',
+                'Budget Items',
                 'manage_options',
-                'camp-manager-budgets',
-                [$this, 'render_budget_page']
+                'camp-manager-budget-items',
+                [$this, 'render_budget_items_page']
+            );
+
+            add_submenu_page(
+                'camp-manager',
+                'Add Budget Item',
+                'Add Budget Item',
+                'manage_options',
+                'camp-manager-add-budget-item',
+                [$this, 'render_add_budget_item_page']
+            );
+
+            add_submenu_page(
+                'camp-manager',
+                'Add Budget Category',
+                'Add Budget Category',
+                'manage_options',
+                'camp-manager-add-budget-category',
+                [$this, 'render_add_budget_page']
             );
         });
     }
 
-    public function render_budget_page()
+    public function render_add_budget_page()
     {
-        $table = new CampManagerBudgetsTable();
+        $budget_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+        $budget = $budget_id ? $this->get_budget($budget_id) : null;
+        $is_edit = $budget !== null;
+        $budget_id = $is_edit ? intval($budget->id) : 0;
+        ?>
+        <div class="wrap">
+            <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Budget Category' : 'Add New Budget Category'; ?></h1>
+
+            <hr/>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <input type="hidden" name="action" value="camp_manager_save_budget">
+                <?php if ($is_edit): ?>
+                    <input type="hidden" name="budget_id" value="<?php echo esc_attr($budget_id); ?>">
+                <?php endif; ?>
+                <table class="form-table">
+                    <tr>
+                        <th><label for="budget_name">Name</label></th>
+                        <td>
+                            <input type="text" name="budget_name" id="budget_name" class="regular-text" value="<?php echo esc_attr($budget->name ?? ''); ?>" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="budget_description">Description</label></th>
+                        <td>
+                            <textarea name="budget_description" id="budget_description" rows="4" class="large-text"><?php echo esc_textarea($budget->description ?? ''); ?></textarea>
+                        </td>
+                    </tr>
+                </table>
+                <?php submit_button($is_edit ? 'Update Budget' : 'Add Budget'); ?>
+            </form>
+        </div>
+        <?php
+    }
+
+    public function render_budget_items_page()
+    {
+        $table = new CampManagerBudgetItemsTable();
         $table->process_bulk_action();
         $table->prepare_items();
         ?>
@@ -101,8 +155,8 @@ class CampManagerReceipts
             .wp-list-table .column-shipping    { width: 15%; text-align: right; }
         </style>
         <div class="wrap">
-            <h1 class="wp-heading-inline">Budgets</h1>
-            <a href="<?php echo admin_url('admin.php?page=camp-manager-add-member'); ?>" class="page-title-action">Add New</a>
+            <h1 class="wp-heading-inline">Budget Items</h1>
+            <a href="<?php echo admin_url('admin.php?page=camp-manager-add-budget-item'); ?>" class="page-title-action">Add New</a>
             <hr class="wp-header-end">
             <form method="post">
                 <?php
