@@ -217,7 +217,7 @@ class CampManagerReceipts
                     </tr>
                     <tr>
                         <th><label for="store">Store</label></th>
-                        <td><input type="text" name="store" class="regular-text" value="<?php echo esc_attr($store); ?>"></td>
+                        <td><input type="text" name="store" class="regular-text" value="<?php echo esc_attr(stripslashes($store)); ?>"></td>
                     </tr>
                     <tr>
                         <th><label for="date">Date</label></th>
