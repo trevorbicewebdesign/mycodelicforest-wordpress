@@ -85,7 +85,7 @@ class CampManagerReceipts
                 $_POST['items']
             );
 
-            wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&saved=1'));
+            wp_redirect(admin_url('admin.php?page=camp-manager-view-receipts&receipt_submitted=1'));
         } catch (Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&error=' . urlencode($e->getMessage())));
         }
@@ -383,9 +383,6 @@ class CampManagerReceipts
         array $items
     )
     {
-       
-        die("111111");
-
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_receipts';
         $data = [
