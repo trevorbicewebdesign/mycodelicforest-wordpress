@@ -52,7 +52,7 @@ class CampManagerReceipts
                 'Edit Receipt',
                 'manage_options',
                 'camp-manager-edit-receipt',
-                [$this, 'edit_receipt_page']
+                [$this, 'render_receipt_form']
             );
         });
     }
@@ -179,6 +179,169 @@ class CampManagerReceipts
     public function camp_manager_dashboard() {
         echo '<div class="wrap"><h1>Camp Manager Dashboard</h1></div>';
     }
+
+    public function render_receipt_form()
+    {
+        $receipt_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+        $receipt = $receipt_id ? $this->get_receipt($receipt_id) : null;
+        $is_edit = $receipt !== null;
+        $receipt_id = $is_edit ? intval($receipt->id) : 0;
+
+        $store = $receipt->store ?? '';
+        $date = $receipt->date ?? '';
+        $subtotal = $receipt->subtotal ?? '';
+        $tax = $receipt->tax ?? '';
+        $shipping = $receipt->shipping ?? '';
+        $total = $receipt->total ?? '';
+        $items = $receipt->items ?? [];
+
+        $form_action = admin_url('admin-post.php');
+        ?>
+        <div class="wrap">
+            <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Receipt' : 'Upload Receipt'; ?></h1>
+
+            <form method="post" enctype="multipart/form-data" action="<?php echo esc_url($form_action); ?>" id="receipt-form">
+                <input type="hidden" name="action" value="<?php echo $is_edit ? 'camp_manager_save_receipt' : 'camp_manager_upload_and_save_receipt'; ?>">
+                <?php if ($is_edit): ?>
+                    <input type="hidden" name="receipt_id" value="<?php echo esc_attr($receipt_id); ?>">
+                <?php endif; ?>
+
+                <table class="form-table">
+                    <tr>
+                        <th><label for="receipt_image">Receipt Image</label></th>
+                        <td>
+                            <input type="file" name="receipt_image" accept="image/*" id="receipt_image">
+                            <button type="button" id="analyze-btn" class="button">Analyze Receipt</button>
+                            <span id="analyze-spinner" class="spinner" style="float: none;"></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="store">Store</label></th>
+                        <td><input type="text" name="store" class="regular-text" value="<?php echo esc_attr($store); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="date">Date</label></th>
+                        <td><input type="date" name="date" value="<?php echo esc_attr($date); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="subtotal">Subtotal</label></th>
+                        <td><input type="number" step="0.01" name="subtotal" value="<?php echo esc_attr($subtotal); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="tax">Tax</label></th>
+                        <td><input type="number" step="0.01" name="tax" value="<?php echo esc_attr($tax); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="shipping">Shipping</label></th>
+                        <td><input type="number" step="0.01" name="shipping" value="<?php echo esc_attr($shipping); ?>"></td>
+                    </tr>
+                    <tr>
+                        <th><label for="total">Total</label></th>
+                        <td><input type="number" step="0.01" name="total" value="<?php echo esc_attr($total); ?>"></td>
+                    </tr>
+                </table>
+
+                <div id="items-wrapper">
+                    <!-- JS will populate or modify this dynamically -->
+                    <?php if (!empty($items) && is_array($items)): ?>
+                        <?php foreach ($items as $index => $item): ?>
+                            <div class="item-row">
+                                <input type="text" name="items[<?php echo $index; ?>][name]" value="<?php echo esc_attr($item->name ?? $item['name'] ?? ''); ?>" />
+                                <input type="number" name="items[<?php echo $index; ?>][price]" value="<?php echo esc_attr($item->price ?? $item['price'] ?? 0); ?>" />
+                                <input type="number" name="items[<?php echo $index; ?>][quantity]" value="<?php echo esc_attr($item->quantity ?? $item['quantity'] ?? 1); ?>" />
+                                <input type="number" name="items[<?php echo $index; ?>][subtotal]" value="<?php echo esc_attr($item->subtotal ?? $item['subtotal'] ?? 0); ?>" />
+                                
+                                <button type="button" class="remove-item">Remove</button>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+                <?php submit_button($is_edit ? 'Update Receipt' : 'Save Receipt'); ?>
+            </form>
+        </div>
+        <script type="text/javascript">
+            jQuery(document).ready(function($) {
+    $('#analyze-btn').on('click', function () {
+        var fileInput = $('#receipt_image')[0];
+        if (!fileInput.files.length) {
+            alert('Please choose an image first.');
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('action', 'camp_manager_analyze_receipt');
+        formData.append('receipt_image', fileInput.files[0]);
+
+        $('#analyze-spinner').addClass('is-active');
+
+        $.ajax({
+            url: ajaxurl,
+            method: 'POST',
+            processData: false,
+            contentType: false,
+            data: formData,
+            success: function (res) {
+                $('#analyze-spinner').removeClass('is-active');
+                if (res.success) {
+                    populateFormWithReceipt(res.data);
+                } else {
+                    alert('Error: ' + res.data);
+                }
+            },
+            error: function () {
+                $('#analyze-spinner').removeClass('is-active');
+                alert('Something went wrong.');
+            }
+        });
+    });
+
+    function populateFormWithReceipt(data) {
+        $('input[name="store"]').val(data.store || '');
+        $('input[name="date"]').val(data.date || '');
+        $('input[name="subtotal"]').val(data.subtotal || '');
+        $('input[name="tax"]').val(data.tax || '');
+        $('input[name="shipping"]').val(data.shipping || '');
+        $('input[name="total"]').val(data.total || '');
+
+        const wrapper = $('#items-wrapper');
+        wrapper.empty();
+
+        if (Array.isArray(data.items)) {
+            data.items.forEach((item, index) => {
+                wrapper.append(renderItemRow(item, index));
+            });
+        }
+    }
+
+    function renderItemRow(item, index) {
+        return `
+            <div class="item-row">
+                <input type="text" name="items[${index}][name]" value="${item.name || ''}" />
+                <input type="number" name="items[${index}][price]" value="${item.price || 0}" />
+                <input type="number" name="items[${index}][quantity]" value="${item.quantity || 1}" />
+                <input type="number" name="items[${index}][subtotal]" value="${item.subtotal || 0}" />
+                <select name="items[${index}][category]">
+                    <option value="power">Power</option>
+                    <option value="sojourner">Sojourner</option>
+                    <option value="sound">Sound</option>
+                    <option value="misc">Misc</option>
+                </select>
+                <button type="button" class="remove-item">Remove</button>
+            </div>`;
+    }
+
+    $(document).on('click', '.remove-item', function () {
+        $(this).closest('.item-row').remove();
+    });
+
+    // Optionally add an "Add Item" button
+});
+
+        </script>
+        <?php
+    }
+
 
     
     public function upload_receipt_page() {
