@@ -11,12 +11,17 @@
 
 define('CAMPMANAGER_CORE_ABS_PATH', WP_CONTENT_DIR . "/plugins/camp-manager/");
 
+// Classes
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-core.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-receipts.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-chatgpt.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-ledger.php');
-require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-receipt-list-table.php');
-//require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-googleapi.php');
+
+// Tables
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-receipt-list-table.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-ledger-list-table.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-roster-list-table.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budgets-list-table.php');
  
 register_activation_hook(__FILE__, function () {
     require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-install.php');
