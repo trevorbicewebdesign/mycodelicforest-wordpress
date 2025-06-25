@@ -3,13 +3,17 @@
 class CampManagerReceipts
 {
     private $CampManagerChatGPT;
-    public function __construct(CampManagerChatGPT $CampManagerChatGPT)
+    private $core;
+    public function __construct(CampManagerCore $core, CampManagerChatGPT $CampManagerChatGPT)
     {
         $this->CampManagerChatGPT = $CampManagerChatGPT;
+        $this->core = $core;
     }
 
     public function init()
     {
+        add_action('admin_post_camp_manager_save_receipt', array($this, 'handle_receipt_save'));
+        add_action('admin_post_camp_manager_upload_receipt', array($this, 'handle_receipt_upload'));
         add_action('admin_menu', function () {
             // Top-level menu
             add_menu_page(
@@ -25,13 +29,13 @@ class CampManagerReceipts
             // Submenu: Receipts
             add_submenu_page(
                 'camp-manager',
-                'Receipts',
-                'Receipts',
+                'View Receipts',
+                'View Receipts',
                 'manage_options',
-                'camp-manager-receipts',
-                array($this, 'camp_manager_receipts_page')
+                'camp-manager-view-receipts',
+                [$this, 'receipts_page']
             );
-
+            
             add_submenu_page(
                 'camp-manager',
                 'Upload Receipt',
@@ -41,6 +45,21 @@ class CampManagerReceipts
                 [$this, 'upload_receipt_page']
             );
         });
+    }
+
+    public function receipts_page() {
+        $table = new CampManagerReceiptsTable();
+        $table->prepare_items();
+        ?>
+        <div class="wrap">
+            <h1 class="wp-heading-inline">Receipts</h1>
+            <form method="post">
+                <?php
+                $table->display();
+                ?>
+            </form>
+        </div>
+        <?php
     }
 
     public function handle_receipt_save() {
@@ -164,7 +183,7 @@ class CampManagerReceipts
                                         <input type="text" name="items[<?php echo $i; ?>][subtotal]" value="<?php echo esc_attr($item['subtotal'] ?? ''); ?>" style="width: 100%;" />
                                     </td>
                                     <td style="text-align: right;">
-                                        <?php $categories = $this->getItemCategories(); ?>
+                                        <?php $categories = $this->core->getItemCategories(); ?>
                                         <select name="items[<?php echo $i; ?>][category]" style="width: 100%;">
                                             <option value="">Please select a category</option>
                                             <?php foreach ($categories as $catKey => $catLabel): ?>
@@ -258,46 +277,6 @@ class CampManagerReceipts
         echo '</div>';
     }
 
-    public function camp_manager_add_receipt_page() {
-        echo '<div class="wrap"><h1>Add New Receipt</h1>';
-
-        if (isset($_POST['camp_manager_add_receipt'])) {
-            $data = [
-                'date' => sanitize_text_field($_POST['receipt_date']),
-                'description' => sanitize_text_field($_POST['receipt_description']),
-                'amount' => floatval($_POST['receipt_amount']),
-            ];
-
-            $result = $this->add_receipt($data);
-            if ($result) {
-                echo '<div class="notice notice-success"><p>Receipt added successfully!</p></div>';
-            } else {
-                echo '<div class="notice notice-error"><p>Failed to add receipt.</p></div>';
-            }
-        }
-
-        ?>
-        <form method="post">
-            <table class="form-table">
-                <tr>
-                    <th><label for="receipt_date">Date</label></th>
-                    <td><input type="date" name="receipt_date" required /></td>
-                </tr>
-                <tr>
-                    <th><label for="receipt_description">Description</label></th>
-                    <td><input type="text" name="receipt_description" required /></td>
-                </tr>
-                <tr>
-                    <th><label for="receipt_amount">Amount</label></th>
-                    <td><input type="number" step="0.01" name="receipt_amount" required /></td>
-                </tr>
-            </table>
-            <p><input type="submit" name="camp_manager_add_receipt" class="button-primary" value="Add Receipt"></p>
-        </form>
-        </div>
-        <?php
-    }
-
     public function get_receipts()
     {
         global $wpdb;
@@ -333,10 +312,6 @@ class CampManagerReceipts
         return $items;
     }
 
-    /**
-     * Checks for possible duplicate receipts based on various criteria.
-     * Returns an array of possible duplicates (empty if none found).
-     */
     public function checkForDuplicateReceipt($store, $date, $total, $items = [])
     {
         global $wpdb;
@@ -397,12 +372,8 @@ class CampManagerReceipts
         array $items
     )
     {
-        try{
-            // $this->checkForDuplicateReceipt($store, $date, $total, $items);
-        }
-        catch (\Exception $e) {
-            throw new \Exception("Error checking for duplicate receipt: " . $e->getMessage());
-        }
+       
+        die("111111");
 
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_receipts';
