@@ -58,6 +58,29 @@ class CampManagerReceiptsTable extends WP_List_Table
         }
     }
 
+    public function process_bulk_action()
+    {
+        if ('delete' === $this->current_action()) {
+            if (!empty($_POST['receipt']) && is_array($_POST['receipt'])) {
+                global $wpdb;
+                $table = "{$wpdb->prefix}mf_receipts";
+                $ids = array_map('intval', $_POST['receipt']);
+                $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM $table WHERE id IN ($placeholders)", ...$ids
+                ));
+            }
+        }
+    }
+
+    public function get_bulk_actions()
+    {
+        return [
+            'delete' => 'Delete',
+            // 'mark_reviewed' => 'Mark as Reviewed',
+        ];
+    }
+
     public function prepare_items()
     {
         global $wpdb;
