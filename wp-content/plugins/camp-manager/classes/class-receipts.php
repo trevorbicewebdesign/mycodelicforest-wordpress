@@ -54,9 +54,119 @@ class CampManagerReceipts
                 'camp-manager-edit-receipt',
                 [$this, 'render_receipt_form']
             );
+
+            // add a link to the ledger page
+            add_submenu_page(
+                'camp-manager',
+                'Ledger',
+                'Ledger',
+                'manage_options',
+                'camp-manager-ledger',
+                [$this, 'render_ledger_page']
+            );
+
+            // add a link to the ledger page
+            add_submenu_page(
+                'camp-manager',
+                'Roster',
+                'Roster',
+                'manage_options',
+                'camp-manager-roster',
+                [$this, 'render_roster_page']
+            );
+
+            add_submenu_page(
+                'camp-manager',
+                'Budgets',
+                'Budgets',
+                'manage_options',
+                'camp-manager-budgets',
+                [$this, 'render_budgets_page']
+            );
         });
     }
 
+    public function render_budget_page()
+    {
+        $table = new CampManageBudgetsTable();
+        $table->process_bulk_action();
+        $table->prepare_items();
+        ?>
+        <style>
+            .wp-list-table .column-store       { width: 40%; }
+            .wp-list-table .column-date        { width: 15%; }
+            .wp-list-table .column-total       { width: 10%; text-align: right; }
+            .wp-list-table .column-subtotal    { width: 10%; text-align: right; }
+            .wp-list-table .column-tax         { width: 10%; text-align: right; }
+            .wp-list-table .column-shipping    { width: 15%; text-align: right; }
+        </style>
+        <div class="wrap">
+            <h1 class="wp-heading-inline">Budgets</h1>
+            <a href="<?php echo admin_url('admin.php?page=camp-manager-add-member'); ?>" class="page-title-action">Add New</a>
+            <hr class="wp-header-end">
+            <form method="post">
+                <?php
+                $table->display();
+                ?>
+            </form>
+        </div>
+        <?php
+    }
+
+    public function render_roster_page()
+    {
+        $table = new CampManagerRosterTable();
+        $table->process_bulk_action();
+        $table->prepare_items();
+        ?>
+        <style>
+            .wp-list-table .column-store       { width: 40%; }
+            .wp-list-table .column-date        { width: 15%; }
+            .wp-list-table .column-total       { width: 10%; text-align: right; }
+            .wp-list-table .column-subtotal    { width: 10%; text-align: right; }
+            .wp-list-table .column-tax         { width: 10%; text-align: right; }
+            .wp-list-table .column-shipping    { width: 15%; text-align: right; }
+        </style>
+        <div class="wrap">
+            <h1 class="wp-heading-inline">Roster</h1>
+            <a href="<?php echo admin_url('admin.php?page=camp-manager-add-member'); ?>" class="page-title-action">Add New</a>
+            <hr class="wp-header-end">
+            <form method="post">
+                <?php
+                $table->display();
+                ?>
+            </form>
+        </div>
+        <?php
+    }
+
+
+    public function render_ledger_page()
+    {
+        $table = new CampManagerLedgerTable();
+        $table->process_bulk_action();
+        $table->prepare_items();
+        ?>
+        <style>
+            .wp-list-table .column-store       { width: 40%; }
+            .wp-list-table .column-date        { width: 15%; }
+            .wp-list-table .column-total       { width: 10%; text-align: right; }
+            .wp-list-table .column-subtotal    { width: 10%; text-align: right; }
+            .wp-list-table .column-tax         { width: 10%; text-align: right; }
+            .wp-list-table .column-shipping    { width: 15%; text-align: right; }
+        </style>
+        <div class="wrap">
+            <h1 class="wp-heading-inline">Ledger</h1>
+            <a href="<?php echo admin_url('admin.php?page=camp-manager-add-ledger'); ?>" class="page-title-action">Add New</a>
+            <hr class="wp-header-end">
+            <form method="post">
+                <?php
+                $table->display();
+                ?>
+            </form>
+        </div>
+        <?php
+    }
     public function edit_receipt_page()
     {
         $receipt_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -221,41 +331,87 @@ class CampManagerReceipts
                     </tr>
                     <tr>
                         <th><label for="date">Date</label></th>
-                        <td><input type="date" name="date" value="<?php echo esc_attr($date); ?>"></td>
-                    </tr>
-                    <tr>
-                        <th><label for="subtotal">Subtotal</label></th>
-                        <td><input type="number" step="0.01" name="subtotal" value="<?php echo esc_attr($subtotal); ?>"></td>
-                    </tr>
-                    <tr>
-                        <th><label for="tax">Tax</label></th>
-                        <td><input type="number" step="0.01" name="tax" value="<?php echo esc_attr($tax); ?>"></td>
-                    </tr>
-                    <tr>
-                        <th><label for="shipping">Shipping</label></th>
-                        <td><input type="number" step="0.01" name="shipping" value="<?php echo esc_attr($shipping); ?>"></td>
-                    </tr>
-                    <tr>
-                        <th><label for="total">Total</label></th>
-                        <td><input type="number" step="0.01" name="total" value="<?php echo esc_attr($total); ?>"></td>
+                        <td>
+                            <input type="text" name="date" value="<?php echo esc_attr($date ? date('m/d/Y', strtotime($date)) : ''); ?>" placeholder="mm/dd/yyyy" pattern="\d{2}/\d{2}/\d{4}">
+                        </td>
                     </tr>
                 </table>
 
-                <div id="items-wrapper">
-                    <!-- JS will populate or modify this dynamically -->
-                    <?php if (!empty($items) && is_array($items)): ?>
-                        <?php foreach ($items as $index => $item): ?>
-                            <div class="item-row">
-                                <input type="text" name="items[<?php echo $index; ?>][name]" value="<?php echo esc_attr($item->name ?? $item['name'] ?? ''); ?>" />
-                                <input type="number" name="items[<?php echo $index; ?>][price]" value="<?php echo esc_attr($item->price ?? $item['price'] ?? 0); ?>" />
-                                <input type="number" name="items[<?php echo $index; ?>][quantity]" value="<?php echo esc_attr($item->quantity ?? $item['quantity'] ?? 1); ?>" />
-                                <input type="number" name="items[<?php echo $index; ?>][subtotal]" value="<?php echo esc_attr($item->subtotal ?? $item['subtotal'] ?? 0); ?>" />
-                                
-                                <button type="button" class="remove-item">Remove</button>
-                            </div>
+                <h2 style="margin-top: 40px;">Items</h2>
+                <table class="widefat striped" style="margin-bottom: 30px; table-layout: fixed; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="text-align: right;">Item Name</th>
+                            <th style="text-align: right;">Category</th>
+                            <th style="text-align: right;">Price</th>
+                            <th style="text-align: right;">Qty</th>
+                            <th style="text-align: right;">Subtotal</th>
+                            
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($items ?? [] as $i => $item): ?>
+                            <tr>
+                                <td style="text-align: right;">
+                                    <input type="text" name="items[<?php echo $i; ?>][name]" value="<?php echo esc_attr($item->name ?? ''); ?>" style="width: 100%;" />
+                                </td>
+                                <td style="text-align: right;">
+                                    <?php $categories = $this->core->getItemCategories(); ?>
+                                    <select name="items[<?php echo $i; ?>][category]" style="width: 100%;">
+                                        <option value="">Please select a category</option>
+                                        <?php foreach ($categories as $catKey => $catLabel): ?>
+                                            <option value="<?php echo esc_attr($catKey); ?>"
+                                                <?php selected(($item->category_id ?? '') === $catKey); ?>>
+                                                <?php echo esc_html(ucfirst($catKey)); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+
+                                </td>
+                                <td style="text-align: right;">
+                                    <input type="text" name="items[<?php echo $i; ?>][price]" value="<?php echo esc_attr($item->price ?? ''); ?>" style="width: 100%;" />
+                                </td>
+                                <td style="text-align: right;">
+                                    <input type="number" name="items[<?php echo $i; ?>][quantity]" value="<?php echo esc_attr($item->quantity ?? 1); ?>" style="width: 100%;" />
+                                </td>
+                                <td style="text-align: right;">
+                                    <input type="text" name="items[<?php echo $i; ?>][subtotal]" value="<?php echo esc_attr($item->subtotal ?? ''); ?>" style="width: 100%;" />
+                                </td>
+                              
+                            </tr>
                         <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
+                    </tbody>
+                </table>
+
+                
+                <!-- Totals -->
+                <table style="width: 100%; max-width: 600px; margin-left: auto; font-size: 1.1em;">
+                    <tr>
+                        <td style="text-align: right; padding: 8px;"><strong>Subtotal:</strong></td>
+                        <td style="text-align: right; width: 150px;">
+                            <input type="text" name="subtotal" value="<?php echo esc_attr($subtotal ?? ''); ?>" class="small-text" style="width: 100%;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; padding: 8px;"><strong>Tax:</strong></td>
+                        <td style="text-align: right;">
+                            <input type="text" name="tax" value="<?php echo esc_attr($tax ?? ''); ?>" class="small-text" style="width: 100%;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; padding: 8px;"><strong>Shipping:</strong></td>
+                        <td style="text-align: right;">
+                            <input type="text" name="shipping" value="<?php echo esc_attr($shipping ?? ''); ?>" class="small-text" style="width: 100%;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: right; padding: 8px;"><strong>Total:</strong></td>
+                        <td style="text-align: right;">
+                            <input type="text" name="total" value="<?php echo esc_attr($total ?? ''); ?>" class="small-text" style="width: 100%;" />
+                        </td>
+                    </tr>
+                </table>
+
 
                 <?php submit_button($is_edit ? 'Update Receipt' : 'Save Receipt'); ?>
             </form>
