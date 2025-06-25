@@ -14,6 +14,7 @@ define('CAMPMANAGER_CORE_ABS_PATH', WP_CONTENT_DIR . "/plugins/camp-manager/");
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-core.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-receipts.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-chatgpt.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-receipt-list-table.php');
 //require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-googleapi.php');
  
 register_activation_hook(__FILE__, function () {
@@ -31,7 +32,7 @@ class CampManagerInit {
     public function __construct() {
         $this->CampManagerCore = new CampManagerCore();
         $this->CampManagerChatGPT = new CampManagerChatGPT($this->CampManagerCore);
-        $this->CampManagerReceipts = new CampManagerReceipts($this->CampManagerChatGPT);
+        $this->CampManagerReceipts = new CampManagerReceipts($this->CampManagerCore, $this->CampManagerChatGPT);
         //$this->CampManagerGoogleAPI = new CampManagerGoogleAPI();
     }
 
