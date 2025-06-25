@@ -81,14 +81,14 @@ class CampManagerReceipts
                 'Budgets',
                 'manage_options',
                 'camp-manager-budgets',
-                [$this, 'render_budgets_page']
+                [$this, 'render_budget_page']
             );
         });
     }
 
     public function render_budget_page()
     {
-        $table = new CampManageBudgetsTable();
+        $table = new CampManagerBudgetsTable();
         $table->process_bulk_action();
         $table->prepare_items();
         ?>
