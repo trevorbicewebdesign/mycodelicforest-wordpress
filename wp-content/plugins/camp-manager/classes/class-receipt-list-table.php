@@ -28,6 +28,8 @@ class CampManagerReceiptsTable extends WP_List_Table
             'id'    => 'ID',
             'store' => 'Store',
             'date'  => 'Date',
+            'subtotal' => 'Subtotal',
+            'tax'   => 'Tax',
             'total' => 'Total',
         ];
     }
@@ -38,6 +40,7 @@ class CampManagerReceiptsTable extends WP_List_Table
             'id'    => ['id', true],
             'store' => ['store', false],
             'date'  => ['date', false],
+            'tax'   => ['tax', false],
             'total' => ['total', false],
         ];
     }
@@ -104,7 +107,7 @@ class CampManagerReceiptsTable extends WP_List_Table
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
         $sql = $wpdb->prepare(
-            "SELECT id, date, total, store FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT id, date, total, store, subtotal, tax FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
             $per_page,
             $offset
         );
