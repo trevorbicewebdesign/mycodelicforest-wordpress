@@ -22,6 +22,11 @@ class CampManagerInstall
             `wpid` INT(11) NOT NULL,
             `low_income` TINYINT(1) NULL DEFAULT NULL,
             `fully_paid` TINYINT(1) NULL DEFAULT NULL,
+            `season` INT(11) NULL DEFAULT NULL,
+            `fname` VARCHAR(255) NULL DEFAULT NULL,
+            `lname` VARCHAR(255) NULL DEFAULT NULL,
+            `playaname` VARCHAR(255) NULL DEFAULT NULL,
+            `email` VARCHAR(255) NULL DEFAULT NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
         ";
