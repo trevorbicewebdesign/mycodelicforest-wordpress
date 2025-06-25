@@ -49,10 +49,13 @@ class CampManagerReceipts
 
     public function receipts_page() {
         $table = new CampManagerReceiptsTable();
+        $table->process_bulk_action();
         $table->prepare_items();
         ?>
         <div class="wrap">
             <h1 class="wp-heading-inline">Receipts</h1>
+            <a href="<?php echo admin_url('admin.php?page=camp-manager-upload-receipt'); ?>" class="page-title-action">Add New</a>
+            <hr class="wp-header-end">
             <form method="post">
                 <?php
                 $table->display();
