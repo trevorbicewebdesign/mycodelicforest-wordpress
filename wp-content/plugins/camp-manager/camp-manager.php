@@ -21,7 +21,7 @@ require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-ledger.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-receipt-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-ledger-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-roster-list-table.php');
-require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budgets-list-table.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budget-items-list-table.php');
  
 register_activation_hook(__FILE__, function () {
     require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-install.php');
