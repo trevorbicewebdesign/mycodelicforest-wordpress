@@ -26,11 +26,11 @@ class CampManagerRosterTable extends WP_List_Table
         return [
             'cb'    => '<input type="checkbox" />', // For bulk actions
             'id'    => 'ID',
-            'store' => 'Store',
-            'date'  => 'Date',
-            'subtotal' => 'Subtotal',
-            'tax'   => 'Tax',
-            'total' => 'Total',
+            'fname' => 'First Name',
+            'lname' => 'Last Name',
+            'playaname' => 'Player Name',
+            'email' => 'Email',
+            
         ];
     }
 
@@ -38,10 +38,10 @@ class CampManagerRosterTable extends WP_List_Table
     {
         return [
             'id'    => ['id', true],
-            'store' => ['store', false],
-            'date'  => ['date', false],
-            'tax'   => ['tax', false],
-            'total' => ['total', false],
+            'fname' => ['fname', false],
+            'lname'  => ['lname', false],
+            'playaname'   => ['playaname', false],
+            'email' => ['email', false],
         ];
     }
 
@@ -52,20 +52,15 @@ class CampManagerRosterTable extends WP_List_Table
                 return esc_html($item['id']);
             case 'wpid':
                 return esc_html($item['wpid']);
-            case 'low_income':
-                return esc_html($item[$column_name]);
-            case 'fully_paid':
-                return esc_html($item[$column_name]);
-            case 'season':
-                return esc_html($item[$column_name]);
             case 'fname':
-                return esc_html($item[$column_name]);
+                return esc_html(stripslashes($item['fname']));
             case 'lname':
-                return esc_html($item[$column_name]);
+                return esc_html(stripslashes($item['lname']));
             case 'playaname':
-                return esc_html($item[$column_name]);
+                $playaname = esc_html(stripslashes($item['playaname']));
+                return $playaname;
             case 'email':
-                return esc_html($item[$column_name]);
+                return esc_html(stripslashes($item['email']));
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
