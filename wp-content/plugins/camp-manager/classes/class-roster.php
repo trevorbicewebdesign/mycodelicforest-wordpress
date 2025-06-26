@@ -24,14 +24,14 @@ class CampManagerRoster
 
         try {
               $this->addMember([
-                //'wpid' => get_current_user_id(),
-                //'low_income' => isset($_POST['low_income']) ? (int)$_POST['low_income'] : null,
-                //'fully_paid' => isset($_POST['fully_paid']) ? (int)$_POST['fully_paid'] : null,
-                //'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
                 'fname' => sanitize_text_field($_POST['member_fname']),
                 'lname' => sanitize_text_field($_POST['member_lname']),
                 'playaname' => sanitize_text_field($_POST['member_playaname']),
                 'email' => sanitize_email($_POST['member_email']),
+                //'wpid' => get_current_user_id(),
+                //'low_income' => isset($_POST['low_income']) ? (int)$_POST['low_income'] : null,
+                //'fully_paid' => isset($_POST['fully_paid']) ? (int)$_POST['fully_paid'] : null,
+                //'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
             ]);
             
         } catch (\Exception $e) {
