@@ -16,12 +16,14 @@ require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-core.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-receipts.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-chatgpt.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-ledger.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-budgets.php');
 
 // Tables
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-receipt-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-ledger-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-roster-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budget-items-list-table.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budget-categories-list-table.php');
  
 register_activation_hook(__FILE__, function () {
     require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-install.php');
@@ -34,6 +36,8 @@ class CampManagerInit {
     public $CampManagerReceipts;
     public $CampManagerLedger;
     public $CampManagerChatGPT;
+
+    public $CampManagerBudgets;
     public $CampManagerGoogleAPI;
 
     public function __construct() {
@@ -42,6 +46,7 @@ class CampManagerInit {
         $this->CampManagerReceipts = new CampManagerReceipts($this->CampManagerCore, $this->CampManagerChatGPT);
         //$this->CampManagerGoogleAPI = new CampManagerGoogleAPI();
         $this->CampManagerLedger = new CampManagerLedger();
+        $this->CampManagerBudgets = new CampManagerBudgets();
     }
 
     public function init()
@@ -50,6 +55,7 @@ class CampManagerInit {
         $this->CampManagerReceipts->init();
         $this->CampManagerChatGPT->init();
         $this->CampManagerLedger->init();
+        $this->CampManagerBudgets->init();
     }
 }
 
