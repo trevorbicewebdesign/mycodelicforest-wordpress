@@ -36,16 +36,7 @@ class CampManagerPages
                 'camp-manager-view-receipts',
                 [$this, 'receipts_page']
             );
-            
-            add_submenu_page(
-                'camp-manager',
-                'Upload Receipt',
-                'Upload Receipt',
-                'manage_options',
-                'camp-manager-upload-receipt',
-                [$this, 'upload_receipt_page']
-            );
-
+          
             // need a new hidden menu page for the edit receipt page
             add_submenu_page(
                 'camp-manager',
