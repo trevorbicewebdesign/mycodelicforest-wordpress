@@ -54,6 +54,8 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
                 return sprintf('<a href="%s">%s</a>', esc_url($url), $name);
             case 'description':
                 return esc_html($item['description']);
+            case 'must_have':
+                return isset($item['must_have']) ? '$' . number_format((float)$item['must_have'], 2) : '';
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
