@@ -47,20 +47,22 @@ class CampManagerRosterTable extends WP_List_Table
 
     public function column_default($item, $column_name)
     {
+
+        $link = "<a href='/wp-admin/admin.php?page=camp-manager-add-member&id=". esc_attr($item['id']) ."'>";
         switch ($column_name) {
             case 'id':
                 return esc_html($item['id']);
-            case 'wpid':
-                return esc_html($item['wpid']);
             case 'fname':
-                return "<a href='/wp-admin/admin.php?page=camp-manager-add-member&id=". esc_attr($item['id']) ."'>". esc_html(stripslashes($item['fname']))."</a>";
+                return $link . esc_html(stripslashes($item['fname']))."</a>";
             case 'lname':
-                return esc_html(stripslashes($item['lname']));
+                return $link . esc_html(stripslashes($item['lname']))."</a>";
             case 'playaname':
                 $playaname = esc_html(stripslashes($item['playaname']));
-                return $playaname;
+                return $link . $playaname . "</a>";
             case 'email':
-                return esc_html(stripslashes($item['email']));
+                return $link . esc_html(stripslashes($item['email']))."</a>";
+            case 'wpid':
+                return $link . esc_html($item['wpid'])."</a>";
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
