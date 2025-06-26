@@ -53,7 +53,7 @@ class CampManagerRosterTable extends WP_List_Table
             case 'wpid':
                 return esc_html($item['wpid']);
             case 'fname':
-                return esc_html(stripslashes($item['fname']));
+                return "<a href='/wp-admin/admin.php?page=camp-manager-add-member&id=". esc_attr($item['id']) ."'>". esc_html(stripslashes($item['fname']))."</a>";
             case 'lname':
                 return esc_html(stripslashes($item['lname']));
             case 'playaname':
@@ -69,10 +69,10 @@ class CampManagerRosterTable extends WP_List_Table
     public function process_bulk_action()
     {
         if ('delete' === $this->current_action()) {
-            if (!empty($_POST['receipt']) && is_array($_POST['receipt'])) {
+            if (!empty($_POST['member']) && is_array($_POST['member'])) {
                 global $wpdb;
-                $table = "{$wpdb->prefix}mf_receipts";
-                $ids = array_map('intval', $_POST['receipt']);
+                $table = "{$wpdb->prefix}mf_roster";
+                $ids = array_map('intval', $_POST['member']);
                 $placeholders = implode(',', array_fill(0, count($ids), '%d'));
                 $wpdb->query($wpdb->prepare(
                     "DELETE FROM $table WHERE id IN ($placeholders)", ...$ids
@@ -133,6 +133,6 @@ class CampManagerRosterTable extends WP_List_Table
     // Optional: if you want bulk actions with checkboxes
     public function column_cb($item)
     {
-        return sprintf('<input type="checkbox" name="roster[]" value="%s" />', esc_attr($item['id']));
+        return sprintf('<input type="checkbox" name="member[]" value="%s" />', esc_attr($item['id']));
     }
 }
