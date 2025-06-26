@@ -52,8 +52,9 @@ class CampManagerInit {
         //$this->CampManagerGoogleAPI = new CampManagerGoogleAPI();
         $this->CampManagerLedger = new CampManagerLedger();
         $this->CampManagerBudgets = new CampManagerBudgets();
-        $this->CampManagerPages = new CampManagerPages($this->CampManagerReceipts, $this->CampManagerCore);
         $this->CampManagerRoster = new CampManagerRoster();
+        $this->CampManagerPages = new CampManagerPages($this->CampManagerReceipts, $this->CampManagerRoster, $this->CampManagerCore);
+        
     }
 
     public function init()
