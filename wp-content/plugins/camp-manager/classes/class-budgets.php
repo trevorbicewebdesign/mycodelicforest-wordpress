@@ -25,4 +25,6 @@ class CampManagerBudgets {
         $total = $wpdb->get_var($query);
         return $total ? (float) $total : 0.0;
     }
+
+    
 }
