@@ -109,7 +109,68 @@ class CampManagerPages
                 'camp-manager-add-budget-category',
                 [$this, 'render_add_budget_page']
             );
+
+            // camp-manager-add-member
+            add_submenu_page(
+                'camp-manager',
+                'Add Member',
+                'Add Member',
+                'manage_options',
+                'camp-manager-add-member',
+                [$this, 'render_add_member_page']
+            );
         });
+    }
+
+    public function render_add_member_page()
+    {
+        // Check if the user has permission to manage options
+        
+        $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+        // we need to determine if we are editing or adding a new member
+        $is_edit = $id > 0;
+        ?>
+        <div class="wrap">
+            <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Member' : 'Add New Member'; ?></h1>
+            <hr/>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <input type="hidden" name="action" value="camp_manager_save_member">
+                <table class="form-table">
+                    <tr>
+                        <th><label for="member_fname">First Name</label></th>
+                        <td>
+                            <input type="text" name="member_fname" id="member_fname" class="regular-text" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="member_lname">Last Name</label></th>
+                        <td>
+                            <input type="text" name="member_lname" id="member_lname" class="regular-text" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="member_playaname">Playa Name</label></th>
+                        <td>
+                            <input type="text" name="member_playaname" id="member_playaname" class="regular-text">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="member_email">Email</label></th>
+                        <td>
+                            <input type="email" name="member_email" id="member_email" class="regular-text" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="wpid">wpid</label></th>
+                        <td>
+                            <input type="number" name="wpid" id="wpid" class="regular-text">
+                        </td>
+                    </tr>
+                </table>
+                <?php submit_button($is_edit ? 'Edit Camp Member' : 'Add Camp Member'); ?>
+            </form>
+        </div>
+        <?php
     }
 
     public function render_budget_categories_page()
