@@ -18,6 +18,7 @@ require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-chatgpt.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-ledger.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-budgets.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-pages.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-roster.php');
 
 // Tables
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-receipt-list-table.php');
@@ -40,6 +41,7 @@ class CampManagerInit {
 
     public $CampManagerBudgets;
     public $CampManagerGoogleAPI;
+    public $CampManagerRoster;
 
     public $CampManagerPages;
 
@@ -51,6 +53,7 @@ class CampManagerInit {
         $this->CampManagerLedger = new CampManagerLedger();
         $this->CampManagerBudgets = new CampManagerBudgets();
         $this->CampManagerPages = new CampManagerPages($this->CampManagerReceipts, $this->CampManagerCore);
+        $this->CampManagerRoster = new CampManagerRoster();
     }
 
     public function init()
@@ -61,6 +64,7 @@ class CampManagerInit {
         $this->CampManagerLedger->init();
         $this->CampManagerBudgets->init();
         $this->CampManagerPages->init();
+        $this->CampManagerRoster->init();
     }
 }
 
