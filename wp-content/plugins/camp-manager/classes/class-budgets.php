@@ -13,7 +13,7 @@ class CampManagerBudgets {
         // This could include setting up database connections, loading necessary libraries, etc.
     }
 
-    public function getPriortyTotal($category_id, $priority): float
+    public static function getPriortyTotal($category_id, $priority): float
     {
         // Should get all budget items for a category and priority
         global $wpdb;
