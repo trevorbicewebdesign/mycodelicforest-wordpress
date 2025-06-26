@@ -11,39 +11,33 @@ class CampManagerRoster
     public function init()
     {
         // add action processing for `camp_manager_save_member`
-        add_action('admin_post_camp_manager_save_member', array($this, 'handle_member_save'));
+        add_action('admin_post_camp_manager_save_member', [$this, 'handle_member_save']);
     }
 
     public function handle_member_save()
     {
+        
         // Handle saving a member from the admin post request
         if (!current_user_can('manage_options')) {
             wp_die('Unauthorized');
         }
 
-        // Check if the required fields are set
-        if (!isset($_POST['fname'], $_POST['lname'], $_POST['playaname'], $_POST['email'])) {
-            wp_redirect(admin_url('admin.php?page=camp-manager-roster&error=missing_fields'));
-            exit;
-        }
-
         try {
-            $memberData = [
-                'wpid' => get_current_user_id(),
-                'low_income' => isset($_POST['low_income']) ? (int)$_POST['low_income'] : null,
-                'fully_paid' => isset($_POST['fully_paid']) ? (int)$_POST['fully_paid'] : null,
-                'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
-                'fname' => sanitize_text_field($_POST['fname']),
-                'lname' => sanitize_text_field($_POST['lname']),
-                'playaname' => sanitize_text_field($_POST['playaname']),
-                'email' => sanitize_email($_POST['email']),
-            ];
-
-            $this->addMember($memberData);
-            wp_redirect(admin_url('admin.php?page=camp-manager-roster&success=member_added'));
+              $this->addMember([
+                //'wpid' => get_current_user_id(),
+                //'low_income' => isset($_POST['low_income']) ? (int)$_POST['low_income'] : null,
+                //'fully_paid' => isset($_POST['fully_paid']) ? (int)$_POST['fully_paid'] : null,
+                //'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
+                'fname' => sanitize_text_field($_POST['member_fname']),
+                'lname' => sanitize_text_field($_POST['member_lname']),
+                'playaname' => sanitize_text_field($_POST['member_playaname']),
+                'email' => sanitize_email($_POST['member_email']),
+            ]);
+            
         } catch (\Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-roster&error=' . urlencode($e->getMessage())));
         }
+        wp_redirect(admin_url('admin.php?page=camp-manager-roster&success=member_added'));
         exit;
     }
 
@@ -51,27 +45,27 @@ class CampManagerRoster
     {
         // Get all members from mf_roster
         global $wpdb;
-        $table_name = $wpdb->prefix . 'mf_roster';
+        $table_name = "{$wpdb->prefix}mf_roster";
         $query = "SELECT * FROM $table_name ORDER BY lname, fname";
         $members = $wpdb->get_results($query, ARRAY_A);
-        return $members ? $members : [];
+        return $members ?: [];
     }
 
     public function getMemberById($memberId)
     {
         // Get a specific member by ID from mf_roster
         global $wpdb;
-        $table_name = $wpdb->prefix . 'mf_roster';
+        $table_name = "{$wpdb->prefix}mf_roster";
         $query = $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", (int)$memberId);
-        $member = $wpdb->get_row($query, ARRAY_A);
-        return $member ? $member : null;
+        $member = $wpdb->get_row($query);
+        return $member ?: null;
     }
 
     public function addMember($memberData)
     {
         // insert into mf_roster
         global $wpdb;
-        $table_name = $wpdb->prefix . 'mf_roster';
+        $table_name = "{$wpdb->prefix}mf_roster";
         $data = [
             'wpid' => $memberData['wpid'],
             'low_income' => isset($memberData['low_income']) ? (int)$memberData['low_income'] : null,
@@ -82,9 +76,12 @@ class CampManagerRoster
             'playaname' => sanitize_text_field($memberData['playaname']),
             'email' => sanitize_email($memberData['email']),
         ];
+
+        
+
         $result = $wpdb->insert($table_name, $data);
         if ($result === false) {
-            throw new \Exception("Failed to insert member into roster: " . $wpdb->last_error);
+            throw new \Exception("Failed to insert member into roster: {$wpdb->last_error}");
         }
         return $wpdb->insert_id; // Return the ID of the newly added member
     }
@@ -93,10 +90,10 @@ class CampManagerRoster
     {
         // Delete from mf_roster
         global $wpdb;
-        $table_name = $wpdb->prefix . 'mf_roster';
+        $table_name = "{$wpdb->prefix}mf_roster";
         $result = $wpdb->delete($table_name, ['id' => (int)$memberId]);
         if ($result === false) {
-            throw new \Exception("Failed to delete member from roster: " . $wpdb->last_error);
+            throw new \Exception("Failed to delete member from roster: {$wpdb->last_error}");
         }
         return $result; // Return the number of rows affected
     }
