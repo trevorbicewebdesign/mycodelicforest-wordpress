@@ -56,6 +56,12 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
                 return esc_html($item['description']);
             case 'must_have':
                 return isset($item['must_have']) ? '$' . number_format((float)$item['must_have'], 2) : '';
+            case 'should_have':
+                return isset($item['should_have']) ? '$' . number_format((float)$item['should_have'], 2) : '';
+            case 'could_have':
+                return isset($item['could_have']) ? '$' . number_format((float)$item['could_have'], 2) : '';
+            case 'nice_to_have':
+                return isset($item['nice_to_have']) ? '$' . number_format((float)$item['nice_to_have'], 2) : '';
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
