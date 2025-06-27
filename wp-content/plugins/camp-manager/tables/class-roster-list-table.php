@@ -29,7 +29,10 @@ class CampManagerRosterTable extends WP_List_Table
             'fname' => 'First Name',
             'lname' => 'Last Name',
             'playaname' => 'Player Name',
-            'email' => 'Email',
+            'camp_dues' => 'Camp Dues',
+            'low_income' => 'Low Income',
+            'fully_paid' => 'Fully Paid',
+            'wpid'  => 'WordPress ID',
             
         ];
     }
@@ -41,7 +44,6 @@ class CampManagerRosterTable extends WP_List_Table
             'fname' => ['fname', false],
             'lname'  => ['lname', false],
             'playaname'   => ['playaname', false],
-            'email' => ['email', false],
         ];
     }
 
@@ -63,6 +65,8 @@ class CampManagerRosterTable extends WP_List_Table
                 return $link . esc_html(stripslashes($item['email']))."</a>";
             case 'wpid':
                 return $link . esc_html($item['wpid'])."</a>";
+            case 'camp_dues':
+                return isset($item['camp_dues']) ? '$' . number_format((float)$item['camp_dues'], 2) : '';
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
