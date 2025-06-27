@@ -10,7 +10,7 @@ class CampManagerLedger
 
     public function init()
     {
-
+        
     }
 
     public function record_money_in($amount, $description = '', $date = null)
