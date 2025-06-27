@@ -57,6 +57,16 @@ class CampManagerPages
                 [$this, 'render_ledger_page']
             );
 
+                // add page camp-manager-add-ledger
+            add_submenu_page(
+                'camp-manager',
+                'Add Ledger Entry',
+                'Add Ledger Entry',
+                'manage_options',
+                'camp-manager-add-ledger',
+                [$this, 'render_add_ledger_page']
+            );
+
             // add a link to the ledger page
             add_submenu_page(
                 'camp-manager',
@@ -115,10 +125,52 @@ class CampManagerPages
         });
     }
 
+    public function render_add_ledger_page()
+    {
+        // Check if the user has permission to manage options
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have sufficient permissions to access this page.'));
+        }
+
+        ?>
+        <div class="wrap">
+            <h1 class="wp-heading-inline">Add Ledger Entry</h1>
+            <hr/>
+            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                <input type="hidden" name="action" value="camp_manager_save_ledger_entry">
+                <table class="form-table">
+                    <tr>
+                        <th><label for="ledger_date">Date</label></th>
+                        <td>
+                            <input type="date" name="ledger_date" id="ledger_date" class="regular-text" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="ledger_description">Description</label></th>
+                        <td>
+                            <input type="text" name="ledger_description" id="ledger_description" class="regular-text" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="ledger_amount">Amount</label></th>
+                        <td>
+                            <input type="number" name="ledger_amount" id="ledger_amount" class="regular-text" step="0.01" required>
+                        </td>
+                    </tr>
+                </table>
+            <?php submit_button('Add Ledger Entry'); ?>
+            </form>
+        </div>
+        <?php   
+    }
+
     public function render_add_member_page()
     {
         // Check if the user has permission to manage options
-        
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have sufficient permissions to access this page.'));
+        }
+
         $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
         if($id > 0) {
             $member = $this->roster->getMemberById($id);
@@ -413,6 +465,8 @@ class CampManagerPages
             <h1 class="wp-heading-inline">Ledger</h1>
             <a href="<?php echo admin_url('admin.php?page=camp-manager-add-ledger'); ?>" class="page-title-action">Add New</a>
             <hr class="wp-header-end">
+            <h3>The current amount is: <?php echo esc_html($table->get_total_amount()); ?></h3>
+            <h3>We have collected <?php echo esc_html($table->get_total_camp_dues()); ?> in camp dues</h3>
             <form method="post">
                 <?php
                 $table->display();
