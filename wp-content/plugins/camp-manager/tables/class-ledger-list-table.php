@@ -26,6 +26,7 @@ class CampManagerLedgerTable extends WP_List_Table
         return [
             'cb'    => '<input type="checkbox" />', // For bulk actions
             'id'    => 'ID',
+            'name'  => 'Name',
             'amount' => 'Amount',
             'date'  => 'Date',
             'note' => 'Note',
@@ -47,15 +48,35 @@ class CampManagerLedgerTable extends WP_List_Table
         switch ($column_name) {
             case 'id':
                 return esc_html($item['id']);
+            case 'name':
+                return esc_html($item['name']);
             case 'amount':
                 return '$' . number_format((float) $item['amount'], 2);
             case 'date':
                 return esc_html(date('Y-m-d', strtotime($item['date'])));
             case 'note':
-                return '$' . number_format((float) $item['note'], 2);
+                return esc_html($item['note']);
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
+    }
+
+    public function get_total_amount()
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_ledger";
+        $total = $wpdb->get_var("SELECT SUM(amount) FROM $table");
+        return $total ? '$' . number_format((float) $total, 2) : '$0.00';
+    }
+
+    public function get_total_camp_dues()
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_ledger";
+        $total = $wpdb->get_var(
+            "SELECT SUM(amount) FROM $table WHERE type IN ('Camp Dues', 'Partial Camp Dues')"
+        );
+        return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
     public function process_bulk_action()
@@ -104,7 +125,7 @@ class CampManagerLedgerTable extends WP_List_Table
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
         $sql = $wpdb->prepare(
-            "SELECT id, amount, date, note FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT id, name, amount, date, note FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
             $per_page,
             $offset
         );
