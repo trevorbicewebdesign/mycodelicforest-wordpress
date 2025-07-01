@@ -79,10 +79,10 @@ class CampManagerBudgetItemsTable extends WP_List_Table
     public function process_bulk_action()
     {
         if ('delete' === $this->current_action()) {
-            if (!empty($_POST['ledger']) && is_array($_POST['ledger'])) {
+            if (!empty($_POST['budget-item']) && is_array($_POST['budget-item'])) {
                 global $wpdb;
                 $table = "{$wpdb->prefix}mf_budget_items";
-                $ids = array_map('intval', $_POST['ledger']);
+                $ids = array_map('intval', $_POST['budget-item']);
                 $placeholders = implode(',', array_fill(0, count($ids), '%d'));
                 $wpdb->query($wpdb->prepare(
                     "DELETE FROM $table WHERE id IN ($placeholders)", ...$ids
@@ -143,6 +143,6 @@ class CampManagerBudgetItemsTable extends WP_List_Table
     // Optional: if you want bulk actions with checkboxes
     public function column_cb($item)
     {
-        return sprintf('<input type="checkbox" name="ledger[]" value="%s" />', esc_attr($item['id']));
+        return sprintf('<input type="checkbox" name="budget-item[]" value="%s" />', esc_attr($item['id']));
     }
 }
