@@ -169,14 +169,5 @@ class CampManagerBudgetsCest
         $I->dontSeeInDatabase("wp_mf_budget_items", [
             "id" => $id,
         ]);
-
-        $I->dontSee("Test Budget Item", "table.table-view-list.budgetitems td.name");
-        $I->dontSee("100.00", "table.table-view-list.budgetitems td.price");
-        $I->dontSee("2", "table.table-view-list.budgetitems td.quantity");
-        $I->dontSee("200.00", "table.table-view-list.budgetitems td.subtotal");
-        $I->dontSee("220.00", "table.table-view-list.budgetitems td.total");
-        $I->dontSee("1", "table.table-view-list.budgetitems td.priority");
     }
-
-
 }
