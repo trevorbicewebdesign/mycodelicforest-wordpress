@@ -47,11 +47,10 @@ class CampManagerBudgetsCest
                 // "years_attended" => '["2024"]',
             ]
         ]);
+        $I->loginAs("testadmin", "password123!test");
     }
     public function ViewBudgetItems(AcceptanceTester $I)
     {
-        $I->loginAs("testadmin", "password123!test");
-
         // Navigate to the budget items page (not the add form, to see the table)
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budget-items");
         $I->see("Budget Items", "h1"); // Adjust if needed to match page title
@@ -73,13 +72,10 @@ class CampManagerBudgetsCest
         $I->see("Select All", "label[for='cb-select-all-1']");
 
         $I->seeNumberOfElements("table.wp-list-table tbody tr", 20); // Only the header row initially
-
     }
 
     public function AddNewBudgetItem(AcceptanceTester $I)
     {
-        $I->loginAs("testadmin", "password123!test");
-
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-budget-item");
         $I->see("Add New Budget Item", "h1"); 
 
@@ -118,6 +114,7 @@ class CampManagerBudgetsCest
         // Submit the form
         $I->click(['css' => "input[type='submit'][value='Add Budget Item']"]);
         $I->wait("1");
+        $I->waitForText("Budget Items", 15, "h1");
 
         // Check that we are on the view all budget items page
         $I->seeCurrentUrlEquals("/wp-admin/admin.php?page=camp-manager-budget-items&success=item_added");
@@ -134,7 +131,35 @@ class CampManagerBudgetsCest
             "priority" => 1,
         ]);
 
+        $I->see("Test Budget Item", "table.table-view-list.budgetitems td.name");
+        // $I->see("Power", "table.table-view-list.budgetitems td.category");
+        $I->see("100.00", "table.table-view-list.budgetitems td.price");
+        $I->see("2", "table.table-view-list.budgetitems td.quantity");
+        $I->see("200.00", "table.table-view-list.budgetitems td.subtotal");
+        // $I->see("20.00", "table.table-view-list.budgetitems td.tax");
+        $I->see("220.00", "table.table-view-list.budgetitems td.total");
+        $I->see("1", "table.table-view-list.budgetitems td.priority");
 
+    }
+
+    public function deleteBudgetItem(AcceptanceTester $I)
+    {
+        $id = $I->haveInDatabase("wp_mf_budget_items", [
+            "name" => "Test Budget Item",
+            "category_id" => 1, // Assuming 'Power' category has ID 1
+            "price" => 100,
+            "quantity" => 2,
+            "subtotal" => 200,
+            "tax" => 20,
+            "total" => 220,
+            "priority" => 1,
+        ]);
+        // Navigate to the budget items page
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budget-items");
+        $I->see("Budget Items", "h1");
+
+        // Delete is a bulk action, so we need to select an item first
+        $I->checkOption("input[name='item[]'][value='$id']"); //
     }
 
 
