@@ -159,7 +159,23 @@ class CampManagerBudgetsCest
         $I->see("Budget Items", "h1");
 
         // Delete is a bulk action, so we need to select an item first
-        $I->checkOption("input[name='item[]'][value='$id']"); //
+        $I->checkOption("input[name=\"budget-item[]\"][value=\"$id\"]");
+        $I->click("select[name=\"action\"]");
+        $I->selectOption("select[name=\"action\"]", "Delete");
+        $I->click("Apply");
+        $I->wait("1");
+        $I->see("Budget Items", "h1");
+
+        $I->dontSeeInDatabase("wp_mf_budget_items", [
+            "id" => $id,
+        ]);
+
+        $I->dontSee("Test Budget Item", "table.table-view-list.budgetitems td.name");
+        $I->dontSee("100.00", "table.table-view-list.budgetitems td.price");
+        $I->dontSee("2", "table.table-view-list.budgetitems td.quantity");
+        $I->dontSee("200.00", "table.table-view-list.budgetitems td.subtotal");
+        $I->dontSee("220.00", "table.table-view-list.budgetitems td.total");
+        $I->dontSee("1", "table.table-view-list.budgetitems td.priority");
     }
 
 
