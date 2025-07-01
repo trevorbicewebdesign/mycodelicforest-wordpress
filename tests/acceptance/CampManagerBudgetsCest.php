@@ -126,11 +126,11 @@ class CampManagerBudgetsCest
             "name" => "Test Budget Item",
             // "description" => "This is a test budget item description.",
             "category_id" => 1, // Assuming 'Power' category has ID 1
-            "price" => 100.00,
+            "price" => 100,
             "quantity" => 2,
-            "subtotal" => 200.00,
-            "tax" => 20.00,
-            "total" => 220.00,
+            "subtotal" => 200,
+            "tax" => 20,
+            "total" => 220,
             "priority" => 1,
         ]);
 
