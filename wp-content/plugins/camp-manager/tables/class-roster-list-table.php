@@ -11,9 +11,13 @@ if (!class_exists('WP_List_Table')) {
 class CampManagerRosterTable extends WP_List_Table
 {
     private $data;
+    private $CampManagerLedger;
 
-    public function __construct()
+    public function __construct(CampManagerLedger $CampManagerLedger)
     {
+        $this->CampManagerLedger = $CampManagerLedger;
+        
+        // Call the parent constructor with the required parameters
         parent::__construct([
             'singular' => 'Roster',
             'plural'   => 'Roster',
@@ -66,7 +70,9 @@ class CampManagerRosterTable extends WP_List_Table
             case 'wpid':
                 return $link . esc_html($item['wpid'])."</a>";
             case 'camp_dues':
-                return isset($item['camp_dues']) ? '$' . number_format((float)$item['camp_dues'], 2) : '';
+                $CampManagerLedger = new CampManagerLedger;
+                $camp_dues_paid = $CampManagerLedger->sumUserCampDues($item['id']);
+                return '$' . number_format((float)$camp_dues_paid, 2);
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
