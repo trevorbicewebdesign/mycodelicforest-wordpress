@@ -5,11 +5,13 @@ class CampManagerPages
     private $receipts;
     private $core;
     private $roster;
+    private $ledger;
 
-    public function __construct(CampManagerReceipts $receipts, CampManagerRoster $roster, CampManagerCore $core)
+    public function __construct(CampManagerReceipts $receipts, CampManagerRoster $roster, CampManagerLedger $ledger, CampManagerCore $core)
     {
         $this->receipts = $receipts;
         $this->roster = $roster;
+        $this->ledger = $ledger;
         $this->core = $core;
     }
     
@@ -372,25 +374,25 @@ class CampManagerPages
 
             <hr/>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="action" value="camp_manager_save_budget_item">
+                <input type="hidden" name="action" value="camp_manager_save_budget_category">
                 <?php if ($is_edit): ?>
                     <input type="hidden" name="budget_id" value="<?php echo esc_attr($budget_id); ?>">
                 <?php endif; ?>
                 <table class="form-table">
                     <tr>
-                        <th><label for="budget_name">Name</label></th>
+                        <th><label for="budget_category_name">Name</label></th>
                         <td>
-                            <input type="text" name="budget_name" id="budget_name" class="regular-text" value="<?php echo esc_attr($budget->name ?? ''); ?>" required>
+                            <input type="text" name="budget_category_name" id="budget_category_name" class="regular-text" value="<?php echo esc_attr($budget->name ?? ''); ?>" required>
                         </td>
                     </tr>
                     <tr>
-                        <th><label for="budget_description">Description</label></th>
+                        <th><label for="budget_category_description">Description</label></th>
                         <td>
-                            <textarea name="budget_description" id="budget_description" rows="4" class="large-text"><?php echo esc_textarea($budget->description ?? ''); ?></textarea>
+                            <textarea name="budget_category_description" id="budget_category_description" rows="4" class="large-text"><?php echo esc_textarea($budget->description ?? ''); ?></textarea>
                         </td>
                     </tr>
                 </table>
-                <?php submit_button($is_edit ? 'Update Budget' : 'Add Budget'); ?>
+                <?php submit_button($is_edit ? 'Update Budget Category' : 'Add Budget Category'); ?>
             </form>
         </div>
         <?php
@@ -425,7 +427,7 @@ class CampManagerPages
 
     public function render_roster_page()
     {
-        $table = new CampManagerRosterTable();
+        $table = new CampManagerRosterTable($this->ledger);
         $table->process_bulk_action();
         $table->prepare_items();
         ?>
