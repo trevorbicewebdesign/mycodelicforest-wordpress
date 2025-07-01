@@ -23,18 +23,18 @@ class CampManagerBudgets {
         try {
             $this->insertBudgetItem(
                 (int)$_POST['budget_item_category'],
-                sanitize_text_field($_POST['name']),
-                floatval($_POST['price']),
-                floatval($_POST['quantity']),
-                isset($_POST['priority']) ? (int)$_POST['priority'] : 0,
-                isset($_POST['link']) ? sanitize_text_field($_POST['link']) : null,
-                floatval($_POST['tax'])
+                sanitize_text_field($_POST['budget_item_name']),
+                floatval($_POST['budget_item_price']),
+                floatval($_POST['budget_item_quantity']),
+                isset($_POST['budget_item_priority']) ? (int)$_POST['budget_item_priority'] : 0,
+                isset($_POST['budget_item_link']) ? sanitize_text_field($_POST['budget_item_link']) : null,
+                floatval($_POST['budget_item_tax'])
             );
         } catch (\Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-budget&error=' . urlencode($e->getMessage())));
             exit;
         }
-        wp_redirect(admin_url('admin.php?page=camp-manager-budget&success=item_added'));
+        wp_redirect(admin_url('admin.php?page=camp-manager-budget-items&success=item_added'));
         exit;
     }   
 
