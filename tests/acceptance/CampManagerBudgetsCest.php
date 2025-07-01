@@ -119,7 +119,20 @@ class CampManagerBudgetsCest
         $I->click(['css' => "input[type='submit'][value='Add Budget Item']"]);
         $I->wait("1");
 
-        $I->dontSee("1234qwer");
+        // Check that we are on the view all budget items page
+        $I->seeCurrentUrlEquals("/wp-admin/admin.php?page=camp-manager-budget-items&success=item_added");
+
+        $I->seeInDatabase("wp_mf_budget_items", [
+            "name" => "Test Budget Item",
+            // "description" => "This is a test budget item description.",
+            "category_id" => 1, // Assuming 'Power' category has ID 1
+            "price" => 100.00,
+            "quantity" => 2,
+            "subtotal" => 200.00,
+            "tax" => 20.00,
+            "total" => 220.00,
+            "priority" => 1,
+        ]);
 
 
     }
