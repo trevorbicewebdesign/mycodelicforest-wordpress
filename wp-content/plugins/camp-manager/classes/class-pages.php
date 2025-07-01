@@ -372,7 +372,7 @@ class CampManagerPages
 
             <hr/>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="action" value="camp_manager_save_budget">
+                <input type="hidden" name="action" value="camp_manager_save_budget_item">
                 <?php if ($is_edit): ?>
                     <input type="hidden" name="budget_id" value="<?php echo esc_attr($budget_id); ?>">
                 <?php endif; ?>
