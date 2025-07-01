@@ -72,7 +72,7 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         if ('delete' === $this->current_action()) {
             if (!empty($_POST['categories']) && is_array($_POST['categories'])) {
                 global $wpdb;
-                $table = "{$wpdb->prefix}mf_budget_categories";
+                $table = "{$wpdb->prefix}mf_budget_category";
                 $ids = array_map('intval', $_POST['categories']);
                 $placeholders = implode(',', array_fill(0, count($ids), '%d'));
                 $wpdb->query($wpdb->prepare(
