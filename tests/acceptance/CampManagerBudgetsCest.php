@@ -170,4 +170,82 @@ class CampManagerBudgetsCest
             "id" => $id,
         ]);
     }
+
+    public function ViewAllBudgetCategories(AcceptanceTester $I)
+    {
+        // Navigate to the budget categories page
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budget-categories");
+        $I->see("Budget Categories", "h1");
+
+        // Assert that the `Add New` button is present
+        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-budget-category"]);
+
+        // Assert that each table header is present
+        $I->see("ID", "th#id");
+        $I->see("Name", "th#name");
+        $I->see("Description", "th#description");
+
+        // Optional: Check for the select-all checkbox label
+        $I->see("Select All", "label[for='cb-select-all-1']");
+
+        $I->seeNumberOfElements("table.wp-list-table tbody tr", 18);
+    }
+
+    public function AddBudgetCategory(AcceptanceTester $I)
+    {
+        // Navigate to the add budget category page
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-budget-category");
+        $I->see("Add New Budget Category", "h1");
+
+        // Check that the form fields and labels are present
+        $I->see("Name", "label[for='budget_category_name']");
+        $I->see("Description", "label[for='budget_category_description']");
+
+        $I->seeElement("input#budget_category_name");
+        $I->seeElement("textarea#budget_category_description");
+
+        // Fill in the form fields
+        $I->fillField("input#budget_category_name", "Test Category");
+        $I->fillField("textarea#budget_category_description", "This is a test budget category description.");
+
+        // Submit the form
+        $I->click(['css' => "input[type='submit'][value='Add Budget Category']"]);
+        $I->wait("1");
+        $I->waitForText("Budget Categories", 15, "h1");
+
+        // Check that we are on the view all budget categories page
+        $I->seeCurrentUrlEquals("/wp-admin/admin.php?page=camp-manager-budget-categories&success=category_added");
+
+        $I->seeInDatabase("wp_mf_budget_category", [
+            "name" => "Test Category",
+            "description" => "This is a test budget category description.",
+        ]);
+
+        $I->see("Test Category", "table.table-view-list.budgetcategories td.name");
+    }
+
+    public function DeleteBudgetCategory(AcceptanceTester $I)
+    {
+        // Add a test category to delete
+        $id = $I->haveInDatabase("wp_mf_budget_category", [
+            "name" => "Test Category",
+            "description" => "This is a test budget category description.",
+        ]);
+
+        // Navigate to the budget categories page
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budget-categories");
+        $I->see("Budget Categories", "h1");
+
+        // Delete is a bulk action, so we need to select an item first
+        $I->checkOption("input[name=\"budget-category[]\"][value=\"$id\"]");
+        $I->click("select[name=\"action\"]");
+        $I->selectOption("select[name=\"action\"]", "Delete");
+        $I->click("Apply");
+        $I->wait("1");
+        $I->see("Budget Categories", "h1");
+
+        $I->dontSeeInDatabase("wp_mf_budget_category", [
+            "id" => $id,
+        ]);
+    }
 }
