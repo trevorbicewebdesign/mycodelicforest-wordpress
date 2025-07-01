@@ -24,7 +24,7 @@ class CampManagerBudgets {
             $this->insertBudgetItem(
                 (int)$_POST['budget_item_category'],
                 sanitize_text_field($_POST['budget_item_name']),
-                floatval($_POST['budget_item_price']),
+                floatval($_POST['budget_item_amount']),
                 floatval($_POST['budget_item_quantity']),
                 isset($_POST['budget_item_priority']) ? (int)$_POST['budget_item_priority'] : 0,
                 isset($_POST['budget_item_link']) ? sanitize_text_field($_POST['budget_item_link']) : null,
