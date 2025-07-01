@@ -11,6 +11,27 @@ class CampManagerBudgets {
     {
         // add action camp_manager_save_budget_item
         add_action('admin_post_camp_manager_save_budget_item', [$this, 'handle_budget_item_save']);
+        add_action('admin_post_camp_manager_save_budget_category', [$this, 'handle_budget_category_save']);
+    }
+
+    public function handle_budget_category_save()
+    {
+        // Handle saving a budget category from the admin post request
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        try {
+            $this->insertBudgetCategory(
+                sanitize_text_field($_POST['budget_category_name']),
+                isset($_POST['budget_category_description']) ? sanitize_textarea_field($_POST['budget_category_description']) : ''
+            );
+        } catch (\Exception $e) {
+            wp_redirect(admin_url('admin.php?page=camp-manager-budget&error=' . urlencode($e->getMessage())));
+            exit;
+        }
+        wp_redirect(admin_url('admin.php?page=camp-manager-budget-categories&success=category_added'));
+        exit;
     }
 
     public function handle_budget_item_save()
@@ -37,6 +58,19 @@ class CampManagerBudgets {
         wp_redirect(admin_url('admin.php?page=camp-manager-budget-items&success=item_added'));
         exit;
     }   
+
+    public function insertBudgetCategory($name, $description = ''): int
+    {
+        // Should insert a budget category into the database
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_budget_category";
+        $data = [
+            'name' => sanitize_text_field($name),
+            'description' => sanitize_textarea_field($description),
+        ];
+        $wpdb->insert($table, $data);
+        return (int) $wpdb->insert_id;
+    }
 
     public function insertBudgetItem($category_id, $name, $price, $quantity, $priority = 0, $link = null, $tax = 0.0): int
     {
