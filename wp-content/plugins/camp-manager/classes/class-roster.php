@@ -41,6 +41,46 @@ class CampManagerRoster
         exit;
     }
 
+    public function countLowIncomeMembers()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT COUNT(*) FROM $table_name WHERE low_income = 1";
+        return $wpdb->get_var($query);
+    }
+
+    public function countRosterMembers()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT COUNT(*) FROM $table_name";
+        return $wpdb->get_var($query);
+    }
+
+    public function countPaidCampDues()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid = 1";
+        return $wpdb->get_var($query);
+    }
+
+    public function countUnpaidCampDues()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid = 0";
+        return $wpdb->get_var($query);
+    }
+
+    public function countPaidLowIncomeCampDues()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid = 1 AND low_income = 1";
+        return $wpdb->get_var($query);
+    }
+
     public function getRosterMembers(): array
     {
         // Get all members from mf_roster
