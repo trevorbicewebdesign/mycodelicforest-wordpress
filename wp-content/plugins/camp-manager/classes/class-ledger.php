@@ -13,6 +13,34 @@ class CampManagerLedger
         
     }
 
+    public function totalDonations()
+    {
+        global $wpdb;
+
+        $query = "
+            SELECT SUM(amount) 
+            FROM {$wpdb->prefix}mf_ledger 
+            WHERE type = 'Donation'
+            "; 
+        $total = $wpdb->get_var($query);
+
+        return $total ? $total : 0;
+    }
+
+    public function totalCampDues()
+    {
+        global $wpdb;
+
+        $query = "
+            SELECT SUM(amount) 
+            FROM {$wpdb->prefix}mf_ledger 
+            WHERE type = 'Camp Dues' OR type = 'Partial Camp Dues'
+            "; 
+        $total = $wpdb->get_var($query);
+
+        return $total ? $total : 0;
+    }
+
     public function sumUserCampDues($cmid)
     {
         global $wpdb;
