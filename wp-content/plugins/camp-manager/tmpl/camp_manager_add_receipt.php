@@ -108,6 +108,7 @@ $form_action = admin_url('admin-post.php');
                 <?php endforeach; ?>
             </tbody>
         </table>
+        <div id="items-wrapper"></div>
 
 
         <!-- Totals -->
@@ -147,6 +148,10 @@ $form_action = admin_url('admin-post.php');
     </form>
 </div>
 <script type="text/javascript">
+    // Ensure ajaxurl is defined for AJAX requests
+    if (typeof ajaxurl === 'undefined') {
+        var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+    }
     jQuery(document).ready(function ($) {
         $('#analyze-btn').on('click', function () {
             var fileInput = $('#receipt_image')[0];
