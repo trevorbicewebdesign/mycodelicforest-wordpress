@@ -69,7 +69,8 @@ class CampManagerRoster
     {
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid = 0";
+        // Count where fully_paid is NULL or 0
+        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid IS NULL OR fully_paid = 0";
         return $wpdb->get_var($query);
     }
 
