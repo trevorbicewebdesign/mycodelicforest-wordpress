@@ -4,12 +4,14 @@ class CampManagerPages
 {
     private $receipts;
     private $core;
+    private $budgets;
     private $roster;
     private $ledger;
 
-    public function __construct(CampManagerReceipts $receipts, CampManagerRoster $roster, CampManagerLedger $ledger, CampManagerCore $core)
+    public function __construct(CampManagerReceipts $receipts, CampManagerBudgets $budgets, CampManagerRoster $roster, CampManagerLedger $ledger, CampManagerCore $core)
     {
         $this->receipts = $receipts;
+        $this->budgets = $budgets;
         $this->roster = $roster;
         $this->ledger = $ledger;
         $this->core = $core;
@@ -17,6 +19,41 @@ class CampManagerPages
     
     public function init()
     {
+
+        add_action('admin_menu', function () {
+            global $menu;
+
+            $separator_position = 5; // position in the menu array
+
+            // Insert separator
+            $menu[$separator_position] = [
+                '',                            // Menu title
+                'read',                        // Capability
+                'separator-custom-top',        // Slug
+                '',                            // Function (none)
+                'wp-menu-separator'           // CSS class
+            ];
+
+            ksort($menu); // Reorder to maintain structure
+        }, 999); // Run late to avoid being overwritten
+
+        add_action('admin_menu', function () {
+            global $menu;
+
+            $separator_position = 7; // position in the menu array
+
+            // Insert separator
+            $menu[$separator_position] = [
+                '',                            // Menu title
+                'read',                        // Capability
+                'separator-custom-top',        // Slug
+                '',                            // Function (none)
+                'wp-menu-separator'           // CSS class
+            ];
+
+            ksort($menu); // Reorder to maintain structure
+        }, 999); // Run late to avoid being overwritten
+
         add_action('admin_menu', function () {
             // Top-level menu
             add_menu_page(
@@ -28,103 +65,172 @@ class CampManagerPages
                 'dashicons-admin-site',
                 6
             );
+        });
 
-            // Submenu: Receipts
-            add_submenu_page(
-                'camp-manager',
-                'View Receipts',
-                'View Receipts',
+        add_action('admin_menu', function () {
+            // Top-level menu
+            add_menu_page(
+                'View All Items',       // Page title
+                'Budgets',                // Menu title in the sidebar
                 'manage_options',
-                'camp-manager-view-receipts',
-                [$this, 'receipts_page']
-            );
-          
-            // need a new hidden menu page for the edit receipt page
-            add_submenu_page(
-                'camp-manager',
-                'Edit Receipt',
-                'Edit Receipt',
-                'manage_options',
-                'camp-manager-edit-receipt',
-                [$this, 'render_receipt_form']
+                'camp-manager-budgets',
+                [$this, 'render_budget_items_page'],
+                'dashicons-admin-site',
+                6
             );
 
-            // add a link to the ledger page
+            // Override default submenu label
             add_submenu_page(
-                'camp-manager',
-                'Ledger',
-                'Ledger',
+                'camp-manager-budgets',
+                'View All Budgets',       // Page title
+                'View All Budgets',       // Submenu label
                 'manage_options',
-                'camp-manager-ledger',
-                [$this, 'render_ledger_page']
-            );
-
-                // add page camp-manager-add-ledger
-            add_submenu_page(
-                'camp-manager',
-                'Add Ledger Entry',
-                'Add Ledger Entry',
-                'manage_options',
-                'camp-manager-add-ledger',
-                [$this, 'render_add_ledger_page']
-            );
-
-            // add a link to the ledger page
-            add_submenu_page(
-                'camp-manager',
-                'Roster',
-                'Roster',
-                'manage_options',
-                'camp-manager-roster',
-                [$this, 'render_roster_page']
-            );
-
-            add_submenu_page(
-                'camp-manager',
-                'Budget Items',
-                'Budget Items',
-                'manage_options',
-                'camp-manager-budget-items',
+                'camp-manager-budgets',   // Same slug as top-level
                 [$this, 'render_budget_items_page']
             );
 
+            // Other submenus
             add_submenu_page(
-                'camp-manager',
-                'Add Budget Item',
-                'Add Budget Item',
+                'camp-manager-budgets',
+                'Add New Item',
+                'Add New Item',
                 'manage_options',
                 'camp-manager-add-budget-item',
                 [$this, 'render_add_budget_item_page']
             );
 
             add_submenu_page(
-                'camp-manager',
-                'Budget Categories',
-                'Budget Categories',
+                'camp-manager-budgets',
+                'Categories',
+                'Categories',
                 'manage_options',
                 'camp-manager-budget-categories',
                 [$this, 'render_budget_categories_page']
             );
 
             add_submenu_page(
-                'camp-manager',
-                'Add Budget Category',
-                'Add Budget Category',
+                'camp-manager-budgets',
+                'Add New Category',
+                'Add New Category',
                 'manage_options',
                 'camp-manager-add-budget-category',
                 [$this, 'render_add_budget_page']
             );
+        });
 
-            // camp-manager-add-member
+
+        add_action('admin_menu', function () {
+            // Top-level menu
+            add_menu_page(
+                'View All Members',     // Page title (shows in browser tab)
+                'Roster',               // Menu title (shows in sidebar)
+                'manage_options',
+                'camp-manager-members',
+                [$this, 'render_roster_page'],
+                'dashicons-admin-site',
+                6
+            );
+
+            // First submenu item (linked to top-level page)
             add_submenu_page(
-                'camp-manager',
-                'Add Member',
-                'Add Member',
+                'camp-manager-members',
+                'View All Members',     // Page title
+                'View All Members',     // Submenu title
+                'manage_options',
+                'camp-manager-members', // Must match parent slug to override default
+                [$this, 'render_roster_page']
+            );
+
+            // Second submenu item
+            add_submenu_page(
+                'camp-manager-members',
+                'Add a Member',
+                'Add a Member',
                 'manage_options',
                 'camp-manager-add-member',
                 [$this, 'render_add_member_page']
             );
         });
+
+        add_action('admin_menu', function () {
+            // Top-level menu
+            add_menu_page(
+                'View Ledger',     // Page title (shows in browser tab)
+                'Ledger',               // Menu title (shows in sidebar)
+                'manage_options',
+                'camp-manager-ledger',
+                [$this, 'render_ledger_page'],
+                'dashicons-admin-site',
+                6
+            );
+
+            // First submenu item (linked to top-level page)
+            add_submenu_page(
+                'camp-manager-ledger',
+                'View Ledger',     // Page title
+                'View Ledger',     // Submenu title
+                'manage_options',
+                'camp-manager-ledger', // Must match parent slug to override default
+                [$this, 'render_ledger_page']
+            );
+
+            // Second submenu item
+            add_submenu_page(
+                'camp-manager-ledger',
+                'Add a Ledger Entry',
+                'Add a Ledger Entry',
+                'manage_options',
+                'camp-manager-add-ledger',
+                [$this, 'render_add_ledger_page']
+            );
+        });
+
+        add_action('admin_menu', function () {
+            // Top-level menu
+            add_menu_page(
+                'View Actuals',     // Page title (shows in browser tab)
+                'Actuals',               // Menu title (shows in sidebar)
+                'manage_options',
+                'camp-manager-actuals',
+                [$this, 'receipts_page'],
+                'dashicons-admin-site',
+                6
+            );
+
+            // First submenu item (linked to top-level page)
+            add_submenu_page(
+                'camp-manager-actuals',
+                'View Actuals',     // Page title
+                'View Actuals',     // Submenu title
+                'manage_options',
+                'camp-manager-actuals', // Must match parent slug to override default
+                [$this, 'receipts_page']
+            );
+
+            // Second submenu item
+            add_submenu_page(
+                'camp-manager-actuals',
+                'Add a Receipt',
+                'Add a Receipt',
+                'manage_options',
+                'camp-manager-add-receipt',
+                [$this, 'edit_receipt_page']
+            );
+        });
+
+
+
+
+        // Use a higher priority to ensure submenus are registered before removing
+        // add_action( 'admin_menu', [$this, 'hide_submenus'], 100 );
+    }
+
+    public function hide_submenus() {
+        remove_submenu_page( 'camp-manager', 'camp-manager-add-ledger' );
+        remove_submenu_page( 'camp-manager', 'camp-manager-add-budget-item' );
+        remove_submenu_page( 'camp-manager', 'camp-manager-add-budget-category' );
+        remove_submenu_page( 'camp-manager', 'camp-manager-add-member' );
+        remove_submenu_page( 'camp-manager', 'camp-manager-add-receipt' );
     }
 
     public function render_add_ledger_page()
@@ -277,7 +383,7 @@ class CampManagerPages
     public function render_add_budget_item_page()
     {
         $budget_item_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-        $budget_item = $budget_item_id ? $this->get_budget_item($budget_item_id) : null;
+        $budget_item = $budget_item_id ? $this->budgets->getBudgetItem($budget_item_id) : null;
         $is_edit = $budget_item !== null;
         $budget_item_id = $is_edit ? intval($budget_item->id) : 0;
         ?>
@@ -317,9 +423,9 @@ class CampManagerPages
                         </td>
                     </tr>
                     <tr>
-                        <th><label for="budget_item_amount">Amount</label></th>
+                        <th><label for="budget_item_price">Price</label></th>
                         <td>
-                            <input type="number" step="0.01" name="budget_item_amount" id="budget_item_amount" value="<?php echo esc_attr($budget_item->amount ?? ''); ?>" required>
+                            <input type="number" step="0.01" name="budget_item_price" id="budget_item_price" value="<?php echo esc_attr($budget_item->price ?? ''); ?>" required>
                         </td>
                     </tr>
                     <tr>
@@ -365,7 +471,8 @@ class CampManagerPages
     public function render_add_budget_page()
     {
         $budget_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-        $budget = $budget_id ? $this->get_budget($budget_id) : null;
+        $budget = $budget_id ? $this->budgets->getBudgetCategory($budget_id) : null;
+
         $is_edit = $budget !== null;
         $budget_id = $is_edit ? intval($budget->id) : 0;
         ?>
@@ -373,6 +480,7 @@ class CampManagerPages
             <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Budget Category' : 'Add New Budget Category'; ?></h1>
 
             <hr/>
+
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                 <input type="hidden" name="action" value="camp_manager_save_budget_category">
                 <?php if ($is_edit): ?>
@@ -394,6 +502,31 @@ class CampManagerPages
                 </table>
                 <?php submit_button($is_edit ? 'Update Budget Category' : 'Add Budget Category'); ?>
             </form>
+
+            <hr>
+
+            <h2>Budget Items in this Category</h2>
+            <?php
+            $table = new CampManagerBudgetItemsTable($budget_id);
+            $table->process_bulk_action();
+            $table->prepare_items();
+            ?>
+            <style>
+                .wp-list-table .column-store       { width: 40%; }
+                .wp-list-table .column-date        { width: 15%; }
+                .wp-list-table .column-total       { width: 10%; text-align: right; }
+                .wp-list-table .column-subtotal    { width: 10%; text-align: right; }
+                .wp-list-table .column-tax         { width: 10%; text-align: right; }
+                .wp-list-table .column-shipping    { width: 15%; text-align: right; }
+            </style>
+
+            <a href="<?php echo admin_url('admin.php?page=camp-manager-add-budget-item'); ?>" class="page-title-action">Add New</a>
+            <hr class="wp-header-end">
+            <form method="post">
+                <?php
+                $table->display();
+                ?>
+
         </div>
         <?php
     }
