@@ -585,7 +585,6 @@ class CampManagerPages
         <?php
     }
 
-
     public function render_ledger_page()
     {
         $table = new CampManagerLedgerTable();
