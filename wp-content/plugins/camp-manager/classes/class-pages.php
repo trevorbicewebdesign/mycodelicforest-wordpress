@@ -691,7 +691,7 @@ class CampManagerPages
         <?php
     }
 
-        public function render_receipt_form()
+    public function render_receipt_form()
     {
         $receipt_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
         $receipt = $receipt_id ? $this->receipts->get_receipt($receipt_id) : null;
@@ -716,6 +716,7 @@ class CampManagerPages
                 <?php if ($is_edit): ?>
                     <input type="hidden" name="receipt_id" value="<?php echo esc_attr($receipt_id); ?>">
                 <?php endif; ?>
+                <input type='hidden' name='raw' value='<?php echo esc_attr($receipt->raw ?? '{}'); ?>'>
 
                 <table class="form-table">
                     <tr>
@@ -760,10 +761,10 @@ class CampManagerPages
                                     <?php $categories = $this->core->getItemCategories(); ?>
                                     <select name="items[<?php echo $i; ?>][category]" style="width: 100%;">
                                         <option value="">Please select a category</option>
-                                        <?php foreach ($categories as $catKey => $catLabel): ?>
-                                            <option value="<?php echo esc_attr($catKey); ?>"
-                                                <?php selected(($item->category_id ?? '') === $catKey); ?>>
-                                                <?php echo esc_html(ucfirst($catKey)); ?>
+                                        <?php foreach ($categories as $category): ?>
+                                            <option value="<?php echo esc_attr($category['id']); ?>"
+                                                <?php selected(($item->category_id ?? '') === $category['id']); ?>>
+                                                <?php echo esc_html(ucfirst($category['name'])); ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
