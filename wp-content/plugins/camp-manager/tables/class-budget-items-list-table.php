@@ -27,6 +27,7 @@ class CampManagerBudgetItemsTable extends WP_List_Table
             'cb'    => '<input type="checkbox" />', // For bulk actions
             'id'    => 'ID',
             'name' => 'Name',
+            'category' => 'Category',
             'price'  => 'Price',
             'quantity' => 'Quantity',
             'subtotal' => 'Subtotal',
@@ -41,6 +42,7 @@ class CampManagerBudgetItemsTable extends WP_List_Table
         return [
             'id'    => ['id', true],
             'name' => ['name', false],
+            'category' => ['category', false],
             'price'  => ['price', false],
             'quantity'   => ['quantity', false],
             'subtotal' => ['subtotal', false],
@@ -121,8 +123,14 @@ class CampManagerBudgetItemsTable extends WP_List_Table
         $order_by = esc_sql($order_by);
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
+        // Join with the categories table to get the category name
+        $categories_table = "{$wpdb->prefix}mf_budget_category";
         $sql = $wpdb->prepare(
-            "SELECT id, name, price, quantity, subtotal, tax, total, priority, link FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link
+             FROM $table AS bi
+             LEFT JOIN $categories_table AS c ON bi.category_id = c.id
+             ORDER BY $order_by $order
+             LIMIT %d OFFSET %d",
             $per_page,
             $offset
         );
