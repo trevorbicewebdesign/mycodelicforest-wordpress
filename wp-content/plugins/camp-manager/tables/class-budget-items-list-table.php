@@ -11,9 +11,17 @@ if (!class_exists('WP_List_Table')) {
 class CampManagerBudgetItemsTable extends WP_List_Table
 {
     private $data;
+    private $category_id;
 
-    public function __construct()
+    public function __construct($category_id = null)
     {
+        // If a category ID is provided, we can use it to filter items
+        if ($category_id) {
+            $this->category_id = (int) $category_id;
+        } else {
+            $this->category_id = null;
+        }
+
         parent::__construct([
             'singular' => 'Budget Items',
             'plural'   => 'Budget Items',
@@ -59,7 +67,7 @@ class CampManagerBudgetItemsTable extends WP_List_Table
                 return esc_html($item['id']);
             case 'name':
                 $name = esc_html(stripslashes($item['name']));
-                $url = admin_url('admin.php?page=camp-manager-edit-budget&id=' . urlencode($item['id']));
+                $url = admin_url('admin.php?page=camp-manager-add-budget-item&id=' . urlencode($item['id']));
                 return sprintf('<a href="%s">%s</a>', esc_url($url), $name);
             case 'price':
                 return '$' . number_format((float) $item['price'], 2);
@@ -125,7 +133,25 @@ class CampManagerBudgetItemsTable extends WP_List_Table
 
         // Join with the categories table to get the category name
         $categories_table = "{$wpdb->prefix}mf_budget_category";
-        $sql = $wpdb->prepare(
+
+        if ($this->category_id !== null) {
+            $sql = $wpdb->prepare(
+            "SELECT bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link
+             FROM $table AS bi
+             LEFT JOIN $categories_table AS c ON bi.category_id = c.id
+             WHERE bi.category_id = %d
+             ORDER BY $order_by $order
+             LIMIT %d OFFSET %d",
+            $this->category_id,
+            $per_page,
+            $offset
+            );
+            // Update total_items for pagination when filtering
+            $total_items = $wpdb->get_var(
+            $wpdb->prepare("SELECT COUNT(*) FROM $table WHERE category_id = %d", $this->category_id)
+            );
+        } else {
+            $sql = $wpdb->prepare(
             "SELECT bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link
              FROM $table AS bi
              LEFT JOIN $categories_table AS c ON bi.category_id = c.id
@@ -133,7 +159,8 @@ class CampManagerBudgetItemsTable extends WP_List_Table
              LIMIT %d OFFSET %d",
             $per_page,
             $offset
-        );
+            );
+        }
 
         $this->data = $wpdb->get_results($sql, ARRAY_A);
         $this->items = $this->data;
