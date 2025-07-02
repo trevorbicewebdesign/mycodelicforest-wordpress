@@ -39,7 +39,7 @@ class CampManagerReceipts
                     isset($_POST['raw']) ? sanitize_text_field($_POST['raw']) : ''
                 );
             } else {
-                $this->insert_receipt(
+                $receipt_id = $this->insert_receipt(
                     sanitize_text_field($_POST['store']),
                     sanitize_text_field($_POST['date']),
                     floatval($_POST['subtotal']),
@@ -51,7 +51,7 @@ class CampManagerReceipts
                 );
             }
 
-            wp_redirect(admin_url('admin.php?page=camp-manager-actuals&receipt_submitted=1'));
+            wp_redirect(admin_url('admin.php?page=camp-manager-add-receipt&id=' . $receipt_id . '&receipt_submitted=1'));
         } catch (Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&error=' . urlencode($e->getMessage())));
         }
@@ -224,6 +224,13 @@ class CampManagerReceipts
         // Re-insert updated items
         if (is_array($items)) {
             foreach ($items as $item) {
+                // Skip empty rows (no name and no subtotal)
+                $name = trim($item['name'] ?? '');
+                $subtotal = floatval($item['subtotal'] ?? 0);
+                if ($name === '' && $subtotal === 0) {
+                    continue;
+                }
+
                 $item_data = [
                     'receipt_id' => $receipt_id,
                     'name' => sanitize_text_field($item['name']),
@@ -237,12 +244,12 @@ class CampManagerReceipts
                 ];
                 $receipt_item = $this->insert_receipt_item($item_data);
                 if (!$receipt_item) {
-                    throw new \Exception("Failed to insert updated receipt item: " . $wpdb->last_error);
+                    throw new \Exception("Failed to insert receipt item: " . $wpdb->last_error);
                 }
             }
         }
 
-        return ['id' => $receipt_id];
+        return $receipt_id;
     }
 
     public function insert_receipt(
@@ -277,6 +284,13 @@ class CampManagerReceipts
             // Optionally, you can also insert items related to this receipt
             if (is_array($items)) {
                 foreach ($items as $item) {
+                    // Skip empty rows (no name and no subtotal)
+                    $name = trim($item['name'] ?? '');
+                    $subtotal = floatval($item['subtotal'] ?? 0);
+                    if ($name === '' && $subtotal === 0) {
+                        continue;
+                    }
+
                     $item_data = [
                         'receipt_id' => $receipt_id,
                         'name' => sanitize_text_field($item['name']),
@@ -299,7 +313,7 @@ class CampManagerReceipts
             throw new \Exception("Failed to insert receipt: " . $wpdb->last_error);
         }
         
-        return ['id'=>$receipt_id];
+        return $receipt_id;
     }
     public function insert_receipt_item($data)
     {
