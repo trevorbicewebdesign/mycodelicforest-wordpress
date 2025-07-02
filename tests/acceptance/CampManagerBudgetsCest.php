@@ -237,7 +237,7 @@ class CampManagerBudgetsCest
         $I->see("Budget Categories", "h1");
 
         // Delete is a bulk action, so we need to select an item first
-        $I->checkOption("input[name=\"budget-category[]\"][value=\"$id\"]");
+        $I->checkOption("input[name=\"budget-categories[]\"][value=\"$id\"]");
         $I->click("select[name=\"action\"]");
         $I->selectOption("select[name=\"action\"]", "Delete");
         $I->click("Apply");
