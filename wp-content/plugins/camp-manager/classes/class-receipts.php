@@ -1,5 +1,7 @@
 <?php
 
+use PhpParser\Node\Expr\Isset_;
+
 class CampManagerReceipts
 {
     private $CampManagerChatGPT;
@@ -28,10 +30,10 @@ class CampManagerReceipts
                 floatval($_POST['shipping']),
                 floatval($_POST['total']),
                 $_POST['items'],
-                $_POST['raw']
+                isset($_POST['raw']) ? sanitize_text_field($_POST['raw']) : ''
             );
 
-            wp_redirect(admin_url('admin.php?page=camp-manager-view-receipts&receipt_submitted=1'));
+            wp_redirect(admin_url('admin.php?page=camp-manager-actuals&receipt_submitted=1'));
         } catch (Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&error=' . urlencode($e->getMessage())));
         }
@@ -178,6 +180,12 @@ class CampManagerReceipts
                         'receipt_id' => $receipt_id,
                         'name' => sanitize_text_field($item['name']),
                         'price' => floatval($item['price']),
+                        'quantity' => $item['quantity'],
+                        'subtotal' => floatval($item['subtotal']),
+                        'tax' => isset($item['tax']) ? floatval($item['tax']) : 0.0,
+                        'total' => floatval($item['total'] ?? 0.0),
+                        'category_id' => isset($item['category']) ? intval($item['category']) : null,
+                        'link' => isset($item['link']) ? sanitize_text_field($item['link']) : null
                     ];
                     $receipt_item = $this->insert_receipt_item($item_data);
                     if (!$receipt_item) {
