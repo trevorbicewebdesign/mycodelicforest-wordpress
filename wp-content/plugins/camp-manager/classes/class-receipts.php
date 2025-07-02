@@ -16,6 +16,8 @@ class CampManagerReceipts
     {
         add_action('admin_post_camp_manager_save_receipt', array($this, 'handle_receipt_save'));
         add_action('admin_post_camp_manager_upload_receipt', array($this, 'handle_receipt_upload'));
+        // camp_manager_analyze_receipt
+        add_action('wp_ajax_camp_manager_analyze_receipt', [$this, 'handle_receipt_analyze']);
 
     }
 
@@ -41,7 +43,27 @@ class CampManagerReceipts
 
     }
 
-     public function handle_receipt_upload() {
+    public function handle_receipt_analyze() {
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        // Check if a file was uploaded via $_FILES
+        if (!isset($_FILES['receipt_image']) || !is_uploaded_file($_FILES['receipt_image']['tmp_name'])) {
+            wp_send_json_error(['error' => 'no_image']);
+        }
+
+        $image_path = $_FILES['receipt_image']['tmp_name'];
+        $base64_image = base64_encode(file_get_contents($image_path));
+
+        $response = $this->CampManagerChatGPT->analyze_receipt_with_gpt($base64_image);
+        $parsed = $this->CampManagerChatGPT->extract_json_from_gpt_response($response);
+        set_transient('camp_manager_last_receipt_data', $parsed, 60);
+
+        wp_send_json_success($parsed);
+    }
+
+    public function handle_receipt_upload() {
         if (!current_user_can('manage_options')) {
             wp_die('Unauthorized');
         }
