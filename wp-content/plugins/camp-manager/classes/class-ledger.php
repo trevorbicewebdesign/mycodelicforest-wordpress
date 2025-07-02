@@ -13,6 +13,39 @@ class CampManagerLedger
         
     }
 
+    public function startingBalance()
+    {
+        return 2037.80; 
+    }
+
+    public function totalMoneyIn()
+    {
+        global $wpdb;
+
+        $query = "
+            SELECT SUM(amount) 
+            FROM {$wpdb->prefix}mf_ledger 
+            WHERE amount > 0
+            "; 
+        $total = $wpdb->get_var($query);
+
+        return $total ? $total : 0;
+    }
+
+    public function totalMoneyOut()
+    {
+        global $wpdb;
+
+        $query = "
+            SELECT SUM(amount) 
+            FROM {$wpdb->prefix}mf_ledger 
+            WHERE amount < 0
+            "; 
+        $total = $wpdb->get_var($query);
+
+        return $total ? abs($total) : 0;
+    }
+
     public function totalDonations()
     {
         global $wpdb;
