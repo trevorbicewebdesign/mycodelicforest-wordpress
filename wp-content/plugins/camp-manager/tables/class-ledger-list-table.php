@@ -26,7 +26,6 @@ class CampManagerLedgerTable extends WP_List_Table
         return [
             'cb'    => '<input type="checkbox" />', // For bulk actions
             'id'    => 'ID',
-            'name'  => 'Name',
             'amount' => 'Amount',
             'date'  => 'Date',
             'note' => 'Note',
@@ -48,8 +47,6 @@ class CampManagerLedgerTable extends WP_List_Table
         switch ($column_name) {
             case 'id':
                 return esc_html($item['id']);
-            case 'name':
-                return esc_html($item['name']);
             case 'amount':
                 return '$' . number_format((float) $item['amount'], 2);
             case 'date':
@@ -125,7 +122,7 @@ class CampManagerLedgerTable extends WP_List_Table
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
         $sql = $wpdb->prepare(
-            "SELECT id, name, amount, date, note FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT id, amount, date, note FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
             $per_page,
             $offset
         );
