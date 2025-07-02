@@ -45,7 +45,7 @@ class CampManagerBudgets {
             $this->insertBudgetItem(
                 (int)$_POST['budget_item_category'],
                 sanitize_text_field($_POST['budget_item_name']),
-                floatval($_POST['budget_item_amount']),
+                floatval($_POST['budget_item_price']),
                 floatval($_POST['budget_item_quantity']),
                 isset($_POST['budget_item_priority']) ? (int)$_POST['budget_item_priority'] : 0,
                 isset($_POST['budget_item_link']) ? sanitize_text_field($_POST['budget_item_link']) : null,
@@ -58,6 +58,15 @@ class CampManagerBudgets {
         wp_redirect(admin_url('admin.php?page=camp-manager-budget-items&success=item_added'));
         exit;
     }   
+
+    public function getBudgetCategory($category_id): ?object
+    {
+        // Should get a budget category from the database
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_budget_category";
+        $query = $wpdb->prepare("SELECT * FROM $table WHERE id = %d", $category_id);
+        return $wpdb->get_row($query);
+    }
 
     public function insertBudgetCategory($name, $description = ''): int
     {
@@ -79,6 +88,15 @@ class CampManagerBudgets {
         $table = "{$wpdb->prefix}mf_budget_category";
         $result = $wpdb->delete($table, ['id' => (int) $category_id]);
         return (bool) $result;
+    }
+
+    public function getBudgetItem($budget_item_id): ?object
+    {
+        // Should get a budget item from the database
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_budget_items";
+        $query = $wpdb->prepare("SELECT * FROM $table WHERE id = %d", $budget_item_id);
+        return $wpdb->get_row($query);
     }
 
     public function insertBudgetItem($category_id, $name, $price, $quantity, $priority = 0, $link = null, $tax = 0.0): int
