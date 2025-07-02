@@ -5,12 +5,10 @@ $table->process_bulk_action();
 $table->prepare_items();
 ?>
 <style>
-    .wp-list-table .column-store       { width: 40%; }
-    .wp-list-table .column-date        { width: 15%; }
-    .wp-list-table .column-total       { width: 10%; text-align: right; }
-    .wp-list-table .column-subtotal    { width: 10%; text-align: right; }
-    .wp-list-table .column-tax         { width: 10%; text-align: right; }
-    .wp-list-table .column-shipping    { width: 15%; text-align: right; }
+    .wp-list-table .column-id          { width: 5%; }
+    .wp-list-table .column-amount      { width: 5%; }
+    .wp-list-table .column-date        { width: 10%; }
+
 </style>
 <div class="wrap">
     <h1 class="wp-heading-inline">Ledger</h1>
