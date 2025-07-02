@@ -166,6 +166,8 @@ $form_action = admin_url('admin-post.php');
 
             $('#analyze-spinner').addClass('is-active');
 
+            alert(formData);
+
             $.ajax({
                 url: ajaxurl,
                 method: 'POST',
@@ -180,9 +182,10 @@ $form_action = admin_url('admin-post.php');
                         alert('Error: ' + res.data);
                     }
                 },
-                error: function () {
+                error: function (jqXHR, textStatus, errorThrown) {
                     $('#analyze-spinner').removeClass('is-active');
-                    alert('Something went wrong.');
+                    console.error('AJAX error:', textStatus, errorThrown, jqXHR.responseText);
+                    alert('Something went wrong. ' + textStatus + ': ' + errorThrown + '\n' + jqXHR.responseText);
                 }
             });
         });
