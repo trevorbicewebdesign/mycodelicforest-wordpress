@@ -26,12 +26,14 @@ class CampManagerReceiptsTable extends WP_List_Table
         return [
             'cb'    => '<input type="checkbox" />', // For bulk actions
             'id'    => 'ID',
+            'cmid' => 'User',
             'store' => 'Store',
             'date'  => 'Date',
             'subtotal' => 'Subtotal',
             'tax'   => 'Tax',
             'shipping' => 'Shipping',
             'total' => 'Total',
+            'reimbursed' => 'Reimbursed',
         ];
     }
 
@@ -65,6 +67,16 @@ class CampManagerReceiptsTable extends WP_List_Table
                 return '$' . number_format((float) $item['subtotal'], 2);
             case 'shipping':
                 return '$' . number_format((float) $item['shipping'], 2);
+            case 'reimbursed':
+                return !empty($item['reimbursed']) ? 'Yes' : 'No';
+            case 'cmid':
+                $user_id = intval($item['cmid']);
+                $user = get_user_by('id', $user_id);
+                if ($user) {
+                    return sprintf('<a href="%s">%s</a>', esc_url(admin_url('user-edit.php?user_id=' . $user_id)), esc_html($user->display_name));
+                } else {
+                    return 'Treasury';
+                }
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
@@ -110,6 +122,14 @@ class CampManagerReceiptsTable extends WP_List_Table
         }
     }
 
+    public function single_row($item)
+    {
+        $class = !empty($item['reimbursed']) ? 'reimbursed-row' : '';
+        echo '<tr class="' . esc_attr($class) . '">';
+        $this->single_row_columns($item);
+        echo '</tr>';
+    }
+
     public function get_bulk_actions()
     {
         return [
@@ -141,7 +161,7 @@ class CampManagerReceiptsTable extends WP_List_Table
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
         $sql = $wpdb->prepare(
-            "SELECT id, date, total, store, subtotal, shipping, tax FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT id, date, total, store, subtotal, shipping, tax, reimbursed, cmid FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
             $per_page,
             $offset
         );
