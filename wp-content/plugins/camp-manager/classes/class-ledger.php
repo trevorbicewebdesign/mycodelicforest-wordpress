@@ -13,6 +13,19 @@ class CampManagerLedger
         
     }
 
+    public function getLedger($ledger_id)
+    {
+        global $wpdb;
+      
+        $query = $wpdb->prepare("
+            SELECT * 
+            FROM {$wpdb->prefix}mf_ledger 
+            WHERE id = %d
+            ", $ledger_id);
+        $result = $wpdb->get_row($query);
+        return $result ? $result : [];
+    }
+
     public function startingBalance()
     {
         return 2037.80; 
