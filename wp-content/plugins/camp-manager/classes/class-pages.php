@@ -217,59 +217,6 @@ class CampManagerPages
                 [$this, 'render_receipt_form']
             );
         });
-
-
-
-
-        // Use a higher priority to ensure submenus are registered before removing
-        // add_action( 'admin_menu', [$this, 'hide_submenus'], 100 );
-    }
-
-    public function hide_submenus() {
-        remove_submenu_page( 'camp-manager', 'camp-manager-add-ledger' );
-        remove_submenu_page( 'camp-manager', 'camp-manager-add-budget-item' );
-        remove_submenu_page( 'camp-manager', 'camp-manager-add-budget-category' );
-        remove_submenu_page( 'camp-manager', 'camp-manager-add-member' );
-        remove_submenu_page( 'camp-manager', 'camp-manager-add-receipt' );
-    }
-
-    public function render_add_ledger_page()
-    {
-        // Check if the user has permission to manage options
-        if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have sufficient permissions to access this page.'));
-        }
-
-        ?>
-        <div class="wrap">
-            <h1 class="wp-heading-inline">Add Ledger Entry</h1>
-            <hr/>
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="action" value="camp_manager_save_ledger_entry">
-                <table class="form-table">
-                    <tr>
-                        <th><label for="ledger_date">Date</label></th>
-                        <td>
-                            <input type="date" name="ledger_date" id="ledger_date" class="regular-text" required>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="ledger_description">Description</label></th>
-                        <td>
-                            <input type="text" name="ledger_description" id="ledger_description" class="regular-text" required>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="ledger_amount">Amount</label></th>
-                        <td>
-                            <input type="number" name="ledger_amount" id="ledger_amount" class="regular-text" step="0.01" required>
-                        </td>
-                    </tr>
-                </table>
-            <?php submit_button('Add Ledger Entry'); ?>
-            </form>
-        </div>
-        <?php   
     }
 
     public function render_add_member_page()
@@ -587,31 +534,12 @@ class CampManagerPages
 
     public function render_ledger_page()
     {
-        $table = new CampManagerLedgerTable();
-        $table->process_bulk_action();
-        $table->prepare_items();
-        ?>
-        <style>
-            .wp-list-table .column-store       { width: 40%; }
-            .wp-list-table .column-date        { width: 15%; }
-            .wp-list-table .column-total       { width: 10%; text-align: right; }
-            .wp-list-table .column-subtotal    { width: 10%; text-align: right; }
-            .wp-list-table .column-tax         { width: 10%; text-align: right; }
-            .wp-list-table .column-shipping    { width: 15%; text-align: right; }
-        </style>
-        <div class="wrap">
-            <h1 class="wp-heading-inline">Ledger</h1>
-            <a href="<?php echo admin_url('admin.php?page=camp-manager-add-ledger'); ?>" class="page-title-action">Add New</a>
-            <hr class="wp-header-end">
-            <h3>The current balance is: <?php echo esc_html($table->get_total_amount()); ?></h3>
-            <h3>We have collected <?php echo esc_html($table->get_total_camp_dues()); ?> in camp dues</h3>
-            <form method="post">
-                <?php
-                $table->display();
-                ?>
-            </form>
-        </div>
-        <?php
+        include plugin_dir_path(__FILE__) . '../tmpl/camp_manager_ledger_page.php';
+    }
+
+    public function render_add_ledger_page()
+    {
+        include plugin_dir_path(__FILE__) . '../tmpl/camp_manager_add_ledger.php';
     }
 
     public function receipts_page() 
