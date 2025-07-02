@@ -214,7 +214,7 @@ class CampManagerPages
                 'Add a Receipt',
                 'manage_options',
                 'camp-manager-add-receipt',
-                [$this, 'edit_receipt_page']
+                [$this, 'render_receipt_form']
             );
         });
 
@@ -621,7 +621,7 @@ class CampManagerPages
             wp_die('Invalid receipt ID.');
         }
 
-        $receipt = $this->get_receipt($receipt_id);
+        $receipt = $this->receipts->get_receipt($receipt_id);
         if (!$receipt) {
             wp_die('Receipt not found.');
         }
@@ -694,7 +694,7 @@ class CampManagerPages
         public function render_receipt_form()
     {
         $receipt_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-        $receipt = $receipt_id ? $this->get_receipt($receipt_id) : null;
+        $receipt = $receipt_id ? $this->receipts->get_receipt($receipt_id) : null;
         $is_edit = $receipt !== null;
         $receipt_id = $is_edit ? intval($receipt->id) : 0;
 
