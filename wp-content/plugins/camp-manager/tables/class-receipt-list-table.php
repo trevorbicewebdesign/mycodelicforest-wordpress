@@ -30,6 +30,7 @@ class CampManagerReceiptsTable extends WP_List_Table
             'date'  => 'Date',
             'subtotal' => 'Subtotal',
             'tax'   => 'Tax',
+            'shipping' => 'Shipping',
             'total' => 'Total',
         ];
     }
@@ -41,6 +42,8 @@ class CampManagerReceiptsTable extends WP_List_Table
             'store' => ['store', false],
             'date'  => ['date', false],
             'tax'   => ['tax', false],
+            'subtotal' => ['subtotal', false],
+            'shipping' => ['shipping', false],
             'total' => ['total', false],
         ];
     }
@@ -58,6 +61,10 @@ class CampManagerReceiptsTable extends WP_List_Table
                 return esc_html(date('Y-m-d', strtotime($item['date'])));
             case 'total':
                 return '$' . number_format((float) $item['total'], 2);
+            case 'subtotal':
+                return '$' . number_format((float) $item['subtotal'], 2);
+            case 'shipping':
+                return '$' . number_format((float) $item['shipping'], 2);
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
@@ -76,13 +83,38 @@ class CampManagerReceiptsTable extends WP_List_Table
                 ));
             }
         }
+        else if('duplicate' === $this->current_action()) {
+            if (!empty($_POST['receipt']) && is_array($_POST['receipt'])) {
+                global $wpdb;
+                $table = "{$wpdb->prefix}mf_receipts";
+                $items_table = "{$wpdb->prefix}mf_receipt_items";
+                foreach ($_POST['receipt'] as $id) {
+                    $id = intval($id);
+                    // Duplicate receipt
+                    $receipt = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id), ARRAY_A);
+                    if ($receipt) {
+                        unset($receipt['id']); // Remove ID to insert as new
+                        $wpdb->insert($table, $receipt);
+                        $new_receipt_id = $wpdb->insert_id;
+
+                        // Duplicate receipt items
+                        $items = $wpdb->get_results($wpdb->prepare("SELECT * FROM $items_table WHERE receipt_id = %d", $id), ARRAY_A);
+                        foreach ($items as $item) {
+                            unset($item['id']); // Remove item ID
+                            $item['receipt_id'] = $new_receipt_id; // Link to new receipt
+                            $wpdb->insert($items_table, $item);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public function get_bulk_actions()
     {
         return [
             'delete' => 'Delete',
-            // 'mark_reviewed' => 'Mark as Reviewed',
+            'duplicate' => 'Duplicate',
         ];
     }
 
@@ -109,7 +141,7 @@ class CampManagerReceiptsTable extends WP_List_Table
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
         $sql = $wpdb->prepare(
-            "SELECT id, date, total, store, subtotal, tax FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT id, date, total, store, subtotal, shipping, tax FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
             $per_page,
             $offset
         );
