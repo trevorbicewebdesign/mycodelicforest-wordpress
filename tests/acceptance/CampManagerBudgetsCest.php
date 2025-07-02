@@ -61,6 +61,7 @@ class CampManagerBudgetsCest
         // Assert that each table header is present
         $I->see("ID", "th#id");
         $I->see("Name", "th#name");
+        $I->see("Category", "th#category");
         $I->see("Price", "th#price");
         $I->see("Quantity", "th#quantity");
         $I->see("Subtotal", "th#subtotal");
@@ -132,7 +133,7 @@ class CampManagerBudgetsCest
         ]);
 
         $I->see("Test Budget Item", "table.table-view-list.budgetitems td.name");
-        // $I->see("Power", "table.table-view-list.budgetitems td.category");
+        $I->see("Power", "table.table-view-list.budgetitems td.category");
         $I->see("100.00", "table.table-view-list.budgetitems td.price");
         $I->see("2", "table.table-view-list.budgetitems td.quantity");
         $I->see("200.00", "table.table-view-list.budgetitems td.subtotal");
