@@ -26,9 +26,9 @@ class CampManagerLedgerTable extends WP_List_Table
         return [
             'cb'    => '<input type="checkbox" />', // For bulk actions
             'id'    => 'ID',
-            'amount' => 'Amount',
-            'date'  => 'Date',
             'note' => 'Note',
+            'amount' => 'Amount',
+            'date'  => 'Date',            
         ];
     }
 
@@ -52,7 +52,12 @@ class CampManagerLedgerTable extends WP_List_Table
             case 'date':
                 return esc_html(date('Y-m-d', strtotime($item['date'])));
             case 'note':
-                return esc_html($item['note']);
+                $edit_url = admin_url('admin.php?page=camp-manager-add-ledger&id=' . intval($item['id']));
+                return sprintf(
+                    '<a href="%s">%s</a>',
+                    esc_url($edit_url),
+                    esc_html($item['note'])
+                );
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
