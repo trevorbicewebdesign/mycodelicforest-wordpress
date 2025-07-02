@@ -72,6 +72,15 @@ class CampManagerBudgets {
         return (int) $wpdb->insert_id;
     }
 
+    public function deleteBudgetCategory($category_id): bool
+    {
+        // Should delete a budget category from the database
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_budget_category";
+        $result = $wpdb->delete($table, ['id' => (int) $category_id]);
+        return (bool) $result;
+    }
+
     public function insertBudgetItem($category_id, $name, $price, $quantity, $priority = 0, $link = null, $tax = 0.0): int
     {
         // Should insert a budget item into the database
