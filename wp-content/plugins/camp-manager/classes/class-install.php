@@ -9,6 +9,7 @@ class CampManagerInstall
         $this->create_mf_roster();
         $this->create_mf_budget_table();
         $this->create_mf_ledger_table();
+        $this->create_mf_ledger_line_items_table();
     }
 
     public function create_mf_roster()
@@ -87,6 +88,27 @@ class CampManagerInstall
             `id` INT(11) NOT NULL AUTO_INCREMENT,
             `amount` FLOAT DEFAULT NULL,
             `date` DATETIME DEFAULT NULL,
+            `note` TEXT DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        ";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+    }
+
+    public function create_mf_ledger_line_items_table()
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_ledger_line_items';
+
+        $sql = "
+        CREATE TABLE `$table` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `ledger_id` INT(11) NOT NULL,
+            `category` VARCHAR(100) NOT NULL,
+            `cmid` INT(11) DEFAULT NULL,
+            `amount` DECIMAL(10,2) NOT NULL,
             `note` TEXT DEFAULT NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
