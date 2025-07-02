@@ -18,8 +18,7 @@ $form_action = admin_url('admin-post.php');
     <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Receipt' : 'Upload Receipt'; ?></h1>
 
     <form method="post" enctype="multipart/form-data" action="<?php echo esc_url($form_action); ?>" id="receipt-form">
-        <input type="hidden" name="action"
-            value="<?php echo $is_edit ? 'camp_manager_save_receipt' : 'camp_manager_upload_and_save_receipt'; ?>">
+        <input type="hidden" name="action" value="camp_manager_save_receipt">
         <?php if ($is_edit): ?>
             <input type="hidden" name="receipt_id" value="<?php echo esc_attr($receipt_id); ?>">
         <?php endif; ?>
@@ -50,66 +49,62 @@ $form_action = admin_url('admin-post.php');
         </table>
 
         <h2 style="margin-top: 40px;">Items</h2>
-        <table class="widefat striped" style="margin-bottom: 30px; table-layout: fixed; width: 100%;">
+        <table class="widefat striped" style="margin-bottom: 10px; table-layout: fixed; width: 100%;">
             <thead>
                 <tr>
-                    <th style="text-align: right;">Item Name</th>
-                    <th style="text-align: right;">Category</th>
-                    <th style="text-align: right;">Price</th>
-                    <th style="text-align: right;">Qty</th>
-                    <th style="text-align: right;">Subtotal</th>
-
+                    <th>Item Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Subtotal</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
-                <?php
-                // Always show at least one row if adding a new receipt (no items)
-                if (empty($items)) {
-                    $items = [
-                        (object) [
-                            'name' => '',
-                            'category_id' => '',
-                            'price' => '',
-                            'quantity' => 1,
-                            'subtotal' => ''
-                        ]
-                    ];
-                }
-                foreach ($items as $i => $item): ?>
-                    <tr>
-                        <td style="text-align: right;">
-                            <input type="text" name="items[<?php echo $i; ?>][name]"
-                                value="<?php echo esc_attr($item->name ?? ''); ?>" style="width: 100%;" />
-                        </td>
-                        <td style="text-align: right;">
-                            <?php $categories = $this->core->getItemCategories(); ?>
-                            <select name="items[<?php echo $i; ?>][category]" style="width: 100%;">
-                                <option value="">Please select a category</option>
-                                <?php foreach ($categories as $category): ?>
-                                    <option value="<?php echo esc_attr($category['id']); ?>" <?php selected(($item->category_id ?? '') === $category['id']); ?>>
-                                        <?php echo esc_html(ucfirst($category['name'])); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </td>
-                        <td style="text-align: right;">
-                            <input type="text" name="items[<?php echo $i; ?>][price]"
-                                value="<?php echo esc_attr($item->price ?? ''); ?>" style="width: 100%;" />
-                        </td>
-                        <td style="text-align: right;">
-                            <input type="number" name="items[<?php echo $i; ?>][quantity]"
-                                value="<?php echo esc_attr($item->quantity ?? 1); ?>" style="width: 100%;" />
-                        </td>
-                        <td style="text-align: right;">
-                            <input type="text" name="items[<?php echo $i; ?>][subtotal]"
-                                value="<?php echo esc_attr($item->subtotal ?? ''); ?>" style="width: 100%;" />
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
+                <!-- Hidden row template for JS to clone -->
+                <tr id="item-row-template" class="item-row" style="display: none;">
+                    <td><input type="text" name="items[__INDEX__][name]" style="width: 100%;" /></td>
+                    <td>
+                        <select name="items[__INDEX__][category]" style="width: 100%;">
+                            <option value="">Please select a category</option>
+                            <?php foreach ($this->core->getItemCategories() as $category): ?>
+                                <option value="<?php echo esc_attr($category['id']); ?>">
+                                    <?php echo esc_html(ucfirst($category['name'])); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                    <td><input type="text" name="items[__INDEX__][price]" style="width: 100%;" /></td>
+                    <td><input type="number" name="items[__INDEX__][quantity]" value="1" style="width: 100%;" /></td>
+                    <td><input type="text" name="items[__INDEX__][subtotal]" style="width: 100%;" /></td>
+                    <td><button type="button" class="remove-item button">Remove</button></td>
+                </tr>
+                <?php if (!empty($items)): ?>
+                    <?php foreach ($items as $i => $item): ?>
+                        <tr class="item-row">
+                            <td><input type="text" name="items[<?php echo $i; ?>][name]" value="<?php echo esc_attr($item->name ?? ''); ?>" style="width: 100%;" /></td>
+                            <td>
+                                <select name="items[<?php echo $i; ?>][category]" style="width: 100%;">
+                                    <option value="">Please select a category</option>
+                                    <?php foreach ($this->core->getItemCategories() as $category): ?>
+                                        <option value="<?php echo esc_attr($category['id']); ?>"
+                                            <?php selected(($item->category_id ?? '') === $category['id']); ?>>
+                                            <?php echo esc_html(ucfirst($category['name'])); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                            <td><input type="text" name="items[<?php echo $i; ?>][price]" value="<?php echo esc_attr($item->price ?? ''); ?>" style="width: 100%;" /></td>
+                            <td><input type="number" name="items[<?php echo $i; ?>][quantity]" value="<?php echo esc_attr($item->quantity ?? 1); ?>" style="width: 100%;" /></td>
+                            <td><input type="text" name="items[<?php echo $i; ?>][subtotal]" value="<?php echo esc_attr($item->subtotal ?? ''); ?>" style="width: 100%;" /></td>
+                            <td><button type="button" class="remove-item button">Remove</button></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </tbody>
         </table>
-        <div id="items-wrapper"></div>
 
+        <p><button type="button" id="add-item" class="button">Add Item</button></p>
 
         <!-- Totals -->
         <table style="width: 100%; max-width: 600px; margin-left: auto; font-size: 1.1em;">
@@ -143,93 +138,100 @@ $form_action = admin_url('admin-post.php');
             </tr>
         </table>
 
-
         <?php submit_button($is_edit ? 'Update Receipt' : 'Save Receipt'); ?>
     </form>
 </div>
+
 <script type="text/javascript">
-    // Ensure ajaxurl is defined for AJAX requests
-    if (typeof ajaxurl === 'undefined') {
-        var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
-    }
     jQuery(document).ready(function ($) {
-        $('#analyze-btn').on('click', function () {
-            var fileInput = $('#receipt_image')[0];
-            if (!fileInput.files.length) {
-                alert('Please choose an image first.');
-                return;
-            }
+        if (typeof ajaxurl === 'undefined') {
+            var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+        }
 
-            var formData = new FormData();
-            formData.append('action', 'camp_manager_analyze_receipt');
-            formData.append('receipt_image', fileInput.files[0]);
+        initReceiptForm();
 
-            $('#analyze-spinner').addClass('is-active');
+        function initReceiptForm() {
+            const $template = $('#item-row-template');
+            let rowCount = $('table.widefat tbody tr.item-row').length;
 
-            alert(formData);
-
-            $.ajax({
-                url: ajaxurl,
-                method: 'POST',
-                processData: false,
-                contentType: false,
-                data: formData,
-                success: function (res) {
-                    $('#analyze-spinner').removeClass('is-active');
-                    if (res.success) {
-                        populateFormWithReceipt(res.data);
-                    } else {
-                        alert('Error: ' + res.data);
-                    }
-                },
-                error: function (jqXHR, textStatus, errorThrown) {
-                    $('#analyze-spinner').removeClass('is-active');
-                    console.error('AJAX error:', textStatus, errorThrown, jqXHR.responseText);
-                    alert('Something went wrong. ' + textStatus + ': ' + errorThrown + '\n' + jqXHR.responseText);
-                }
+            $('#add-item').on('click', function () {
+                addItemRow();
             });
-        });
 
-        function populateFormWithReceipt(data) {
-            $('input[name="store"]').val(data.store || '');
-            $('input[name="date"]').val(data.date || '');
-            $('input[name="subtotal"]').val(data.subtotal || '');
-            $('input[name="tax"]').val(data.tax || '');
-            $('input[name="shipping"]').val(data.shipping || '');
-            $('input[name="total"]').val(data.total || '');
+            $(document).on('click', '.remove-item', function () {
+                $(this).closest('tr').remove();
+            });
 
-            const wrapper = $('#items-wrapper');
-            wrapper.empty();
+            $('#analyze-btn').on('click', function () {
+                const fileInput = $('#receipt_image')[0];
+                if (!fileInput.files.length) {
+                    alert('Please choose an image first.');
+                    return;
+                }
 
-            if (Array.isArray(data.items)) {
-                data.items.forEach((item, index) => {
-                    wrapper.append(renderItemRow(item, index));
+                const formData = new FormData();
+                formData.append('action', 'camp_manager_analyze_receipt');
+                formData.append('receipt_image', fileInput.files[0]);
+
+                $('#analyze-spinner').addClass('is-active');
+
+                $.ajax({
+                    url: ajaxurl,
+                    method: 'POST',
+                    processData: false,
+                    contentType: false,
+                    data: formData,
+                    success: function (res) {
+                        $('#analyze-spinner').removeClass('is-active');
+                        if (res.success) {
+                            populateFormWithReceipt(res.data);
+                        } else {
+                            alert('Error: ' + res.data);
+                        }
+                    },
+                    error: function (jqXHR, textStatus, errorThrown) {
+                        $('#analyze-spinner').removeClass('is-active');
+                        alert('AJAX error: ' + textStatus + ': ' + errorThrown);
+                        console.error(jqXHR.responseText);
+                    }
                 });
+            });
+
+            window.populateFormWithReceipt = function (data) {
+                $('input[name="store"]').val(data.store ?? '');
+                $('input[name="date"]').val(data.date ?? '');
+                $('input[name="subtotal"]').val(data.subtotal ?? '');
+                $('input[name="tax"]').val(data.tax ?? '');
+                $('input[name="shipping"]').val(data.shipping ?? '');
+                $('input[name="total"]').val(data.total ?? '');
+
+                const $tbody = $('table.widefat tbody');
+                $tbody.find('tr.item-row').remove();
+
+                if (Array.isArray(data.items)) {
+                    data.items.forEach((item) => addItemRow(item));
+                } else {
+                    addItemRow();
+                }
+            };
+
+            function addItemRow(item = {}) {
+                const index = rowCount++;
+                const $row = $template.clone().removeAttr('id').show();
+
+                $row.find('[name]').each(function () {
+                    const name = $(this).attr('name').replace('__INDEX__', index);
+                    $(this).attr('name', name);
+
+                    const match = name.match(/\[([a-z_]+)\]/);
+                    const key = match ? match[1] : '';
+                    const isSelect = $(this).is('select');
+
+                    $(this).val(item[key] !== undefined ? item[key] : (key === 'quantity' ? 1 : ''));
+                });
+
+                $('table.widefat tbody').append($row);
             }
         }
-
-        function renderItemRow(item, index) {
-            return `
-        <div class="item-row">
-            <input type="text" name="items[${index}][name]" value="${item.name || ''}" />
-            <input type="number" name="items[${index}][price]" value="${item.price || 0}" />
-            <input type="number" name="items[${index}][quantity]" value="${item.quantity || 1}" />
-            <input type="number" name="items[${index}][subtotal]" value="${item.subtotal || 0}" />
-            <select name="items[${index}][category]">
-                <option value="power">Power</option>
-                <option value="sojourner">Sojourner</option>
-                <option value="sound">Sound</option>
-                <option value="misc">Misc</option>
-            </select>
-            <button type="button" class="remove-item">Remove</button>
-        </div>`;
-        }
-
-        $(document).on('click', '.remove-item', function () {
-            $(this).closest('.item-row').remove();
-        });
-
-        // Optionally add an "Add Item" button
     });
-
 </script>
