@@ -89,6 +89,7 @@ class CampManagerInstall
             `amount` FLOAT DEFAULT NULL,
             `date` DATETIME DEFAULT NULL,
             `note` TEXT DEFAULT NULL,
+            `link` VARCHAR(255) DEFAULT NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
         ";
@@ -106,10 +107,11 @@ class CampManagerInstall
         CREATE TABLE `$table` (
             `id` INT(11) NOT NULL AUTO_INCREMENT,
             `ledger_id` INT(11) NOT NULL,
-            `category` VARCHAR(100) NOT NULL,
+            `receipt_id` INT(11) NULL DEFAULT NULL,
             `cmid` INT(11) DEFAULT NULL,
             `amount` DECIMAL(10,2) NOT NULL,
             `note` TEXT DEFAULT NULL,
+            `type` ENUM('Expense', 'Camp Dues', 'Partial Camp Dues') NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
         ";
