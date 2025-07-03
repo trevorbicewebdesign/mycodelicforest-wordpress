@@ -50,7 +50,7 @@ class CampManagerInit {
         $this->CampManagerChatGPT = new CampManagerChatGPT($this->CampManagerCore);
         $this->CampManagerReceipts = new CampManagerReceipts($this->CampManagerCore, $this->CampManagerChatGPT);
         //$this->CampManagerGoogleAPI = new CampManagerGoogleAPI();
-        $this->CampManagerLedger = new CampManagerLedger();
+        $this->CampManagerLedger = new CampManagerLedger($this->CampManagerReceipts);
         $this->CampManagerBudgets = new CampManagerBudgets();
         $this->CampManagerRoster = new CampManagerRoster();
         $this->CampManagerPages = new CampManagerPages($this->CampManagerReceipts, $this->CampManagerBudgets, $this->CampManagerRoster, $this->CampManagerLedger, $this->CampManagerCore);
