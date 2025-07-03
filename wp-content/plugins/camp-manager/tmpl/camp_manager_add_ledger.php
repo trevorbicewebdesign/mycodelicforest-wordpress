@@ -92,44 +92,43 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
             </tbody>
         </table>
 
-        <table style="display: none;">
-            <tbody>
-                <tr id="ledger-line-template" class="ledger-line-row">
-                    <td>
-                        <?php echo esc_html($item->id ?? ''); ?>
-                        <input type="hidden" name="ledger_line_item_id[]" value="<?php echo esc_attr($item->id ?? ''); ?>">
-                    </td>
-                    <td>
-                        <select name="ledger_line_item_receipt_id[]" class="receipt-select">
-                            <option value="">-- Select Receipt (optional) --</option>
-                            <?php foreach ($CampManagerReceipts->getUnreimbursedReceipts() as $receipt): ?>
-                                <option value="<?php echo esc_attr($receipt->id); ?>">
-                                    <?php echo esc_html("{$receipt->id} - {$receipt->store} (" . date('Y-m-d', strtotime($receipt->date)) . ") - \${$receipt->total}"); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </td>
-                    <td><input type="text" name="ledger_line_item_note[]" class="line-note regular-text" placeholder="Note"></td>
-                    <td><input type="number" step="0.01" name="ledger_line_item_amount[]" class="line-amount regular-text" placeholder="Amount"></td>
-                    <td>
-                        <select name="ledger_type[]" class="line-type">
-                            <option value="">-- Type --</option>
-                            <option value="Camp Dues">Camp Dues</option>
-                            <option value="Partial Camp Dues">Partial Camp Dues</option>
-                            <option value="Expense">Expense</option>
-                            <option value="Donation">Donation</option>
-                            <option value="Sold Asset">Sold Asset</option>
-                        </select>
-                    </td>
-                    <td><button type="button" class="button remove-line-item">Remove</button></td>
-                </tr>
-            </tbody>
-        </table>
-
         <p><button type="button" class="button button-secondary" id="add-line-item">Add Line Item</button></p>
 
         <?php submit_button($ledger ? 'Update Ledger Entry' : 'Add Ledger Entry'); ?>
     </form>
+    <table style="display: none;">
+        <tbody>
+            <tr id="ledger-line-template" class="ledger-line-row">
+                <td>
+                    <?php echo esc_html($item->id ?? ''); ?>
+                    <input type="hidden" name="ledger_line_item_id[]" value="">
+                </td>
+                <td>
+                    <select name="ledger_line_item_receipt_id[]" class="receipt-select">
+                        <option value="">-- Select Receipt (optional) --</option>
+                        <?php foreach ($CampManagerReceipts->getUnreimbursedReceipts() as $receipt): ?>
+                            <option value="<?php echo esc_attr($receipt->id); ?>">
+                                <?php echo esc_html("{$receipt->id} - {$receipt->store} (" . date('Y-m-d', strtotime($receipt->date)) . ") - \${$receipt->total}"); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+                <td><input type="text" name="ledger_line_item_note[]" class="line-note regular-text" placeholder="Note"></td>
+                <td><input type="number" step="0.01" name="ledger_line_item_amount[]" class="line-amount regular-text" placeholder="Amount"></td>
+                <td>
+                    <select name="ledger_type[]" class="line-type">
+                        <option value="">-- Type --</option>
+                        <option value="Camp Dues">Camp Dues</option>
+                        <option value="Partial Camp Dues">Partial Camp Dues</option>
+                        <option value="Expense">Expense</option>
+                        <option value="Donation">Donation</option>
+                        <option value="Sold Asset">Sold Asset</option>
+                    </select>
+                </td>
+                <td><button type="button" class="button remove-line-item">Remove</button></td>
+            </tr>
+        </tbody>
+    </table>
 </div>
 
 <script>
