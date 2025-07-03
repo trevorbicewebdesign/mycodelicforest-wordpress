@@ -25,7 +25,18 @@ class CampManagerLedger
         // Validate and sanitize input
         $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
         $date = isset($_POST['date']) ? sanitize_text_field($_POST['date']) : null;
+        $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : '';
+        $note = isset($_POST['note']) ? sanitize_text_field($_POST['note']) : '';
+        $cmid = isset($_POST['cmid']) ? intval($_POST['cmid']) : 0;
 
+        // Insert the ledger entry and get the entry ID
+        $entry_id = $this->insertLedger([
+            'amount' => $amount,
+            'type' => $type,
+            'note' => $note,
+            'date' => $date,
+            'cmid' => $cmid,
+        ]);
         
         // Redirect or send a response
         if ($entry_id) {
