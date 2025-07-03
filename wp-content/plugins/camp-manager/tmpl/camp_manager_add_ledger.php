@@ -125,48 +125,55 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
 
 <script>
 jQuery(function($) {
-    $('.receipt-select').on('change', function() {
-        const $row = $(this).closest('.ledger-line-row');
-        const receiptId = $(this).val();
+    function bindReceiptChange($row) {
+        const $select = $row.find('.receipt-select');
         const $note = $row.find('.line-note');
         const $amount = $row.find('.line-amount');
         const $type = $row.find('.line-type');
 
-        if (receiptId) {
-            $note.prop('readonly', true).val('');
-            $amount.prop('readonly', true);
-            $type.val('Expense').prop('disabled', true);
-            $amount.val('...');
+        $select.on('change', function () {
+            const receiptId = $(this).val();
+            if (receiptId) {
+                $note.prop('readonly', true).val('');
+                $amount.prop('readonly', true);
+                $type.val('Expense').prop('disabled', true);
+                $amount.val('...');
 
-            $.ajax({
-                url: ajaxurl,
-                method: 'POST',
-                data: {
-                    action: 'camp_manager_get_receipt_total',
-                    receipt_id: receiptId
-                },
-                success: function(res) {
-                    if (res.success && res.data.total !== undefined) {
-                        $amount.val(res.data.total.toFixed(2));
-                    } else {
+                $.ajax({
+                    url: ajaxurl,
+                    method: 'POST',
+                    data: {
+                        action: 'camp_manager_get_receipt_total',
+                        receipt_id: receiptId
+                    },
+                    success: function(res) {
+                        if (res.success && res.data.total !== undefined) {
+                            $amount.val(res.data.total.toFixed(2));
+                        } else {
+                            $amount.val('');
+                        }
+                    },
+                    error: function() {
+                        console.error('Failed to fetch receipt total');
                         $amount.val('');
                     }
-                },
-                error: function() {
-                    console.error('Failed to fetch receipt total');
-                    $amount.val('');
-                }
-            });
-        } else {
-            $note.prop('readonly', false).val('');
-            $amount.prop('readonly', false).val('');
-            $type.prop('disabled', false).val('');
-        }
+                });
+            } else {
+                $note.prop('readonly', false).val('');
+                $amount.prop('readonly', false).val('');
+                $type.prop('disabled', false).val('');
+            }
+        });
+    }
+
+    $('.ledger-line-row').each(function () {
+        bindReceiptChange($(this));
     });
 
     $('#add-line-item').on('click', function () {
         const $template = $('#ledger-line-template').clone().removeAttr('id').show();
         $('#ledger-line-items').append($template);
+        bindReceiptChange($template);
     });
 
     $(document).on('click', '.remove-line-item', function () {
