@@ -8,6 +8,7 @@ $table->prepare_items();
     .wp-list-table .column-id          { width: 5%; }
     .wp-list-table .column-amount      { width: 5%; }
     .wp-list-table .column-date        { width: 10%; }
+    .wp-list-table .column-receipts   { width: 5%; }
 
 </style>
 <div class="wrap">
