@@ -16,58 +16,90 @@ class CampManagerLedger
 
     public function handle_ledger_entry_save()
     {
-        if (!current_user_can('manage_options')) {
-            wp_die('Unauthorized');
-        }
-
         global $wpdb;
 
-        $ledger_id = isset($_POST['ledger_id']) ? intval($_POST['ledger_id']) : 0;
-        $amount = isset($_POST['ledger_amount']) ? floatval($_POST['ledger_amount']) : 0;
-        $date = isset($_POST['ledger_date']) ? sanitize_text_field($_POST['ledger_date']) : null;
-        $type = isset($_POST['ledger_type']) ? sanitize_text_field($_POST['ledger_type']) : '';
-        $note = isset($_POST['ledger_note']) ? sanitize_text_field($_POST['ledger_note']) : '';
-        $cmid = isset($_POST['cmid']) ? intval($_POST['cmid']) : 0;
-
-        // Handle line items
-        $line_items = [];
-        $descriptions = $_POST['ledger_line_item_note'] ?? [];
-        $amounts = $_POST['ledger_line_item_amount'] ?? [];
-        $receipt_ids = $_POST['ledger_line_item_receipt_id'] ?? [];
-        $types = $_POST['ledger_type'] ?? [];
-
-        $count = max(count($descriptions), count($amounts), count($receipt_ids), count($types));
-        for ($i = 0; $i < $count; $i++) {
-            $line_item = [
-                'description' => sanitize_text_field($descriptions[$i] ?? ''),
-                'amount' => floatval($amounts[$i] ?? 0),
-                'receipt_id' => intval($receipt_ids[$i] ?? 0) ?: null,
-                'type' => sanitize_text_field($types[$i] ?? ''),
-            ];
-            $line_items[] = (object) $line_item;
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have permission.'));
         }
 
-        if ($ledger_id > 0) {
-            $this->updateLedger($ledger_id, [
-                'amount' => $amount,
-                'type' => $type,
+        $ledger_id = intval($_POST['ledger_id'] ?? 0);
+        $note = sanitize_text_field($_POST['ledger_note'] ?? '');
+        $date = sanitize_text_field($_POST['ledger_date'] ?? '');
+        $amount = floatval($_POST['ledger_amount'] ?? 0);
+        $cmid = intval($_POST['cmid'] ?? 0);
+
+        $table_ledger = $wpdb->prefix . 'mf_ledger';
+        $table_lines = $wpdb->prefix . 'mf_ledger_line_items';
+
+        if ($ledger_id) {
+            // Update existing ledger
+            $wpdb->update($table_ledger, [
                 'note' => $note,
                 'date' => $date,
-                'cmid' => $cmid,
-                'line_items' => $line_items,
-            ]);
+                'amount' => $amount,
+                'cmid' => $cmid
+            ], ['id' => $ledger_id]);
         } else {
-            $ledger_id = $this->insertLedger([
-                'amount' => $amount,
-                'type' => $type,
+            // Insert new ledger
+            $wpdb->insert($table_ledger, [
                 'note' => $note,
                 'date' => $date,
-                'cmid' => $cmid,
-                'line_items' => $line_items,
+                'amount' => $amount,
+                'cmid' => $cmid
             ]);
+            $ledger_id = $wpdb->insert_id;
         }
 
-        wp_redirect(admin_url('admin.php?page=camp-manager-ledger&entry_saved=1'));
+        // Process line items
+        $submitted_ids = $_POST['ledger_line_item_id'] ?? [];
+        $notes         = $_POST['ledger_line_item_note'] ?? [];
+        $amounts       = $_POST['ledger_line_item_amount'] ?? [];
+        $receipt_ids   = $_POST['ledger_line_item_receipt_id'] ?? [];
+        $types         = $_POST['ledger_type'] ?? [];
+
+        $seen_ids = [];
+
+        foreach ($submitted_ids as $i => $line_id) {
+            $line_id = intval($line_id);
+            $note = sanitize_text_field($notes[$i] ?? '');
+            $amount = floatval($amounts[$i] ?? 0);
+            $receipt_id = intval($receipt_ids[$i] ?? 0);
+            $type = sanitize_text_field($types[$i] ?? '');
+
+            $data = [
+                'ledger_id' => $ledger_id,
+                'note' => $note,
+                'amount' => $amount,
+                'receipt_id' => $receipt_id ?: null,
+                'type' => $type
+            ];
+
+            if ($line_id) {
+                // Update
+                $wpdb->update($table_lines, $data, ['id' => $line_id]);
+                $seen_ids[] = $line_id;
+            } else {
+                // Insert
+                $wpdb->insert($table_lines, $data);
+                $seen_ids[] = $wpdb->insert_id;
+            }
+        }
+
+        // Delete removed line items
+        if ($ledger_id) {
+            $existing_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT id FROM $table_lines WHERE ledger_id = %d", $ledger_id
+            ));
+
+            $to_delete = array_diff($existing_ids, $seen_ids);
+
+            foreach ($to_delete as $id) {
+                $wpdb->delete($table_lines, ['id' => $id]);
+            }
+        }
+
+        // Redirect
+        wp_redirect(admin_url('admin.php?page=camp-manager-ledger'));
         exit;
     }
 
