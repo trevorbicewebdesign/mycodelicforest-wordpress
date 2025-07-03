@@ -1,9 +1,9 @@
 <?php
 
-// Check if the user has permission to manage options
 if (!current_user_can('manage_options')) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
+
 $CampManagerCore = new CampManagerCore();
 $CampManagerChatGPT = new CampManagerChatGPT($CampManagerCore);
 $CampManagerReceipts = new CampManagerReceipts($CampManagerCore, $CampManagerChatGPT);
@@ -17,78 +17,112 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
     <hr/>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
         <input type="hidden" name="action" value="camp_manager_save_ledger_entry">
+        <input type="hidden" name="ledger_id" value="<?php echo esc_attr($ledger->id ?? ''); ?>">
+
         <table class="form-table">
             <tr>
-                <th><label for="ledger_id">ID</label></th>
-                <td>
-                    <input type="number" name="ledger_id" id="ledger_id" class="regular-text" value="<?php echo $ledger ? esc_attr($ledger->id) : ''; ?>" readonly>
-                </td>
-            </tr>
-            <tr>
                 <th><label for="ledger_note">Note</label></th>
-                <td>
-                    <input type="text" name="ledger_note" id="ledger_note" class="regular-text" value="<?php echo $ledger ? esc_attr($ledger->note) : ''; ?>" required>
-                </td>
+                <td><input type="text" name="ledger_note" class="regular-text" value="<?php echo esc_attr($ledger->note ?? ''); ?>" required></td>
             </tr>
             <tr>
                 <th><label for="ledger_date">Date</label></th>
-                <td>
-                    <input type="date" name="ledger_date" id="ledger_date" class="regular-text" value="<?php echo $ledger ? esc_attr(date('Y-m-d', strtotime($ledger->date))) : ''; ?>" required>
-                </td>
+                <td><input type="date" name="ledger_date" class="regular-text" value="<?php echo esc_attr($ledger ? date('Y-m-d', strtotime($ledger->date)) : ''); ?>" required></td>
             </tr>
             <tr>
-                <th><label for="ledger_amount">Amount</label></th>
-                <td>
-                    <input type="number" name="ledger_amount" id="ledger_amount" class="regular-text" step="0.01" value="<?php echo $ledger ? esc_attr($ledger->amount) : ''; ?>" required>
-                </td>
+                <th><label for="ledger_amount">Total Amount</label></th>
+                <td><input type="number" step="0.01" name="ledger_amount" class="regular-text" value="<?php echo esc_attr($ledger->amount ?? ''); ?>" required></td>
             </tr>
-            
-                <td colspan="2">
-                    <!-- Ledger Line Items (for entries not linked to a receipt) -->
-                    <table>
-                        <?php
-                        $line_items = [];
-                        if ($ledger && isset($ledger->line_items) && is_array($ledger->line_items) && count($ledger->line_items) > 0) {
-                            $line_items = $ledger->line_items;
-                        } else {
-                            // Always show at least one empty row
-                            $line_items[] = ['note' => '', 'type' => '', 'amount' => '', 'receipt_id' => ''];
-                        }
-                        foreach ($line_items as $idx => $item): ?>
-                           <tr class="ledger-line-row">
-                                <td>
-                                    <select name="ledger_line_item_receipt_id[]" class="receipt-select">
-                                        <option value="">-- Select Receipt (optional) --</option>
-                                        <?php foreach ($CampManagerReceipts->getUnreimbursedReceipts() as $receipt): ?>
-                                            <option value="<?php echo esc_attr($receipt->id); ?>" <?php selected($item->receipt_id ?? '', $receipt->id); ?>>
-                                                <?php echo esc_html("{$receipt->id} - {$receipt->store} (" . date('Y-m-d', strtotime($receipt->date)) . ") - {$receipt->total}"); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </td>
-                                <td>
-                                    <input type="text" name="ledger_line_item_note[]" class="line-note regular-text" placeholder="Enter note" value="<?php echo esc_attr($item->note ?? ''); ?>">
-                                </td>
-                                <td>
-                                    <input type="number" step="0.01" name="ledger_line_item_amount[]" class="line-amount regular-text" placeholder="Amount" value="<?php echo esc_attr($item->amount ?? ''); ?>">
-                                </td>
-                                <td>
-                                    <select name="ledger_type[]" class="line-type">
-                                        <option value="camp_dues" <?php selected($item->type ?? '', 'camp_dues'); ?>>Camp Dues</option>
-                                        <option value="partial_camp_dues" <?php selected($item->type ?? '', 'partial_camp_dues'); ?>>Partial Camp Dues</option>
-                                        <option value="expense" <?php selected($item->type ?? '', 'expense'); ?>>Expense</option>
-                                        <option value="donation" <?php selected($item->type ?? '', 'donation'); ?>>Donation</option>
-                                        <option value="sold_asset" <?php selected($item->type ?? '', 'sold_asset'); ?>>Sold Asset</option>
-                                    </select>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </table>
-                </td>
+            <tr>
+                <th><label for="cmid">Camp Member ID (optional)</label></th>
+                <td><input type="number" name="cmid" class="regular-text" value="<?php echo esc_attr($ledger->cmid ?? ''); ?>"></td>
+            </tr>
         </table>
-    <?php submit_button($ledger ? 'Update Ledger Entry' : 'Add Ledger Entry'); ?>
+
+        <h2>Line Items</h2>
+        <table class="widefat">
+            <thead>
+                <tr>
+                    <th>Receipt</th>
+                    <th>Note</th>
+                    <th>Amount</th>
+                    <th>Type</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="ledger-line-items">
+                <?php
+                $line_items = $ledger->line_items ?? [
+                    (object)['note' => '', 'amount' => '', 'receipt_id' => '', 'type' => '']
+                ];
+                foreach ($line_items as $item): ?>
+                    <tr class="ledger-line-row">
+                        <td>
+                            <select name="ledger_line_item_receipt_id[]" class="receipt-select">
+                                <option value="">-- Select Receipt (optional) --</option>
+                                <?php foreach ($CampManagerReceipts->getUnreimbursedReceipts() as $receipt): ?>
+                                    <option value="<?php echo esc_attr($receipt->id); ?>" <?php selected($item->receipt_id ?? '', $receipt->id); ?>>
+                                        <?php echo esc_html("{$receipt->id} - {$receipt->store} (" . date('Y-m-d', strtotime($receipt->date)) . ") - \${$receipt->total}"); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <?php if (!empty($item->receipt_id)): ?>
+                                <br><a href="admin.php?page=camp-manager-edit-receipt&id=<?php echo intval($item->receipt_id); ?>" target="_blank">View Receipt</a>
+                            <?php endif; ?>
+                        </td>
+                        <td><input type="text" name="ledger_line_item_note[]" class="line-note regular-text" placeholder="Note" value="<?php echo esc_attr($item->description ?? $item->note ?? ''); ?>"></td>
+                        <td><input type="number" step="0.01" name="ledger_line_item_amount[]" class="line-amount regular-text" placeholder="Amount" value="<?php echo esc_attr($item->amount ?? ''); ?>"></td>
+                        <td>
+                            <select name="ledger_type[]" class="line-type">
+                                <option value="">-- Type --</option>
+                                <option value="Camp Dues" <?php selected($item->type ?? '', 'Camp Dues'); ?>>Camp Dues</option>
+                                <option value="Partial Camp Dues" <?php selected($item->type ?? '', 'Partial Camp Dues'); ?>>Partial Camp Dues</option>
+                                <option value="Expense" <?php selected($item->type ?? '', 'Expense'); ?>>Expense</option>
+                                <option value="Donation" <?php selected($item->type ?? '', 'Donation'); ?>>Donation</option>
+                                <option value="Sold Asset" <?php selected($item->type ?? '', 'Sold Asset'); ?>>Sold Asset</option>
+                            </select>
+                        </td>
+                        <td><button type="button" class="button remove-line-item">Remove</button></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <table style="display: none;">
+            <tbody>
+                <tr id="ledger-line-template" class="ledger-line-row">
+                    <td>
+                        <select name="ledger_line_item_receipt_id[]" class="receipt-select">
+                            <option value="">-- Select Receipt (optional) --</option>
+                            <?php foreach ($CampManagerReceipts->getUnreimbursedReceipts() as $receipt): ?>
+                                <option value="<?php echo esc_attr($receipt->id); ?>">
+                                    <?php echo esc_html("{$receipt->id} - {$receipt->store} (" . date('Y-m-d', strtotime($receipt->date)) . ") - \${$receipt->total}"); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </td>
+                    <td><input type="text" name="ledger_line_item_note[]" class="line-note regular-text" placeholder="Note"></td>
+                    <td><input type="number" step="0.01" name="ledger_line_item_amount[]" class="line-amount regular-text" placeholder="Amount"></td>
+                    <td>
+                        <select name="ledger_type[]" class="line-type">
+                            <option value="">-- Type --</option>
+                            <option value="Camp Dues">Camp Dues</option>
+                            <option value="Partial Camp Dues">Partial Camp Dues</option>
+                            <option value="Expense">Expense</option>
+                            <option value="Donation">Donation</option>
+                            <option value="Sold Asset">Sold Asset</option>
+                        </select>
+                    </td>
+                    <td><button type="button" class="button remove-line-item">Remove</button></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><button type="button" class="button button-secondary" id="add-line-item">Add Line Item</button></p>
+
+        <?php submit_button($ledger ? 'Update Ledger Entry' : 'Add Ledger Entry'); ?>
     </form>
 </div>
+
 <script>
 jQuery(function($) {
     $('.receipt-select').on('change', function() {
@@ -99,13 +133,11 @@ jQuery(function($) {
         const $type = $row.find('.line-type');
 
         if (receiptId) {
-            // Set type to 'expense' and disable editing
             $note.prop('readonly', true).val('');
             $amount.prop('readonly', true);
-            $type.val('expense').prop('disabled', true);
+            $type.val('Expense').prop('disabled', true);
+            $amount.val('...');
 
-            // Fetch receipt total
-            $amount.val('...'); // show placeholder
             $.ajax({
                 url: ajaxurl,
                 method: 'POST',
@@ -126,11 +158,19 @@ jQuery(function($) {
                 }
             });
         } else {
-            // Allow manual entry if no receipt is selected
             $note.prop('readonly', false).val('');
             $amount.prop('readonly', false).val('');
             $type.prop('disabled', false).val('');
         }
+    });
+
+    $('#add-line-item').on('click', function () {
+        const $template = $('#ledger-line-template').clone().removeAttr('id').show();
+        $('#ledger-line-items').append($template);
+    });
+
+    $(document).on('click', '.remove-line-item', function () {
+        $(this).closest('tr').remove();
     });
 });
 </script>
