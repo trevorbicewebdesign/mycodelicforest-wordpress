@@ -94,18 +94,18 @@ jQuery(function($) {
     $('.receipt-select').on('change', function() {
         const $row = $(this).closest('.ledger-line-row');
         const receiptId = $(this).val();
-        const $itemSelect = $row.find('.receipt-item-select');
         const $note = $row.find('.line-note');
         const $amount = $row.find('.line-amount');
         const $type = $row.find('.line-type');
 
         if (receiptId) {
-            // Set type to 'expense' and disable inputs
+            // Set type to 'expense' and disable editing
             $note.prop('readonly', true).val('');
             $amount.prop('readonly', true);
             $type.val('expense').prop('disabled', true);
 
-            // Get receipt total
+            // Fetch receipt total
+            $amount.val('...'); // show placeholder
             $.ajax({
                 url: ajaxurl,
                 method: 'POST',
@@ -116,38 +116,21 @@ jQuery(function($) {
                 success: function(res) {
                     if (res.success && res.data.total !== undefined) {
                         $amount.val(res.data.total.toFixed(2));
+                    } else {
+                        $amount.val('');
                     }
-                }
-            });
-
-            // Optional: Load items if you still use a receipt-item-select
-            $.ajax({
-                url: ajaxurl,
-                method: 'POST',
-                data: {
-                    action: 'camp_manager_get_receipt_items',
-                    receipt_id: receiptId
                 },
-                success: function(res) {
-                    if (res.success && Array.isArray(res.data)) {
-                        $itemSelect.empty().append('<option value="">-- Select Receipt Item --</option>');
-                        res.data.forEach(item => {
-                            const label = `${item.name} - $${parseFloat(item.subtotal).toFixed(2)}`;
-                            $itemSelect.append(`<option value="${item.id}" data-note="${item.name}" data-amount="${item.subtotal}">${label}</option>`);
-                        });
-                        $itemSelect.prop('disabled', false);
-                    }
+                error: function() {
+                    console.error('Failed to fetch receipt total');
+                    $amount.val('');
                 }
             });
-
         } else {
-            // Reset when no receipt selected
-            $itemSelect.empty().append('<option value="">-- Select Receipt Item (optional) --</option>').prop('disabled', true);
+            // Allow manual entry if no receipt is selected
             $note.prop('readonly', false).val('');
             $amount.prop('readonly', false).val('');
             $type.prop('disabled', false).val('');
         }
     });
-
 });
 </script>
