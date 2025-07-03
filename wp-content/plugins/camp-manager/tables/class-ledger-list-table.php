@@ -28,7 +28,8 @@ class CampManagerLedgerTable extends WP_List_Table
             'id'    => 'ID',
             'note' => 'Note',
             'amount' => 'Amount',
-            'date'  => 'Date',            
+            'date'  => 'Date',      
+            'receipts' => 'Receipts',    
         ];
     }
 
@@ -58,6 +59,21 @@ class CampManagerLedgerTable extends WP_List_Table
                     esc_url($edit_url),
                     esc_html($item['note'])
                 );
+            case 'receipts':
+                // get all the receipt ids from the ledger line items then display them as links, comma separated
+                global $wpdb;
+                $table = "{$wpdb->prefix}mf_ledger_line_items";
+                $sql = "SELECT receipt_id FROM $table WHERE ledger_id = %d AND receipt_id > 0";
+                $sql = $wpdb->prepare($sql, $item['id']);
+                $receipts = $wpdb->get_col($sql);
+                if ($receipts) {
+                    $links = array_map(function($rid) {
+                        $url = admin_url('admin.php?page=camp-manager-add-receipt&id=' . intval($rid));
+                        return sprintf('<a href="%s">%d</a>', esc_url($url), intval($rid));
+                    }, $receipts);
+                    return implode(', ', $links);
+                }
+                return '';
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
@@ -119,12 +135,18 @@ class CampManagerLedgerTable extends WP_List_Table
         $order    = (isset($_GET['order']) && strtolower($_GET['order']) === 'asc') ? 'ASC' : 'DESC';
 
         $sortable_columns = array_keys($this->get_sortable_columns());
+        // Default sort order: by date descending
+        if (empty($_GET['orderby'])) {
+            $order_by = 'date';
+            $order = 'DESC';
+        }
         if (!in_array($order_by, $sortable_columns, true)) {
-            $order_by = 'id';
+            $order_by = 'date';
         }
 
         $order_by = esc_sql($order_by);
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
+        
 
         $sql = $wpdb->prepare(
             "SELECT id, amount, date, note FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
