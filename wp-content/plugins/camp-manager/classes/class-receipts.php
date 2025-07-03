@@ -21,6 +21,15 @@ class CampManagerReceipts
 
     }
 
+    public function getUnreimbursedReceipts()
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'mf_receipts';
+        $sql = "SELECT * FROM {$table_name} WHERE reimbursed != 1 OR reimbursed IS NULL";
+        $receipts = $wpdb->get_results($sql);
+
+        return $receipts;
+    }
     
     public function handle_receipt_save() {
         try {
@@ -227,7 +236,7 @@ class CampManagerReceipts
                 // Skip empty rows (no name and no subtotal)
                 $name = trim($item['name'] ?? '');
                 $subtotal = floatval($item['subtotal'] ?? 0);
-                if ($name === '' && $subtotal === 0) {
+                if ($name === '' || $subtotal === 0) {
                     continue;
                 }
 
