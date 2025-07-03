@@ -34,15 +34,29 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
                 </td>
             </tr>
             <tr>
-                <th><label for="ledger_description">Description</label></th>
-                <td>
-                    <input type="text" name="ledger_description" id="ledger_description" class="regular-text" value="<?php echo $ledger ? esc_attr($ledger->description) : ''; ?>" required>
-                </td>
-            </tr>
-            <tr>
                 <th><label for="ledger_amount">Amount</label></th>
                 <td>
                     <input type="number" name="ledger_amount" id="ledger_amount" class="regular-text" step="0.01" value="<?php echo $ledger ? esc_attr($ledger->amount) : ''; ?>" required>
+                </td>
+            </tr>
+            <tr>
+                <th><label for="ledger_receipt">Receipt</label></th>
+                <td>
+                    <?php
+                    
+                    $unreimbursed_receipts = $this->receipts->getUnreimbursedReceipts();
+
+                    // Get selected receipt if editing
+                    $selected_receipt_id = $ledger && isset($ledger->receipt_id) ? intval($ledger->receipt_id) : 0;
+                    ?>
+                    <select name="ledger_receipt" id="ledger_receipt" class="regular-text">
+                        <option value="">-- Select Receipt --</option>
+                        <?php foreach ($unreimbursed_receipts as $receipt): ?>
+                            <option value="<?php echo esc_attr($receipt->id); ?>" <?php selected($selected_receipt_id, $receipt->id); ?>>
+                                <?php echo esc_html(stripslashes("{$receipt->store} - {$receipt->date} ({$receipt->total})")); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </td>
             </tr>
         </table>
