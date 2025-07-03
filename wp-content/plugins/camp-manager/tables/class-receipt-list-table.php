@@ -34,6 +34,7 @@ class CampManagerReceiptsTable extends WP_List_Table
             'shipping' => 'Shipping',
             'total' => 'Total',
             'reimbursed' => 'Reimbursed',
+            'ledger_id' => 'Ledger ID',
         ];
     }
 
@@ -76,6 +77,20 @@ class CampManagerReceiptsTable extends WP_List_Table
                     return sprintf('<a href="%s">%s</a>', esc_url(admin_url('user-edit.php?user_id=' . $user_id)), esc_html($user->display_name));
                 } else {
                     return 'Treasury';
+                }
+            
+            case 'ledger_id':
+                // Grab the ledger by the receipt ID
+                global $wpdb;
+
+                $table = "{$wpdb->prefix}mf_ledger_line_items";
+                $sql =  "SELECT ledger_id FROM $table WHERE receipt_id = %d";
+                $sql = $wpdb->prepare($sql, $item['id']);
+                $ledger = $wpdb->get_row($sql, ARRAY_A);
+                if ($ledger) {
+                    return sprintf('<a href="%s">%s</a>', esc_url(admin_url('admin.php?page=camp-manager-add-ledger&id=' . $ledger['ledger_id'])), esc_html($ledger['ledger_id']));
+                } else {
+                    return '';
                 }
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
