@@ -64,7 +64,12 @@ class CampManagerLedger
             $note = sanitize_text_field($notes[$i] ?? '');
             $amount = floatval($amounts[$i] ?? 0);
             $receipt_id = intval($receipt_ids[$i] ?? 0);
-            $type = sanitize_text_field($types[$i] ?? '');
+            $type = $types[$i] ?? '';
+            // Validate $type against allowed ENUM values
+            $allowed_types = ['Donation', 'Camp Dues', 'Partial Camp Dues', 'Expense']; // Add all valid ENUM values here
+            if (!in_array($type, $allowed_types, true)) {
+                $type = '';
+            }
 
             $data = [
                 'ledger_id' => $ledger_id,
