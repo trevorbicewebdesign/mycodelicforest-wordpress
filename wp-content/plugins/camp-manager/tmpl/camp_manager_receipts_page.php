@@ -13,6 +13,7 @@ $table->prepare_items();
     .wp-list-table .column-tax         { width: 5%; text-align: right; }
     .wp-list-table .column-shipping    { width: 5%; text-align: right; }
     .wp-list-table .column-reimbursed  { width: 5%; text-align: right; }
+    .wp-list-table .column-ledger_id   { width: 5%; text-align: right; }
 
      .reimbursed-row {
         background-color: #e6ffea !important;
