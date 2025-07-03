@@ -19,27 +19,28 @@ class CampManagerReceipts
         // camp_manager_analyze_receipt
         add_action('wp_ajax_camp_manager_analyze_receipt', [$this, 'handle_receipt_analyze']);
 
-        add_action('wp_ajax_camp_manager_get_receipt_total', function () {
-            if (!current_user_can('manage_options')) {
-                wp_send_json_error('Unauthorized');
-            }
+        add_action('wp_ajax_camp_manager_get_receipt_total', [$this, 'handle_get_receipt_total']);
+    }
 
-            $receipt_id = intval($_POST['receipt_id'] ?? 0);
-            if (!$receipt_id) {
-                wp_send_json_error('Invalid receipt ID');
-            }
+    public function handle_get_receipt_total()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+        }
 
-            global $wpdb;
-            $table = $wpdb->prefix . 'mf_receipt_items';
-            $total = $wpdb->get_var($wpdb->prepare(
-                "SELECT SUM(subtotal) FROM $table WHERE receipt_id = %d",
-                $receipt_id
-            ));
+        $receipt_id = intval($_POST['receipt_id'] ?? 0);
+        if (!$receipt_id) {
+            wp_send_json_error('Invalid receipt ID');
+        }
 
-            wp_send_json_success(['total' => round(floatval($total), 2)]);
-        });
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_receipts';
+        $total = $wpdb->get_var($wpdb->prepare(
+            "SELECT total FROM $table WHERE id = %d",
+            $receipt_id
+        ));
 
-
+        wp_send_json_success(['total' => round(floatval($total), 2)]);
     }
 
     public function getUnreimbursedReceipts()
