@@ -1,5 +1,10 @@
 <?php
-$CampManagerLedger = new CampManagerLedger();
+// Pass the required arguments to CampManagerReceipts constructor
+// Replace 'ARG1' and 'ARG2' with the actual values or variables needed
+$CampManagerCore = new CampManagerCore();
+$CampManagerChatGPT = new CampManagerChatGPT($CampManagerCore);
+$CampManagerReceipts = new CampManagerReceipts($CampManagerCore, $CampManagerChatGPT);
+$CampManagerLedger = new CampManagerLedger($CampManagerReceipts);
 $CampManagerRoster = new CampManagerRoster();
 
 $starting_balance = $CampManagerLedger->startingBalance();
