@@ -17,17 +17,41 @@ class CampManagerLedger
 
     public function handle_ledger_entry_save()
     {
-
         if (!current_user_can('manage_options')) {
             wp_die('Unauthorized');
         }
 
+       
         // Validate and sanitize input
         $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
         $date = isset($_POST['date']) ? sanitize_text_field($_POST['date']) : null;
         $type = isset($_POST['type']) ? sanitize_text_field($_POST['type']) : '';
         $note = isset($_POST['note']) ? sanitize_text_field($_POST['note']) : '';
         $cmid = isset($_POST['cmid']) ? intval($_POST['cmid']) : 0;
+
+        // Handle line items from separate arrays
+        $line_items = [];
+        $descriptions = isset($_POST['ledger_line_item_description']) ? $_POST['ledger_line_item_description'] : [];
+        $amounts = isset($_POST['ledger_line_item_amount']) ? $_POST['ledger_line_item_amount'] : [];
+        $dates = isset($_POST['ledger_line_item_date']) ? $_POST['ledger_line_item_date'] : [];
+        $receipt_ids = isset($_POST['ledger_line_item_receipt_id']) ? $_POST['ledger_line_item_receipt_id'] : [];
+
+        $count = max(count($descriptions), count($amounts), count($dates), count($receipt_ids));
+        for ($i = 0; $i < $count; $i++) {
+            $desc = isset($descriptions[$i]) ? sanitize_text_field($descriptions[$i]) : '';
+            $amt = isset($amounts[$i]) ? floatval($amounts[$i]) : 0;
+            $item_date = isset($dates[$i]) ? sanitize_text_field($dates[$i]) : null;
+            $receipt_id = isset($receipt_ids[$i]) ? intval($receipt_ids[$i]) : null;
+            $line_item = [
+                'description' => $desc,
+                'amount' => $amt,
+                'date' => $item_date,
+            ];
+            if ($receipt_id) {
+                $line_item['receipt_id'] = $receipt_id;
+            }
+            $line_items[] = (object) $line_item;
+        }
 
         // Insert the ledger entry and get the entry ID
         $entry_id = $this->insertLedger([
@@ -36,6 +60,7 @@ class CampManagerLedger
             'note' => $note,
             'date' => $date,
             'cmid' => $cmid,
+            'line_items' => $line_items,
         ]);
         
         // Redirect or send a response
