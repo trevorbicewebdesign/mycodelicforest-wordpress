@@ -42,6 +42,7 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
         <table class="widefat">
             <thead>
                 <tr>
+                    <th>ID</th>
                     <th>Receipt</th>
                     <th>Note</th>
                     <th>Amount</th>
@@ -56,6 +57,10 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
                 ];
                 foreach ($line_items as $item): ?>
                     <tr class="ledger-line-row">
+                        <td>
+                            <?php echo esc_html($item->id ?? ''); ?>
+                            <input type="hidden" name="ledger_line_item_id[]" value="<?php echo esc_attr($item->id ?? ''); ?>">
+                        </td>
                         <td>
                             <select name="ledger_line_item_receipt_id[]" class="receipt-select">
                                 <option value="">-- Select Receipt (optional) --</option>
@@ -90,6 +95,10 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
         <table style="display: none;">
             <tbody>
                 <tr id="ledger-line-template" class="ledger-line-row">
+                    <td>
+                        <?php echo esc_html($item->id ?? ''); ?>
+                        <input type="hidden" name="ledger_line_item_id[]" value="<?php echo esc_attr($item->id ?? ''); ?>">
+                    </td>
                     <td>
                         <select name="ledger_line_item_receipt_id[]" class="receipt-select">
                             <option value="">-- Select Receipt (optional) --</option>
