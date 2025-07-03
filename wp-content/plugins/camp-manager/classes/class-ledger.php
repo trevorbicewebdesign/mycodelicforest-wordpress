@@ -79,9 +79,12 @@ class CampManagerLedger
                 'type' => $type
             ];
 
+           
+
             if ($line_id) {
                 // Update
-                $wpdb->update($table_lines, $data, ['id' => $line_id]);
+                $result = $wpdb->update($table_lines, $data, ['id' => $line_id]);
+
                 $seen_ids[] = $line_id;
             } else {
                 // Insert
