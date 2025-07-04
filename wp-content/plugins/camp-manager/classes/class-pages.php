@@ -533,7 +533,7 @@ class CampManagerPages
             <h3>Total Camp Members: <?php echo $this->roster->countRosterMembers(); ?></h3>
             <h4>Low Income Camp Members: <?php echo $this->roster->countLowIncomeMembers(); ?></h4>
             <h3>Total Camp Dues: <?php echo $this->ledger->totalCampDues(); ?></h3>
-            <h3>Low Income Camp Dues Paid: <?php echo $this->ledger->sumUserCampDues(0); ?></h3>
+            <h3>Low Income Camp Dues Paid: <?php echo $this->roster->countPaidLowIncomeCampDues(); ?></h3>
 
             <form method="post">
                 <?php
