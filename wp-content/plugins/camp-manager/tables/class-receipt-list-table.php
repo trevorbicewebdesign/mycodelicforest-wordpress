@@ -164,12 +164,12 @@ class CampManagerReceiptsTable extends WP_List_Table
 
         $total_items = $wpdb->get_var("SELECT COUNT(*) FROM $table");
 
-        $order_by = $_GET['orderby'] ?? 'id';
+        $order_by = $_GET['orderby'] ?? 'date';
         $order    = (isset($_GET['order']) && strtolower($_GET['order']) === 'asc') ? 'ASC' : 'DESC';
 
         $sortable_columns = array_keys($this->get_sortable_columns());
         if (!in_array($order_by, $sortable_columns, true)) {
-            $order_by = 'id';
+            $order_by = 'date';
         }
 
         $order_by = esc_sql($order_by);
