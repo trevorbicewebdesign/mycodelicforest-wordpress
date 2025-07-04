@@ -60,6 +60,10 @@ class CampManagerLedger
         $seen_ids = [];
 
         foreach ($submitted_ids as $i => $line_id) {
+
+            // Make sure to remove the empty row that serves as the template
+            
+
             $line_id = intval($line_id);
             $note = sanitize_text_field($notes[$i] ?? '');
             $amount = floatval($amounts[$i] ?? 0);
@@ -78,8 +82,6 @@ class CampManagerLedger
                 'receipt_id' => $receipt_id ?: null,
                 'type' => $type
             ];
-
-           
 
             if ($line_id) {
                 // Update
@@ -213,13 +215,13 @@ class CampManagerLedger
     public function totalCampDues()
     {
         global $wpdb;
-        return $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger WHERE type = 'Camp Dues' OR type = 'Partial Camp Dues'") ?: 0;
+        return $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger_line_items WHERE type = 'Camp Dues' OR type = 'Partial Camp Dues'") ?: 0;
     }
 
     public function sumUserCampDues($cmid)
     {
         global $wpdb;
-        return $wpdb->get_var($wpdb->prepare("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger WHERE cmid = %d AND (type = 'Camp Dues' OR type = 'Partial Camp Dues')", $cmid)) ?: 0;
+        return $wpdb->get_var($wpdb->prepare("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger_line_items WHERE cmid = %d AND (type = 'Camp Dues' OR type = 'Partial Camp Dues')", $cmid)) ?: 0;
     }
 
     public function record_money_in($amount, $description = '', $date = null)
