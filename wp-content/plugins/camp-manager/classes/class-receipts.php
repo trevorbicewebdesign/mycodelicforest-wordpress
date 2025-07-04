@@ -22,6 +22,7 @@ class CampManagerReceipts
         add_action('wp_ajax_camp_manager_get_receipt_total', [$this, 'handle_get_receipt_total']);
     }
 
+    
     public function handle_get_receipt_total()
     {
         if (!current_user_can('manage_options')) {
@@ -130,7 +131,13 @@ class CampManagerReceipts
         exit;
     }
 
-    
+    public function get_total_receipts()
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'mf_receipts';
+        $sql = "SELECT SUM(total) FROM $table_name";
+        return (int) $wpdb->get_var($sql);
+    }
     public function get_receipts()
     {
         global $wpdb;
