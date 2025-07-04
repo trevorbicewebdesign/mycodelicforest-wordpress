@@ -30,47 +30,22 @@ class CampManagerLedger
         $table_ledger = $wpdb->prefix . 'mf_ledger';
         $table_lines = $wpdb->prefix . 'mf_ledger_line_items';
 
-       
-
-        if ($ledger_id) {
-
-            $this->updateLedger($ledger_id, [
-                'amount' => $amount,
-                'note' => $note,
-                'date' => $date,
-            ]);
-        } else {
-            // Insert new ledger
-            $ledger_id = $this->insertLedger([
-                'note' => $note,
-                'date' => $date,
-                'amount' => $amount,
-                'type' => '', // Default type, can be updated later
-                'line_items' => [] // Will be filled below
-            ]);
-        }
-
-        // Process line items
-        $line_items = $this->normalizeLedgerLineItems(
-            $_POST['ledger_line_item_id'],
-            $_POST['ledger_line_item_note'],
-            $_POST['ledger_line_item_amount'],
-            $_POST['ledger_line_item_receipt_id'],
-            $_POST['ledger_type']
-        );
-
-        // Delete removed line items
-        if ($ledger_id) {
-            $existing_ids = $wpdb->get_col($wpdb->prepare(
-                "SELECT id FROM $table_lines WHERE ledger_id = %d", $ledger_id
-            ));
-
-            $to_delete = array_diff($existing_ids, $seen_ids);
-
-            foreach ($to_delete as $id) {
-                $wpdb->delete($table_lines, ['id' => $id]);
-            }
-        }
+        $data = [
+            'ledger_id' => $ledger_id>0? $ledger_id : null,
+            'note' => $note,
+            'date' => $date,
+            'amount' => $amount,
+            'line_items' => $this->normalizeLedgerLineItems(
+                $_POST['ledger_line_item_id'],
+                $_POST['ledger_line_item_note'],
+                $_POST['ledger_line_item_amount'],
+                $_POST['ledger_line_item_receipt_id'],
+                $_POST['ledger_type']
+            )
+        ];
+     
+        // Save the ledger entry
+        $ledger_id = $this->saveLedger($data);
 
         // Redirect
         wp_redirect(admin_url('admin.php?page=camp-manager-add-ledger&id=' . $ledger_id . '&success=1'));
@@ -116,63 +91,84 @@ class CampManagerLedger
         return $items;
     }
 
-
-    public function insertLedger($data)
+    public function saveLedger($data)
     {
         global $wpdb;
+        $table = $wpdb->prefix . 'mf_ledger';
 
-        $table_name = $wpdb->prefix . 'mf_ledger';
-        $result = $wpdb->insert($table_name, [
-            'amount' => $data['amount'],
-            'note' => $data['note'],
-            'date' => $data['date'],
-        ]);
+        $is_new = empty($data['ledger_id']);
 
-        if (!$result) {
-            return false;
+        if ($is_new) {
+            $result = $wpdb->insert($table, [
+                'amount' => $data['amount'],
+                'note'   => $data['note'],
+                'date'   => $data['date'],
+            ]);
+
+            if (!$result) {
+                return false;
+            }
+
+            $ledger_id = $wpdb->insert_id;
+        } else {
+            $ledger_id = $data['ledger_id'];
+            $wpdb->update($table, [
+                'amount' => $data['amount'],
+                'note'   => $data['note'],
+                'date'   => $data['date'],
+            ], ['id' => $ledger_id]);
         }
 
-        $ledger_id = $wpdb->insert_id;
-
-        foreach ($data['line_items'] as $item) {
-            $this->insertLedgerLineItem($ledger_id, $item);
+        // Save line items if present
+        if (!empty($data['line_items']) && is_array($data['line_items'])) {
+            $this->saveLedgerLineItems($ledger_id, $data['line_items']);
         }
 
         return $ledger_id;
     }
 
-    public function updateLedger($ledger_id, $data)
+    public function saveLedgerLineItems($ledger_id, array $line_items)
     {
         global $wpdb;
+        $table = $wpdb->prefix . 'mf_ledger_line_items';
 
-        $table_name = $wpdb->prefix . 'mf_ledger';
-        $wpdb->update($table_name, [
-            'amount' => $data['amount'],
-            'note' => $data['note'],
-            'date' => $data['date'],
-        ], [ 'id' => $ledger_id ]);
+        // Get existing line item IDs from DB for this ledger
+        $existing_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $table WHERE ledger_id = %d", $ledger_id
+        ));
 
-        $wpdb->delete($wpdb->prefix . 'mf_ledger_line_items', ['ledger_id' => $ledger_id]);
+        $seen_ids = [];
 
-        foreach ($data['line_items'] as $item) {
-            $this->insertLedgerLineItem($ledger_id, $item);
+        foreach ($line_items as $item) {
+            $id = intval($item->id ?? 0);  // object-style since normalizeLedgerLineItems returns objects
+
+            $data = [
+                'ledger_id'  => $ledger_id,
+                'amount'     => floatval($item->amount ?? 0),
+                'receipt_id' => !empty($item->receipt_id) ? intval($item->receipt_id) : null,
+                'note'       => sanitize_text_field($item->note ?? ''),
+                'type'       => $item->type ,
+                'date'       => current_time('mysql'),
+            ];
+
+            if ($id > 0) {
+                // Existing item – update
+                $wpdb->update($table, $data, ['id' => $id]);
+                $seen_ids[] = $id;
+            } else {
+                // New item – insert
+                $wpdb->insert($table, $data);
+                $seen_ids[] = $wpdb->insert_id;
+            }
+        }
+
+        // Delete line items that were not seen in the form (i.e., removed by user)
+        $to_delete = array_diff($existing_ids, $seen_ids);
+        foreach ($to_delete as $delete_id) {
+            $wpdb->delete($table, ['id' => $delete_id]);
         }
     }
 
-    public function insertLedgerLineItem($ledger_id, $data)
-    {
-        global $wpdb;
-
-        $table_name = $wpdb->prefix . 'mf_ledger_line_items';
-        $wpdb->insert($table_name, [
-            'ledger_id'   => $ledger_id,
-            // 'description' => $data['description'],
-            'amount'      => $data['amount'],
-            'receipt_id'  => isset($data['receipt_id']) ? $data['receipt_id'] : null,
-            'type'        => isset($data['type']) ? $data['type'] : '',
-            'date'        => current_time('mysql'),
-        ]);
-    }
 
     public function getLedger($ledger_id)
     {
