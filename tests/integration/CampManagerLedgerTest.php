@@ -12,7 +12,7 @@ class CampManagerLedgerTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         
     }
 
-    public function testUpdateLedger()
+    public function testSaveLedger()
     {
         $ledger_id = $this->tester->haveInDatabase('wp_mf_ledger', [
             'amount' => 50.00,
@@ -23,17 +23,37 @@ class CampManagerLedgerTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $CampManagerLedger = $this->make('CampManagerLedger', []);
         
         $data = [
+            'ledger_id' => $ledger_id,
             'amount' => 100.00,
             'note' => 'Test Ledger Entry',
             'date' => '2023-10-01',
-            'line_items' => []
+            'line_items' => [
+                (object)[
+                    'id' => 0,
+                    'note' => 'Item 1',
+                    'amount' => 350.00,
+                    'receipt_id' => null,
+                    'type' => 'Camp Dues'
+                ],
+                (object)[
+                    'id' => 0,
+                    'note' => 'Item 2',
+                    'amount' => 250.00,
+                    'receipt_id' => null,
+                    'type' => 'Camp Dues'
+                ]
+            ]
         ];
-        
-        $CampManagerLedger->updateLedger($ledger_id, $data);
+
+        codecept_debug( $data );
+
+        $results = $CampManagerLedger->saveLedger($data);
+
+        codecept_debug($results);
 
     }
 
-    public function testInsertLedgerLineItem()
+    public function testSaveLedgerLineItems()
     {
         $ledger_id = $this->tester->haveInDatabase('wp_mf_ledger', [
             'amount' => 50.00,
@@ -44,30 +64,28 @@ class CampManagerLedgerTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $CampManagerLedger = $this->make('CampManagerLedger', []);
         
         $data = [
-            'amount' => 25.00,
-            'note' => 'Test Line Item',
-            'date' => '2023-10-01',
-            'receipt_id' => null,
-            'type' => 'Expense'
+            (object)[
+                'id' => 0,
+                'note' => 'Item 1',
+                'amount' => 350.00,
+                'receipt_id' => null,
+                'type' => 'Camp Dues'
+            ],
+            (object)[
+                'id' => 0,
+                'note' => 'Item 2',
+                'amount' => 250.00,
+                'receipt_id' => null,
+                'type' => 'Camp Dues'
+            ]
         ];
-        
-        $CampManagerLedger->insertLedgerLineItem($ledger_id, $data);
-    }
 
-    // normalizeLedgerLineItems
-    public function testNormalizeLedgerLineItems()
-    {
-        $CampManagerLedger = $this->make('CampManagerLedger', []);
-        
-        $ids = [1, 2];
-        $notes = ['Item 1', 'Item 2'];
-        $amounts = [10.00, 20.00];
-        $receipt_ids = [null, null];
-        $types = ['Camp Dues', 'Camp Dues'];
+        codecept_debug( $data );
 
-        $line_items = $CampManagerLedger->normalizeLedgerLineItems($ids, $notes, $amounts, $receipt_ids, $types);
+        $results = $CampManagerLedger->saveLedgerLineItems($ledger_id, $data);
 
-        codecept_debug($line_items);
+        codecept_debug($results);
+
     }
 
 }
