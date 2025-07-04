@@ -54,4 +54,20 @@ class CampManagerLedgerTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $CampManagerLedger->insertLedgerLineItem($ledger_id, $data);
     }
 
+    // normalizeLedgerLineItems
+    public function testNormalizeLedgerLineItems()
+    {
+        $CampManagerLedger = $this->make('CampManagerLedger', []);
+        
+        $ids = [1, 2];
+        $notes = ['Item 1', 'Item 2'];
+        $amounts = [10.00, 20.00];
+        $receipt_ids = [null, null];
+        $types = ['Camp Dues', 'Camp Dues'];
+
+        $line_items = $CampManagerLedger->normalizeLedgerLineItems($ids, $notes, $amounts, $receipt_ids, $types);
+
+        codecept_debug($line_items);
+    }
+
 }
