@@ -72,7 +72,7 @@ class CampManagerBudgetItemsTable extends WP_List_Table
             case 'price':
                 return '$' . number_format((float) $item['price'], 2);
             case 'quantity':
-                return number_format((float) $item['quantity'], 2);
+                return number_format((float) $item['quantity'], 0);
             case 'subtotal':
                 return '$' . number_format((float) $item['subtotal'], 2);
             case 'total':
