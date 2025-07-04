@@ -29,7 +29,8 @@ class CampManagerLedgerTable extends WP_List_Table
             'note' => 'Note',
             'amount' => 'Amount',
             'date'  => 'Date',      
-            'receipts' => 'Receipts',    
+            'receipts' => 'Receipts',
+            'link' => 'Link',
         ];
     }
 
@@ -72,6 +73,11 @@ class CampManagerLedgerTable extends WP_List_Table
                         return sprintf('<a href="%s">%d</a>', esc_url($url), intval($rid));
                     }, $receipts);
                     return implode(', ', $links);
+                }
+                return '';
+            case 'link':
+                if (!empty($item['link'])) {
+                    return sprintf('<a href="%s">View</a>', esc_url($item['link']));
                 }
                 return '';
             default:
@@ -149,7 +155,7 @@ class CampManagerLedgerTable extends WP_List_Table
         
 
         $sql = $wpdb->prepare(
-            "SELECT id, amount, date, note FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT id, amount, date, note, link FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
             $per_page,
             $offset
         );
