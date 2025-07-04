@@ -32,7 +32,7 @@ class CampManagerRosterTable extends WP_List_Table
             'id'    => 'ID',
             'fname' => 'First Name',
             'lname' => 'Last Name',
-            'playaname' => 'Player Name',
+            'playaname' => 'Playa Name',
             'camp_dues' => 'Camp Dues',
             'low_income' => 'Low Income',
             'fully_paid' => 'Fully Paid',
@@ -72,6 +72,10 @@ class CampManagerRosterTable extends WP_List_Table
             case 'camp_dues':
                 $camp_dues_paid = $this->CampManagerLedger->sumUserCampDues($item['id']);
                 return '$' . number_format((float)$camp_dues_paid, 2);
+            case 'low_income':
+                return !empty($item['low_income']) ? 'Yes' : '';
+            case 'fully_paid':
+                return !empty($item['fully_paid']) ? 'Yes' : '';
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
