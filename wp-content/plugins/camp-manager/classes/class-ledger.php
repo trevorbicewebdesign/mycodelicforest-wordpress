@@ -109,7 +109,7 @@ class CampManagerLedger
         }
 
         // Redirect
-        wp_redirect(admin_url('admin.php?page=camp-manager-ledger'));
+        wp_redirect(admin_url('admin.php?page=camp-manager-add-ledger&id=' . $ledger_id . '&success=1'));
         exit;
     }
 
@@ -120,7 +120,6 @@ class CampManagerLedger
         $table_name = $wpdb->prefix . 'mf_ledger';
         $result = $wpdb->insert($table_name, [
             'amount' => $data['amount'],
-            'type' => $data['type'],
             'note' => $data['note'],
             'date' => $data['date'],
         ]);
@@ -145,7 +144,6 @@ class CampManagerLedger
         $table_name = $wpdb->prefix . 'mf_ledger';
         $wpdb->update($table_name, [
             'amount' => $data['amount'],
-            'type' => $data['type'],
             'note' => $data['note'],
             'date' => $data['date'],
         ], [ 'id' => $ledger_id ]);
@@ -163,12 +161,12 @@ class CampManagerLedger
 
         $table_name = $wpdb->prefix . 'mf_ledger_line_items';
         $wpdb->insert($table_name, [
-            'ledger_id' => $ledger_id,
-            'description' => $data->description,
-            'amount' => $data->amount,
-            'receipt_id' => $data->receipt_id,
-            'type' => $data->type,
-            'date' => current_time('mysql'),
+            'ledger_id'   => $ledger_id,
+            // 'description' => $data['description'],
+            'amount'      => $data['amount'],
+            'receipt_id'  => isset($data['receipt_id']) ? $data['receipt_id'] : null,
+            'type'        => isset($data['type']) ? $data['type'] : '',
+            'date'        => current_time('mysql'),
         ]);
     }
 
