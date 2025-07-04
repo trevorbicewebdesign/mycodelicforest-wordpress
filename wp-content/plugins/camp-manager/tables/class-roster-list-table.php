@@ -70,8 +70,7 @@ class CampManagerRosterTable extends WP_List_Table
             case 'wpid':
                 return $link . esc_html($item['wpid'])."</a>";
             case 'camp_dues':
-                $CampManagerLedger = new CampManagerLedger;
-                $camp_dues_paid = $CampManagerLedger->sumUserCampDues($item['id']);
+                $camp_dues_paid = $this->CampManagerLedger->sumUserCampDues($item['id']);
                 return '$' . number_format((float)$camp_dues_paid, 2);
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
@@ -101,11 +100,19 @@ class CampManagerRosterTable extends WP_List_Table
         ];
     }
 
+    public function single_row($item)
+    {
+        $class = !empty($item['fully_paid']) ? 'paid-row' : 'unpaid-row';
+        echo '<tr class="' . esc_attr($class) . '">';
+        $this->single_row_columns($item);
+        echo '</tr>';
+    }
+
     public function prepare_items()
     {
         global $wpdb;
 
-        $per_page     = 20;
+        $per_page     = 100;
         $current_page = $this->get_pagenum();
         $offset       = ($current_page - 1) * $per_page;
         $table        = "{$wpdb->prefix}mf_roster";
