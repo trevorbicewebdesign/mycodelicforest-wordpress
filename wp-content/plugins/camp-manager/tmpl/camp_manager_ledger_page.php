@@ -11,6 +11,9 @@ $table->prepare_items();
     .wp-list-table .column-receipts   { width: 5%; }
     .wp-list-table .column-link       { width: 5%; }
 
+    .paid-row {
+        background-color: #e6ffea !important;
+    }
 </style>
 <div class="wrap">
     <h1 class="wp-heading-inline">Ledger</h1>
