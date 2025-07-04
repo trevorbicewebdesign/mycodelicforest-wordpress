@@ -77,7 +77,7 @@ class CampManagerLedgerTable extends WP_List_Table
                 return '';
             case 'link':
                 if (!empty($item['link'])) {
-                    return sprintf('<a href="%s">View</a>', esc_url($item['link']));
+                    return sprintf('<a href="%s" target="_blank" rel="noopener noreferrer">View</a>', esc_url($item['link']));
                 }
                 return '';
             default:
@@ -116,6 +116,22 @@ class CampManagerLedgerTable extends WP_List_Table
                 ));
             }
         }
+    }
+
+    public function get_total_money_in()
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_ledger";
+        $total = $wpdb->get_var("SELECT SUM(amount) FROM $table WHERE amount > 0");
+        return $total ? '$' . number_format((float) $total, 2) : '$0.00';
+    }
+
+    public function get_total_money_out()
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_ledger";
+        $total = $wpdb->get_var("SELECT SUM(amount) FROM $table WHERE amount < 0");
+        return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
     public function get_bulk_actions()
