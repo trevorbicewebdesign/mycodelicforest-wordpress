@@ -26,28 +26,28 @@ class CampManagerLedger
         $note = sanitize_text_field($_POST['ledger_note'] ?? '');
         $date = sanitize_text_field($_POST['ledger_date'] ?? '');
         $amount = floatval($_POST['ledger_amount'] ?? 0);
-        $cmid = intval($_POST['cmid'] ?? 0);
 
         $table_ledger = $wpdb->prefix . 'mf_ledger';
         $table_lines = $wpdb->prefix . 'mf_ledger_line_items';
 
+       
+
         if ($ledger_id) {
-            // Update existing ledger
-            $wpdb->update($table_ledger, [
+
+            $this->updateLedger($ledger_id, [
+                'amount' => $amount,
                 'note' => $note,
                 'date' => $date,
-                'amount' => $amount,
-                'cmid' => $cmid
-            ], ['id' => $ledger_id]);
+            ]);
         } else {
             // Insert new ledger
-            $wpdb->insert($table_ledger, [
+            $ledger_id = $this->insertLedger([
                 'note' => $note,
                 'date' => $date,
                 'amount' => $amount,
-                'cmid' => $cmid
+                'type' => '', // Default type, can be updated later
+                'line_items' => [] // Will be filled below
             ]);
-            $ledger_id = $wpdb->insert_id;
         }
 
         // Process line items
@@ -123,7 +123,6 @@ class CampManagerLedger
             'type' => $data['type'],
             'note' => $data['note'],
             'date' => $data['date'],
-            'cmid' => $data['cmid'],
         ]);
 
         if (!$result) {
@@ -149,7 +148,6 @@ class CampManagerLedger
             'type' => $data['type'],
             'note' => $data['note'],
             'date' => $data['date'],
-            'cmid' => $data['cmid'],
         ], [ 'id' => $ledger_id ]);
 
         $wpdb->delete($wpdb->prefix . 'mf_ledger_line_items', ['ledger_id' => $ledger_id]);
