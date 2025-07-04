@@ -51,49 +51,13 @@ class CampManagerLedger
         }
 
         // Process line items
-        $submitted_ids = $_POST['ledger_line_item_id'] ?? [];
-        $notes         = $_POST['ledger_line_item_note'] ?? [];
-        $amounts       = $_POST['ledger_line_item_amount'] ?? [];
-        $receipt_ids   = $_POST['ledger_line_item_receipt_id'] ?? [];
-        $types         = $_POST['ledger_type'] ?? [];
-
-        $seen_ids = [];
-
-        foreach ($submitted_ids as $i => $line_id) {
-
-            // Make sure to remove the empty row that serves as the template
-            
-
-            $line_id = intval($line_id);
-            $note = sanitize_text_field($notes[$i] ?? '');
-            $amount = floatval($amounts[$i] ?? 0);
-            $receipt_id = intval($receipt_ids[$i] ?? 0);
-            $type = $types[$i] ?? '';
-            // Validate $type against allowed ENUM values
-            $allowed_types = ['Donation', 'Camp Dues', 'Partial Camp Dues', 'Expense']; // Add all valid ENUM values here
-            if (!in_array($type, $allowed_types, true)) {
-                $type = '';
-            }
-
-            $data = [
-                'ledger_id' => $ledger_id,
-                'note' => $note,
-                'amount' => $amount,
-                'receipt_id' => $receipt_id ?: null,
-                'type' => $type
-            ];
-
-            if ($line_id) {
-                // Update
-                $result = $wpdb->update($table_lines, $data, ['id' => $line_id]);
-
-                $seen_ids[] = $line_id;
-            } else {
-                // Insert
-                $wpdb->insert($table_lines, $data);
-                $seen_ids[] = $wpdb->insert_id;
-            }
-        }
+        $line_items = $this->normalizeLedgerLineItems(
+            $_POST['ledger_line_item_id'],
+            $_POST['ledger_line_item_note'],
+            $_POST['ledger_line_item_amount'],
+            $_POST['ledger_line_item_receipt_id'],
+            $_POST['ledger_type']
+        );
 
         // Delete removed line items
         if ($ledger_id) {
@@ -112,6 +76,46 @@ class CampManagerLedger
         wp_redirect(admin_url('admin.php?page=camp-manager-add-ledger&id=' . $ledger_id . '&success=1'));
         exit;
     }
+
+
+    /**
+     * Normalize posted line item arrays into structured objects
+     */
+    public function normalizeLedgerLineItems(array $ids, array $notes, array $amounts, array $receipt_ids, array $types): array
+    {
+        $items = [];
+
+        $count = max(
+            count($ids),
+            count($notes),
+            count($amounts),
+            count($receipt_ids),
+            count($types)
+        );
+
+        for ($i = 0; $i < $count; $i++) {
+            $amount = isset($amounts[$i]) ? floatval($amounts[$i]) : 0;
+            $type = isset($types[$i]) ? sanitize_text_field($types[$i]) : '';
+
+            // Skip empty/irrelevant line items
+            if ($amount === 0 && empty($type)) {
+                continue;
+            }
+
+            $item = (object)[
+                'id'         => isset($ids[$i]) ? intval($ids[$i]) : 0,
+                'note'       => isset($notes[$i]) ? sanitize_text_field($notes[$i]) : '',
+                'amount'     => $amount,
+                'receipt_id' => isset($receipt_ids[$i]) ? intval($receipt_ids[$i]) : null,
+                'type'       => $type,
+            ];
+
+            $items[] = $item;
+        }
+
+        return $items;
+    }
+
 
     public function insertLedger($data)
     {
