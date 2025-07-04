@@ -119,6 +119,8 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
 
         $this->data = $wpdb->get_results($sql, ARRAY_A);
 
+        
+
         // Add hardcoded must_have value
         foreach ($this->data as &$item) {
             $CampManagerBudgets = new CampManagerBudgets();
@@ -140,6 +142,8 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
             'total_pages' => ceil($total_items / $per_page),
         ]);
     }
+
+
 
     public function get_must_have_total()
     {
