@@ -146,7 +146,7 @@ class CampManagerLedgerTable extends WP_List_Table
     {
         global $wpdb;
 
-        $per_page     = 20;
+        $per_page     = 100;
         $current_page = $this->get_pagenum();
         $offset       = ($current_page - 1) * $per_page;
         $table        = "{$wpdb->prefix}mf_ledger";
