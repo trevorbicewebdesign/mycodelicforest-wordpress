@@ -36,11 +36,11 @@ class CampManagerLedger
             'date' => $date,
             'amount' => $amount,
             'line_items' => $this->normalizeLedgerLineItems(
-                $_POST['ledger_line_item_id'],
-                $_POST['ledger_line_item_note'],
-                $_POST['ledger_line_item_amount'],
-                $_POST['ledger_line_item_receipt_id'],
-                $_POST['ledger_type']
+                $_POST['ledger_line_item_id'] ?? [],
+                $_POST['ledger_line_item_note'] ?? [],
+                $_POST['ledger_line_item_amount'] ?? [],
+                $_POST['ledger_line_item_receipt_id'] ?? [],
+                $_POST['ledger_line_item_type'] ?? []
             )
         ];
      
@@ -143,22 +143,21 @@ class CampManagerLedger
             $id = intval($item->id ?? 0);  // object-style since normalizeLedgerLineItems returns objects
 
             $data = [
-                'ledger_id'  => $ledger_id,
-                'amount'     => floatval($item->amount ?? 0),
-                'receipt_id' => !empty($item->receipt_id) ? intval($item->receipt_id) : null,
-                'note'       => sanitize_text_field($item->note ?? ''),
-                'type'       => $item->type ,
-                'date'       => current_time('mysql'),
+            'ledger_id'  => $ledger_id,
+            'amount'     => floatval($item->amount ?? 0),
+            'receipt_id' => !empty($item->receipt_id) ? intval($item->receipt_id) : null,
+            'note'       => sanitize_text_field($item->note ?? ''),
+            'type'       => $item->type,
             ];
 
-            if ($id > 0) {
-                // Existing item – update
-                $wpdb->update($table, $data, ['id' => $id]);
-                $seen_ids[] = $id;
+            if ($id > 0 && in_array($id, $existing_ids)) {
+            // Existing item – update
+            $wpdb->update($table, $data, ['id' => $id]);
+            $seen_ids[] = $id;
             } else {
-                // New item – insert
-                $wpdb->insert($table, $data);
-                $seen_ids[] = $wpdb->insert_id;
+            // New item – insert
+            $wpdb->insert($table, $data);
+            $seen_ids[] = $wpdb->insert_id;
             }
         }
 
