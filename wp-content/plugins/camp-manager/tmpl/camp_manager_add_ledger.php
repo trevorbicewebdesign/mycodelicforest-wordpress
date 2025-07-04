@@ -73,7 +73,7 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
                         <td><input type="text" name="ledger_line_item_note[]" class="line-note regular-text" placeholder="Note" value="<?php echo esc_attr($item->description ?? $item->note ?? ''); ?>"></td>
                         <td><input type="number" step="0.01" name="ledger_line_item_amount[]" class="line-amount regular-text" placeholder="Amount" value="<?php echo esc_attr($item->amount ?? ''); ?>"></td>
                         <td>
-                            <select name="ledger_type[]" class="line-type">
+                            <select name="ledger_line_item_type[]" class="line-type">
                                 <option value="">-- Type --</option>
                                 <option value="Camp Dues" <?php selected($item->type ?? '', 'Camp Dues'); ?>>Camp Dues</option>
                                 <option value="Partial Camp Dues" <?php selected($item->type ?? '', 'Partial Camp Dues'); ?>>Partial Camp Dues</option>
@@ -112,7 +112,7 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
                 <td><input type="text" name="ledger_line_item_note[]" class="line-note regular-text" placeholder="Note"></td>
                 <td><input type="number" step="0.01" name="ledger_line_item_amount[]" class="line-amount regular-text" placeholder="Amount"></td>
                 <td>
-                    <select name="ledger_type[]" class="line-type">
+                    <select name="ledger_line_item_type[]" class="line-type">
                         <option value="">-- Type --</option>
                         <option value="Camp Dues">Camp Dues</option>
                         <option value="Partial Camp Dues">Partial Camp Dues</option>
