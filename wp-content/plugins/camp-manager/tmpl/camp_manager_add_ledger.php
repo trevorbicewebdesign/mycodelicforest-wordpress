@@ -32,10 +32,6 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
                 <th><label for="ledger_amount">Total Amount</label></th>
                 <td><input type="number" step="0.01" name="ledger_amount" class="regular-text" value="<?php echo esc_attr($ledger->amount ?? ''); ?>" required></td>
             </tr>
-            <tr>
-                <th><label for="cmid">Camp Member ID (optional)</label></th>
-                <td><input type="number" name="cmid" class="regular-text" value="<?php echo esc_attr($ledger->cmid ?? ''); ?>"></td>
-            </tr>
         </table>
 
         <h2>Line Items</h2>
