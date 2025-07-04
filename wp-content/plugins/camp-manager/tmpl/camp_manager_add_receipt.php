@@ -57,6 +57,8 @@ $form_action = admin_url('admin-post.php');
                     <th>Price</th>
                     <th>Qty</th>
                     <th>Subtotal</th>
+                    <th>Tax</th>
+                    <th>Total</th>
                     <th></th>
                 </tr>
             </thead>
@@ -77,6 +79,8 @@ $form_action = admin_url('admin-post.php');
                     <td><input type="text" name="items[__INDEX__][price]" style="width: 100%;" /></td>
                     <td><input type="number" name="items[__INDEX__][quantity]" value="1" style="width: 100%;" /></td>
                     <td><input type="text" name="items[__INDEX__][subtotal]" style="width: 100%;" /></td>
+                    <td><input type="text" name="items[__INDEX__][tax]" style="width: 100%;" /></td>
+                    <td><input type="text" name="items[__INDEX__][total]" style="width: 100%;" /></td>
                     <td><button type="button" class="remove-item button">Remove</button></td>
                 </tr>
                 <?php if (!empty($items)): ?>
@@ -97,6 +101,8 @@ $form_action = admin_url('admin-post.php');
                             <td><input type="text" name="items[<?php echo $i; ?>][price]" value="<?php echo esc_attr($item->price ?? ''); ?>" style="width: 100%;" /></td>
                             <td><input type="number" name="items[<?php echo $i; ?>][quantity]" value="<?php echo esc_attr($item->quantity ?? 1); ?>" style="width: 100%;" /></td>
                             <td><input type="text" name="items[<?php echo $i; ?>][subtotal]" value="<?php echo esc_attr($item->subtotal ?? ''); ?>" style="width: 100%;" /></td>
+                            <td><input type="text" name="items[<?php echo $i; ?>][tax]" value="<?php echo esc_attr($item->tax ?? ''); ?>" style="width: 100%;" /></td>
+                            <td><input type="text" name="items[<?php echo $i; ?>][total]" value="<?php echo esc_attr($item->total ?? ''); ?>" style="width: 100%;" /></td>
                             <td><button type="button" class="remove-item button">Remove</button></td>
                         </tr>
                     <?php endforeach; ?>
