@@ -131,10 +131,24 @@ class CampManagerBudgets {
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
         $query = $wpdb->prepare(
-            "SELECT SUM(price * quantity) FROM $table WHERE category_id = %d AND priority = %s",
+            "SELECT SUM(price * quantity) FROM $table WHERE category_id = %d AND priority = %d",
             $category_id, $priority
         );
         $total = $wpdb->get_var($query);
+
+        // If the priority is 1 we should also include all the receipts
+        if ($priority == 1) {
+            // Get all the reipt items for this category
+            $receipts_table = "{$wpdb->prefix}mf_receipt_items";
+            $receipt_query = $wpdb->prepare(
+                "SELECT SUM(total) FROM $receipts_table WHERE category_id = %d",
+                $category_id
+            );
+            $receipt_total = $wpdb->get_var($receipt_query);
+            $total += $receipt_total ? (float) $receipt_total : 0.0;
+        }
+
+
         return $total ? (float) $total : 0.0;
     }
 
