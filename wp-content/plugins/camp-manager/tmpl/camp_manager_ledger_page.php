@@ -16,8 +16,8 @@ $table->prepare_items();
     <h1 class="wp-heading-inline">Ledger</h1>
     <a href="<?php echo admin_url('admin.php?page=camp-manager-add-ledger'); ?>" class="page-title-action">Add New</a>
     <hr class="wp-header-end">
-    <h3>The current balance is: <?php echo esc_html($table->get_total_amount()); ?></h3>
-    <h3>We have collected <?php echo esc_html($table->get_total_camp_dues()); ?> in camp dues</h3>
+    <h3>Money In: <?php echo esc_html($table->get_total_money_in()); ?></h3>
+    <h3>Money Out: <?php echo esc_html($table->get_total_money_out()); ?></h3>
     <form method="post">
         <?php
         $table->display();
