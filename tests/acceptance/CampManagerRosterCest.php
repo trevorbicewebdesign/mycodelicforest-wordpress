@@ -74,4 +74,28 @@ class CampManagerRosterCest
         $I->seeNumberOfElements("table.wp-list-table tbody tr", 28); // Only the header row initially
     }
 
+    public function AddMember(AcceptanceTester $I)
+    {
+        // Navigate to the add member page
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member");
+        $I->see("Add New Member", "h1");
+
+        // Fill in the form fields
+        $I->fillField("#member_fname", "John");
+        $I->fillField("#member_lname", "Doe");
+        $I->fillField("#member_playaname", "BurnerJohn");
+        $I->fillField("#member_email", "john.doe@mailinator.com");
+
+        // Submit the form
+        $I->click("Add Camp Member");
+        $I->wait(1);
+
+
+        $I->seeInDatabase("wp_mf_roster", [
+            "fname" => "John",
+            "lname" => "Doe",
+            "playaname" => "BurnerJohn",
+        ]);
+    }
+
 }
