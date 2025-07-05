@@ -78,12 +78,14 @@ class CampManagerRosterCest
     {
         // Navigate to the add member page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member");
-        $I->see("Add New Member", "h1");
+        $I->waitForText("Add New Member", 10, "h1"); 
 
         // Fill in the form fields
         $I->fillField("#member_fname", "John");
         $I->fillField("#member_lname", "Doe");
         $I->fillField("#member_playaname", "BurnerJohn");
+        $I->checkOption("#member_low_income");
+        $I->checkOption("#member_fully_paid");
 
         // Submit the form
         $I->click("Add Camp Member");
