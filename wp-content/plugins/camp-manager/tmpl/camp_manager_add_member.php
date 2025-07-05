@@ -108,9 +108,7 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
         </form>
     </div>
     <div class="col-md-6">
-        <ul>
-            <li>Payment - Chase - $350.00 - 07-04-2025</li>
-        </ul>
+        
     </div>
 </div>
 
