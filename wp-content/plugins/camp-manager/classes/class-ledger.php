@@ -169,11 +169,13 @@ class CampManagerLedger
     }
 
 
-    public function getLedger($ledger_id)
+    public function getLedger(int $ledger_id)
     {
         global $wpdb;
 
-        $ledger = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}mf_ledger WHERE id = %d", $ledger_id));
+        $query = "SELECT * FROM {$wpdb->prefix}mf_ledger WHERE id = %d";
+        $query = $wpdb->prepare($query, $ledger_id);
+        $ledger = $wpdb->get_row($query);
         if ($ledger) {
             $ledger->line_items = $this->getLedgerLineItems($ledger_id);
         }
