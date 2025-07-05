@@ -73,6 +73,19 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
             <?php endforeach; ?>
             </select>
         </td>
+        <tr>
+            <th><label for="member_low_income">Low Income</label></th>
+            <td>
+                <input type="checkbox" name="member_low_income" id="member_low_income" value="1" <?php checked($is_edit && !empty($member->low_income)); ?>>
+                <label for="member_low_income">Check if low income</label>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="member_fully_paid">Fully Paid</label></th>
+            <td>
+                <input type="checkbox" name="member_fully_paid" id="member_fully_paid" value="1" <?php checked($is_edit && !empty($member->fully_paid)); ?>>
+                <label for="member_fully_paid">Check if fully paid</label>
+            </td>
         </tr>
     </table>
     <?php submit_button($is_edit ? 'Edit Camp Member' : 'Add Camp Member'); ?>
