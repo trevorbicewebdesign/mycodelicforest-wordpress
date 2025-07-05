@@ -115,7 +115,7 @@ class CampManagerRoster
             'fname' => sanitize_text_field($memberData['fname']),
             'lname' => sanitize_text_field($memberData['lname']),
             'playaname' => sanitize_text_field($memberData['playaname']),
-            'email' => sanitize_email($memberData['email']),
+            // 'email' => sanitize_email($memberData['email']),
         ];
 
         
