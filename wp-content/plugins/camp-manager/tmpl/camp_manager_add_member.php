@@ -6,7 +6,7 @@ if (!current_user_can('manage_options')) {
 }
 
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-if($id > 0) {
+if ($id > 0) {
     $member = $this->roster->getMemberById($id);
 }
 
@@ -21,73 +21,97 @@ $email = $is_edit && isset($member->email) ? esc_attr($member->email) : '';
 $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
 
 ?>
+<style>
+    .row {
+        display: flex;
+        gap: 20px;
+    }
+    .col-md-6 {
+        flex: 1;
+    }
+</style>
 <div class="wrap">
     <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Member' : 'Add New Member'; ?></h1>
-    <hr/>
+    <hr />
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-    <input type="hidden" name="action" value="camp_manager_save_member">
-    
-    <?php if ($is_edit): ?>
-        <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
-    <?php endif; ?>
-    <table class="form-table">
-        <tr>
-        <th><label for="member_fname">First Name</label></th>
-        <td>
-            <input type="text" name="member_fname" id="member_fname" class="regular-text" required value="<?php echo $fname; ?>">
-        </td>
-        </tr>
-        <tr>
-        <th><label for="member_lname">Last Name</label></th>
-        <td>
-            <input type="text" name="member_lname" id="member_lname" class="regular-text" required value="<?php echo $lname; ?>">
-        </td>
-        </tr>
-        <tr>
-        <th><label for="member_playaname">Playa Name</label></th>
-        <td>
-            <input type="text" name="member_playaname" id="member_playaname" class="regular-text" value="<?php echo $playaname; ?>">
-        </td>
-        </tr>
-        <tr>
-        <th><label for="member_email">Email</label></th>
-        <td>
-            <input type="email" name="member_email" id="member_email" class="regular-text" required value="<?php echo $email; ?>">
-        </td>
-        </tr>
-        <tr>
-        <th><label for="wpid">wpid</label></th>
-        <td>
-            <?php
-            // Get all WordPress users
-            $users = get_users([
-            'fields' => ['ID', 'display_name', 'user_login', 'user_email']
-            ]);
-            ?>
-            <select name="wpid" id="wpid" class="regular-text" >
-            <option value="">Select a WordPress user</option>
-            <?php foreach ($users as $user): ?>
-                <option value="<?php echo esc_attr($user->ID); ?>" <?php selected($wpid == $user->ID); ?>>
-                <?php echo esc_html($user->display_name . " ({$user->user_login} - {$user->user_email})"); ?>
-                </option>
-            <?php endforeach; ?>
-            </select>
-        </td>
-        <tr>
-            <th><label for="member_low_income">Low Income</label></th>
-            <td>
-                <input type="checkbox" name="member_low_income" id="member_low_income" value="1" <?php checked($is_edit && !empty($member->low_income)); ?>>
-                <label for="member_low_income">Check if low income</label>
-            </td>
-        </tr>
-        <tr>
-            <th><label for="member_fully_paid">Fully Paid</label></th>
-            <td>
-                <input type="checkbox" name="member_fully_paid" id="member_fully_paid" value="1" <?php checked($is_edit && !empty($member->fully_paid)); ?>>
-                <label for="member_fully_paid">Check if fully paid</label>
-            </td>
-        </tr>
-    </table>
-    <?php submit_button($is_edit ? 'Edit Camp Member' : 'Add Camp Member'); ?>
-    </form>
+        <input type="hidden" name="action" value="camp_manager_save_member">
+
+        <?php if ($is_edit): ?>
+            <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
+        <?php endif; ?>
+        <input type="hidden" name="season" value="2025">
+        <div class="row">
+            <div class="col-md-6">
+                <table class="form-table">
+                    <tr>
+                        <th><label for="member_fname">First Name</label></th>
+                        <td>
+                            <input type="text" name="member_fname" id="member_fname" class="regular-text" required
+                                value="<?php echo $fname; ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="member_lname">Last Name</label></th>
+                        <td>
+                            <input type="text" name="member_lname" id="member_lname" class="regular-text" required
+                                value="<?php echo $lname; ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="member_playaname">Playa Name</label></th>
+                        <td>
+                            <input type="text" name="member_playaname" id="member_playaname" class="regular-text"
+                                value="<?php echo $playaname; ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="member_email">Email</label></th>
+                        <td>
+                            <input type="email" name="member_email" id="member_email" class="regular-text" required
+                                value="<?php echo $email; ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="wpid">wpid</label></th>
+                        <td>
+                            <?php
+                            // Get all WordPress users
+                            $users = get_users([
+                                'fields' => ['ID', 'display_name', 'user_login', 'user_email']
+                            ]);
+                            ?>
+                            <select name="wpid" id="wpid" class="regular-text">
+                                <option value="">Select a WordPress user</option>
+                                <?php foreach ($users as $user): ?>
+                                    <option value="<?php echo esc_attr($user->ID); ?>" <?php selected($wpid == $user->ID); ?>>
+                                        <?php echo esc_html($user->display_name . " ({$user->user_login} - {$user->user_email})"); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    <tr>
+                        <th><label for="member_low_income">Low Income</label></th>
+                        <td>
+                            <input type="checkbox" name="member_low_income" id="member_low_income" value="1" <?php checked($is_edit && !empty($member->low_income)); ?>>
+                            <label for="member_low_income">Check if low income</label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="member_fully_paid">Fully Paid</label></th>
+                        <td>
+                            <input type="checkbox" name="member_fully_paid" id="member_fully_paid" value="1" <?php checked($is_edit && !empty($member->fully_paid)); ?>>
+                            <label for="member_fully_paid">Check if fully paid</label>
+                        </td>
+                    </tr>
+                </table>
+                <?php submit_button($is_edit ? 'Edit Camp Member' : 'Add Camp Member'); ?>
+        </form>
+    </div>
+    <div class="col-md-6">
+        <ul>
+            <li>Payment - Chase - $350.00 - 07-04-2025</li>
+        </ul>
+    </div>
+</div>
+
 </div>
