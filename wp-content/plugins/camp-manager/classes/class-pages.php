@@ -226,206 +226,22 @@ class CampManagerPages
 
     public function render_budget_categories_page()
     {
-        $table = new CampManagerBudgetCategoriesTable();
-        $table->process_bulk_action();
-        $table->prepare_items();
-        ?>
-        <style>
-           
-        </style>
-        <div class="wrap">
-            <h1 class="wp-heading-inline">Budget Categories</h1>
-            <a href="<?php echo admin_url('admin.php?page=camp-manager-add-budget-category'); ?>" class="page-title-action">Add New</a>
-            <hr class="wp-header-end">
-            <h3>Must Have: <?php echo $table->get_must_have_total(); ?></h3>
-            <h3>Should Have: <?php echo $table->get_should_have_total(); ?></h3>
-            <h3>Could Have: <?php echo $table->get_could_have_total(); ?></h3>
-            <h3>Nice to Have: <?php echo $table->get_nice_to_have_total(); ?></h3>
-            <form method="post">
-                <?php
-                $table->display();
-                ?>
-            </form>
-        </div>
-        <?php
+        include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_categories_page.php');
     }
 
     public function render_add_budget_item_page()
     {
-        $budget_item_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-        $budget_item = $budget_item_id ? $this->budgets->getBudgetItem($budget_item_id) : null;
-        $is_edit = $budget_item !== null;
-        $budget_item_id = $is_edit ? intval($budget_item->id) : 0;
-        ?>
-        <div class="wrap">
-            <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Budget Item' : 'Add New Budget Item'; ?></h1>
-            <hr/>
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="action" value="camp_manager_save_budget_item">
-                <?php if ($is_edit): ?>
-                    <input type="hidden" name="budget_item_id" value="<?php echo esc_attr($budget_item_id); ?>">
-                <?php endif; ?>
-                <table class="form-table">
-                    <tr>
-                        <th><label for="budget_item_name">Name</label></th>
-                        <td>
-                            <input type="text" name="budget_item_name" id="budget_item_name" class="regular-text" value="<?php echo esc_attr($budget_item->name ?? ''); ?>" required>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="budget_item_description">Description</label></th>
-                        <td>
-                            <textarea name="budget_item_description" id="budget_item_description" rows="4" class="large-text"><?php echo esc_textarea($budget_item->description ?? ''); ?></textarea>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="budget_item_category">Category</label></th>
-                        <td>
-                            <?php $categories = $this->core->getItemCategories(); ?>
-                            <select name="budget_item_category" id="budget_item_category" required>
-                                <option value="">Select a category</option>
-                                <?php foreach ($categories as $cat_id => $cat): ?>
-                                    <option value="<?php echo esc_attr($cat['id']); ?>" <?php selected(($budget_item->category_id ?? '') == $cat_id); ?>>
-                                        <?php echo esc_html($cat['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="budget_item_price">Price</label></th>
-                        <td>
-                            <input type="number" step="0.01" name="budget_item_price" id="budget_item_price" value="<?php echo esc_attr($budget_item->price ?? ''); ?>" required>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="budget_item_quantity">Quantity</label></th>
-                        <td>
-                            <input type="number" step="1" name="budget_item_quantity" id="budget_item_quantity" value="<?php echo esc_attr($budget_item->quantity ?? ''); ?>" required>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="budget_item_subtotal">Subtotal</label></th>
-                        <td>
-                            <input type="number" step="0.01" name="budget_item_subtotal" id="budget_item_subtotal" value="<?php echo esc_attr($budget_item->subtotal ?? ''); ?>" required>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="budget_item_tax">Tax</label></th>
-                        <td>
-                            <input type="number" step="0.01" name="budget_item_tax" id="budget_item_tax" value="<?php echo esc_attr($budget_item->tax ?? ''); ?>" required>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="budget_item_total">Total</label></th>
-                        <td>
-                            <input type="number" step="0.01" name="budget_item_total" id="budget_item_total" value="<?php echo esc_attr($budget_item->total ?? ''); ?>" required>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th><label for="budget_item_priority">Priority</label></th>
-                        <td>
-                            <input type="number" step="1" name="budget_item_priority" id="budget_item_priority" value="<?php echo esc_attr($budget_item->priority ?? ''); ?>" required>
-                        </td>
-                    </tr>
-                    
-                </table>
-
-                <?php submit_button($is_edit ? 'Edit Budget Item' : 'Add Budget Item'); ?>
-            </form>
-        </div>
-        <?php
+        include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_add_budget_item.php');
     }
 
     public function render_add_budget_page()
     {
-        $budget_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-        $budget = $budget_id ? $this->budgets->getBudgetCategory($budget_id) : null;
-
-        $is_edit = $budget !== null;
-        $budget_id = $is_edit ? intval($budget->id) : 0;
-        ?>
-        <div class="wrap">
-            <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Budget Category' : 'Add New Budget Category'; ?></h1>
-
-            <hr/>
-
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-                <input type="hidden" name="action" value="camp_manager_save_budget_category">
-                <?php if ($is_edit): ?>
-                    <input type="hidden" name="budget_id" value="<?php echo esc_attr($budget_id); ?>">
-                <?php endif; ?>
-                <table class="form-table">
-                    <tr>
-                        <th><label for="budget_category_name">Name</label></th>
-                        <td>
-                            <input type="text" name="budget_category_name" id="budget_category_name" class="regular-text" value="<?php echo esc_attr($budget->name ?? ''); ?>" required>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="budget_category_description">Description</label></th>
-                        <td>
-                            <textarea name="budget_category_description" id="budget_category_description" rows="4" class="large-text"><?php echo esc_textarea($budget->description ?? ''); ?></textarea>
-                        </td>
-                    </tr>
-                </table>
-                <?php submit_button($is_edit ? 'Update Budget Category' : 'Add Budget Category'); ?>
-            </form>
-
-            <hr>
-
-            <h2>Budget Items in this Category</h2>
-            <?php
-            $table = new CampManagerBudgetItemsTable($budget_id);
-            $table->process_bulk_action();
-            $table->prepare_items();
-            ?>
-            <style>
-                .wp-list-table .column-store       { width: 40%; }
-                .wp-list-table .column-date        { width: 15%; }
-                .wp-list-table .column-total       { width: 10%; text-align: right; }
-                .wp-list-table .column-subtotal    { width: 10%; text-align: right; }
-                .wp-list-table .column-tax         { width: 10%; text-align: right; }
-                .wp-list-table .column-shipping    { width: 15%; text-align: right; }
-            </style>
-
-            <a href="<?php echo admin_url('admin.php?page=camp-manager-add-budget-item'); ?>" class="page-title-action">Add New</a>
-            <hr class="wp-header-end">
-            <form method="post">
-                <?php
-                $table->display();
-                ?>
-
-        </div>
-        <?php
+        include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_add_category.php');
     }
 
     public function render_budget_items_page()
     {
-        $table = new CampManagerBudgetItemsTable();
-        $table->process_bulk_action();
-        $table->prepare_items();
-        ?>
-        <style>
-            .wp-list-table .column-store       { width: 40%; }
-            .wp-list-table .column-date        { width: 15%; }
-            .wp-list-table .column-total       { width: 10%; text-align: right; }
-            .wp-list-table .column-subtotal    { width: 10%; text-align: right; }
-            .wp-list-table .column-tax         { width: 10%; text-align: right; }
-            .wp-list-table .column-shipping    { width: 15%; text-align: right; }
-        </style>
-        <div class="wrap">
-            <h1 class="wp-heading-inline">Budget Items</h1>
-            <a href="<?php echo admin_url('admin.php?page=camp-manager-add-budget-item'); ?>" class="page-title-action">Add New</a>
-            <hr class="wp-header-end">
-            <form method="post">
-                <?php
-                $table->display();
-                ?>
-            </form>
-        </div>
-        <?php
+        include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_budget_items_page.php');
     }
 
     public function render_roster_page()
