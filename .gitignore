@@ -116,6 +116,7 @@ local-xdebuginfo.php
 !/wp-content/plugins/test/**
 !/wp-content/plugins/gravityforms/
 !/wp-content/plugins/mycodelic-forest/
+!/wp-content/plugins/camp-manager/
 !/wp-content/plugins/revslider/
 
 
