@@ -84,17 +84,18 @@ class CampManagerRosterCest
         $I->fillField("#member_fname", "John");
         $I->fillField("#member_lname", "Doe");
         $I->fillField("#member_playaname", "BurnerJohn");
-        $I->fillField("#member_email", "john.doe@mailinator.com");
 
         // Submit the form
         $I->click("Add Camp Member");
         $I->wait(1);
 
-
         $I->seeInDatabase("wp_mf_roster", [
             "fname" => "John",
             "lname" => "Doe",
             "playaname" => "BurnerJohn",
+            'season' => 2025,
+            "low_income" => 0,
+            "fully_paid" => 0
         ]);
     }
 
