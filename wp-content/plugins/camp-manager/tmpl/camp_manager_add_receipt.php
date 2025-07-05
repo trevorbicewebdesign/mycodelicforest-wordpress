@@ -63,26 +63,7 @@ $form_action = admin_url('admin-post.php');
                 </tr>
             </thead>
             <tbody>
-                <!-- Hidden row template for JS to clone -->
-                <tr id="item-row-template" class="item-row" style="display: none;">
-                    <td><input type="text" name="items[__INDEX__][name]" style="width: 100%;" /></td>
-                    <td>
-                        <select name="items[__INDEX__][category]" style="width: 100%;">
-                            <option value="">Please select a category</option>
-                            <?php foreach ($this->core->getItemCategories() as $category): ?>
-                                <option value="<?php echo esc_attr($category['id']); ?>">
-                                    <?php echo esc_html(ucfirst($category['name'])); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </td>
-                    <td><input type="text" name="items[__INDEX__][price]" style="width: 100%;" /></td>
-                    <td><input type="number" name="items[__INDEX__][quantity]" value="1" style="width: 100%;" /></td>
-                    <td><input type="text" name="items[__INDEX__][subtotal]" style="width: 100%;" /></td>
-                    <td><input type="text" name="items[__INDEX__][tax]" style="width: 100%;" /></td>
-                    <td><input type="text" name="items[__INDEX__][total]" style="width: 100%;" /></td>
-                    <td><button type="button" class="remove-item button">Remove</button></td>
-                </tr>
+                
                 <?php if (!empty($items)): ?>
                     <?php foreach ($items as $i => $item): ?>
                         <tr class="item-row">
@@ -146,6 +127,28 @@ $form_action = admin_url('admin-post.php');
 
         <?php submit_button($is_edit ? 'Update Receipt' : 'Save Receipt'); ?>
     </form>
+    <table  style="display: none;">
+        <!-- Hidden row template for JS to clone -->
+        <tr id="item-row-template" class="item-row">
+            <td><input type="text" name="items[__INDEX__][name]" style="width: 100%;" /></td>
+            <td>
+                <select name="items[__INDEX__][category]" style="width: 100%;">
+                    <option value="">Please select a category</option>
+                    <?php foreach ($this->core->getItemCategories() as $category): ?>
+                        <option value="<?php echo esc_attr($category['id']); ?>">
+                            <?php echo esc_html(ucfirst($category['name'])); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </td>
+            <td><input type="text" name="items[__INDEX__][price]" style="width: 100%;" /></td>
+            <td><input type="number" name="items[__INDEX__][quantity]" value="1" style="width: 100%;" /></td>
+            <td><input type="text" name="items[__INDEX__][subtotal]" style="width: 100%;" /></td>
+            <td><input type="text" name="items[__INDEX__][tax]" style="width: 100%;" /></td>
+            <td><input type="text" name="items[__INDEX__][total]" style="width: 100%;" /></td>
+            <td><button type="button" class="remove-item button">Remove</button></td>
+        </tr>
+    </table>
 </div>
 
 <script type="text/javascript">
