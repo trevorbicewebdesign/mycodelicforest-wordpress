@@ -61,7 +61,7 @@ class CampManagerPages
                 'Camp Manager',
                 'manage_options',
                 'camp-manager',
-                array($this, 'render_rashboard_page'),
+                array($this, 'render_dashboard_page'),
                 'dashicons-admin-site',
                 6
             );
@@ -105,7 +105,7 @@ class CampManagerPages
                 'Categories',
                 'manage_options',
                 'camp-manager-budget-categories',
-                [$this, 'render_budget_categories_page']
+                [$this, 'render_budget_category_view_all_page']
             );
 
             add_submenu_page(
@@ -114,7 +114,7 @@ class CampManagerPages
                 'Add New Category',
                 'manage_options',
                 'camp-manager-add-budget-category',
-                [$this, 'render_add_budget_page']
+                [$this, 'render_budget_category_add_page']
             );
         });
 
@@ -214,7 +214,7 @@ class CampManagerPages
                 'Add a Receipt',
                 'manage_options',
                 'camp-manager-add-receipt',
-                [$this, 'render_receipt_form']
+                [$this, 'render_receipt_add_page']
             );
         });
     }
@@ -224,9 +224,9 @@ class CampManagerPages
         include(plugin_dir_path(__FILE__) . '../tmpl/members_add_page.php');
     }
 
-    public function render_budget_categories_page()
+    public function render_budget_category_view_all_page()
     {
-        include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_categories_page.php');
+        include(plugin_dir_path(__FILE__) . '../tmpl/budget_category_view_all_page.php');
     }
 
     public function render_budget_item_add_page()
@@ -234,9 +234,9 @@ class CampManagerPages
         include(plugin_dir_path(__FILE__) . '../tmpl/budget_item_add_page.php');
     }
 
-    public function render_add_budget_page()
+    public function render_budget_category_add_page()
     {
-        include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_add_category.php');
+        include(plugin_dir_path(__FILE__) . '../tmpl/budget_category_add_page.php');
     }
 
     public function render_budget_items_view_all_page()
@@ -264,9 +264,9 @@ class CampManagerPages
         include plugin_dir_path(__FILE__) . '../tmpl/receipts_view_all_page.php';
     }
 
-    public function render_receipt_form()
+    public function render_receipt_add_page()
     {
-         include plugin_dir_path(__FILE__) . '../tmpl/camp_manager_add_receipt.php';
+         include plugin_dir_path(__FILE__) . '../tmpl/receipt_add_page.php';
     }
     
     public function render_dashboard_page() {
