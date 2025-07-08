@@ -74,7 +74,7 @@ class CampManagerPages
                 'Budgets',                // Menu title in the sidebar
                 'manage_options',
                 'camp-manager-budgets',
-                [$this, 'render_budget_items_page'],
+                [$this, 'render_budget_items_view_all_page'],
                 'dashicons-admin-site',
                 6
             );
@@ -86,7 +86,7 @@ class CampManagerPages
                 'View All Budgets',       // Submenu label
                 'manage_options',
                 'camp-manager-budgets',   // Same slug as top-level
-                [$this, 'render_budget_items_page']
+                [$this, 'render_budget_items_view_all_page']
             );
 
             // Other submenus
@@ -96,7 +96,7 @@ class CampManagerPages
                 'Add New Item',
                 'manage_options',
                 'camp-manager-add-budget-item',
-                [$this, 'render_add_budget_item_page']
+                [$this, 'render_budget_item_add_page']
             );
 
             add_submenu_page(
@@ -126,7 +126,7 @@ class CampManagerPages
                 'Roster',               // Menu title (shows in sidebar)
                 'manage_options',
                 'camp-manager-members',
-                [$this, 'render_roster_page'],
+                [$this, 'render_members_view_all_page'],
                 'dashicons-admin-site',
                 6
             );
@@ -138,7 +138,7 @@ class CampManagerPages
                 'View All Members',     // Submenu title
                 'manage_options',
                 'camp-manager-members', // Must match parent slug to override default
-                [$this, 'render_roster_page']
+                [$this, 'render_members_view_all_page']
             );
 
             // Second submenu item
@@ -148,7 +148,7 @@ class CampManagerPages
                 'Add a Member',
                 'manage_options',
                 'camp-manager-add-member',
-                [$this, 'render_add_member_page']
+                [$this, 'render_members_add_page']
             );
         });
 
@@ -159,7 +159,7 @@ class CampManagerPages
                 'Ledger',               // Menu title (shows in sidebar)
                 'manage_options',
                 'camp-manager-ledger',
-                [$this, 'render_ledger_page'],
+                [$this, 'render_ledger_view_all_page'],
                 'dashicons-admin-site',
                 6
             );
@@ -171,7 +171,7 @@ class CampManagerPages
                 'View Ledger',     // Submenu title
                 'manage_options',
                 'camp-manager-ledger', // Must match parent slug to override default
-                [$this, 'render_ledger_page']
+                [$this, 'render_ledger_view_all_page']
             );
 
             // Second submenu item
@@ -181,7 +181,7 @@ class CampManagerPages
                 'Add a Ledger Entry',
                 'manage_options',
                 'camp-manager-add-ledger',
-                [$this, 'render_add_ledger_page']
+                [$this, 'render_ledger_add_page']
             );
         });
 
@@ -192,7 +192,7 @@ class CampManagerPages
                 'Actuals',               // Menu title (shows in sidebar)
                 'manage_options',
                 'camp-manager-actuals',
-                [$this, 'receipts_page'],
+                [$this, 'render_receipts_view_all_page'],
                 'dashicons-admin-site',
                 6
             );
@@ -204,7 +204,7 @@ class CampManagerPages
                 'View Actuals',     // Submenu title
                 'manage_options',
                 'camp-manager-actuals', // Must match parent slug to override default
-                [$this, 'receipts_page']
+                [$this, 'render_receipts_view_all_page']
             );
 
             // Second submenu item
@@ -219,9 +219,9 @@ class CampManagerPages
         });
     }
 
-    public function render_add_member_page()
+    public function render_members_add_page()
     {
-        include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_add_member.php');
+        include(plugin_dir_path(__FILE__) . '../tmpl/members_add_page.php');
     }
 
     public function render_budget_categories_page()
@@ -229,9 +229,9 @@ class CampManagerPages
         include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_categories_page.php');
     }
 
-    public function render_add_budget_item_page()
+    public function render_budget_item_add_page()
     {
-        include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_add_budget_item.php');
+        include(plugin_dir_path(__FILE__) . '../tmpl/budget_item_add_page.php');
     }
 
     public function render_add_budget_page()
@@ -239,29 +239,29 @@ class CampManagerPages
         include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_add_category.php');
     }
 
-    public function render_budget_items_page()
+    public function render_budget_items_view_all_page()
     {
-        include(plugin_dir_path(__FILE__) . '../tmpl/camp_manager_budget_items_page.php');
+        include(plugin_dir_path(__FILE__) . '../tmpl/budget_items_view_all_page.php');
     }
 
-    public function render_roster_page()
+    public function render_members_view_all_page()
     {
-        include plugin_dir_path(__FILE__) . '../tmpl/camp_manager_roster_page.php';
+        include plugin_dir_path(__FILE__) . '../tmpl/members_view_all_page.php';
     }
 
-    public function render_ledger_page()
+    public function render_ledger_view_all_page()
     {
-        include plugin_dir_path(__FILE__) . '../tmpl/camp_manager_ledger_page.php';
+        include plugin_dir_path(__FILE__) . '../tmpl/ledger_view_all_page.php';
     }
 
-    public function render_add_ledger_page()
+    public function render_ledger_add_page()
     {
-        include plugin_dir_path(__FILE__) . '../tmpl/camp_manager_add_ledger.php';
+        include plugin_dir_path(__FILE__) . '../tmpl/ledger_add_page.php';
     }
 
-    public function receipts_page() 
+    public function render_receipts_view_all_page() 
     {
-        include plugin_dir_path(__FILE__) . '../tmpl/camp_manager_receipts_page.php';
+        include plugin_dir_path(__FILE__) . '../tmpl/receipts_view_all_page.php';
     }
 
     public function render_receipt_form()
