@@ -61,7 +61,7 @@ class CampManagerPages
                 'Camp Manager',
                 'manage_options',
                 'camp-manager',
-                array($this, 'camp_manager_dashboard'),
+                array($this, 'render_rashboard_page'),
                 'dashicons-admin-site',
                 6
             );
@@ -269,8 +269,8 @@ class CampManagerPages
          include plugin_dir_path(__FILE__) . '../tmpl/camp_manager_add_receipt.php';
     }
     
-    public function camp_manager_dashboard() {
-        include plugin_dir_path(__FILE__) . '../tmpl/camp_manager_dashboard.php';
+    public function render_dashboard_page() {
+        include plugin_dir_path(__FILE__) . '../tmpl/dashboard_page.php';
     }
 
 }
