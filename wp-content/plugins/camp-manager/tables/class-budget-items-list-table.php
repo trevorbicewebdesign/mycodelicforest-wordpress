@@ -42,6 +42,7 @@ class CampManagerBudgetItemsTable extends WP_List_Table
             'total' => 'Total', 
             'purchased' => 'Purchased',
             'priority' => 'Priority',
+            'link' => 'Link',
         ];
     }
 
@@ -88,6 +89,17 @@ class CampManagerBudgetItemsTable extends WP_List_Table
                 return "No";
             case 'priority':
                 return esc_html($item['priority']);
+            case 'link':
+                if (!empty($item['link'])) {
+                    $icon = '<span class="dashicons dashicons-admin-links" style="font-size:16px;vertical-align:middle;"></span>';
+                    return sprintf(
+                        '<a href="%s" target="_blank" rel="noopener noreferrer" title="%s">%s</a>',
+                        esc_url($item['link']),
+                        esc_attr($item['link']),
+                        $icon
+                    );
+                }
+                return '';
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
@@ -143,7 +155,7 @@ class CampManagerBudgetItemsTable extends WP_List_Table
 
         if ($this->category_id !== null) {
             $sql = $wpdb->prepare(
-            "SELECT bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link, bi.receipt_item_id, bi.receipt_id
+            "SELECT bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link, bi.receipt_item_id, bi.receipt_id, bi.link
              FROM $table AS bi
              LEFT JOIN $categories_table AS c ON bi.category_id = c.id
              WHERE bi.category_id = %d
@@ -159,7 +171,7 @@ class CampManagerBudgetItemsTable extends WP_List_Table
             );
         } else {
             $sql = $wpdb->prepare(
-            "SELECT bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link, bi.receipt_item_id, bi.receipt_id
+            "SELECT bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link, bi.receipt_item_id, bi.receipt_id, bi.link
              FROM $table AS bi
              LEFT JOIN $categories_table AS c ON bi.category_id = c.id
              ORDER BY $order_by $order

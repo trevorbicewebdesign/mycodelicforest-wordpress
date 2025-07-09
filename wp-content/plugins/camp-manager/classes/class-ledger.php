@@ -169,11 +169,13 @@ class CampManagerLedger
     }
 
 
-    public function getLedger($ledger_id)
+    public function getLedger(int $ledger_id)
     {
         global $wpdb;
 
-        $ledger = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}mf_ledger WHERE id = %d", $ledger_id));
+        $query = "SELECT * FROM {$wpdb->prefix}mf_ledger WHERE id = %d";
+        $query = $wpdb->prepare($query, $ledger_id);
+        $ledger = $wpdb->get_row($query);
         if ($ledger) {
             $ledger->line_items = $this->getLedgerLineItems($ledger_id);
         }
@@ -217,25 +219,5 @@ class CampManagerLedger
     {
         global $wpdb;
         return $wpdb->get_var($wpdb->prepare("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger_line_items WHERE cmid = %d AND (type = 'Camp Dues' OR type = 'Partial Camp Dues')", $cmid)) ?: 0;
-    }
-
-    public function record_money_in($amount, $description = '', $date = null)
-    {
-        return [
-            'type' => 'money_in',
-            'amount' => $amount,
-            'description' => $description,
-            'date' => $date ?: date('Y-m-d H:i:s'),
-        ];
-    }
-
-    public function record_money_out($amount, $description = '', $date = null)
-    {
-        return [
-            'type' => 'money_out',
-            'amount' => $amount,
-            'description' => $description,
-            'date' => $date ?: date('Y-m-d H:i:s'),
-        ];
     }
 }

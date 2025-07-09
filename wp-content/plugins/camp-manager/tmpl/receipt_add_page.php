@@ -63,7 +63,6 @@ $form_action = admin_url('admin-post.php');
                 </tr>
             </thead>
             <tbody>
-                
                 <?php if (!empty($items)): ?>
                     <?php foreach ($items as $i => $item): ?>
                         <tr class="item-row">
