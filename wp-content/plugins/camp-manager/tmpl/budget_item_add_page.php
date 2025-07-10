@@ -27,6 +27,12 @@ $budget_item_id = $is_edit ? intval($budget_item->id) : 0;
                 </td>
             </tr>
             <tr>
+                <th><label for="budget_item_link">Link</label></th>
+                <td>
+                    <input type="text" name="budget_item_link" id="budget_item_link" class="regular-text" value="<?php echo esc_url($budget_item->link ?? ''); ?>" placeholder="https://example.com/item">
+                </td>
+            </tr>
+            <tr>
                 <th><label for="budget_item_category">Category</label></th>
                 <td>
                     <?php $categories = $this->core->getItemCategories(); ?>
