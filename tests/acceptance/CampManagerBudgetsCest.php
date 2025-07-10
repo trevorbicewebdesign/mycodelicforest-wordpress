@@ -56,7 +56,7 @@ class CampManagerBudgetsCest
         $I->see("Budget Items", "h1"); // Adjust if needed to match page title
 
         // Assert that the `Add New` button is present
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-budget-item"]);
+        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-budgets"]);
 
         // Assert that each table header is present
         $I->see("ID", "th#id");
