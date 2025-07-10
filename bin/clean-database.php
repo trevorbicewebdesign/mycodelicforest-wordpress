@@ -80,6 +80,7 @@ class CleanDatabase
         $this->activatePlugins([
             // "civicrm",
             "email-address-obfuscation",
+            "camp-manager",
             "google-site-kit",
             "gravityforms",
             "really-simple-ssl",
