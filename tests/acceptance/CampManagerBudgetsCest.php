@@ -187,7 +187,8 @@ class CampManagerBudgetsCest
             // "purchased" => 0,
             "priority" => 1,
         ]);
-        $I->wait(1);
+        codecept_debug("Test Budget Item ID: $id");
+        $I->wait(2);
 
         // Navigate to the edit budget item page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-budget-item&id=$id");
