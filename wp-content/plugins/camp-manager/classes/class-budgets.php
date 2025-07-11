@@ -148,7 +148,7 @@ class CampManagerBudgets {
         return (bool)$result;
     }
 
-    public static function getPriortyTotal($category_id, $priority): float
+    public static function getPriorityTotal($category_id, $priority): float
     {
         // Should get all budget items for a category and priority
         global $wpdb;
@@ -160,6 +160,7 @@ class CampManagerBudgets {
         $total = $wpdb->get_var($query);
 
         // If the priority is 1 we should also include all the receipts
+        /*
         if ($priority == 1) {
             // Get all the reipt items for this category
             $receipts_table = "{$wpdb->prefix}mf_receipt_items";
@@ -170,6 +171,7 @@ class CampManagerBudgets {
             $receipt_total = $wpdb->get_var($receipt_query);
             $total += $receipt_total ? (float) $receipt_total : 0.0;
         }
+        */
 
 
         return $total ? (float) $total : 0.0;
