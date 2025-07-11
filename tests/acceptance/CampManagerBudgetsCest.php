@@ -78,6 +78,7 @@ class CampManagerBudgetsCest
         $I->see("Total", "th#total");
         $I->see("Purchased", "th#purchased");
         $I->see("Priority", "th#priority");
+        $I->see("Link", "th#link");
 
         // Optional: Check for the select-all checkbox label
         $I->see("Select All", "label[for='cb-select-all-1']");
