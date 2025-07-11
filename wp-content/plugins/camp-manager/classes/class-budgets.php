@@ -42,20 +42,23 @@ class CampManagerBudgets {
         }
 
         try {
-            $this->insertBudgetItem(
-                (int)$_POST['budget_item_category'],
-                sanitize_text_field($_POST['budget_item_name']),
-                floatval($_POST['budget_item_price']),
-                floatval($_POST['budget_item_quantity']),
+            $this->updateBudgetItem(
+                isset($_POST['budget_item_id']) ? (int)$_POST['budget_item_id'] : 0,
+                isset($_POST['budget_item_category']) ? (int)$_POST['budget_item_category'] : 0,
+                isset($_POST['budget_item_name']) ? sanitize_text_field($_POST['budget_item_name']) : '',
+                isset($_POST['budget_item_price']) ? floatval($_POST['budget_item_price']) : 0.0,
+                isset($_POST['budget_item_quantity']) ? floatval($_POST['budget_item_quantity']) : 0.0,
+                isset($_POST['budget_item_subtotal']) ? floatval($_POST['budget_item_subtotal']) : 0.0,
+                isset($_POST['budget_item_total']) ? floatval($_POST['budget_item_total']) : 0.0,
                 isset($_POST['budget_item_priority']) ? (int)$_POST['budget_item_priority'] : 0,
                 isset($_POST['budget_item_link']) ? sanitize_text_field($_POST['budget_item_link']) : null,
-                floatval($_POST['budget_item_tax'])
+                isset($_POST['budget_item_tax']) ? floatval($_POST['budget_item_tax']) : 0.0
             );
         } catch (\Exception $e) {
-            wp_redirect(admin_url('admin.php?page=camp-manager-budget&error=' . urlencode($e->getMessage())));
+            wp_redirect(admin_url('admin.php?page=camp-manager-budgets&error=' . urlencode($e->getMessage())));
             exit;
         }
-        wp_redirect(admin_url('admin.php?page=camp-manager-budget-items&success=item_added'));
+        wp_redirect(admin_url('admin.php?page=camp-manager-budgets&success=item_added'));
         exit;
     }   
 
@@ -99,7 +102,7 @@ class CampManagerBudgets {
         return $wpdb->get_row($query);
     }
 
-    public function insertBudgetItem($category_id, $name, $price, $quantity, $priority = 0, $link = null, $tax = 0.0): int
+    public function insertBudgetItem($category_id, $name, $price, $quantity, $subtotal, $total, $priority = 0, $link = null, $tax = 0.0): int
     {
         // Should insert a budget item into the database
         global $wpdb;
@@ -123,6 +126,26 @@ class CampManagerBudgets {
         ];
         $wpdb->insert($table, $data);
         return (int) $wpdb->insert_id;
+    }
+
+    // Insert or update Budget Item
+    public function updateBudgetItem($budget_item_id, $category_id, $name, $price, $quantity, $subtotal, $total, $priority = 0, $link = null, $tax = 0.0): bool
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_budget_items";
+        $data = [
+            'category_id' => (int) $category_id,
+            'name' => sanitize_text_field($name),
+            'price' => (float) $price,
+            'quantity' => (float) $quantity,
+            'subtotal' => (float) $subtotal,
+            'tax' => (float) $tax,
+            'total' => (float) $total,
+            'priority' => (int) $priority,
+            'link' => $link ? sanitize_text_field($link) : null,
+        ];
+        $result = $wpdb->update($table, $data, ['id' => (int)$budget_item_id]);
+        return (bool)$result;
     }
 
     public static function getPriortyTotal($category_id, $priority): float
