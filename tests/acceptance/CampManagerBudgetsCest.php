@@ -113,6 +113,11 @@ class CampManagerBudgetsCest
         $I->see("Tax", "label[for='budget_item_tax']");
         $I->see("Total", "label[for='budget_item_total']");
         $I->see("Priority", "label[for='budget_item_priority']");
+        
+        // Check for the 3 different submit buttons
+        $I->seeElement("input[type='submit'][value='Save Budget Item']");
+        $I->seeElement("input[type='submit'][value='Save and Close Budget Item']");
+        $I->seeElement("input[type='submit'][value='Close Budget Item']");
 
         $I->seeElement("input#budget_item_name");
         $I->seeElement("textarea#budget_item_description");
@@ -136,7 +141,7 @@ class CampManagerBudgetsCest
         $I->fillField("input#budget_item_priority", "1");
 
         // Submit the form
-        $I->click(['css' => "input[type='submit'][value='Add Budget Item']"]);
+        $I->click(['css' => "input[type='submit'][value='Save Budget Item']"]);
         $I->wait("1");
         $I->waitForText("Budget Items", 15, "h1");
 
