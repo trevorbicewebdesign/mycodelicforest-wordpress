@@ -54,6 +54,7 @@ $form_action = admin_url('admin-post.php');
                 <tr>
                     <th>Item Name</th>
                     <th>Category</th>
+                    <th>Item</th>
                     <th>Price</th>
                     <th>Qty</th>
                     <th>Subtotal</th>
@@ -78,6 +79,18 @@ $form_action = admin_url('admin-post.php');
                                     <?php endforeach; ?>
                                 </select>
                             </td>
+                            <td>
+                                <?php $items = $this->core->getBudgetItems(); ?>
+                                <select name="budget_item" id="budget_item" required>
+                                    <option value="">Select an item</option>
+                                    <?php foreach ($items as $item_id => $item): ?>
+                                        <option value="<?php echo esc_attr($item['id']); ?>" <?php selected(($budget_item->id ?? '') == $item_id); ?>>
+                                            <?php echo esc_html($item['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+
                             <td><input type="text" name="items[<?php echo $i; ?>][price]" value="<?php echo esc_attr($item->price ?? ''); ?>" style="width: 100%;" /></td>
                             <td><input type="number" name="items[<?php echo $i; ?>][quantity]" value="<?php echo esc_attr($item->quantity ?? 1); ?>" style="width: 100%;" /></td>
                             <td><input type="text" name="items[<?php echo $i; ?>][subtotal]" value="<?php echo esc_attr($item->subtotal ?? ''); ?>" style="width: 100%;" /></td>
