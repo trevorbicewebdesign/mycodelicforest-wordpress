@@ -116,7 +116,7 @@ class CampManagerBudgetsCest
         
         // Check for the 3 different submit buttons
         $I->seeElement("input[type='submit'][value='Save Budget Item']");
-        $I->seeElement("input[type='submit'][value='Save and Close Budget Item']");
+        $I->seeElement("input[type='submit'][value='Save & Close Budget Item']");
         $I->seeElement("input[type='submit'][value='Close Budget Item']");
 
         $I->seeElement("input#budget_item_name");
@@ -171,47 +171,67 @@ class CampManagerBudgetsCest
 
     }
 
-    public function updateBudgetItem(AcceptanceTester $I)
+    public function UpdateBudgetItem(AcceptanceTester $I)
     {
         // Add a test item to update
         $id = $I->haveInDatabase("wp_mf_budget_items", [
             "name" => "Test Budget Item",
-            "category_id" => 1, // Assuming 'Power' category has ID 1
+            "category_id" => 0,
+            "receipt_item_id" => NULL,
             "price" => 100,
             "quantity" => 2,
             "subtotal" => 200,
             "tax" => 20,
             "total" => 220,
+            "receipt_id" => NULL,
+            // "purchased" => 0,
             "priority" => 1,
         ]);
+        $I->wait(1);
 
         // Navigate to the edit budget item page
-        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-edit-budget-item&id=$id");
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-budget-item&id=$id");
         $I->see("Edit Budget Item", "h1");
 
         // Check that the form fields are pre-filled with the existing data
         $I->seeInField("input#budget_item_name", "Test Budget Item");
         $I->seeInField("textarea#budget_item_description", "");
         $I->seeInField("select#budget_item_category", "Power");
-        $I->seeInField("input#budget_item_amount", "100.00");
+        $I->seeInField("input#budget_item_price", "100");
         $I->seeInField("input#budget_item_quantity", "2");
-        $I->seeInField("input#budget_item_subtotal", "200.00");
-        $I->seeInField("input#budget_item_tax", "20.00");
-        $I->seeInField("input#budget_item_total", "220.00");
+        $I->seeInField("input#budget_item_subtotal", "200");
+        $I->seeInField("input#budget_item_tax", "20");
+        $I->seeInField("input#budget_item_total", "220");
         $I->seeInField("input#budget_item_priority", "1");
 
         // Update the form fields
         $I->fillField("input#budget_item_name", "Updated Budget Item");
         $I->fillField("textarea#budget_item_description", "This is an updated budget item description.");
-        $I->selectOption("select#budget_item_category", "Power");
-        $I->fillField("input#budget_item_amount", "150.00");
+        $I->selectOption("select#budget_item_category", "Sojourner");
+        $I->fillField("input#budget_item_price", "150.00");
         $I->fillField("input#budget_item_quantity", "3");
         $I->fillField("input#budget_item_subtotal", "450.00");
         $I->fillField("input#budget_item_tax", "45.00");
         $I->fillField("input#budget_item_total", "495.00");
         $I->fillField("input#budget_item_priority", "2");
 
-        $I->click(['css' => "input[type='submit'][value='Save']"]);
+        $I->click(['css' => "input[type='submit'][value='Save Budget Item']"]);
+
+        $I->wait("1");
+
+        $I->seeInDatabase("wp_mf_budget_items", [
+            "id" => $id,
+            "name" => "Updated Budget Item",
+            // "description" => "This is an updated budget item description.",
+            "category_id" => 2, // Assuming 'Sojourner' category has ID 2
+            "price" => 150,
+            "quantity" => 3,
+            "subtotal" => 450,
+            "tax" => 45,
+            "total" => 495,
+            "priority" => 2,
+        ]);
+
     }
 
     public function deleteBudgetItem(AcceptanceTester $I)
