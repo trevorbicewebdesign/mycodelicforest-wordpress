@@ -146,7 +146,7 @@ class CampManagerBudgetsCest
         $I->seeInDatabase("wp_mf_budget_items", [
             "name" => "Test Budget Item",
             // "description" => "This is a test budget item description.",
-            "category_id" => 1, // Assuming 'Power' category has ID 1
+            "category_id" => 1,
             "price" => 100,
             "quantity" => 2,
             "subtotal" => 200,
@@ -205,6 +205,8 @@ class CampManagerBudgetsCest
         $I->fillField("input#budget_item_tax", "45.00");
         $I->fillField("input#budget_item_total", "495.00");
         $I->fillField("input#budget_item_priority", "2");
+
+        $I->click(['css' => "input[type='submit'][value='Save']"]);
     }
 
     public function deleteBudgetItem(AcceptanceTester $I)
