@@ -207,6 +207,18 @@ class CampManagerPages
                 [$this, 'render_receipts_view_all_page']
             );
 
+            // First submenu item (linked to top-level page)
+            add_submenu_page(
+                'camp-manager-actuals',
+                'Summary',     // Page title
+                'Summary',     // Submenu title
+                'manage_options',
+                'camp-manager-actuals-summary', // Must match parent slug to override default
+                function() {
+                    include plugin_dir_path(__FILE__) . '../tmpl/receipt_summary_page.php';
+                }
+            );
+
             // Second submenu item
             add_submenu_page(
                 'camp-manager-actuals',
@@ -214,7 +226,9 @@ class CampManagerPages
                 'Add a Receipt',
                 'manage_options',
                 'camp-manager-add-receipt',
-                [$this, 'render_receipt_add_page']
+                function() {
+                    include plugin_dir_path(__FILE__) . '../tmpl/receipt_add_page.php';
+                }   
             );
         });
     }
