@@ -18,7 +18,7 @@ $form_action = admin_url('admin-post.php');
     <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Receipt' : 'Upload Receipt'; ?></h1>
 
     <form method="post" enctype="multipart/form-data" action="<?php echo esc_url($form_action); ?>" id="receipt-form">
-        <input type="hidden" name="action" value="camp_manager_save_receipt">
+        <input type="hidden" name="action" value="camp_manager_save_receipt" id="action-field">
         <?php if ($is_edit): ?>
             <input type="hidden" name="receipt_id" value="<?php echo esc_attr($receipt_id); ?>">
         <?php endif; ?>
@@ -124,9 +124,13 @@ $form_action = admin_url('admin-post.php');
             </tr>
         </table>
 
-        <?php submit_button($is_edit ? 'Update Receipt' : 'Save Receipt'); ?>
+        <div style="display: flex; gap: 10px;">
+            <?php submit_button('Save Receipt', 'secondary', 'save_receipt', false, array('id' => 'save-btn')); ?>
+            <?php submit_button('Save & Close Receipt', 'primary', 'save_close_receipt', false, array('id' => 'save-close-btn')); ?>
+            <?php submit_button('Close Receipt', 'secondary', 'close_receipt', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
+        </div>
     </form>
-    <table  style="display: none;">
+    <table style="display: none;">
         <!-- Hidden row template for JS to clone -->
         <tr id="item-row-template" class="item-row">
             <td><input type="text" name="items[__INDEX__][name]" style="width: 100%;" /></td>
@@ -151,95 +155,122 @@ $form_action = admin_url('admin-post.php');
 </div>
 
 <script type="text/javascript">
-    jQuery(document).ready(function ($) {
-        if (typeof ajaxurl === 'undefined') {
-            var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
-        }
+jQuery(document).ready(function ($) {
+    if (typeof ajaxurl === 'undefined') {
+        var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+    }
 
-        initReceiptForm();
+    initReceiptForm();
 
-        function initReceiptForm() {
-            const $template = $('#item-row-template');
-            let rowCount = $('table.widefat tbody tr.item-row').length;
+    // -- Save, Save & Close, and Close logic starts here --
 
-            $('#add-item').on('click', function () {
-                addItemRow();
-            });
+    // Set correct action on button click
+    $('#save-btn').on('click', function() {
+        $('#action-field').val('camp_manager_save_receipt');
+    });
+    $('#save-close-btn').on('click', function() {
+        $('#action-field').val('camp_manager_save_and_close_receipt');
+    });
 
-            $(document).on('click', '.remove-item', function () {
-                $(this).closest('tr').remove();
-            });
+    // Track initial state for dirty check
+    let initialForm = $('#receipt-form').serialize();
 
-            $('#analyze-btn').on('click', function () {
-                const fileInput = $('#receipt_image')[0];
-                if (!fileInput.files.length) {
-                    alert('Please choose an image first.');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('action', 'camp_manager_analyze_receipt');
-                formData.append('receipt_image', fileInput.files[0]);
-
-                $('#analyze-spinner').addClass('is-active');
-
-                $.ajax({
-                    url: ajaxurl,
-                    method: 'POST',
-                    processData: false,
-                    contentType: false,
-                    data: formData,
-                    success: function (res) {
-                        $('#analyze-spinner').removeClass('is-active');
-                        if (res.success) {
-                            populateFormWithReceipt(res.data);
-                        } else {
-                            alert('Error: ' + res.data);
-                        }
-                    },
-                    error: function (jqXHR, textStatus, errorThrown) {
-                        $('#analyze-spinner').removeClass('is-active');
-                        alert('AJAX error: ' + textStatus + ': ' + errorThrown);
-                        console.error(jqXHR.responseText);
-                    }
-                });
-            });
-
-            window.populateFormWithReceipt = function (data) {
-                $('input[name="store"]').val(data.store ?? '');
-                $('input[name="date"]').val(data.date ?? '');
-                $('input[name="subtotal"]').val(data.subtotal ?? '');
-                $('input[name="tax"]').val(data.tax ?? '');
-                $('input[name="shipping"]').val(data.shipping ?? '');
-                $('input[name="total"]').val(data.total ?? '');
-
-                const $tbody = $('table.widefat tbody');
-                $tbody.find('tr.item-row').remove();
-
-                if (Array.isArray(data.items)) {
-                    data.items.forEach((item) => addItemRow(item));
-                } else {
-                    addItemRow();
-                }
-            };
-
-            function addItemRow(item = {}) {
-                const index = rowCount++;
-                const $row = $template.clone().removeAttr('id').show();
-
-                $row.find('[name]').each(function () {
-                    const name = $(this).attr('name').replace('__INDEX__', index);
-                    $(this).attr('name', name);
-
-                    const match = name.match(/\[([a-z_]+)\]/);
-                    const key = match ? match[1] : '';
-                    const isSelect = $(this).is('select');
-
-                    $(this).val(item[key] !== undefined ? item[key] : (key === 'quantity' ? 1 : ''));
-                });
-
-                $('table.widefat tbody').append($row);
+    // Handle Close button (no form submit, just redirect with prompt)
+    $('#close-btn').on('click', function(e) {
+        if ($('#receipt-form').serialize() !== initialForm) {
+            if (!confirm('You have unsaved changes. Are you sure you want to close?')) {
+                e.preventDefault();
+                return false;
             }
         }
+        window.location.href = '<?php echo esc_url(admin_url('admin.php?page=camp-manager-actuals')); ?>';
+        e.preventDefault();
     });
+
+    // -- Original receipt item form logic below --
+
+    function initReceiptForm() {
+        const $template = $('#item-row-template');
+        let rowCount = $('table.widefat tbody tr.item-row').length;
+
+        $('#add-item').on('click', function () {
+            addItemRow();
+        });
+
+        $(document).on('click', '.remove-item', function () {
+            $(this).closest('tr').remove();
+        });
+
+        $('#analyze-btn').on('click', function () {
+            const fileInput = $('#receipt_image')[0];
+            if (!fileInput.files.length) {
+                alert('Please choose an image first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'camp_manager_analyze_receipt');
+            formData.append('receipt_image', fileInput.files[0]);
+
+            $('#analyze-spinner').addClass('is-active');
+
+            $.ajax({
+                url: ajaxurl,
+                method: 'POST',
+                processData: false,
+                contentType: false,
+                data: formData,
+                success: function (res) {
+                    $('#analyze-spinner').removeClass('is-active');
+                    if (res.success) {
+                        populateFormWithReceipt(res.data);
+                    } else {
+                        alert('Error: ' + res.data);
+                    }
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    $('#analyze-spinner').removeClass('is-active');
+                    alert('AJAX error: ' + textStatus + ': ' + errorThrown);
+                    console.error(jqXHR.responseText);
+                }
+            });
+        });
+
+        window.populateFormWithReceipt = function (data) {
+            $('input[name="store"]').val(data.store ?? '');
+            $('input[name="date"]').val(data.date ?? '');
+            $('input[name="subtotal"]').val(data.subtotal ?? '');
+            $('input[name="tax"]').val(data.tax ?? '');
+            $('input[name="shipping"]').val(data.shipping ?? '');
+            $('input[name="total"]').val(data.total ?? '');
+
+            const $tbody = $('table.widefat tbody');
+            $tbody.find('tr.item-row').remove();
+
+            if (Array.isArray(data.items)) {
+                data.items.forEach((item) => addItemRow(item));
+            } else {
+                addItemRow();
+            }
+        };
+
+        function addItemRow(item = {}) {
+            const index = rowCount++;
+            const $row = $template.clone().removeAttr('id').show();
+
+            $row.find('[name]').each(function () {
+                const name = $(this).attr('name').replace('__INDEX__', index);
+                $(this).attr('name', name);
+
+                const match = name.match(/\[([a-z_]+)\]/);
+                const key = match ? match[1] : '';
+                const isSelect = $(this).is('select');
+
+                $(this).val(item[key] !== undefined ? item[key] : (key === 'quantity' ? 1 : ''));
+            });
+
+            $('table.widefat tbody').append($row);
+        }
+    }
+});
 </script>
