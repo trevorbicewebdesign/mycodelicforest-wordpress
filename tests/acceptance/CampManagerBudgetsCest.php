@@ -47,28 +47,30 @@ class CampManagerBudgetsCest
                 // "years_attended" => '["2024"]',
             ]
         ]);
+
+        $I->haveInDatabase("wp_mf_budget_items", [
+            "name" => "Test Budget Item",
+            "category_id" => 1,
+            "price" => 100,
+            "quantity" => 2,
+            "subtotal" => 200,
+            "tax" => 0,
+            "total" => 200,
+            "priority" => 1,
+            "link" => "https://www.amazon.com"
+        ]);
+        $I->wait(1);
+
         $I->loginAs("testadmin", "password123!test");
     }
     public function ViewBudgetItems(AcceptanceTester $I)
     {
-        $I->haveInDatabase("wp_mf_budget_items", [
-            "name" => "Test Budget Item",
-            "price" => "100",
-            "quantity" => "2",
-            "subtotal" => "200",
-            "tax" => "0",
-            "total" => "100",
-            "priority" => "1",
-            "link" => "https://www.amazon.com/1-75-Liters-Zing-Zang-Bloody/dp/B0B3WK43SV/ref=sr_1_1_sspa?crid=25EHANFQCTKC2&dib=eyJ2IjoiMSJ9.4hTzX4M8PIgr3BF4PR1hUc7zpx41EaIca1xetm_SYlHAPDNetJP14YPXW4Il0LYdteHsLRWsFhK4YCVqM0bpr0YEGmXgIVmubzSunpTJzBeWkK49uB3Fghhk1tCLU-G9axFW5iCVEsna8owdk9KdI4FbzcKrahNQh2ZSkhzF56ld3pVattsnx-MsbsxiwYs-I20KYocWE0a7XKpGLAfoR1CIRGh2qqiJulmCUIDkJGcu7ah57JbFJ4K5ZY4ofkUNiDmpOn-mWIZlJbZEjfoTelq6HhXIDC9REpy7se55A7w.1cYmP4POp6zXZrOvJX-uHruoNFSTtpIx1001tY5EIE0&dib_tag=se&keywords=bloody+mary+mix+zing+zang&qid=1717379718&sprefix=bloody+mary+mix+zing+zan%2Caps%2C180&sr=8-1-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1"
-        ]);
-        // Navigate to the budget items page (not the add form, to see the table)
+        
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budgets");
-        $I->see("Budget Items", "h1"); // Adjust if needed to match page title
+        $I->see("Budget Items", "h1");
 
-        // Assert that the `Add New` button is present
         $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-budget-item"]);
 
-        // Assert that each table header is present
         $I->see("ID", "th#id");
         $I->see("Name", "th#name");
         $I->see("Category", "th#category");
@@ -80,10 +82,20 @@ class CampManagerBudgetsCest
         $I->see("Priority", "th#priority");
         $I->see("Link", "th#link");
 
-        // Optional: Check for the select-all checkbox label
         $I->see("Select All", "label[for='cb-select-all-1']");
 
-        $I->seeNumberOfElements("table.wp-list-table tbody tr", 1); // Only the header row initially
+        $I->dontSee("No items found.");
+
+        $I->see("Test Budget Item", "table.wp-list-table tbody tr:nth-child(1) td.name");
+        $I->see("Power", "table.wp-list-table tbody tr:nth-child(1) td.category");
+        $I->see("$100.00", "table.wp-list-table tbody tr:nth-child(1) td.price");
+        $I->see("2", "table.wp-list-table tbody tr:nth-child(1) td.quantity");
+        $I->see("$200.00", "table.wp-list-table tbody tr:nth-child(1) td.subtotal");
+        $I->see("$200.00", "table.wp-list-table tbody tr:nth-child(1) td.total");
+        $I->see("No", "table.wp-list-table tbody tr:nth-child(1) td.purchased");
+        $I->see("1", "table.wp-list-table tbody tr:nth-child(1) td.priority");
+     
+
     }
 
     public function AddNewBudgetItem(AcceptanceTester $I)
@@ -95,7 +107,7 @@ class CampManagerBudgetsCest
         $I->see("Name", "label[for='budget_item_name']");
         $I->see("Description", "label[for='budget_item_description']");
         $I->see("Category", "label[for='budget_item_category']");
-        $I->see("Amount", "label[for='budget_item_amount']");
+        $I->see("Price", "label[for='budget_item_price']");
         $I->see("Quantity", "label[for='budget_item_quantity']");
         $I->see("Subtotal", "label[for='budget_item_subtotal']");
         $I->see("Tax", "label[for='budget_item_tax']");
@@ -105,7 +117,7 @@ class CampManagerBudgetsCest
         $I->seeElement("input#budget_item_name");
         $I->seeElement("textarea#budget_item_description");
         $I->seeElement("select#budget_item_category");
-        $I->seeElement("input#budget_item_amount");
+        $I->seeElement("input#budget_item_price");
         $I->seeElement("input#budget_item_quantity");
         $I->seeElement("input#budget_item_subtotal");
         $I->seeElement("input#budget_item_tax");
@@ -116,7 +128,7 @@ class CampManagerBudgetsCest
         $I->fillField("input#budget_item_name", "Test Budget Item");
         $I->fillField("textarea#budget_item_description", "This is a test budget item description.");
         $I->selectOption("select#budget_item_category", "Power");
-        $I->fillField("input#budget_item_amount", "100.00");
+        $I->fillField("input#budget_item_price", "100.00");
         $I->fillField("input#budget_item_quantity", "2");
         $I->fillField("input#budget_item_subtotal", "200.00");
         $I->fillField("input#budget_item_tax", "20.00");
@@ -129,7 +141,7 @@ class CampManagerBudgetsCest
         $I->waitForText("Budget Items", 15, "h1");
 
         // Check that we are on the view all budget items page
-        $I->seeCurrentUrlEquals("/wp-admin/admin.php?page=camp-manager-budget-items&success=item_added");
+        $I->seeCurrentUrlEquals("/wp-admin/admin.php?page=camp-manager-budgets&success=item_added");
 
         $I->seeInDatabase("wp_mf_budget_items", [
             "name" => "Test Budget Item",
