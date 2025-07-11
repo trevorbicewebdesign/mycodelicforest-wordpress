@@ -9,7 +9,7 @@ $budget_item_id = $is_edit ? intval($budget_item->id) : 0;
     <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Budget Item' : 'Add New Budget Item'; ?></h1>
     <hr/>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-        <input type="hidden" name="action" value="camp_manager_save_budget_item">
+        <input type="hidden" name="action" value="camp_manager_save_budget_item" id="action-field">
         <?php if ($is_edit): ?>
             <input type="hidden" name="budget_item_id" value="<?php echo esc_attr($budget_item_id); ?>">
         <?php endif; ?>
@@ -86,7 +86,41 @@ $budget_item_id = $is_edit ? intval($budget_item->id) : 0;
             
         </table>
 
-        <?php submit_button($is_edit ? 'Edit Budget Item' : 'Add Budget Item'); ?>
+        <div style="display: flex; gap: 10px;">
+            <?php submit_button('Save Budget Item', 'secondary', 'save_receipt', false, array('id' => 'save-btn')); ?>
+            <?php submit_button('Save & Close Budget Item', 'primary', 'save_close_receipt', false, array('id' => 'save-close-btn')); ?>
+            <?php submit_button('Close Budget Item', 'secondary', 'close_receipt', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
+        </div>
     </form>
 </div>
-<?php
+<script type="text/javascript">
+jQuery(document).ready(function ($) {
+    if (typeof ajaxurl === 'undefined') {
+        var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+    }
+
+    // Set correct action on button click
+    $('#save-btn').on('click', function() {
+        $('#action-field').val('camp_manager_save_budget_item');
+    });
+    $('#save-close-btn').on('click', function() {
+        $('#action-field').val('camp_manager_save_and_close_budget_item');
+    });
+
+    // Track initial state for dirty check
+    let initialForm = $('#budget-item-form').serialize();
+
+    // Handle Close button (no form submit, just redirect with prompt)
+    $('#close-btn').on('click', function(e) {
+        if ($('#budget-item-form').serialize() !== initialForm) {
+            if (!confirm('You have unsaved changes. Are you sure you want to close?')) {
+                e.preventDefault();
+                return false;
+            }
+        }
+        window.location.href = '<?php echo esc_url(admin_url('admin.php?page=camp-manager-budgets')); ?>';
+        e.preventDefault();
+    });
+
+});
+</script>
