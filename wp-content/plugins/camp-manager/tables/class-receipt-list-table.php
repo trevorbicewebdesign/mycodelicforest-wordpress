@@ -11,9 +11,12 @@ if (!class_exists('WP_List_Table')) {
 class CampManagerReceiptsTable extends WP_List_Table
 {
     private $data;
+    private $roster;
 
-    public function __construct()
+    public function __construct(CampManagerRoster $CampManagerRoster)
     {
+        $this->roster = $CampManagerRoster;
+
         parent::__construct([
             'singular' => 'Receipt',
             'plural'   => 'Receipts',
@@ -72,9 +75,9 @@ class CampManagerReceiptsTable extends WP_List_Table
                 return !empty($item['reimbursed']) ? 'Yes' : 'No';
             case 'cmid':
                 $user_id = intval($item['cmid']);
-                $user = get_user_by('id', $user_id);
+                $user = $this->roster->getMemberById( $user_id);
                 if ($user) {
-                    return sprintf('<a href="%s">%s</a>', esc_url(admin_url('user-edit.php?user_id=' . $user_id)), esc_html($user->display_name));
+                    return sprintf('<a href="%s">%s</a>', esc_url(admin_url('user-edit.php?user_id=' . $user_id)), esc_html($user->fname . ' ' . $user->lname));
                 } else {
                     return 'Treasury';
                 }
