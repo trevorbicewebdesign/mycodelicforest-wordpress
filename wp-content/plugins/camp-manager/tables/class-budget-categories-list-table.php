@@ -124,10 +124,10 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         // Add hardcoded must_have value
         foreach ($this->data as &$item) {
             $CampManagerBudgets = new CampManagerBudgets();
-            $item['must_have'] = $CampManagerBudgets->getPriortyTotal($item['id'], '1');
-            $item['should_have'] = $CampManagerBudgets->getPriortyTotal($item['id'], '2');
-            $item['could_have'] = $CampManagerBudgets->getPriortyTotal($item['id'], '3');
-            $item['nice_to_have'] = $CampManagerBudgets->getPriortyTotal($item['id'], '4');
+            $item['must_have'] = $CampManagerBudgets->getPriorityTotal($item['id'], '1');
+            $item['should_have'] = $CampManagerBudgets->getPriorityTotal($item['id'], '2');
+            $item['could_have'] = $CampManagerBudgets->getPriorityTotal($item['id'], '3');
+            $item['nice_to_have'] = $CampManagerBudgets->getPriorityTotal($item['id'], '4');
         }
         unset($item);
 
