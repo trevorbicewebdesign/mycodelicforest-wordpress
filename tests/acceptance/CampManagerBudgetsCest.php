@@ -51,12 +51,22 @@ class CampManagerBudgetsCest
     }
     public function ViewBudgetItems(AcceptanceTester $I)
     {
+        $I->haveInDatabase("wp_mf_budget_items", [
+            "name" => "Test Budget Item",
+            "price" => "100",
+            "quantity" => "2",
+            "subtotal" => "200",
+            "tax" => "0",
+            "total" => "100",
+            "priority" => "1",
+            "link" => "https://www.amazon.com/1-75-Liters-Zing-Zang-Bloody/dp/B0B3WK43SV/ref=sr_1_1_sspa?crid=25EHANFQCTKC2&dib=eyJ2IjoiMSJ9.4hTzX4M8PIgr3BF4PR1hUc7zpx41EaIca1xetm_SYlHAPDNetJP14YPXW4Il0LYdteHsLRWsFhK4YCVqM0bpr0YEGmXgIVmubzSunpTJzBeWkK49uB3Fghhk1tCLU-G9axFW5iCVEsna8owdk9KdI4FbzcKrahNQh2ZSkhzF56ld3pVattsnx-MsbsxiwYs-I20KYocWE0a7XKpGLAfoR1CIRGh2qqiJulmCUIDkJGcu7ah57JbFJ4K5ZY4ofkUNiDmpOn-mWIZlJbZEjfoTelq6HhXIDC9REpy7se55A7w.1cYmP4POp6zXZrOvJX-uHruoNFSTtpIx1001tY5EIE0&dib_tag=se&keywords=bloody+mary+mix+zing+zang&qid=1717379718&sprefix=bloody+mary+mix+zing+zan%2Caps%2C180&sr=8-1-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1"
+        ]);
         // Navigate to the budget items page (not the add form, to see the table)
-        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budget-items");
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budgets");
         $I->see("Budget Items", "h1"); // Adjust if needed to match page title
 
         // Assert that the `Add New` button is present
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-budgets"]);
+        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-budget-item"]);
 
         // Assert that each table header is present
         $I->see("ID", "th#id");
@@ -72,7 +82,7 @@ class CampManagerBudgetsCest
         // Optional: Check for the select-all checkbox label
         $I->see("Select All", "label[for='cb-select-all-1']");
 
-        $I->seeNumberOfElements("table.wp-list-table tbody tr", 20); // Only the header row initially
+        $I->seeNumberOfElements("table.wp-list-table tbody tr", 1); // Only the header row initially
     }
 
     public function AddNewBudgetItem(AcceptanceTester $I)
