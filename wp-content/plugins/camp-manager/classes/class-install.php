@@ -62,14 +62,17 @@ class CampManagerInstall
         $sql = "
         CREATE TABLE `$table` (
             `id` INT(11) NOT NULL AUTO_INCREMENT,
-            `budget_id` INT(11) NOT NULL,
+            `category_id` INT(11) NOT NULL,
+            `receipt_item_id` INT(11) DEFAULT NULL,
             `name` VARCHAR(255) NOT NULL DEFAULT '',
             `price` FLOAT NOT NULL DEFAULT 0,
             `quantity` FLOAT NOT NULL DEFAULT 1,
             `subtotal` FLOAT NOT NULL DEFAULT 0,
             `total` FLOAT NOT NULL DEFAULT 0,
             `purchased` TINYINT(1) DEFAULT NULL,
-            `level` INT(11) DEFAULT NULL,
+            `priority` INT(11) DEFAULT NULL,
+            `link` VARCHAR(255) DEFAULT NULL,
+            `receipt_id` INT(11) DEFAULT NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
         ";
@@ -111,7 +114,7 @@ class CampManagerInstall
             `cmid` INT(11) DEFAULT NULL,
             `amount` DECIMAL(10,2) NOT NULL,
             `note` TEXT DEFAULT NULL,
-            `type` ENUM('Expense', 'Camp Dues', 'Partial Camp Dues') NULL,
+            `type` ENUM('Expense', 'Camp Dues', 'Partial Camp Dues', 'Donation') NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
         ";

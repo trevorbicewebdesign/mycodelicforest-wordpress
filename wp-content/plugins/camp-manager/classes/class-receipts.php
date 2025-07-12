@@ -131,6 +131,14 @@ class CampManagerReceipts
         exit;
     }
 
+    public function get_total_receipts_by_category($category_id)
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'mf_receipt_items';
+        $sql = "SELECT SUM(total) FROM $table_name WHERE category_id = %d";
+        return (int) $wpdb->get_var($wpdb->prepare($sql, $category_id));
+    }
+
     public function get_total_receipts()
     {
         global $wpdb;
