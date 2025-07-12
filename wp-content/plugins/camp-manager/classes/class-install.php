@@ -12,6 +12,27 @@ class CampManagerInstall
         $this->create_mf_ledger_line_items_table();
     }
 
+    public function create_mf_inventory_table()
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_inventory';
+
+        $sql = "
+        CREATE TABLE `$table` (
+            `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `name` VARCHAR(255) NOT NULL DEFAULT '',
+            `description` TEXT DEFAULT NULL,
+            `quantity` INT(11) NOT NULL DEFAULT 0,
+            `photo_url` VARCHAR(255) DEFAULT NULL,
+            `category_id` INT(11) DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+        ";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($sql);
+    }
+
     public function create_mf_roster()
     {
         global $wpdb;
