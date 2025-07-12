@@ -15,7 +15,7 @@ $items = $receipt->items ?? [];
 $form_action = admin_url('admin-post.php');
 ?>
 <div class="wrap">
-    <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Receipt' : 'Upload Receipt'; ?></h1>
+    <h1 class="wp-heading-inline">Receipt Summary</h1>
 
     <h3>Total Receipts: $<?php echo esc_html(number_format($this->receipts->get_total_receipts(), 2)); ?></h3>
     
