@@ -97,6 +97,7 @@ class CampManagerReceiptsCest
         $I->seeElement("input#receipt_tax");
         $I->seeElement("input#receipt_total");
         $I->seeElement("select#receipt_category");
+        $I->seeElement("select#receipt_budget_item_id");
         $I->seeElement("input#receipt_amount");
         $I->seeElement("input#receipt_quantity");
         $I->seeElement("input#receipt_subtotal");
