@@ -12,10 +12,15 @@ $shipping = $receipt->shipping ?? '';
 $total = $receipt->total ?? '';
 $items = $receipt->items ?? [];
 
+// Always render at least one empty row on new receipt
+if (empty($items)) {
+    $items = [ (object)[] ];
+}
+
 $form_action = admin_url('admin-post.php');
 ?>
 <div class="wrap">
-    <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Receipt' : 'Upload Receipt'; ?></h1>
+    <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Receipt' : 'Add New Receipt'; ?></h1>
 
     <form method="post" enctype="multipart/form-data" action="<?php echo esc_url($form_action); ?>" id="receipt-form">
         <input type="hidden" name="action" value="camp_manager_save_receipt" id="action-field">
@@ -26,25 +31,45 @@ $form_action = admin_url('admin-post.php');
 
         <table class="form-table">
             <tr>
-                <th><label for="receipt_image">Receipt Image</label></th>
-                <td>
-                    <input type="file" name="receipt_image" accept="image/*" id="receipt_image">
-                    <button type="button" id="analyze-btn" class="button">Analyze Receipt</button>
-                    <span id="analyze-spinner" class="spinner" style="float: none;"></span>
-                </td>
+            <th><label for="receipt_image">Receipt Image</label></th>
+            <td>
+                <input type="file" name="receipt_image" accept="image/*" id="receipt_image">
+                <button type="button" id="analyze-btn" class="button">Analyze Receipt</button>
+                <span id="analyze-spinner" class="spinner" style="float: none;"></span>
+            </td>
             </tr>
             <tr>
-                <th><label for="store">Store</label></th>
-                <td><input type="text" name="store" class="regular-text"
-                        value="<?php echo esc_attr(stripslashes($store)); ?>"></td>
+            <th><label for="store" id="label-store">Store</label></th>
+            <td>
+                <input type="text" name="store" class="regular-text" id="store" value="<?php echo esc_attr(stripslashes($store)); ?>">
+            </td>
             </tr>
             <tr>
-                <th><label for="date">Date</label></th>
-                <td>
-                    <input type="text" name="date"
-                        value="<?php echo esc_attr($date ? date('m/d/Y', strtotime($date)) : ''); ?>"
-                        placeholder="mm/dd/yyyy" pattern="\d{2}/\d{2}/\d{4}">
-                </td>
+            <th><label for="date" id="label-date">Date</label></th>
+            <td>
+                <input type="text" name="date" id="date" value="<?php echo esc_attr($date ? date('m/d/Y', strtotime($date)) : ''); ?>" placeholder="mm/dd/yyyy" pattern="\d{2}/\d{2}/\d{4}">
+            </td>
+            </tr>
+            <tr>
+            <th><label for="purchaser" id="label-purchaser">Purchaser</label></th>
+            <td>
+                <select name="purchaser" id="purchaser" class="regular-text">
+                <option value="">Select a purchaser</option>
+                <?php
+                $members = $this->roster->getRosterMembers();
+                foreach ($members as $member) {
+                    $selected = ($receipt->purchaser_id ?? '') == $member['id'] ? 'selected' : '';
+                    echo sprintf(
+                    '<option value="%d" %s>%s %s</option>',
+                    esc_attr($member['id']),
+                    $selected,
+                    esc_html($member['fname']),
+                    esc_html($member['lname'])
+                    );
+                }
+                ?>
+                </select>
+            </td>
             </tr>
         </table>
 
@@ -64,42 +89,39 @@ $form_action = admin_url('admin-post.php');
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($items)): ?>
-                    <?php foreach ($items as $i => $item): ?>
-                        <tr class="item-row">
-                            <td><input type="text" name="items[<?php echo $i; ?>][name]" value="<?php echo esc_attr($item->name ?? ''); ?>" style="width: 100%;" /></td>
-                            <td>
-                                <select name="items[<?php echo $i; ?>][category]" style="width: 100%;">
-                                    <option value="">Please select a category</option>
-                                    <?php foreach ($this->core->getItemCategories() as $category): ?>
-                                        <option value="<?php echo esc_attr($category['id']); ?>"
-                                            <?php selected(($item->category_id ?? '') === $category['id']); ?>>
-                                            <?php echo esc_html(ucfirst($category['name'])); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                            <td>
-                                <?php $items = $this->core->getBudgetItems(); ?>
-                                <select name="budget_item" id="budget_item" required>
-                                    <option value="">Select an item</option>
-                                    <?php foreach ($items as $item_id => $item): ?>
-                                        <option value="<?php echo esc_attr($item['id']); ?>" <?php selected(($budget_item->id ?? '') == $item_id); ?>>
-                                            <?php echo esc_html($item['name']); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-
-                            <td><input type="text" name="items[<?php echo $i; ?>][price]" value="<?php echo esc_attr($item->price ?? ''); ?>" style="width: 100%;" /></td>
-                            <td><input type="number" name="items[<?php echo $i; ?>][quantity]" value="<?php echo esc_attr($item->quantity ?? 1); ?>" style="width: 100%;" /></td>
-                            <td><input type="text" name="items[<?php echo $i; ?>][subtotal]" value="<?php echo esc_attr($item->subtotal ?? ''); ?>" style="width: 100%;" /></td>
-                            <td><input type="text" name="items[<?php echo $i; ?>][tax]" value="<?php echo esc_attr($item->tax ?? ''); ?>" style="width: 100%;" /></td>
-                            <td><input type="text" name="items[<?php echo $i; ?>][total]" value="<?php echo esc_attr($item->total ?? ''); ?>" style="width: 100%;" /></td>
-                            <td><button type="button" class="remove-item button">Remove</button></td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                <?php foreach ($items as $i => $item): ?>
+                    <tr class="item-row">
+                        <td><input type="text" name="items[<?php echo $i; ?>][name]" value="<?php echo esc_attr($item->name ?? ''); ?>" style="width: 100%;" /></td>
+                        <td>
+                            <select name="items[<?php echo $i; ?>][category]" style="width: 100%;">
+                                <option value="">Please select a category</option>
+                                <?php foreach ($this->core->getItemCategories() as $category): ?>
+                                    <option value="<?php echo esc_attr($category['id']); ?>"
+                                        <?php selected(($item->category_id ?? '') === $category['id']); ?>>
+                                        <?php echo esc_html(ucfirst($category['name'])); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                        <td>
+                            <?php $budget_items = $this->budgets->getBudgetItems(); ?>
+                            <select name="items[<?php echo $i; ?>][budget_item_id]" style="width: 100%;" required>
+                                <option value="">Select an item</option>
+                                <?php foreach ($budget_items as $budget_item_id => $budget_item): ?>
+                                    <option value="<?php echo esc_attr($budget_item['id']); ?>" <?php selected(($item->budget_item_id ?? '') == $budget_item['id']); ?>>
+                                        <?php echo esc_html($budget_item['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                        <td><input type="text" name="items[<?php echo $i; ?>][price]" value="<?php echo esc_attr($item->price ?? ''); ?>" style="width: 100%;" /></td>
+                        <td><input type="number" name="items[<?php echo $i; ?>][quantity]" value="<?php echo esc_attr($item->quantity ?? 1); ?>" style="width: 100%;" /></td>
+                        <td><input type="text" name="items[<?php echo $i; ?>][subtotal]" value="<?php echo esc_attr($item->subtotal ?? ''); ?>" style="width: 100%;" /></td>
+                        <td><input type="text" name="items[<?php echo $i; ?>][tax]" value="<?php echo esc_attr($item->tax ?? ''); ?>" style="width: 100%;" /></td>
+                        <td><input type="text" name="items[<?php echo $i; ?>][total]" value="<?php echo esc_attr($item->total ?? ''); ?>" style="width: 100%;" /></td>
+                        <td><button type="button" class="remove-item button">Remove</button></td>
+                    </tr>
+                <?php endforeach; ?>
             </tbody>
         </table>
 
@@ -108,32 +130,40 @@ $form_action = admin_url('admin-post.php');
         <!-- Totals -->
         <table style="width: 100%; max-width: 600px; margin-left: auto; font-size: 1.1em;">
             <tr>
-                <td style="text-align: right; padding: 8px;"><strong>Subtotal:</strong></td>
-                <td style="text-align: right; width: 150px;">
-                    <input type="text" name="subtotal" value="<?php echo esc_attr($subtotal ?? ''); ?>"
-                        class="small-text" style="width: 100%;" />
-                </td>
+            <td style="text-align: right; padding: 8px;">
+                <label for="subtotal"><strong>Subtotal:</strong></label>
+            </td>
+            <td style="text-align: right; width: 150px;">
+                <input type="text" name="subtotal" id="subtotal" value="<?php echo esc_attr($subtotal ?? ''); ?>"
+                class="small-text" style="width: 100%;" />
+            </td>
             </tr>
             <tr>
-                <td style="text-align: right; padding: 8px;"><strong>Tax:</strong></td>
-                <td style="text-align: right;">
-                    <input type="text" name="tax" value="<?php echo esc_attr($tax ?? ''); ?>" class="small-text"
-                        style="width: 100%;" />
-                </td>
+            <td style="text-align: right; padding: 8px;">
+                <label for="tax"><strong>Tax:</strong></label>
+            </td>
+            <td style="text-align: right;">
+                <input type="text" name="tax" id="tax" value="<?php echo esc_attr($tax ?? ''); ?>" class="small-text"
+                style="width: 100%;" />
+            </td>
             </tr>
             <tr>
-                <td style="text-align: right; padding: 8px;"><strong>Shipping:</strong></td>
-                <td style="text-align: right;">
-                    <input type="text" name="shipping" value="<?php echo esc_attr($shipping ?? ''); ?>"
-                        class="small-text" style="width: 100%;" />
-                </td>
+            <td style="text-align: right; padding: 8px;">
+                <label for="shipping"><strong>Shipping:</strong></label>
+            </td>
+            <td style="text-align: right;">
+                <input type="text" name="shipping" id="shipping" value="<?php echo esc_attr($shipping ?? ''); ?>"
+                class="small-text" style="width: 100%;" />
+            </td>
             </tr>
             <tr>
-                <td style="text-align: right; padding: 8px;"><strong>Total:</strong></td>
-                <td style="text-align: right;">
-                    <input type="text" name="total" value="<?php echo esc_attr($total ?? ''); ?>" class="small-text"
-                        style="width: 100%;" />
-                </td>
+            <td style="text-align: right; padding: 8px;">
+                <label for="total"><strong>Total:</strong></label>
+            </td>
+            <td style="text-align: right;">
+                <input type="text" name="total" id="total" value="<?php echo esc_attr($total ?? ''); ?>" class="small-text"
+                style="width: 100%;" />
+            </td>
             </tr>
         </table>
 
@@ -157,6 +187,17 @@ $form_action = admin_url('admin-post.php');
                     <?php endforeach; ?>
                 </select>
             </td>
+            <td>
+                <?php $budget_items = $this->budgets->getBudgetItems(); ?>
+                <select name="items[__INDEX__][budget_item_id]" style="width: 100%;" required>
+                    <option value="">Select an item</option>
+                    <?php foreach ($budget_items as $budget_item_id => $budget_item): ?>
+                        <option value="<?php echo esc_attr($budget_item['id']); ?>">
+                            <?php echo esc_html($budget_item['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </td>
             <td><input type="text" name="items[__INDEX__][price]" style="width: 100%;" /></td>
             <td><input type="number" name="items[__INDEX__][quantity]" value="1" style="width: 100%;" /></td>
             <td><input type="text" name="items[__INDEX__][subtotal]" style="width: 100%;" /></td>
@@ -170,7 +211,7 @@ $form_action = admin_url('admin-post.php');
 <script type="text/javascript">
 jQuery(document).ready(function ($) {
     if (typeof ajaxurl === 'undefined') {
-        var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';
+        var ajaxurl = '<?php echo esc_js(admin_url('admin-ajax.php')); ?>';
     }
 
     initReceiptForm();
@@ -196,7 +237,7 @@ jQuery(document).ready(function ($) {
                 return false;
             }
         }
-        window.location.href = '<?php echo esc_url(admin_url('admin.php?page=camp-manager-actuals')); ?>';
+        window.location.href = '<?php echo esc_js(esc_url(admin_url('admin.php?page=camp-manager-actuals'))); ?>';
         e.preventDefault();
     });
 
@@ -259,8 +300,9 @@ jQuery(document).ready(function ($) {
 
             const $tbody = $('table.widefat tbody');
             $tbody.find('tr.item-row').remove();
+            rowCount = 0; // Reset rowCount when re-rendering
 
-            if (Array.isArray(data.items)) {
+            if (Array.isArray(data.items) && data.items.length > 0) {
                 data.items.forEach((item) => addItemRow(item));
             } else {
                 addItemRow();
@@ -279,7 +321,11 @@ jQuery(document).ready(function ($) {
                 const key = match ? match[1] : '';
                 const isSelect = $(this).is('select');
 
-                $(this).val(item[key] !== undefined ? item[key] : (key === 'quantity' ? 1 : ''));
+                if (isSelect) {
+                    $(this).val(item[key] !== undefined ? item[key] : '');
+                } else {
+                    $(this).val(item[key] !== undefined ? item[key] : (key === 'quantity' ? 1 : ''));
+                }
             });
 
             $('table.widefat tbody').append($row);

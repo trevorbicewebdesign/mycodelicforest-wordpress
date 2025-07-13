@@ -93,6 +93,18 @@ class CampManagerBudgets {
         return (bool) $result;
     }
 
+    public function getBudgetItems($category_id = null): array
+    {
+        // Should get all budget items for a category or all if no category is specified
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_budget_items";
+        $query = "SELECT * FROM $table";
+        if ($category_id !== null) {
+            $query .= $wpdb->prepare(" WHERE category_id = %d", $category_id);
+        }
+        return $wpdb->get_results($query, ARRAY_A);
+    }
+
     public function getBudgetItem($budget_item_id): ?object
     {
         // Should get a budget item from the database
@@ -100,32 +112,6 @@ class CampManagerBudgets {
         $table = "{$wpdb->prefix}mf_budget_items";
         $query = $wpdb->prepare("SELECT * FROM $table WHERE id = %d", $budget_item_id);
         return $wpdb->get_row($query);
-    }
-
-    public function insertBudgetItem($category_id, $name, $price, $quantity, $subtotal, $total, $priority = 0, $link = null, $tax = 0.0): int
-    {
-        // Should insert a budget item into the database
-        global $wpdb;
-        $table = "{$wpdb->prefix}mf_budget_items";
-        $price = (float) $price;
-        $quantity = (float) $quantity;
-        $tax = (float) $tax;
-        $subtotal = $price * $quantity;
-        $total = $subtotal + $tax;
-
-        $data = [
-            'category_id' => (int) $category_id,
-            'name' => sanitize_text_field($name),
-            'price' => $price,
-            'quantity' => $quantity,
-            'subtotal' => $subtotal,
-            'tax' => $tax,
-            'total' => $total,
-            'priority' => (int) $priority,
-            'link' => $link ? sanitize_text_field($link) : null,
-        ];
-        $wpdb->insert($table, $data);
-        return (int) $wpdb->insert_id;
     }
 
     // Insert or update Budget Item

@@ -15,7 +15,7 @@ class CampManagerReceipts
     public function init()
     {
         add_action('admin_post_camp_manager_save_receipt', array($this, 'handle_receipt_save'));
-        add_action('admin_post_camp_manager_upload_receipt', array($this, 'handle_receipt_upload'));
+        add_action('admin_post_camp_manager_save_and_close_receipt', array($this, 'handle_receipt_save'));
         // camp_manager_analyze_receipt
         add_action('wp_ajax_camp_manager_analyze_receipt', [$this, 'handle_receipt_analyze']);
 
@@ -55,37 +55,58 @@ class CampManagerReceipts
     }
     
     public function handle_receipt_save() {
+
         try {
             $receipt_id = isset($_POST['receipt_id']) ? intval($_POST['receipt_id']) : 0;
+
+            // Validate required fields
+            $required_fields = ['store', 'date', 'subtotal', 'tax', 'shipping', 'total', 'items'];
+            foreach ($required_fields as $field) {
+                if (!isset($_POST[$field])) {
+                    throw new Exception("Missing required field: " . $field);
+                }
+            }
+
+            $store = sanitize_text_field($_POST['store']);
+            $cmid = isset($_POST['purchaser']) ? intval($_POST['purchaser']) : 0;
+            $date = sanitize_text_field($_POST['date']);
+            $subtotal = floatval($_POST['subtotal']);
+            $tax = floatval($_POST['tax']);
+            $shipping = floatval($_POST['shipping']);
+            $total = floatval($_POST['total']);
+            $items = is_array($_POST['items']) ? $_POST['items'] : [];
+            $raw = isset($_POST['raw']) ? sanitize_text_field($_POST['raw']) : '';
 
             if ($receipt_id) {
                 $this->update_receipt(
                     $receipt_id,
-                    sanitize_text_field($_POST['store']),
-                    sanitize_text_field($_POST['date']),
-                    floatval($_POST['subtotal']),
-                    floatval($_POST['tax']),
-                    floatval($_POST['shipping']),
-                    floatval($_POST['total']),
-                    $_POST['items'],
-                    isset($_POST['raw']) ? sanitize_text_field($_POST['raw']) : ''
+                    $cmid,
+                    $store,
+                    $date,
+                    $subtotal,
+                    $tax,
+                    $shipping,
+                    $total,
+                    $items,
+                    $raw
                 );
             } else {
                 $receipt_id = $this->insert_receipt(
-                    sanitize_text_field($_POST['store']),
-                    sanitize_text_field($_POST['date']),
-                    floatval($_POST['subtotal']),
-                    floatval($_POST['tax']),
-                    floatval($_POST['shipping']),
-                    floatval($_POST['total']),
-                    $_POST['items'],
-                    isset($_POST['raw']) ? sanitize_text_field($_POST['raw']) : ''
+                    $cmid,
+                    $store,
+                    $date,
+                    $subtotal,
+                    $tax,
+                    $shipping,
+                    $total,
+                    $items,
+                    $raw
                 );
             }
 
             wp_redirect(admin_url('admin.php?page=camp-manager-add-receipt&id=' . $receipt_id . '&receipt_submitted=1'));
         } catch (Exception $e) {
-            wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&error=' . urlencode($e->getMessage())));
+            wp_redirect(admin_url('admin.php?page=camp-manager-actuals&error=' . urlencode($e->getMessage())));
         }
         exit;
 
@@ -109,26 +130,6 @@ class CampManagerReceipts
         set_transient('camp_manager_last_receipt_data', $parsed, 60);
 
         wp_send_json_success($parsed);
-    }
-
-    public function handle_receipt_upload() {
-        if (!current_user_can('manage_options')) {
-            wp_die('Unauthorized');
-        }
-
-        if (!isset($_FILES['receipt_image'])) {
-            wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&error=no_image'));
-            exit;
-        }
-
-        $image_path = $_FILES['receipt_image']['tmp_name'];
-        $base64_image = base64_encode(file_get_contents($image_path));
-
-        $response = $this->CampManagerChatGPT->analyze_receipt_with_gpt($base64_image);
-        $parsed = $this->CampManagerChatGPT->extract_json_from_gpt_response($response);
-        set_transient('camp_manager_last_receipt_data', $parsed, 60);
-        wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt'));
-        exit;
     }
 
     public function get_total_receipts_by_category($category_id)
@@ -233,6 +234,7 @@ class CampManagerReceipts
 
     public function update_receipt(
         int $receipt_id,
+        $cmid,
         string $store,
         string $date,
         float $subtotal,
@@ -249,6 +251,7 @@ class CampManagerReceipts
 
         $data = [
             'store'    => sanitize_text_field($store),
+            'cmid'     => $cmid ? intval($cmid) : null,
             'date'     => $date,
             'subtotal' => $subtotal,
             'tax'      => $tax,
@@ -299,6 +302,7 @@ class CampManagerReceipts
     }
 
     public function insert_receipt(
+        $cmid,
         string $store,
         string $date,
         float $subtotal,
@@ -315,6 +319,7 @@ class CampManagerReceipts
         $date = date("Y-m-d H:i:s", strtotime(sanitize_text_field($date)));
 
         $data = [
+            'cmid'     => $cmid ? intval($cmid) : null,
             'store'    => sanitize_text_field($store),
             'date'     => $date,
             'subtotal' => $subtotal,
