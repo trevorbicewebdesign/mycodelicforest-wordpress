@@ -31,46 +31,48 @@ $form_action = admin_url('admin-post.php');
 
         <table class="form-table">
             <tr>
-                <th><label for="receipt_image">Receipt Image</label></th>
-                <td>
-                    <input type="file" name="receipt_image" accept="image/*" id="receipt_image">
-                    <button type="button" id="analyze-btn" class="button">Analyze Receipt</button>
-                    <span id="analyze-spinner" class="spinner" style="float: none;"></span>
-                </td>
+            <th><label for="receipt_image">Receipt Image</label></th>
+            <td>
+                <input type="file" name="receipt_image" accept="image/*" id="receipt_image">
+                <button type="button" id="analyze-btn" class="button">Analyze Receipt</button>
+                <span id="analyze-spinner" class="spinner" style="float: none;"></span>
+            </td>
             </tr>
             <tr>
-                <th><label for="store">Store</label></th>
-                <td><input type="text" name="store" class="regular-text"
-                        value="<?php echo esc_attr(stripslashes($store)); ?>"></td>
+            <th><label for="store" id="label-store">Store</label></th>
+            <td>
+                <input type="text" name="store" class="regular-text" id="store"
+                value="<?php echo esc_attr(stripslashes($store)); ?>">
+            </td>
             </tr>
             <tr>
-                <th><label for="date">Date</label></th>
-                <td>
-                    <input type="text" name="date"
-                        value="<?php echo esc_attr($date ? date('m/d/Y', strtotime($date)) : ''); ?>"
-                        placeholder="mm/dd/yyyy" pattern="\d{2}/\d{2}/\d{4}">
-                </td>
+            <th><label for="date" id="label-date">Date</label></th>
+            <td>
+                <input type="text" name="date" id="date"
+                value="<?php echo esc_attr($date ? date('m/d/Y', strtotime($date)) : ''); ?>"
+                placeholder="mm/dd/yyyy" pattern="\d{2}/\d{2}/\d{4}">
+            </td>
             </tr>
             <tr>
-                <th><label for="purchaser">Purchaser</label></th>
-                <td>
-                    <select name="purchaser" id="purchaser" class="regular-text">
-                        <option value="">Select a purchaser</option>
-                        <?php
-                        $members = $this->roster->getRosterMembers();
-                        foreach ($members as $member) {
-                            $selected = ($receipt->purchaser_id ?? '') == $member->id ? 'selected' : '';
-                            echo sprintf(
-                                '<option value="%d" %s>%s %s</option>',
-                                esc_attr($member['id']),
-                                $selected,
-                                esc_html($member['fname']),
-                                esc_html($member['lname'])
-                            );
-                        }
-                        ?>
-                    </select>
-                </td>
+            <th><label for="purchaser" id="label-purchaser">Purchaser</label></th>
+            <td>
+                <select name="purchaser" id="purchaser" class="regular-text">
+                <option value="">Select a purchaser</option>
+                <?php
+                $members = $this->roster->getRosterMembers();
+                foreach ($members as $member) {
+                    $selected = ($receipt->purchaser_id ?? '') == $member->id ? 'selected' : '';
+                    echo sprintf(
+                    '<option value="%d" %s>%s %s</option>',
+                    esc_attr($member['id']),
+                    $selected,
+                    esc_html($member['fname']),
+                    esc_html($member['lname'])
+                    );
+                }
+                ?>
+                </select>
+            </td>
             </tr>
         </table>
 
@@ -131,32 +133,40 @@ $form_action = admin_url('admin-post.php');
         <!-- Totals -->
         <table style="width: 100%; max-width: 600px; margin-left: auto; font-size: 1.1em;">
             <tr>
-                <td style="text-align: right; padding: 8px;"><strong>Subtotal:</strong></td>
-                <td style="text-align: right; width: 150px;">
-                    <input type="text" name="subtotal" value="<?php echo esc_attr($subtotal ?? ''); ?>"
-                        class="small-text" style="width: 100%;" />
-                </td>
+            <td style="text-align: right; padding: 8px;">
+                <label for="subtotal"><strong>Subtotal:</strong></label>
+            </td>
+            <td style="text-align: right; width: 150px;">
+                <input type="text" name="subtotal" id="subtotal" value="<?php echo esc_attr($subtotal ?? ''); ?>"
+                class="small-text" style="width: 100%;" />
+            </td>
             </tr>
             <tr>
-                <td style="text-align: right; padding: 8px;"><strong>Tax:</strong></td>
-                <td style="text-align: right;">
-                    <input type="text" name="tax" value="<?php echo esc_attr($tax ?? ''); ?>" class="small-text"
-                        style="width: 100%;" />
-                </td>
+            <td style="text-align: right; padding: 8px;">
+                <label for="tax"><strong>Tax:</strong></label>
+            </td>
+            <td style="text-align: right;">
+                <input type="text" name="tax" id="tax" value="<?php echo esc_attr($tax ?? ''); ?>" class="small-text"
+                style="width: 100%;" />
+            </td>
             </tr>
             <tr>
-                <td style="text-align: right; padding: 8px;"><strong>Shipping:</strong></td>
-                <td style="text-align: right;">
-                    <input type="text" name="shipping" value="<?php echo esc_attr($shipping ?? ''); ?>"
-                        class="small-text" style="width: 100%;" />
-                </td>
+            <td style="text-align: right; padding: 8px;">
+                <label for="shipping"><strong>Shipping:</strong></label>
+            </td>
+            <td style="text-align: right;">
+                <input type="text" name="shipping" id="shipping" value="<?php echo esc_attr($shipping ?? ''); ?>"
+                class="small-text" style="width: 100%;" />
+            </td>
             </tr>
             <tr>
-                <td style="text-align: right; padding: 8px;"><strong>Total:</strong></td>
-                <td style="text-align: right;">
-                    <input type="text" name="total" value="<?php echo esc_attr($total ?? ''); ?>" class="small-text"
-                        style="width: 100%;" />
-                </td>
+            <td style="text-align: right; padding: 8px;">
+                <label for="total"><strong>Total:</strong></label>
+            </td>
+            <td style="text-align: right;">
+                <input type="text" name="total" id="total" value="<?php echo esc_attr($total ?? ''); ?>" class="small-text"
+                style="width: 100%;" />
+            </td>
             </tr>
         </table>
 
