@@ -109,10 +109,18 @@ class CampManagerLedgerTable extends WP_List_Table
             if (!empty($_POST['ledger']) && is_array($_POST['ledger'])) {
                 global $wpdb;
                 $table = "{$wpdb->prefix}mf_ledger";
+                $line_items_table = "{$wpdb->prefix}mf_ledger_line_items";
                 $ids = array_map('intval', $_POST['ledger']);
                 $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+
+                // Delete from ledger table
                 $wpdb->query($wpdb->prepare(
                     "DELETE FROM $table WHERE id IN ($placeholders)", ...$ids
+                ));
+
+                // Delete related line items
+                $wpdb->query($wpdb->prepare(
+                    "DELETE FROM $line_items_table WHERE ledger_id IN ($placeholders)", ...$ids
                 ));
             }
         }
