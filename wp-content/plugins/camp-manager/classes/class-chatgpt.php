@@ -63,7 +63,7 @@ class CampManagerChatGPT {
 
         {
             "store": "string",
-            "date": "YYYY-MM-DD",
+            "date": "MM/DD/YYYY",
             "subtotal": "string",
             "tax": "string",
             "shipping": "string",
