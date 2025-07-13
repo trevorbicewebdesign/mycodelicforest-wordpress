@@ -68,6 +68,7 @@ class CampManagerReceipts
             }
 
             $store = sanitize_text_field($_POST['store']);
+            $cmid = isset($_POST['purchaser']) ? intval($_POST['purchaser']) : 0;
             $date = sanitize_text_field($_POST['date']);
             $subtotal = floatval($_POST['subtotal']);
             $tax = floatval($_POST['tax']);
@@ -79,6 +80,7 @@ class CampManagerReceipts
             if ($receipt_id) {
                 $this->update_receipt(
                     $receipt_id,
+                    $cmid,
                     $store,
                     $date,
                     $subtotal,
@@ -90,6 +92,7 @@ class CampManagerReceipts
                 );
             } else {
                 $receipt_id = $this->insert_receipt(
+                    $cmid,
                     $store,
                     $date,
                     $subtotal,
@@ -231,6 +234,7 @@ class CampManagerReceipts
 
     public function update_receipt(
         int $receipt_id,
+        $cmid,
         string $store,
         string $date,
         float $subtotal,
@@ -247,6 +251,7 @@ class CampManagerReceipts
 
         $data = [
             'store'    => sanitize_text_field($store),
+            'cmid'     => $cmid ? intval($cmid) : null,
             'date'     => $date,
             'subtotal' => $subtotal,
             'tax'      => $tax,
@@ -297,6 +302,7 @@ class CampManagerReceipts
     }
 
     public function insert_receipt(
+        $cmid,
         string $store,
         string $date,
         float $subtotal,
@@ -313,6 +319,7 @@ class CampManagerReceipts
         $date = date("Y-m-d H:i:s", strtotime(sanitize_text_field($date)));
 
         $data = [
+            'cmid'     => $cmid ? intval($cmid) : null,
             'store'    => sanitize_text_field($store),
             'date'     => $date,
             'subtotal' => $subtotal,
