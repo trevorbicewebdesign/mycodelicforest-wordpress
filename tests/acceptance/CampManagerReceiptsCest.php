@@ -139,17 +139,24 @@ class CampManagerReceiptsCest
         $I->seeInDatabase("wp_mf_receipts", [
             "store" => "Test Store",
             "date" => "2024-01-01",
+            'cmid' => 1,
             "subtotal" => 100.00,
             "tax" => 10.00,
             "total" => 110.00,
-            "category" => "Supplies",
-            "amount" => 100.00,
-            "quantity" => 2,
-            "priority" => 1,
+        ]);
+
+        $receipt_id = $I->grabFromDatabase("wp_mf_receipts", 'id',[
+            "store" => "Test Store",
+            "date" => "2024-01-01",
+            'cmid' => 1,
+            "subtotal" => 100.00,
+            "tax" => 10.00,
+            "total" => 110.00,
         ]);
 
         $I->seeInDatabase("wp_mf_receipt_items", [
-            "receipt_id" => 1, // Assuming this is the first receipt
+            "receipt_id" => $receipt_id,
+            "category_id" => "1",
             "name" => "Test Budget Item",
             "price" => 100.00,
             "quantity" => 2,
@@ -157,6 +164,8 @@ class CampManagerReceiptsCest
             "tax" => 20.00,
             "total" => 220.00,
         ]);
+
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-receipt&id=" . $receipt_id);
     }
 
     public function DeleteReceipt(AcceptanceTester $I)
