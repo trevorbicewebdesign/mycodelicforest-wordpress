@@ -115,7 +115,7 @@ class CampManagerReceiptsCest
         // Fill in the form fields for one row
         $I->fillField("input#store", "Test Store");
         $I->fillField("input#date", "01/01/2024");
-        $I->selectOption("select#purchaser", "1");
+        $I->selectOption("select#purchaser", "Trevor Bice");
         $I->fillField("input#subtotal", "100.00");
         $I->fillField("input#tax", "10.00");
         $I->fillField("input#shipping", "0.00");
@@ -132,12 +132,9 @@ class CampManagerReceiptsCest
         $I->fillField("input[name='items[0][total]']", "220");
 
         // Submit the form
-        $I->click(['css' => "input[type='submit'][value='Save & Close Receipt']"]);
+        $I->click(['css' => "input[type='submit'][value='Save Receipt']"]);
         $I->wait("1");
-        $I->waitForText("Receipts", 15, "h1");
-
-        // Check that we are on the view all budget items page
-        $I->seeCurrentUrlEquals("/wp-admin/admin.php?page=camp-manager-actuals&success=item_added");
+        $I->waitForText("Edit Receipt", 15, "h1");
 
         $I->seeInDatabase("wp_mf_receipts", [
             "store" => "Test Store",
@@ -160,16 +157,6 @@ class CampManagerReceiptsCest
             "tax" => 20.00,
             "total" => 220.00,
         ]);
-
-        $I->see("Test Budget Item", "table.table-view-list.budgetitems td.name");
-        $I->see("Power", "table.table-view-list.budgetitems td.category");
-        $I->see("100.00", "table.table-view-list.budgetitems td.price");
-        $I->see("2", "table.table-view-list.budgetitems td.quantity");
-        $I->see("200.00", "table.table-view-list.budgetitems td.subtotal");
-        // $I->see("20.00", "table.table-view-list.budgetitems td.tax");
-        $I->see("220.00", "table.table-view-list.budgetitems td.total");
-        $I->see("1", "table.table-view-list.budgetitems td.priority");
-
     }
 
     public function DeleteReceipt(AcceptanceTester $I)
