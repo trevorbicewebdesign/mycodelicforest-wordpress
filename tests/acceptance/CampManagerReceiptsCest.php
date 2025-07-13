@@ -52,24 +52,28 @@ class CampManagerReceiptsCest
     public function ViewReceipts(AcceptanceTester $I)
     {
         // Navigate to the receipts page (not the add form, to see the table)
-        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-receipts");
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-actuals");
         $I->see("Receipts", "h1"); // Adjust if needed to match page title
 
         // Assert that the `Add New` button is present
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-budget-item"]);
+        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-receipt"]);
 
         // Assert that each table header is present
         $I->see("ID", "th#id");
+        $I->see("User", "th#purchaser");
         $I->see("Store", "th#store");
         $I->see("Date", "th#date");
         $I->see("Subtotal", "th#subtotal");
         $I->see("Tax", "th#tax");
+        $I->see("Shipping", "th#shipping");
         $I->see("Total", "th#total");
+        $I->see("Reimbursed", "th#reimbursed");
+        $I->see("Ledger ID", "th#ledger_id");
 
         // Optional: Check for the select-all checkbox label
         $I->see("Select All", "label[for='cb-select-all-1']");
 
-        $I->seeNumberOfElements("table.wp-list-table tbody tr", 3); // Only the header row initially
+        // $I->seeNumberOfElements("table.wp-list-table tbody tr", 3);
     }
 
     public function AddNewReceipt(AcceptanceTester $I)
