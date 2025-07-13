@@ -60,7 +60,7 @@ class CampManagerReceiptsCest
 
         // Assert that each table header is present
         $I->see("ID", "th#id");
-        $I->see("User", "th#purchaser");
+        $I->see("User", "th#cmid");
         $I->see("Store", "th#store");
         $I->see("Date", "th#date");
         $I->see("Subtotal", "th#subtotal");
@@ -180,13 +180,14 @@ class CampManagerReceiptsCest
             "subtotal" => 100.00,
             "tax" => 10.00,
             "total" => 110.00,
-            "category" => "Supplies",
+
             "amount" => 100.00,
             "quantity" => 2,
             "priority" => 1,
         ]);
         $item_id = $I->haveInDatabase("wp_mf_receipt_items", [
             "receipt_id" => $id,
+            "category_id" => 1,
             "name" => "Test Receipt Item",
             "price" => 100.00,
             "quantity" => 2,
@@ -194,7 +195,7 @@ class CampManagerReceiptsCest
             "tax" => 20.00,
         ]);
         // Navigate to the receipts page
-        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-receipts");
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-actuals");
         $I->see("Receipts", "h1");
 
         // Delete is a bulk action, so we need to select an item first
