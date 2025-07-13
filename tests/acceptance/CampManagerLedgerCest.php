@@ -90,29 +90,52 @@ class CampManagerLedgerCest
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-ledger");
         $I->see("Add Ledger Entry", "h1");
 
-        $I->see("Note", "label[for='note']");
-        $I->see("Amount", "label[for='amount']");
-        $I->see("Date", "label[for='date']");
-        $I->see("Link", "label[for='link']");
+        $I->see("Note", "label[for='ledger_note']");
+        $I->see("Amount", "label[for='ledger_amount']");
+        $I->see("Date", "label[for='ledger_date']");
+        $I->see("Link", "label[for='ledger_link']");
 
-
+        $I->see("ID", "table thead tr th");
+        $I->see("Receipt", "table thead tr th");
+        $I->see("Note", "table thead tr th");
+        $I->see("Amount", "table thead tr th");
+        $I->see("Type", "table thead tr th");
 
         // Fill in the form
-        $I->fillField("input[name=\"note\"]", "Test Ledger Item");
-        $I->fillField("input[name=\"date\"]", date("Y-m-d"));
-        $I->fillField("input[name=\"amount\"]", "200.00");
-        $I->fillField("input[name=\"link\"]", "https://www.paypal.com/activity/payment/76U3343887368243K");
+        $I->fillField("input[name=\"ledger_note\"]", "Test Ledger Item");
+        $I->fillField("input[name=\"ledger_date\"]", date("Y-m-d"));
+        $I->fillField("input[name=\"ledger_amount\"]", "-200.00");
+        $I->fillField("input[name=\"ledger_link\"]", "https://www.paypal.com/activity/payment/76U3343887368243K");
+
+        $I->fillField("input[name=\"ledger_line_item_note[]\"]", "Test Ledger Line Item Note");
+        $I->fillField("input[name=\"ledger_line_item_amount[]\"]", "-200.00");
+        $I->selectOption("select[name=\"ledger_line_item_type[]\"]", "Expense");
 
         // Submit the form
-        $I->click("Add Ledger Entry");
-        $I->waitForText("Ledger item added successfully.", 5);
+        $I->click("Save Ledger");
 
         // Verify the item was added
         $I->seeInDatabase("wp_mf_ledger", [
             "note" => "Test Ledger Item",
-            "amount" => 200.00,
-            "date" => date("Y-m-d"),
-            // "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
+            "amount" => -200.00,
+            // "date" => date("Y-m-d"),
+            "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
+        ]);
+
+        $ledger_id = $I->grabFromDatabase("wp_mf_ledger", "id", [
+            "note" => "Test Ledger Item",
+            "amount" => -200.00,
+            "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
+        ]);
+
+        $I->seeInDatabase("wp_mf_ledger_line_items", [
+            "ledger_id" => $ledger_id,
+            "receipt_id" => 0,
+            "name" => "",
+            "amount" => -200.00,
+            "cmid" => $this->userId,
+            "note" => "Test Ledger Line Item Note",
+            "type" => "Expense",
         ]);
     }
 
