@@ -58,7 +58,7 @@ $form_action = admin_url('admin-post.php');
                 <?php
                 $members = $this->roster->getRosterMembers();
                 foreach ($members as $member) {
-                    $selected = ($receipt->purchaser_id ?? '') == $member['id'] ? 'selected' : '';
+                    $selected = ($receipt->cmid ?? '') == $member['id'] ? 'selected' : '';
                     echo sprintf(
                     '<option value="%d" %s>%s %s</option>',
                     esc_attr($member['id']),
@@ -105,7 +105,7 @@ $form_action = admin_url('admin-post.php');
                         </td>
                         <td>
                             <?php $budget_items = $this->budgets->getBudgetItems(); ?>
-                            <select name="items[<?php echo $i; ?>][budget_item_id]" style="width: 100%;" required>
+                            <select name="items[<?php echo $i; ?>][budget_item_id]" style="width: 100%;">
                                 <option value="">Select an item</option>
                                 <?php foreach ($budget_items as $budget_item_id => $budget_item): ?>
                                     <option value="<?php echo esc_attr($budget_item['id']); ?>" <?php selected(($item->budget_item_id ?? '') == $budget_item['id']); ?>>
