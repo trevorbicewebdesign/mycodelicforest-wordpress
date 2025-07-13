@@ -87,47 +87,78 @@ class CampManagerReceiptsCest
 
         $I->seeElement("input#store");
         $I->seeElement("input#date");
+        // purchaser
+        $I->seeElement("select#purchaser");
         $I->seeElement("input#subtotal");
         $I->seeElement("input#tax");
+        $I->seeElement("input#shipping");
         $I->seeElement("input#total");
-        $I->seeElement("select#category");
-        $I->seeElement("select#budget_item_id");
-        $I->seeElement("input#amount");
-        $I->seeElement("input#quantity");
-        $I->seeElement("input#priority");
 
-        // Fill in the form fields
-        $I->fillField("input#receipt_store", "Test Store");
-        $I->fillField("input#receipt_date", "2024-01-01");
-        $I->fillField("input#receipt_subtotal", "100.00");
-        $I->fillField("input#receipt_tax", "10.00");
-        $I->fillField("input#receipt_total", "110.00");
-        $I->selectOption("select#receipt_category", "Supplies");
-        $I->fillField("input#receipt_amount", "100.00");
-        $I->fillField("input#receipt_quantity", "2");
-        $I->fillField("input#receipt_subtotal", "200.00");
-        $I->fillField("input#receipt_tax", "20.00");
-        $I->fillField("input#receipt_total", "220.00");
-        $I->fillField("input#receipt_priority", "1");
+        $I->see("Item Name", "table thead tr th");
+        $I->see("Category", "table thead tr th");
+        $I->see("Item", "table thead tr th");
+        $I->see("Price", "table thead tr th");
+        $I->see("Qty", "table thead tr th");
+        $I->see("Subtotal", "table thead tr th");
+        $I->see("Tax", "table thead tr th");
+        $I->see("Total", "table thead tr th");
+
+        $I->seeElement("input[name='items[0][name]']");
+        $I->seeElement("select[name='items[0][category]']");
+        $I->seeElement("select[name='items[0][budget_item_id]']");
+        $I->seeElement("input[name='items[0][price]']");
+        $I->seeElement("input[name='items[0][quantity]']");
+        $I->seeElement("input[name='items[0][subtotal]']");
+        $I->seeElement("input[name='items[0][tax]']");
+        $I->seeElement("input[name='items[0][total]']");
+
+        // Fill in the form fields for one row
+        $I->fillField("input#store", "Test Store");
+        $I->fillField("input#date", "01/01/2024");
+        $I->selectOption("select#purchaser", "1");
+        $I->fillField("input#subtotal", "100.00");
+        $I->fillField("input#tax", "10.00");
+        $I->fillField("input#shipping", "0.00");
+        $I->fillField("input#total", "110.00");
+        
+        // Fill in the first item row
+        $I->fillField("input[name='items[0][name]']", "Test Budget Item");
+        $I->selectOption("select[name='items[0][category]']", "Power");
+        $I->selectOption("select[name='items[0][budget_item_id]']", "1");
+        $I->fillField("input[name='items[0][price]']", "100");
+        $I->fillField("input[name='items[0][quantity]']", "2");
+        $I->fillField("input[name='items[0][subtotal]']", "200");
+        $I->fillField("input[name='items[0][tax]']", "20");
+        $I->fillField("input[name='items[0][total]']", "220");
 
         // Submit the form
-        $I->click(['css' => "input[type='submit'][value='Add Budget Item']"]);
+        $I->click(['css' => "input[type='submit'][value='Save & Close Receipt']"]);
         $I->wait("1");
-        $I->waitForText("Budget Items", 15, "h1");
+        $I->waitForText("Receipts", 15, "h1");
 
         // Check that we are on the view all budget items page
-        $I->seeCurrentUrlEquals("/wp-admin/admin.php?page=camp-manager-budget-items&success=item_added");
+        $I->seeCurrentUrlEquals("/wp-admin/admin.php?page=camp-manager-actuals&success=item_added");
 
-        $I->seeInDatabase("wp_mf_budget_items", [
-            "name" => "Test Budget Item",
-            // "description" => "This is a test budget item description.",
-            "category_id" => 1, // Assuming 'Power' category has ID 1
-            "price" => 100,
+        $I->seeInDatabase("wp_mf_receipts", [
+            "store" => "Test Store",
+            "date" => "2024-01-01",
+            "subtotal" => 100.00,
+            "tax" => 10.00,
+            "total" => 110.00,
+            "category" => "Supplies",
+            "amount" => 100.00,
             "quantity" => 2,
-            "subtotal" => 200,
-            "tax" => 20,
-            "total" => 220,
             "priority" => 1,
+        ]);
+
+        $I->seeInDatabase("wp_mf_receipt_items", [
+            "receipt_id" => 1, // Assuming this is the first receipt
+            "name" => "Test Budget Item",
+            "price" => 100.00,
+            "quantity" => 2,
+            "subtotal" => 200.00,
+            "tax" => 20.00,
+            "total" => 220.00,
         ]);
 
         $I->see("Test Budget Item", "table.table-view-list.budgetitems td.name");
