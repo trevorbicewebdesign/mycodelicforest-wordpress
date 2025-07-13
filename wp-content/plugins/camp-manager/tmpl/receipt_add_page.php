@@ -41,16 +41,13 @@ $form_action = admin_url('admin-post.php');
             <tr>
             <th><label for="store" id="label-store">Store</label></th>
             <td>
-                <input type="text" name="store" class="regular-text" id="store"
-                value="<?php echo esc_attr(stripslashes($store)); ?>">
+                <input type="text" name="store" class="regular-text" id="store" value="<?php echo esc_attr(stripslashes($store)); ?>">
             </td>
             </tr>
             <tr>
             <th><label for="date" id="label-date">Date</label></th>
             <td>
-                <input type="text" name="date" id="date"
-                value="<?php echo esc_attr($date ? date('m/d/Y', strtotime($date)) : ''); ?>"
-                placeholder="mm/dd/yyyy" pattern="\d{2}/\d{2}/\d{4}">
+                <input type="text" name="date" id="date" value="<?php echo esc_attr($date ? date('m/d/Y', strtotime($date)) : ''); ?>" placeholder="mm/dd/yyyy" pattern="\d{2}/\d{2}/\d{4}">
             </td>
             </tr>
             <tr>
