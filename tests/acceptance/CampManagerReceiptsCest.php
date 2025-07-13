@@ -175,15 +175,13 @@ class CampManagerReceiptsCest
     public function DeleteReceipt(AcceptanceTester $I)
     {
         $id = $I->haveInDatabase("wp_mf_receipts", [
+            "cmid" => 1,
             "store" => "Test Store",
             "date" => "2024-01-01",
             "subtotal" => 100.00,
             "tax" => 10.00,
+            "shipping" => 0.00,
             "total" => 110.00,
-
-            "amount" => 100.00,
-            "quantity" => 2,
-            "priority" => 1,
         ]);
         $item_id = $I->haveInDatabase("wp_mf_receipt_items", [
             "receipt_id" => $id,
