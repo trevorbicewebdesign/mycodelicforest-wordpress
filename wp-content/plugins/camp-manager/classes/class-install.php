@@ -152,6 +152,7 @@ class CampManagerInstall
         $sql = "
         CREATE TABLE `$table` (
             `id` INT(11) NOT NULL AUTO_INCREMENT,
+            `cmid` INT(11) DEFAULT NULL,
             `store` VARCHAR(255) DEFAULT NULL,
             `date` DATETIME DEFAULT NULL,
             `subtotal` FLOAT DEFAULT NULL,
@@ -186,6 +187,7 @@ class CampManagerInstall
             `total` FLOAT NOT NULL DEFAULT 0,
             `category_id` INT(11) DEFAULT NULL,
             `link` VARCHAR(255) DEFAULT NULL,
+            `budget_item_id` INT(11) DEFAULT NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
         ";
