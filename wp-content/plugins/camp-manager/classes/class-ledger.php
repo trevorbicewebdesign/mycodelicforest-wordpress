@@ -28,7 +28,8 @@ class CampManagerLedger
         $note = sanitize_text_field($_POST['ledger_note'] ?? '');
         $date = sanitize_text_field($_POST['ledger_date'] ?? '');
         $amount = floatval($_POST['ledger_amount'] ?? 0);
-
+        $link = isset($_POST['ledger_link']) ? esc_url_raw($_POST['ledger_link']) : null;
+        
         $table_ledger = $wpdb->prefix . 'mf_ledger';
         $table_lines = $wpdb->prefix . 'mf_ledger_line_items';
 
@@ -37,6 +38,7 @@ class CampManagerLedger
             'note' => $note,
             'date' => $date,
             'amount' => $amount,
+            'link' => $link,
             'line_items' => $this->normalizeLedgerLineItems(
                 $_POST['ledger_line_item_id'] ?? [],
                 $_POST['ledger_line_item_note'] ?? [],
@@ -105,6 +107,7 @@ class CampManagerLedger
                 'amount' => $data['amount'],
                 'note'   => $data['note'],
                 'date'   => $data['date'],
+                'link'   => $data['link'],
             ]);
 
             if (!$result) {
@@ -118,6 +121,7 @@ class CampManagerLedger
                 'amount' => $data['amount'],
                 'note'   => $data['note'],
                 'date'   => $data['date'],
+                'link'   => $data['link'],
             ], ['id' => $ledger_id]);
         }
 
