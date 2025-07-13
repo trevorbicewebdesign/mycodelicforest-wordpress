@@ -58,7 +58,7 @@ $form_action = admin_url('admin-post.php');
                 <?php
                 $members = $this->roster->getRosterMembers();
                 foreach ($members as $member) {
-                    $selected = ($receipt->purchaser_id ?? '') == $member->id ? 'selected' : '';
+                    $selected = ($receipt->purchaser_id ?? '') == $member['id'] ? 'selected' : '';
                     echo sprintf(
                     '<option value="%d" %s>%s %s</option>',
                     esc_attr($member['id']),
