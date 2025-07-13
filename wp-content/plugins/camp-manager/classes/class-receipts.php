@@ -85,7 +85,7 @@ class CampManagerReceipts
 
             wp_redirect(admin_url('admin.php?page=camp-manager-add-receipt&id=' . $receipt_id . '&receipt_submitted=1'));
         } catch (Exception $e) {
-            wp_redirect(admin_url('admin.php?page=camp-manager-upload-receipt&error=' . urlencode($e->getMessage())));
+            wp_redirect(admin_url('admin.php?page=camp-manager-actuals&error=' . urlencode($e->getMessage())));
         }
         exit;
 
