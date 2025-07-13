@@ -78,32 +78,23 @@ class CampManagerReceiptsCest
         $I->see("Add New Receipt", "h1");
 
         // Check that the form fields and labels are present
-        $I->see("Store", "label[for='receipt_store']");
-        $I->see("Date", "label[for='receipt_date']");
-        $I->see("Subtotal", "label[for='receipt_subtotal']");
-        $I->see("Tax", "label[for='receipt_tax']");
-        $I->see("Total", "label[for='receipt_total']");
-        $I->see("Category", "label[for='receipt_category']");
-        $I->see("Amount", "label[for='receipt_amount']");
-        $I->see("Quantity", "label[for='receipt_quantity']");
-        $I->see("Subtotal", "label[for='receipt_subtotal']");
-        $I->see("Tax", "label[for='receipt_tax']");
-        $I->see("Total", "label[for='receipt_total']");
-        $I->see("Priority", "label[for='receipt_priority']");
+        $I->see("Store", "label[for='store']");
+        $I->see("Date", "label[for='date']");
+        $I->see("Subtotal", "label[for='subtotal']");
+        $I->see("Tax", "label[for='tax']");
+        $I->see("Shipping", "label[for='shipping']");
+        $I->see("Total", "label[for='total']");
 
-        $I->seeElement("input#receipt_store");
-        $I->seeElement("input#receipt_date");
-        $I->seeElement("input#receipt_subtotal");
-        $I->seeElement("input#receipt_tax");
-        $I->seeElement("input#receipt_total");
-        $I->seeElement("select#receipt_category");
-        $I->seeElement("select#receipt_budget_item_id");
-        $I->seeElement("input#receipt_amount");
-        $I->seeElement("input#receipt_quantity");
-        $I->seeElement("input#receipt_subtotal");
-        $I->seeElement("input#receipt_tax");
-        $I->seeElement("input#receipt_total");
-        $I->seeElement("input#receipt_priority");
+        $I->seeElement("input#store");
+        $I->seeElement("input#date");
+        $I->seeElement("input#subtotal");
+        $I->seeElement("input#tax");
+        $I->seeElement("input#total");
+        $I->seeElement("select#category");
+        $I->seeElement("select#budget_item_id");
+        $I->seeElement("input#amount");
+        $I->seeElement("input#quantity");
+        $I->seeElement("input#priority");
 
         // Fill in the form fields
         $I->fillField("input#receipt_store", "Test Store");
