@@ -16,7 +16,7 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
     <h1 class="wp-heading-inline"><?php echo $ledger ? 'Edit Ledger Entry' : 'Add Ledger Entry'; ?></h1>
     <hr/>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-        <input type="hidden" name="action" value="camp_manager_save_ledger_entry">
+        <input type="hidden" name="action" value="camp_manager_save_ledger">
         <input type="hidden" name="ledger_id" value="<?php echo esc_attr($ledger->id ?? ''); ?>">
 
         <table class="form-table">
@@ -31,6 +31,10 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
             <tr>
                 <th><label for="ledger_amount">Total Amount</label></th>
                 <td><input type="number" step="0.01" name="ledger_amount" class="regular-text" value="<?php echo esc_attr($ledger->amount ?? ''); ?>" required></td>
+            </tr>
+            <tr>
+                <th><label for="ledger_link">Link</label></th>
+                <td><input type="text" name="ledger_link" class="regular-text" value="<?php echo esc_url($ledger->link ?? ''); ?>" placeholder="https://example.com/ledger-entry"></td>
             </tr>
         </table>
 
@@ -90,7 +94,11 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
 
         <p><button type="button" class="button button-secondary" id="add-line-item">Add Line Item</button></p>
 
-        <?php submit_button($ledger ? 'Update Ledger Entry' : 'Add Ledger Entry'); ?>
+        <div style="display: flex; gap: 10px;">
+            <?php submit_button('Save Ledger', 'secondary', 'save_ledger', false, array('id' => 'save-btn')); ?>
+            <?php submit_button('Save & Close Ledger', 'primary', 'save_close_ledger', false, array('id' => 'save-close-btn')); ?>
+            <?php submit_button('Close Ledger', 'secondary', 'close_ledger', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
+        </div>
     </form>
     <table style="display: none;">
         <tbody>
@@ -129,6 +137,15 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
 
 <script>
 jQuery(function($) {
+
+    // Set correct action on button click
+    $('#save-btn').on('click', function() {
+        $('#action-field').val('camp_manager_save_ledger');
+    });
+    $('#save-close-btn').on('click', function() {
+        $('#action-field').val('camp_manager_save_and_close_ledger');
+    });
+
     function bindReceiptChange($row) {
         const $select = $row.find('.receipt-select');
         const $note = $row.find('.line-note');
