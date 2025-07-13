@@ -84,4 +84,75 @@ class CampManagerLedgerCest
         $I->see("View", "table.wp-list-table tbody tr:nth-child(1) td.link");
         $I->seeLink("View", "https://www.paypal.com/activity/payment/76U3343887368243K");  
     }
+
+    public function AddLedger(AcceptanceTester $I)
+    {
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-ledger");
+        $I->see("Add New Ledger Item", "h1");
+
+        $I->see("Note", "label[for='note']");
+        $I->see("Amount", "label[for='amount']");
+        $I->see("Date", "label[for='date']");
+        $I->see("Link", "label[for='link']");
+
+        
+
+        // Fill in the form
+        $I->fillField("input[name=\"note\"]", "Test Ledger Item");
+        $I->fillField("input[name=\"date\"]", date("Y-m-d"));
+        $I->fillField("input[name=\"amount\"]", "200.00");
+        $I->fillField("input[name=\"link\"]", "https://www.paypal.com/activity/payment/76U3343887368243K");
+
+        // Submit the form
+        $I->click("Save Ledger Item");
+        $I->waitForText("Ledger item added successfully.", 5);
+
+        // Verify the item was added
+        $I->seeInDatabase("wp_mf_ledger", [
+            "note" => "Test Ledger Item",
+            "amount" => 200.00,
+            "date" => date("Y-m-d"),
+            "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
+        ]);
+    }
+
+    public function DeleteLedger(AcceptanceTester $I)
+    {
+
+        $ledger_id = $I->haveInDatabase("wp_mf_ledger", [
+            "note" => "Test Ledger Item",
+            "amount" => 200.00,
+            "date" => date("Y-m-d H:i:s"),
+            "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
+        ]);
+
+        $ledger_line_item_id = $I->haveInDatabase("wp_mf_ledger_line_items", [
+            "ledger_id" => $ledger_id,
+            "receipt_id" => 0,
+            "name" => "",
+            "amount" => 200.00,
+            "cmid" => $this->userId,
+            "note" => "Test Ledger Line Item Note",
+            "type" => "Expense",
+        ]);
+        
+        // Navigate to the ledger page
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-ledger");
+        $I->see("Ledger", "h1");
+
+        // Delete is a bulk action, so we need to select an item first
+        $I->checkOption("input[name=\"ledger[]\"][value=\"$ledger_id\"]");
+        $I->click("select[name=\"action\"]");
+        $I->selectOption("select[name=\"action\"]", "Delete");
+        $I->click("Apply");
+        $I->wait("1");
+        $I->see("Ledger", "h1");
+
+        $I->dontSeeInDatabase("wp_mf_ledger", [
+            "id" => $ledger_id,
+        ]);
+        $I->dontSeeInDatabase("wp_mf_ledger_line_items", [
+            "id" => $ledger_line_item_id,
+        ]);
+    }
 }
