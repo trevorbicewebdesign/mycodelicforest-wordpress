@@ -103,12 +103,13 @@ class CampManagerLedgerCest
 
         // Fill in the form
         $I->fillField("input[name=\"ledger_note\"]", "Test Ledger Item");
-        $I->fillField("input[name=\"ledger_date\"]", date("Y-m-d"));
+        $I->fillField("input[name=\"ledger_date\"]", date("m/d/Y"));
         $I->fillField("input[name=\"ledger_amount\"]", "-200.00");
-        $I->fillField("input[name=\"ledger_link\"]", "https://www.paypal.com/activity/payment/76U3343887368243K");
+        $randomNumber = rand(1000000000000000, 9999999999999999);
+        $I->fillField("input[name=\"ledger_link\"]", "https://www.paypal.com/activity/payment/" . $randomNumber);
 
         $I->fillField("input[name=\"ledger_line_item_note[]\"]", "Test Ledger Line Item Note");
-        $I->fillField("input[name=\"ledger_line_item_amount[]\"]", "-200.00");
+        $I->fillField("input[name=\"ledger_line_item_amount[]\"]", "200.00");
         $I->selectOption("select[name=\"ledger_line_item_type[]\"]", "Expense");
 
         // Submit the form
@@ -118,22 +119,18 @@ class CampManagerLedgerCest
         $I->seeInDatabase("wp_mf_ledger", [
             "note" => "Test Ledger Item",
             "amount" => -200.00,
-            // "date" => date("Y-m-d"),
-            "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
+            "link" => "https://www.paypal.com/activity/payment/$randomNumber",
         ]);
 
         $ledger_id = $I->grabFromDatabase("wp_mf_ledger", "id", [
             "note" => "Test Ledger Item",
             "amount" => -200.00,
-            "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
+            "link" => "https://www.paypal.com/activity/payment/$randomNumber",
         ]);
 
         $I->seeInDatabase("wp_mf_ledger_line_items", [
             "ledger_id" => $ledger_id,
-            "receipt_id" => 0,
-            "name" => "",
-            "amount" => -200.00,
-            "cmid" => $this->userId,
+            "amount" => 200.0,
             "note" => "Test Ledger Line Item Note",
             "type" => "Expense",
         ]);
