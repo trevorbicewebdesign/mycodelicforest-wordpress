@@ -49,6 +49,7 @@ class CampManagerInstall
             `lname` VARCHAR(255) NULL DEFAULT NULL,
             `playaname` VARCHAR(255) NULL DEFAULT NULL,
             `email` VARCHAR(255) NULL DEFAULT NULL,
+            `status` ENUM('Confirmed','Very Maybe','Maybe','No','Dropped') DEFAULT 'No',
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
         ";
