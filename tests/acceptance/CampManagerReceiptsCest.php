@@ -170,9 +170,6 @@ class CampManagerReceiptsCest
             "tax" => 20.00,
             "total" => 220.00,
         ]);
-
-        $I->seeInCurrentUrl()
-
     }
 
     public function DeleteReceipt(AcceptanceTester $I)
