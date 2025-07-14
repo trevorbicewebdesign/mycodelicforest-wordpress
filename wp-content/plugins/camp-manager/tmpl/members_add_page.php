@@ -104,7 +104,11 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
                         </td>
                     </tr>
                 </table>
-                <?php submit_button($is_edit ? 'Edit Camp Member' : 'Add Camp Member'); ?>
+                <div style="display: flex; gap: 10px;">
+                    <?php submit_button('Save Member', 'secondary', 'save_member', false, array('id' => 'save-btn')); ?>
+                    <?php submit_button('Save & Close Member', 'primary', 'save_close_member', false, array('id' => 'save-close-btn')); ?>
+                    <?php submit_button('Close Member', 'secondary', 'close_member', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
+                </div>
         </form>
     </div>
     <div class="col-md-6">
@@ -113,3 +117,14 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
 </div>
 
 </div>
+<script type="text/javascript">
+jQuery(document).ready(function ($) {
+    // Set correct action on button click
+    $('#save-btn').on('click', function() {
+        $('#action-field').val('camp_manager_save_member');
+    });
+    $('#save-close-btn').on('click', function() {
+        $('#action-field').val('camp_manager_save_and_close_member');
+    });
+});
+</script>
