@@ -1,6 +1,6 @@
 <?php
 
-class CampManagerReceiptsTest extends \lucatume\WPBrowser\TestCase\WPTestCase
+class CampManagerRosterTest extends \lucatume\WPBrowser\TestCase\WPTestCase
 {
     /**
      * @var \IntegrationTester
