@@ -76,6 +76,7 @@ class CampManagerReceipts
             $total = floatval($_POST['total']);
             $items = is_array($_POST['items']) ? $_POST['items'] : [];
             $raw = isset($_POST['raw']) ? sanitize_text_field($_POST['raw']) : '';
+            $link = isset($_POST['link']) ? esc_url_raw($_POST['link']) : null;
 
             if ($receipt_id) {
                 $this->update_receipt(
@@ -88,7 +89,8 @@ class CampManagerReceipts
                     $shipping,
                     $total,
                     $items,
-                    $raw
+                    $raw,
+                    $link
                 );
             } else {
                 $receipt_id = $this->insert_receipt(
@@ -100,7 +102,8 @@ class CampManagerReceipts
                     $shipping,
                     $total,
                     $items,
-                    $raw
+                    $raw,
+                    $link
                 );
             }
 
@@ -242,7 +245,8 @@ class CampManagerReceipts
         float $shipping,
         float $total,
         array $items,
-        string $raw
+        string $raw,
+        string $link = null
     ) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_receipts';
@@ -257,7 +261,8 @@ class CampManagerReceipts
             'tax'      => $tax,
             'shipping' => $shipping,
             'total'    => $total,
-            'raw'      => $raw
+            'raw'      => $raw,
+            'link'     => $link ? esc_url_raw($link) : null
         ];
 
         $where = ['id' => $receipt_id];
@@ -310,7 +315,8 @@ class CampManagerReceipts
         float $shipping,
         float $total,
         array $items,
-        string $raw
+        string $raw,
+        string $link = null
     )
     {
         global $wpdb;
@@ -326,7 +332,8 @@ class CampManagerReceipts
             'tax'      => $tax,
             'shipping' => $shipping,
             'total'    => $total,
-            'raw'      => $raw // Store raw items data as JSON    
+            'raw'      => $raw,
+            'link'     => $link ? esc_url_raw($link) : null
         ];
         $result = $wpdb->insert($table_name, $data);
 
