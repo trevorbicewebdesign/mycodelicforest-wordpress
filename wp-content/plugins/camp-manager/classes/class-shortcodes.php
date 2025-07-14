@@ -37,7 +37,7 @@ class CampManagerShortcodes
             return '<p>No members found.</p>';
         }
 
-        $output = '<table class="camp-manager-roster">';
+        $output = '<table class="camp-manager-roster" style="width: 100%; border-collapse: collapse;">';
         $headers = [
             '',
             'Playa Name',
