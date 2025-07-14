@@ -51,6 +51,12 @@ $form_action = admin_url('admin-post.php');
             </td>
             </tr>
             <tr>
+            <th><label for="link" id="label-link">Link</label></th>
+            <td>
+                <input type="text" name="link" class="regular-text" id="link" value="<?php echo esc_attr($link); ?>">
+            </td>
+            </tr>
+            <tr>
             <th><label for="purchaser" id="label-purchaser">Purchaser</label></th>
             <td>
                 <select name="purchaser" id="purchaser" class="regular-text">
@@ -189,7 +195,7 @@ $form_action = admin_url('admin-post.php');
             </td>
             <td>
                 <?php $budget_items = $this->budgets->getBudgetItems(); ?>
-                <select name="items[__INDEX__][budget_item_id]" style="width: 100%;" required>
+                <select name="items[__INDEX__][budget_item_id]" style="width: 100%;">
                     <option value="">Select an item</option>
                     <?php foreach ($budget_items as $budget_item_id => $budget_item): ?>
                         <option value="<?php echo esc_attr($budget_item['id']); ?>">

@@ -38,6 +38,7 @@ class CampManagerReceiptsTable extends WP_List_Table
             'total' => 'Total',
             'reimbursed' => 'Reimbursed',
             'ledger_id' => 'Ledger ID',
+            'link' => 'Link',
         ];
     }
 
@@ -95,6 +96,11 @@ class CampManagerReceiptsTable extends WP_List_Table
                 } else {
                     return '';
                 }
+            case 'link':
+                if (!empty($item['link'])) {
+                    return sprintf('<a href="%s" target="_blank" rel="noopener noreferrer">View</a>', esc_url($item['link']));
+                }
+                return '';
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
@@ -179,7 +185,7 @@ class CampManagerReceiptsTable extends WP_List_Table
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
         $sql = $wpdb->prepare(
-            "SELECT id, date, total, store, subtotal, shipping, tax, reimbursed, cmid FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT id, date, total, store, subtotal, shipping, tax, reimbursed, cmid, link FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
             $per_page,
             $offset
         );
