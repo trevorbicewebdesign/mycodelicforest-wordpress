@@ -29,15 +29,15 @@ class CampManagerRoster
                 'playaname' => sanitize_text_field($_POST['member_playaname']),
                 'email' => sanitize_email($_POST['member_email']),
                 //'wpid' => get_current_user_id(),
-                //'low_income' => isset($_POST['low_income']) ? (int)$_POST['low_income'] : null,
-                //'fully_paid' => isset($_POST['fully_paid']) ? (int)$_POST['fully_paid'] : null,
-                //'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
+                'low_income' => isset($_POST['low_income']) ? (int)$_POST['low_income'] : null,
+                'fully_paid' => isset($_POST['fully_paid']) ? (int)$_POST['fully_paid'] : null,
+                'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
             ]);
             
         } catch (\Exception $e) {
-            wp_redirect(admin_url('admin.php?page=camp-manager-roster&error=' . urlencode($e->getMessage())));
+            wp_redirect(admin_url('admin.php?page=camp-manager-add-member&error=' . urlencode($e->getMessage())));
         }
-        wp_redirect(admin_url('admin.php?page=camp-manager-roster&success=member_added'));
+        wp_redirect(admin_url('admin.php?page=camp-manager-members&success=member_added'));
         exit;
     }
 
@@ -108,14 +108,14 @@ class CampManagerRoster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
         $data = [
-            'wpid' => $memberData['wpid'],
+            // 'wpid' => $memberData['wpid'],
             'low_income' => isset($memberData['low_income']) ? (int)$memberData['low_income'] : null,
             'fully_paid' => isset($memberData['fully_paid']) ? (int)$memberData['fully_paid'] : null,
-            'season' => isset($memberData['season']) ? (int)$memberData['season'] : null,
+            'season' => 2025,
             'fname' => sanitize_text_field($memberData['fname']),
             'lname' => sanitize_text_field($memberData['lname']),
             'playaname' => sanitize_text_field($memberData['playaname']),
-            // 'email' => sanitize_email($memberData['email']),
+            'email' => sanitize_email($memberData['email']),
         ];
 
         

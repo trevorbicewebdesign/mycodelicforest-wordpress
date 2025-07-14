@@ -84,6 +84,7 @@ class CampManagerRosterCest
         $I->fillField("#member_fname", "John");
         $I->fillField("#member_lname", "Doe");
         $I->fillField("#member_playaname", "BurnerJohn");
+        $I->fillField("#member_email", "john.doe@example.com");
         $I->checkOption("#member_low_income");
         $I->checkOption("#member_fully_paid");
 
