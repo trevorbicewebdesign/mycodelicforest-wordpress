@@ -97,8 +97,43 @@ class CampManagerRosterCest
             "lname" => "Doe",
             "playaname" => "BurnerJohn",
             'season' => 2025,
+            "low_income" => NULL,
+            "fully_paid" => NULL,
+            "wpid" => NULL,
+            "email" => "john.doe@example.com"
+        ]);
+    }
+
+    public function UpdateMember(AcceptanceTester $I)
+    {
+        $member_id = $I->haveInDatabase("wp_mf_roster", [
+            "wpid" => $this->userId,
             "low_income" => 0,
-            "fully_paid" => 0
+            "fully_paid" => 0,
+            "season" => 2025,
+            "fname" => "John",
+            "lname" => "Doe",
+            "playaname" => "BurnerJohn",
+            "email" => "john.doe@example.com"
+        ]);
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member&id=$member_id");
+        $I->waitForText("Edit Member", 10, "h1");
+
+        // Fill in the form fields
+        $I->fillField("#member_fname", "Same");
+        $I->fillField("#member_lname", "Smith");
+        $I->fillField("#member_playaname", "SamSmith");
+        $I->fillField("#member_email", "sam.smith@example.com");
+
+        // Submit the form
+        $I->click("Save Member");
+        $I->wait(1);
+
+        $I->seeInDatabase("wp_mf_roster", [
+            "fname" => "Same",
+            "lname" => "Smith",
+            "playaname" => "SamSmith",
+            "email" => "sam.smith@example.com"
         ]);
     }
 
