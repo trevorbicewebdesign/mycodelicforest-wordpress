@@ -130,7 +130,14 @@ class CampManagerBudgets {
             'priority' => (int) $priority,
             'link' => $link ? sanitize_text_field($link) : null,
         ];
-        $result = $wpdb->update($table, $data, ['id' => (int)$budget_item_id]);
+
+        if ($budget_item_id && $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE id = %d", $budget_item_id))) {
+            // Update existing item
+            $result = $wpdb->update($table, $data, ['id' => (int)$budget_item_id]);
+        } else {
+            // Insert new item
+            $result = $wpdb->insert($table, $data);
+        }
         return (bool)$result;
     }
 
