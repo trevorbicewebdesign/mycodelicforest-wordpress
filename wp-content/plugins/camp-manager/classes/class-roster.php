@@ -35,9 +35,9 @@ class CampManagerRoster
             ]);
             
         } catch (\Exception $e) {
-            wp_redirect(admin_url('admin.php?page=camp-manager-roster&error=' . urlencode($e->getMessage())));
+            wp_redirect(admin_url('admin.php?page=camp-manager-add-member&error=' . urlencode($e->getMessage())));
         }
-        wp_redirect(admin_url('admin.php?page=camp-manager-roster&success=member_added'));
+        wp_redirect(admin_url('admin.php?page=camp-manager-members&success=member_added'));
         exit;
     }
 
@@ -108,7 +108,7 @@ class CampManagerRoster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
         $data = [
-            'wpid' => $memberData['wpid'],
+            // 'wpid' => $memberData['wpid'],
             'low_income' => isset($memberData['low_income']) ? (int)$memberData['low_income'] : null,
             'fully_paid' => isset($memberData['fully_paid']) ? (int)$memberData['fully_paid'] : null,
             'season' => 2025,
