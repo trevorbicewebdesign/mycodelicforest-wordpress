@@ -3,15 +3,19 @@
 class CampManagerShortcodes
 {
 
-    public function __construct()
+    private $receipts;
+    private $roster;
+    public function __construct( CampManagerReceipts $CampManagerReceipts, CampManagerRoster $CampManagerRoster)
     {
-       
+       $this->receipts = $CampManagerReceipts;
+       $this->roster = $CampManagerRoster;
     }
 
     public function init()
     {
         // need a custom shortcode for displaying the roster
         add_shortcode('camp_manager_roster', [$this, 'displayRoster']);
+        add_shortcode('camp_manager_expenses', [$this, 'displayExpenses']);
     }
 
     public function displayRoster($atts = [], $content = null)
@@ -65,6 +69,21 @@ class CampManagerShortcodes
         $output .= '</table>';
 
         return $output;
+    }
+
+    public function displayExpenses($atts = [], $content = null)
+    {
+        // Accept 'season' as a shortcode attribute
+        $atts = shortcode_atts([
+            'season' => ''
+        ], $atts, 'camp_manager_expenses');
+
+        $expenses = "";
+
+        if (empty($expenses)) {
+            return '<p>No expenses found.</p>';
+        }
+
     }
 }
 ?>
