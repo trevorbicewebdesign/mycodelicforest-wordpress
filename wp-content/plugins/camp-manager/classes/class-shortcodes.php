@@ -38,13 +38,24 @@ class CampManagerShortcodes
         }
 
         $output = '<table class="camp-manager-roster">';
-        $output .= '<tr><th>First Name</th><th>Last Name</th><th>Email</th></tr>';
+        $headers = [
+            'Playa Name',
+            'First Name', 
+            'Last Name', 
+            'Dues Paid',
+        ];
+        $output .= '<tr>';
+        foreach ($headers as $header) {
+            $output .= '<th>' . esc_html($header) . '</th>';
+        }
+        $output .= '</tr>';
 
         foreach ($roster as $member) {
             $output .= '<tr>';
+            $output .= '<td>' . esc_html($member['playa_name']) . '</td>';
             $output .= '<td>' . esc_html($member['fname']) . '</td>';
             $output .= '<td>' . esc_html($member['lname']) . '</td>';
-            $output .= '<td>' . esc_html($member['email']) . '</td>';
+            $output .= '<td>' . ($member['fully_paid'] ? 'Yes' : 'No') . '</td>';
             $output .= '</tr>';
         }
 
