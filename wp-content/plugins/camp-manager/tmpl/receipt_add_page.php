@@ -11,6 +11,7 @@ $tax = $receipt->tax ?? '';
 $shipping = $receipt->shipping ?? '';
 $total = $receipt->total ?? '';
 $items = $receipt->items ?? [];
+$link = $receipt->link ?? '';
 
 // Always render at least one empty row on new receipt
 if (empty($items)) {
