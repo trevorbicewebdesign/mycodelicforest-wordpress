@@ -51,6 +51,12 @@ $form_action = admin_url('admin-post.php');
             </td>
             </tr>
             <tr>
+            <th><label for="link" id="label-link">Link</label></th>
+            <td>
+                <input type="text" name="link" class="regular-text" id="link" value="<?php echo esc_attr($link); ?>">
+            </td>
+            </tr>
+            <tr>
             <th><label for="purchaser" id="label-purchaser">Purchaser</label></th>
             <td>
                 <select name="purchaser" id="purchaser" class="regular-text">
