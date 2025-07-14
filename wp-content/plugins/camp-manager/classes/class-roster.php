@@ -25,10 +25,11 @@ class CampManagerRoster
 
         try {
               $this->updateMember([
-                'fname' => sanitize_text_field($_POST['member_fname']),
-                'lname' => sanitize_text_field($_POST['member_lname']),
-                'playaname' => sanitize_text_field($_POST['member_playaname']),
-                'email' => sanitize_email($_POST['member_email']),
+                'id' => isset($_POST['id']) ? (int)$_POST['id'] : null,
+                'fname' => isset($_POST['member_fname']) ? sanitize_text_field($_POST['member_fname']) : '',
+                'lname' => isset($_POST['member_lname']) ? sanitize_text_field($_POST['member_lname']) : '',
+                'playaname' => isset($_POST['member_playaname']) ? sanitize_text_field($_POST['member_playaname']) : '',
+                'email' => isset($_POST['member_email']) ? sanitize_email($_POST['member_email']) : '',
                 //'wpid' => get_current_user_id(),
                 'low_income' => isset($_POST['low_income']) ? (int)$_POST['low_income'] : null,
                 'fully_paid' => isset($_POST['fully_paid']) ? (int)$_POST['fully_paid'] : null,
@@ -104,7 +105,7 @@ class CampManagerRoster
     }
 
     // Should update or insert a member if the id is null
-    public function updateMember($id = NULL, $memberData)
+    public function updateMember($memberData)
     {
         // insert or update into mf_roster
         global $wpdb;
@@ -120,18 +121,18 @@ class CampManagerRoster
             'email' => sanitize_email($memberData['email']),
         ];
 
-        if ($id === NULL) {
+        if (isset($memberData['id']) && !empty($memberData['id'])) {
+            $result = $wpdb->update($table_name, $data, ['id' => (int)$memberData['id']]);
+            if ($result === false) {
+                throw new \Exception("Failed to update member in roster: {$wpdb->last_error}");
+            }
+            return $memberData['id'];
+        } else {
             $result = $wpdb->insert($table_name, $data);
             if ($result === false) {
                 throw new \Exception("Failed to insert member in roster: {$wpdb->last_error}");
             }
             return $wpdb->insert_id;
-        } else {
-            $result = $wpdb->update($table_name, $data, ['id' => $id]);
-            if ($result === false) {
-                throw new \Exception("Failed to update member in roster: {$wpdb->last_error}");
-            }
-            return $id;
         }
     }
 
