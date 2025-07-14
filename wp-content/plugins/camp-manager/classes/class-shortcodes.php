@@ -39,6 +39,7 @@ class CampManagerShortcodes
 
         $output = '<table class="camp-manager-roster">';
         $headers = [
+            '',
             'Playa Name',
             'First Name', 
             'Last Name', 
@@ -52,6 +53,8 @@ class CampManagerShortcodes
 
         foreach ($roster as $member) {
             $output .= '<tr>';
+            // Add a counter for the first column
+            $output .= '<td>' . esc_html($member['id']) . '</td>';
             $output .= '<td>' . esc_html($member['playa_name']) . '</td>';
             $output .= '<td>' . esc_html($member['fname']) . '</td>';
             $output .= '<td>' . esc_html($member['lname']) . '</td>';
