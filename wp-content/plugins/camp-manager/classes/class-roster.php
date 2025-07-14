@@ -12,6 +12,7 @@ class CampManagerRoster
     {
         // add action processing for `camp_manager_save_member`
         add_action('admin_post_camp_manager_save_member', [$this, 'handle_member_save']);
+        add_action('admin_post_camp_manager_save_and_close_member', [$this, 'handle_member_save']);
     }
 
     public function handle_member_save()
@@ -23,7 +24,7 @@ class CampManagerRoster
         }
 
         try {
-              $this->addMember([
+              $this->updateMember([
                 'fname' => sanitize_text_field($_POST['member_fname']),
                 'lname' => sanitize_text_field($_POST['member_lname']),
                 'playaname' => sanitize_text_field($_POST['member_playaname']),
@@ -102,9 +103,10 @@ class CampManagerRoster
         return $member ?: null;
     }
 
-    public function addMember($memberData)
+    // Should update or insert a member if the id is null
+    public function updateMember($id = NULL, $memberData)
     {
-        // insert into mf_roster
+        // insert or update into mf_roster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
         $data = [
@@ -118,13 +120,19 @@ class CampManagerRoster
             'email' => sanitize_email($memberData['email']),
         ];
 
-        
-
-        $result = $wpdb->insert($table_name, $data);
-        if ($result === false) {
-            throw new \Exception("Failed to insert member into roster: {$wpdb->last_error}");
+        if ($id === NULL) {
+            $result = $wpdb->insert($table_name, $data);
+            if ($result === false) {
+                throw new \Exception("Failed to insert member in roster: {$wpdb->last_error}");
+            }
+            return $wpdb->insert_id;
+        } else {
+            $result = $wpdb->update($table_name, $data, ['id' => $id]);
+            if ($result === false) {
+                throw new \Exception("Failed to update member in roster: {$wpdb->last_error}");
+            }
+            return $id;
         }
-        return $wpdb->insert_id; // Return the ID of the newly added member
     }
 
     public function removeMember($memberId)
