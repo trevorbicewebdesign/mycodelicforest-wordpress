@@ -79,7 +79,7 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
                         <td>
                             <select name="ledger_line_item_type[]" class="line-type">
                                 <option value="">-- Type --</option>
-                                <option value="Camp Dues" <?php selected($item->type ?? '', 'Camp Dues'); ?>>Camp Dues</option>
+                                <option value="Camp Dues" <?php selected($item->type ?? '', $item->type ?? 'Camp Dues'); ?>>Camp Dues</option>
                                 <option value="Partial Camp Dues" <?php selected($item->type ?? '', 'Partial Camp Dues'); ?>>Partial Camp Dues</option>
                                 <option value="Expense" <?php selected($item->type ?? '', 'Expense'); ?>>Expense</option>
                                 <option value="Donation" <?php selected($item->type ?? '', 'Donation'); ?>>Donation</option>
