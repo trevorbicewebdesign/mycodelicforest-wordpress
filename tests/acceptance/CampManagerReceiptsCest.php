@@ -84,6 +84,8 @@ class CampManagerReceiptsCest
         // Check that the form fields and labels are present
         $I->see("Store", "label[for='store']");
         $I->see("Date", "label[for='date']");
+        $I->see("Purchaser", "label[for='purchaser']");
+        $I->see("Link", "label[for='link']");
         $I->see("Subtotal", "label[for='subtotal']");
         $I->see("Tax", "label[for='tax']");
         $I->see("Shipping", "label[for='shipping']");
@@ -91,8 +93,8 @@ class CampManagerReceiptsCest
 
         $I->seeElement("input#store");
         $I->seeElement("input#date");
-        // purchaser
         $I->seeElement("select#purchaser");
+        $I->seeElement("input#link");
         $I->seeElement("input#subtotal");
         $I->seeElement("input#tax");
         $I->seeElement("input#shipping");
@@ -169,7 +171,8 @@ class CampManagerReceiptsCest
             "total" => 220.00,
         ]);
 
-        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-receipt&id=" . $receipt_id);
+        $I->seeInCurrentUrl()
+
     }
 
     public function DeleteReceipt(AcceptanceTester $I)
