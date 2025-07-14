@@ -79,7 +79,7 @@ class CampManagerReceipts
             $link = isset($_POST['link']) ? esc_url_raw($_POST['link']) : null;
 
             if ($receipt_id) {
-                $this->update_receipt(
+                $receipt_id = $this->update_receipt(
                     $receipt_id,
                     $cmid,
                     $store,
