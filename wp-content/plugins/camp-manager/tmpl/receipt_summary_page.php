@@ -55,7 +55,8 @@ $form_action = admin_url('admin-post.php');
                 <th>Category</th>
                 <th>Receipts</th>
                 <th>Must Have</th>
-                <th>Diff</th>
+                <th>Remaining Must Have</th>
+                <th>Diff Remaining</th>
             </tr>
         </thead>
         <tbody>
@@ -64,7 +65,9 @@ $form_action = admin_url('admin-post.php');
             $total_budget = 0;
             foreach ($categories as $category) {
                 $actual = $this->receipts->get_total_receipts_by_category($category['id']);
+                $remaining = $this->budgets->get_remaining_budget_by_category($category['id']);
                 $budget = $this->budgets->getPriorityTotal($category['id'], 1);
+                $total_remaining += $remaining;
                 $total_receipts += $actual;
                 $total_budget += $budget;
             }
@@ -74,6 +77,7 @@ $form_action = admin_url('admin-post.php');
             echo '<td>Total</td>';
             echo '<td>$' . esc_html(number_format($total_receipts, 2)) . '</td>';
             echo '<td>$' . esc_html(number_format($total_budget, 2)) . '</td>';
+            echo '<td>$' . esc_html(number_format($total_remaining, 2)) . '</td>';
             echo '<td>$' . esc_html(number_format($total_diff, 2)) . '</td>';
             echo '</tr>';
 
@@ -81,6 +85,7 @@ $form_action = admin_url('admin-post.php');
             foreach ($categories as $category) {
                 $actual = $this->receipts->get_total_receipts_by_category($category['id']);
                 $budget = $this->budgets->getPriorityTotal($category['id'], 1);
+                $remaining = $this->budgets->get_remaining_budget_by_category($category['id']);
                 $diff = $budget - $actual;
                 $row_style = '';
                 if ($diff < 0) {
@@ -90,6 +95,7 @@ $form_action = admin_url('admin-post.php');
                 echo '<td>' . esc_html($category['name']) . '</td>';
                 echo '<td>$' . esc_html(number_format($actual, 2)) . '</td>';
                 echo '<td>$' . esc_html(number_format($budget, 2)) . '</td>';
+                echo '<td>$' . esc_html(number_format($remaining, 2)) . '</td>';
                 echo '<td>$' . esc_html(number_format($diff, 2)) . '</td>';
                 echo '</tr>';
             }
