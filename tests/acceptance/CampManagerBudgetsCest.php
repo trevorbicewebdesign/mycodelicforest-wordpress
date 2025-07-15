@@ -248,7 +248,7 @@ class CampManagerBudgetsCest
             "priority" => 1,
         ]);
         // Navigate to the budget items page
-        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budget-items");
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budgets");
         $I->see("Budget Items", "h1");
 
         // Delete is a bulk action, so we need to select an item first
