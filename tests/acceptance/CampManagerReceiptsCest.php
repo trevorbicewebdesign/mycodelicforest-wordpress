@@ -157,12 +157,12 @@ class CampManagerReceiptsCest
 
         $receipt_id = $I->grabFromDatabase("wp_mf_receipts", 'id',[
             "store" => "Test Store",
-            "date" => "2024-01-01",
+            "date" => "2024-01-01 00:00:00",
             'cmid' => 1,
             "subtotal" => 200.00,
             "tax" => 10.00,
             "shipping" => 20.00,
-            "total" => 220.00,
+            "total" => 230.00,
         ]);
 
         $I->seeInDatabase("wp_mf_receipt_items", [
@@ -183,7 +183,7 @@ class CampManagerReceiptsCest
         $id = $I->haveInDatabase("wp_mf_receipts", [
             "cmid" => 1,
             "store" => "Test Store",
-            "date" => "2024-01-01",
+            "date" => "2025-08-01",
             "subtotal" => 100.00,
             "tax" => 10.00,
             "shipping" => 0.00,
