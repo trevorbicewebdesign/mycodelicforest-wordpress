@@ -295,7 +295,8 @@ class CampManagerReceipts
                     'shipping' => isset($item['shipping']) ? floatval($item['shipping']) : 0.0,
                     'total' => floatval($item['total'] ?? 0.0),
                     'category_id' => isset($item['category']) ? intval($item['category']) : null,
-                    'link' => isset($item['link']) ? sanitize_text_field($item['link']) : null
+                    'link' => isset($item['link']) ? sanitize_text_field($item['link']) : null,
+                    'budget_item_id' => isset($item['budget_item_id']) ? intval($item['budget_item_id']) : null,
                 ];
                 $receipt_item = $this->insert_receipt_item($item_data);
                 if (!$receipt_item) {
@@ -317,7 +318,7 @@ class CampManagerReceipts
         float $total,
         array $items,
         string $raw,
-        string $link = null
+        string $link = null,
     )
     {
         global $wpdb;
@@ -334,7 +335,7 @@ class CampManagerReceipts
             'shipping' => $shipping,
             'total'    => $total,
             'raw'      => $raw,
-            'link'     => $link ? esc_url_raw($link) : null
+            'link'     => $link ? esc_url_raw($link) : null,
         ];
         $result = $wpdb->insert($table_name, $data);
 
@@ -354,6 +355,7 @@ class CampManagerReceipts
                         'receipt_id' => $receipt_id,
                         'name' => sanitize_text_field($item['name']),
                         'price' => floatval($item['price']),
+                        'budget_item_id' => isset($item['budget_item_id']) ? intval($item['budget_item_id']) : null,
                         'quantity' => $item['quantity'],
                         'subtotal' => floatval($item['subtotal']),
                         'tax' => isset($item['tax']) ? floatval($item['tax']) : 0.0,
