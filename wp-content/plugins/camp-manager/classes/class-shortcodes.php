@@ -84,6 +84,8 @@ class CampManagerShortcodes
             return '<p>No expenses found.</p>';
         }
 
+        
+
     }
 }
 ?>
