@@ -102,6 +102,29 @@ class CampManagerBudgets {
         return $wpdb->get_row($query);
     }
 
+    public function get_remaining_budget_by_category($category_id): float
+    {
+        // Should get the remaining budget for a category
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_budget_items";
+        $query = $wpdb->prepare(
+            "SELECT SUM(total) FROM $table WHERE category_id = %d AND priority = 1",
+            $category_id
+        );
+        $total_budget = $wpdb->get_var($query);
+
+        // now get the total receipts that are accounted for in this category (budget_item_id)
+        $receipts_table = "{$wpdb->prefix}mf_receipt_items";
+        $receipt_query = $wpdb->prepare(
+            "SELECT SUM(total) FROM $receipts_table WHERE budget_item_id IN (SELECT id FROM $table WHERE category_id = %d)",
+            $category_id
+        );
+        $total_receipts = $wpdb->get_var($receipt_query);
+
+        // If no budget items found, return 0.0
+        return $total_budget ? (float) $total_budget - (float) $total_receipts : 0.0;
+    }
+
     // Should insert or update a budget category
     public function upsertBudgetCategory($name, $description = '', $category_id = null): int
     {
