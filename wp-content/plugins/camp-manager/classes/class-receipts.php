@@ -292,6 +292,7 @@ class CampManagerReceipts
                     'quantity' => $item['quantity'],
                     'subtotal' => floatval($item['subtotal']),
                     'tax' => isset($item['tax']) ? floatval($item['tax']) : 0.0,
+                    'shipping' => isset($item['shipping']) ? floatval($item['shipping']) : 0.0,
                     'total' => floatval($item['total'] ?? 0.0),
                     'category_id' => isset($item['category']) ? intval($item['category']) : null,
                     'link' => isset($item['link']) ? sanitize_text_field($item['link']) : null
@@ -356,6 +357,7 @@ class CampManagerReceipts
                         'quantity' => $item['quantity'],
                         'subtotal' => floatval($item['subtotal']),
                         'tax' => isset($item['tax']) ? floatval($item['tax']) : 0.0,
+                        'shipping' => isset($item['shipping']) ? floatval($item['shipping']) : 0.0,
                         'total' => floatval($item['total'] ?? 0.0),
                         'category_id' => isset($item['category']) ? intval($item['category']) : null,
                         'link' => isset($item['link']) ? sanitize_text_field($item['link']) : null
