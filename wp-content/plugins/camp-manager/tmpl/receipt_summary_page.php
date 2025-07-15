@@ -92,7 +92,8 @@ $form_action = admin_url('admin-post.php');
                     $row_style = 'style="background-color:#ffdddd;color:#fff;"';
                 }
                 echo '<tr ' . $row_style . '>';
-                echo '<td>' . esc_html($category['name']) . '</td>';
+                $category_url = admin_url('admin.php?page=camp-manager-add-budget-category&id=' . intval($category['id']));
+                echo '<td><a href="' . esc_url($category_url) . '">' . esc_html($category['name']) . '</a></td>';
                 echo '<td>$' . esc_html(number_format($actual, 2)) . '</td>';
                 echo '<td>$' . esc_html(number_format($budget, 2)) . '</td>';
                 echo '<td>$' . esc_html(number_format($remaining, 2)) . '</td>';
