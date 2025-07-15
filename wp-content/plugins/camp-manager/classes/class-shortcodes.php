@@ -46,9 +46,7 @@ class CampManagerShortcodes
         $output = '<table class="camp-manager-roster" style="width: 100%; border-collapse: collapse;">';
         $headers = [
             '',
-            'Playa Name',
-            'First Name', 
-            'Last Name', 
+            'Name',
             'Dues Paid',
         ];
         $output .= '<tr>';
@@ -61,9 +59,7 @@ class CampManagerShortcodes
             $output .= '<tr>';
             // Add a counter for the first column
             $output .= '<td>' . esc_html($member['id']) . '</td>';
-            $output .= '<td>' . esc_html($member['playaname']) . '</td>';
-            $output .= '<td>' . esc_html($member['fname']) . '</td>';
-            $output .= '<td>' . esc_html($member['lname']) . '</td>';
+            $output .= '<td>' . esc_html($member['playaname'] . ' (' . $member['fname'] . ' ' . $member['lname'] . ')') . '</td>';
             $output .= '<td>' . ($member['fully_paid'] ? 'Yes' : 'No') . '</td>';
             $output .= '</tr>';
         }

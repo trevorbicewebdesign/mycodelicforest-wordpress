@@ -88,6 +88,8 @@ class CampManagerBudgetItemsTable extends WP_List_Table
                     return sprintf('<a href="%s">Yes</a>', esc_url($receipt_url));
                 }
                 return "No";
+            case 'actual':                
+                return '$' . number_format((float) $item['actual'], 2);
             case 'priority':
                 return esc_html($item['priority']);
             case 'link':
@@ -154,12 +156,21 @@ class CampManagerBudgetItemsTable extends WP_List_Table
         // Join with the categories table to get the category name
         $categories_table = "{$wpdb->prefix}mf_budget_category";
 
+        // We'll join the receipt_items table to get the actual total for each item in one query
+        $receipt_items_table = "{$wpdb->prefix}mf_receipt_items";
+        $select_fields = "bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link, bi.receipt_item_id, bi.receipt_id, bi.link,
+            COALESCE(SUM(ri.total), 0) AS actual";
+
+        $join_receipt_items = "LEFT JOIN $receipt_items_table AS ri ON bi.id = ri.budget_item_id";
+
         if ($this->category_id !== null) {
             $sql = $wpdb->prepare(
-            "SELECT bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link, bi.receipt_item_id, bi.receipt_id, bi.link
+            "SELECT $select_fields
              FROM $table AS bi
              LEFT JOIN $categories_table AS c ON bi.category_id = c.id
+             $join_receipt_items
              WHERE bi.category_id = %d
+             GROUP BY bi.id
              ORDER BY $order_by $order
              LIMIT %d OFFSET %d",
             $this->category_id,
@@ -172,9 +183,11 @@ class CampManagerBudgetItemsTable extends WP_List_Table
             );
         } else {
             $sql = $wpdb->prepare(
-            "SELECT bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link, bi.receipt_item_id, bi.receipt_id, bi.link
+            "SELECT $select_fields
              FROM $table AS bi
              LEFT JOIN $categories_table AS c ON bi.category_id = c.id
+             $join_receipt_items
+             GROUP BY bi.id
              ORDER BY $order_by $order
              LIMIT %d OFFSET %d",
             $per_page,
