@@ -88,6 +88,18 @@ class CampManagerBudgetItemsTable extends WP_List_Table
                     return sprintf('<a href="%s">Yes</a>', esc_url($receipt_url));
                 }
                 return "No";
+            case 'actual':
+                // get the total receipts of this item
+                if (!empty($item['receipt_item_id']) ){
+                    global $wpdb;
+                    $table = "{$wpdb->prefix}mf_receipt_items";
+                    $total_actual = $wpdb->get_var($wpdb->prepare(
+                        "SELECT SUM(total) FROM $table WHERE budget_item_id = %d",
+                        $item['id']
+                    ));
+                    return '$' . number_format((float) $total_actual, 2);
+                }
+                return '$0.00';
             case 'priority':
                 return esc_html($item['priority']);
             case 'link':
