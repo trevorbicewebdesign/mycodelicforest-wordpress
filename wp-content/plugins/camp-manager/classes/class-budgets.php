@@ -22,9 +22,10 @@ class CampManagerBudgets {
         }
 
         try {
-            $this->insertBudgetCategory(
+            $this->upsertBudgetCategory(
                 sanitize_text_field($_POST['budget_category_name']),
-                isset($_POST['budget_category_description']) ? sanitize_textarea_field($_POST['budget_category_description']) : ''
+                isset($_POST['budget_category_description']) ? sanitize_textarea_field($_POST['budget_category_description']) : '',
+                isset($_POST['budget_category_id']) ? (int)$_POST['budget_category_id'] : null
             );
         } catch (\Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-budget&error=' . urlencode($e->getMessage())));
@@ -112,6 +113,28 @@ class CampManagerBudgets {
         $table = "{$wpdb->prefix}mf_budget_items";
         $query = $wpdb->prepare("SELECT * FROM $table WHERE id = %d", $budget_item_id);
         return $wpdb->get_row($query);
+    }
+
+    // Should insert or update a budget category
+    public function upsertBudgetCategory($name, $description = '', $category_id = null): int
+    {
+        // Insert or update a budget category in the database
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_budget_category";
+        $data = [
+            'name' => sanitize_text_field($name),
+            'description' => sanitize_textarea_field($description),
+        ];
+
+        if ($category_id && $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE id = %d", $category_id))) {
+            // Update existing category
+            $wpdb->update($table, $data, ['id' => (int)$category_id]);
+            return (int)$category_id;
+        } else {
+            // Insert new category
+            $wpdb->insert($table, $data);
+            return (int)$wpdb->insert_id;
+        }
     }
 
     // Insert or update Budget Item
