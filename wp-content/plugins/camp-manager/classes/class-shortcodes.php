@@ -59,7 +59,7 @@ class CampManagerShortcodes
             $output .= '<tr>';
             // Add a counter for the first column
             $output .= '<td>' . esc_html($member['id']) . '</td>';
-            $output .= '<td>' . esc_html($member['playa_name']) . '</td>';
+            $output .= '<td>' . esc_html($member['playaname']) . '</td>';
             $output .= '<td>' . esc_html($member['fname']) . '</td>';
             $output .= '<td>' . esc_html($member['lname']) . '</td>';
             $output .= '<td>' . ($member['fully_paid'] ? 'Yes' : 'No') . '</td>';
