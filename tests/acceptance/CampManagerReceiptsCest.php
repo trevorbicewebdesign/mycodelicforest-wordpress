@@ -78,6 +78,17 @@ class CampManagerReceiptsCest
 
     public function AddNewReceipt(AcceptanceTester $I)
     {
+        $budget_item_id = $I->haveInDatabase("wp_mf_budget_items", [
+            "name" => "Test Budget Item",
+            "category_id" => 1,
+            "price" => 100.00,
+            "quantity" => 2,
+            "subtotal" => 200.00,
+            "tax" => 10.00,
+            "shipping" => 20.00,
+            "total" => 230.00,
+        ]);
+        
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-receipt");
         $I->see("Add New Receipt", "h1");
 
@@ -132,7 +143,7 @@ class CampManagerReceiptsCest
         // Fill in the first item row
         $I->fillField("input[name='items[0][name]']", "Test Budget Item");
         $I->selectOption("select[name='items[0][category]']", "Power");
-        $I->selectOption("select[name='items[0][budget_item_id]']", "1");
+        $I->selectOption("select[name='items[0][budget_item_id]']", "$budget_item_id");
         $I->fillField("input[name='items[0][price]']", "100");
         $I->fillField("input[name='items[0][quantity]']", "2");
         $I->fillField("input[name='items[0][subtotal]']", "200");
@@ -169,6 +180,7 @@ class CampManagerReceiptsCest
             "receipt_id" => $receipt_id,
             "category_id" => "1",
             "name" => "Test Budget Item",
+            "budget_item_id" => $budget_item_id,
             "price" => 100.00,
             "quantity" => 2,
             "subtotal" => 200.00,
