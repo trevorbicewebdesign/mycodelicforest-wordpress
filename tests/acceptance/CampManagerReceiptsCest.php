@@ -107,6 +107,7 @@ class CampManagerReceiptsCest
         $I->see("Qty", "table thead tr th");
         $I->see("Subtotal", "table thead tr th");
         $I->see("Tax", "table thead tr th");
+        $I->see("Shipping", "table thead tr th");
         $I->see("Total", "table thead tr th");
 
         $I->seeElement("input[name='items[0][name]']");
@@ -116,16 +117,17 @@ class CampManagerReceiptsCest
         $I->seeElement("input[name='items[0][quantity]']");
         $I->seeElement("input[name='items[0][subtotal]']");
         $I->seeElement("input[name='items[0][tax]']");
+        $I->seeElement("input[name='items[0][shipping]']");
         $I->seeElement("input[name='items[0][total]']");
 
         // Fill in the form fields for one row
         $I->fillField("input#store", "Test Store");
         $I->fillField("input#date", "01/01/2024");
         $I->selectOption("select#purchaser", "Trevor Bice");
-        $I->fillField("input#subtotal", "100.00");
+        $I->fillField("input#subtotal", "200.00");
         $I->fillField("input#tax", "10.00");
-        $I->fillField("input#shipping", "0.00");
-        $I->fillField("input#total", "110.00");
+        $I->fillField("input#shipping", "20.00");
+        $I->fillField("input#total", "230.00");
         
         // Fill in the first item row
         $I->fillField("input[name='items[0][name]']", "Test Budget Item");
@@ -134,8 +136,9 @@ class CampManagerReceiptsCest
         $I->fillField("input[name='items[0][price]']", "100");
         $I->fillField("input[name='items[0][quantity]']", "2");
         $I->fillField("input[name='items[0][subtotal]']", "200");
-        $I->fillField("input[name='items[0][tax]']", "20");
-        $I->fillField("input[name='items[0][total]']", "220");
+        $I->fillField("input[name='items[0][tax]']", "10");
+        $I->fillField("input[name='items[0][shipping]']", "20");
+        $I->fillField("input[name='items[0][total]']", "230");
 
         // Submit the form
         $I->click(['css' => "input[type='submit'][value='Save Receipt']"]);
@@ -146,18 +149,20 @@ class CampManagerReceiptsCest
             "store" => "Test Store",
             "date" => "2024-01-01",
             'cmid' => 1,
-            "subtotal" => 100.00,
+            "subtotal" => 200.00,
             "tax" => 10.00,
-            "total" => 110.00,
+            "shipping" => 20.00,
+            "total" => 230.00,
         ]);
 
         $receipt_id = $I->grabFromDatabase("wp_mf_receipts", 'id',[
             "store" => "Test Store",
             "date" => "2024-01-01",
             'cmid' => 1,
-            "subtotal" => 100.00,
+            "subtotal" => 200.00,
             "tax" => 10.00,
-            "total" => 110.00,
+            "shipping" => 20.00,
+            "total" => 220.00,
         ]);
 
         $I->seeInDatabase("wp_mf_receipt_items", [
@@ -167,8 +172,9 @@ class CampManagerReceiptsCest
             "price" => 100.00,
             "quantity" => 2,
             "subtotal" => 200.00,
-            "tax" => 20.00,
-            "total" => 220.00,
+            "tax" => 10.00,
+            "shipping" => 20.00,
+            "total" => 230.00,
         ]);
     }
 
