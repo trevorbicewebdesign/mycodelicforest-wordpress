@@ -40,6 +40,7 @@ class CampManagerBudgetItemsTable extends WP_List_Table
             'quantity' => 'Quantity',
             'subtotal' => 'Subtotal',
             'total' => 'Total', 
+            'actual' => 'Actual', 
             'purchased' => 'Purchased',
             'priority' => 'Priority',
             'link' => 'Link',

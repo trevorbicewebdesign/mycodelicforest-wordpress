@@ -91,6 +91,7 @@ $form_action = admin_url('admin-post.php');
                     <th>Qty</th>
                     <th>Subtotal</th>
                     <th>Tax</th>
+                    <th>Shipping</th>
                     <th>Total</th>
                     <th></th>
                 </tr>
@@ -125,6 +126,7 @@ $form_action = admin_url('admin-post.php');
                         <td><input type="number" name="items[<?php echo $i; ?>][quantity]" value="<?php echo esc_attr($item->quantity ?? 1); ?>" style="width: 100%;" /></td>
                         <td><input type="text" name="items[<?php echo $i; ?>][subtotal]" value="<?php echo esc_attr($item->subtotal ?? ''); ?>" style="width: 100%;" /></td>
                         <td><input type="text" name="items[<?php echo $i; ?>][tax]" value="<?php echo esc_attr($item->tax ?? ''); ?>" style="width: 100%;" /></td>
+                        <td><input type="text" name="items[<?php echo $i; ?>][shipping]" value="<?php echo esc_attr($item->shipping ?? ''); ?>" style="width: 100%;" /></td>
                         <td><input type="text" name="items[<?php echo $i; ?>][total]" value="<?php echo esc_attr($item->total ?? ''); ?>" style="width: 100%;" /></td>
                         <td><button type="button" class="remove-item button">Remove</button></td>
                     </tr>

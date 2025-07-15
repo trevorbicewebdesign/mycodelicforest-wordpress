@@ -5,8 +5,10 @@ class CampManagerShortcodes
 
     private $receipts;
     private $roster;
-    public function __construct( CampManagerReceipts $CampManagerReceipts, CampManagerRoster $CampManagerRoster)
+    private $core;
+    public function __construct( CampManagerCore $CampManagerCore, CampManagerReceipts $CampManagerReceipts, CampManagerRoster $CampManagerRoster)
     {
+       $this->core = $CampManagerCore;
        $this->receipts = $CampManagerReceipts;
        $this->roster = $CampManagerRoster;
     }
@@ -59,7 +61,7 @@ class CampManagerShortcodes
             $output .= '<tr>';
             // Add a counter for the first column
             $output .= '<td>' . esc_html($member['id']) . '</td>';
-            $output .= '<td>' . esc_html($member['playa_name']) . '</td>';
+            $output .= '<td>' . esc_html($member['playaname']) . '</td>';
             $output .= '<td>' . esc_html($member['fname']) . '</td>';
             $output .= '<td>' . esc_html($member['lname']) . '</td>';
             $output .= '<td>' . ($member['fully_paid'] ? 'Yes' : 'No') . '</td>';
@@ -84,8 +86,24 @@ class CampManagerShortcodes
             return '<p>No expenses found.</p>';
         }
 
-        
+        $categories = $this->core->getItemCategories();
+        $expenses .= '<table class="camp-manager-expenses" style="width: 100%; border-collapse: collapse;">';
+        $expenses .= '<tr>';
+        $expenses .= '<th>Category</th>';
+        $expenses .= '<th>Description</th>';
+        $expenses .= '<th>Total</th>';
 
+        foreach ($categories as $category) {
+            $expenses .= '<tr>';
+            $expenses .= '<td>' . esc_html($category['name']) . '</td>';
+            $expenses .= '<td>' . esc_html($category['description']) . '</td>';
+            $expenses .= '<td>' . esc_html($category['total']) . '</td>';
+            $expenses .= '</tr>';
+        }
+
+        $expenses .= '</table>';
+
+        return $expenses;
     }
 }
 ?>
