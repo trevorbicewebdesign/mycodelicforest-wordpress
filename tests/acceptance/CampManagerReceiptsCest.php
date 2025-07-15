@@ -166,7 +166,7 @@ class CampManagerReceiptsCest
             "total" => 230.00,
         ]);
 
-        $receipt_id = $I->grabFromDatabase("wp_mf_receipts", 'id',[
+        $receipt_id = $I->grabFromDatabase("wp_mf_receipts", 'id', [
             "store" => "Test Store",
             "date" => "2024-01-01 00:00:00",
             'cmid' => 1,
