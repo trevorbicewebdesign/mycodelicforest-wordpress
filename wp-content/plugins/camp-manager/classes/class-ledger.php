@@ -15,7 +15,6 @@ class CampManagerLedger
         add_action('admin_post_camp_manager_save_and_close_ledger', [$this, 'handle_ledger_entry_save']);
 
     }
-
     public function handle_ledger_entry_save()
     {
         global $wpdb;
