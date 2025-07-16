@@ -43,11 +43,28 @@ class CampManagerRoster
         exit;
     }
 
+    public function countUnpaidMembers()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        // Count where fully_paid is NULL or 0
+        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid IS NULL OR fully_paid = 0";
+        return $wpdb->get_var($query);
+    }
+
     public function countLowIncomeMembers()
     {
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
         $query = "SELECT COUNT(*) FROM $table_name WHERE low_income = 1";
+        return $wpdb->get_var($query);
+    }
+
+    public function countUnpaidLowIncomeMembers()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT COUNT(*) FROM $table_name WHERE low_income = 1 AND (fully_paid IS NULL OR fully_paid = 0)";
         return $wpdb->get_var($query);
     }
 
@@ -109,19 +126,16 @@ class CampManagerRoster
 
     public function remainingCampDues(): float
     {
-        $total_members = $this->countRosterMembers();
-        $total_low_income = $this->countLowIncomeMembers();
-        $total_paid = $this->countPaidCampDues();
-        $total_paid_low_income = $this->countPaidLowIncomeCampDues();
+        $unpaid_members = $this->countUnpaidMembers();
+        $unpaid_low_income_members = $this->countUnpaidLowIncomeMembers();
+        $unpaid_full_price_members = $unpaid_members - $unpaid_low_income_members;
 
         $normal_camp_dues = 350;
         $low_income_camp_dues = 250;
 
-        // Calculate remaining dues
-        $remaining_normal = ($total_members - $total_paid - $total_low_income) * $normal_camp_dues;
-        $remaining_low_income = ($total_low_income - $total_paid_low_income) * $low_income_camp_dues;
-
-        return $remaining_normal + $remaining_low_income;
+        $normal_remaining_dues = $unpaid_full_price_members * $normal_camp_dues;
+        $low_income_remaining_dues = $unpaid_low_income_members * $low_income_camp_dues;
+        return $normal_remaining_dues + $low_income_remaining_dues;
     }
 
     public function expectedCampDuesRevenue(): float
