@@ -104,6 +104,37 @@ class CampManagerRoster
         return $member ?: null;
     }
 
+    // figure out how many regular and low income campers there are left to pay dues
+    // use that information at 350 for regular and 250 for low income to calculate expected revenue remaining
+
+    public function remainingCampDues(): float
+    {
+        $total_members = $this->countRosterMembers();
+        $total_low_income = $this->countLowIncomeMembers();
+        $total_paid = $this->countPaidCampDues();
+        $total_paid_low_income = $this->countPaidLowIncomeCampDues();
+
+        $normal_camp_dues = 350;
+        $low_income_camp_dues = 250;
+
+        // Calculate remaining dues
+        $remaining_normal = ($total_members - $total_paid - $total_low_income) * $normal_camp_dues;
+        $remaining_low_income = ($total_low_income - $total_paid_low_income) * $low_income_camp_dues;
+
+        return $remaining_normal + $remaining_low_income;
+    }
+
+    public function expectedCampDuesRevenue(): float
+    {
+        $total_members = $this->countRosterMembers();
+        $total_low_income = $this->countLowIncomeMembers();
+
+        $normal_camp_dues = 350;
+        $low_income_camp_dues = 250;
+
+        return ($total_members - $total_low_income) * $normal_camp_dues + $total_low_income * $low_income_camp_dues;
+    }
+
     // Should update or insert a member if the id is null
     public function updateMember($memberData)
     {
