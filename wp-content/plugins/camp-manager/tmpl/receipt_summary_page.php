@@ -62,6 +62,8 @@ $form_action = admin_url('admin-post.php');
                 <th>Must Have</th>
                 <th>Remaining Must Have</th>
                 <th>Diff Remaining</th>
+                <th>Should Have</th>
+                <th>Remaining Should Have</th>                
             </tr>
         </thead>
         <tbody>
@@ -71,27 +73,34 @@ $form_action = admin_url('admin-post.php');
             foreach ($categories as $category) {
                 $actual = $this->receipts->get_total_receipts_by_category($category['id']);
                 $remaining = $this->budgets->get_remaining_budget_by_category($category['id'], 1);
-                $budget = $this->budgets->getPriorityTotal($category['id'], 1);
+                $remaining_should_have = $this->budgets->get_remaining_budget_by_category($category['id'], 2);
+                $must_have = $this->budgets->getPriorityTotal($category['id'], 1);
+                $total_should_have += $this->budgets->getPriorityTotal($category['id'], 2) + $must_have;
+                $total_remaining_should_have += $remaining_should_have;
                 $total_remaining += $remaining;
                 $total_receipts += $actual;
-                $total_budget += $budget;
+                $total_must_have += $must_have;
             }
-            $total_diff = $total_budget - $total_receipts;
+            $total_diff = $total_must_have - $total_receipts;
             // Output total row
             echo '<tr style="font-weight:bold;background:#f9f9f9">';
             echo '<td>Total</td>';
             echo '<td>$' . esc_html(number_format($total_receipts, 2)) . '</td>';
-            echo '<td>$' . esc_html(number_format($total_budget, 2)) . '</td>';
+            echo '<td>$' . esc_html(number_format($total_must_have, 2)) . '</td>';
             echo '<td>$' . esc_html(number_format($total_remaining, 2)) . '</td>';
             echo '<td>$' . esc_html(number_format($total_diff, 2)) . '</td>';
+            echo '<td>$' . esc_html(number_format($total_should_have, 2)) . '</td>';
+            echo '<td>$' . esc_html(number_format($total_remaining_should_have, 2)) . '</td>';
             echo '</tr>';
 
             // Output category rows
             foreach ($categories as $category) {
                 $actual = $this->receipts->get_total_receipts_by_category($category['id']);
-                $budget = $this->budgets->getPriorityTotal($category['id'], 1);
+                $must_have = $this->budgets->getPriorityTotal($category['id'], 1);
                 $remaining = $this->budgets->get_remaining_budget_by_category($category['id'], 1);
-                $diff = $budget - $actual;
+                $should_have = $this->budgets->getPriorityTotal($category['id'], 2);
+                $remaining_should_have = $this->budgets->get_remaining_budget_by_category($category['id'], 2);
+                $diff = $must_have - $actual;
                 $row_style = '';
                 if ($diff < 0) {
                     $row_style = 'style="background-color:#ffdddd;color:#fff;"';
@@ -100,9 +109,12 @@ $form_action = admin_url('admin-post.php');
                 $category_url = admin_url('admin.php?page=camp-manager-add-budget-category&id=' . intval($category['id']));
                 echo '<td><a href="' . esc_url($category_url) . '">' . esc_html($category['name']) . '</a></td>';
                 echo '<td>$' . esc_html(number_format($actual, 2)) . '</td>';
-                echo '<td>$' . esc_html(number_format($budget, 2)) . '</td>';
+                echo '<td>$' . esc_html(number_format($must_have, 2)) . '</td>';
                 echo '<td>$' . esc_html(number_format($remaining, 2)) . '</td>';
                 echo '<td>$' . esc_html(number_format($diff, 2)) . '</td>';
+                echo '<td>$' . esc_html(number_format($should_have    , 2)) . '</td>';
+                echo '<td>$' . esc_html(number_format($remaining_should_have, 2)) . '</td>';
+                
                 echo '</tr>';
             }
             ?>
