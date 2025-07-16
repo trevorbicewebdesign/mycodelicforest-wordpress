@@ -18,7 +18,12 @@ $form_action = admin_url('admin-post.php');
     <h1 class="wp-heading-inline">Receipt Summary</h1>
 
     <h3>Total Receipts: $<?php echo esc_html(number_format($this->receipts->get_total_receipts(), 2)); ?></h3>
-    
+    <h3>Total Money In: $<?php echo esc_html(number_format($this->ledger->totalMoneyIn(), 2)); ?></h3>
+    <h3>Expected Money In: $<?php echo esc_html(number_format($this->roster->expectedCampDuesRevenue(), 2)); ?></h3>
+    <h3>Total Donations: $<?php echo esc_html(number_format($this->ledger->totalDonations(), 2)); ?></h3>
+    <h3>Total Assets Sold: $<?php echo esc_html(number_format($this->ledger->totalAssetsSold(), 2)); ?></h3>
+    <h3>Total Expected Revenue: <?php  echo esc_html(number_format($this->roster->expectedCampDuesRevenue() + $this->ledger->totalDonations() + $this->ledger->totalAssetsSold(), 2)); ?></h3>
+    <h3>Remaining Camp Dues: $<?php echo esc_html(number_format($this->roster->remainingCampDues()), 2); ?></h3>
     <?php
     // get all the categories at the top so they're available for both chart and table
     $categories = $this->core->getItemCategories();
@@ -65,7 +70,7 @@ $form_action = admin_url('admin-post.php');
             $total_budget = 0;
             foreach ($categories as $category) {
                 $actual = $this->receipts->get_total_receipts_by_category($category['id']);
-                $remaining = $this->budgets->get_remaining_budget_by_category($category['id']);
+                $remaining = $this->budgets->get_remaining_budget_by_category($category['id'], 1);
                 $budget = $this->budgets->getPriorityTotal($category['id'], 1);
                 $total_remaining += $remaining;
                 $total_receipts += $actual;
@@ -85,7 +90,7 @@ $form_action = admin_url('admin-post.php');
             foreach ($categories as $category) {
                 $actual = $this->receipts->get_total_receipts_by_category($category['id']);
                 $budget = $this->budgets->getPriorityTotal($category['id'], 1);
-                $remaining = $this->budgets->get_remaining_budget_by_category($category['id']);
+                $remaining = $this->budgets->get_remaining_budget_by_category($category['id'], 1);
                 $diff = $budget - $actual;
                 $row_style = '';
                 if ($diff < 0) {
