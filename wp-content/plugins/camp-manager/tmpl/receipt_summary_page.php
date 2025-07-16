@@ -41,7 +41,7 @@ $form_action = admin_url('admin-post.php');
             $rows = [];
             foreach ($categories as $category) {
                 $total = $this->receipts->get_total_receipts_by_category($category['id']);
-                $rows[] = "['" . esc_js($category['name']) . " $" . number_format($total, 2) . "', " . floatval($total) . "]";
+                $rows[] = "['" . str_replace('&amp;', '&', $category['name'])   . " $" . number_format($total, 2) . "', " . floatval($total) . "]";
             }
             echo implode(",\n            ", $rows);
             ?>
