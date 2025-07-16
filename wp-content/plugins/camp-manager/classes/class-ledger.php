@@ -203,6 +203,7 @@ class CampManagerLedger
         return $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger WHERE amount > 0") ?: 0;
     }
 
+
     public function totalMoneyOut()
     {
         global $wpdb;
@@ -212,7 +213,13 @@ class CampManagerLedger
     public function totalDonations()
     {
         global $wpdb;
-        return $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger WHERE type = 'Donation'") ?: 0;
+        return $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger_line_items WHERE type = 'Donation'") ?: 0;
+    }
+
+    public function totalAssetsSold()
+    {
+        global $wpdb;
+        return $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger_line_items WHERE type = 'Sold Asset'") ?: 0;
     }
 
     public function totalCampDues()
