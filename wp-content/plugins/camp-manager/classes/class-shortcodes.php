@@ -69,7 +69,7 @@ class CampManagerShortcodes
         return $output;
     }
 
-    public function displayExpenses($atts = [], $content = null)
+    public function displayExpenses($atts = [])
     {
         // Accept 'season' as a shortcode attribute
         $atts = shortcode_atts([
