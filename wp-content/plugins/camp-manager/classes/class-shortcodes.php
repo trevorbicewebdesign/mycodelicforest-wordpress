@@ -77,6 +77,39 @@ class CampManagerShortcodes
         return $output;
     }
 
+    public function DisplayCampDuesPayments($atts = [])
+    {
+        // Accept 'season' as a shortcode attribute
+        $atts = shortcode_atts([
+            'season' => ''
+        ], $atts, 'camp_manager_dues_payments');
+
+        $payments = $this->receipts->getCampDuesPayments($atts['season']);
+
+        if (empty($payments)) {
+            return '<p>No camp dues payments found.</p>';
+        }
+
+        $output = '<table class="camp-manager-dues-payments" style="width: 100%; border-collapse: collapse;">';
+        $output .= '<tr>';
+        $output .= '<th>Member</th>';
+        $output .= '<th>Amount</th>';
+        $output .= '<th>Date</th>';
+        $output .= '</tr>';
+
+        foreach ($payments as $payment) {
+            $output .= '<tr>';
+            $output .= '<td>' . esc_html($payment['member_name']) . '</td>';
+            $output .= '<td>' . esc_html($payment['amount']) . '</td>';
+            $output .= '<td>' . esc_html($payment['date']) . '</td>';
+            $output .= '</tr>';
+        }
+
+        $output .= '</table>';
+
+        return $output;
+    }
+
     public function displayExpenses($atts = [])
     {
         // Accept 'season' as a shortcode attribute
