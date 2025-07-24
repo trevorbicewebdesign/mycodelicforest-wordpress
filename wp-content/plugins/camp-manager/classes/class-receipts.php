@@ -154,9 +154,36 @@ class CampManagerReceipts
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_receipts';
-        $sql = "SELECT * FROM $table_name";
+        $sql = "SELECT * FROM $table_name ORDER BY date DESC";
         $receipts = $wpdb->get_results($sql);
         return $receipts;
+    }
+
+    public function get_receipt_items($receipt_id = null)
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_receipt_items";
+        if ($receipt_id) {
+            // Join with receipts table to order by receipt date
+            $receipts_table = "{$wpdb->prefix}mf_receipts";
+            $sql = $wpdb->prepare(
+                "SELECT items.* 
+                 FROM {$table_name} AS items
+                 INNER JOIN {$receipts_table} AS receipts ON items.receipt_id = receipts.id
+                 WHERE items.receipt_id = %d
+                 ORDER BY receipts.date DESC, items.id ASC",
+                $receipt_id
+            );
+        } else {
+            // Join with receipts table to order by receipt date for all items
+            $receipts_table = "{$wpdb->prefix}mf_receipts";
+            $sql = "SELECT items.* 
+                    FROM {$table_name} AS items
+                    INNER JOIN {$receipts_table} AS receipts ON items.receipt_id = receipts.id
+                    ORDER BY receipts.date DESC, items.id ASC";
+        }
+        $items = $wpdb->get_results($sql);
+        return $items;
     }
 
     public function get_receipt($id)
@@ -174,15 +201,6 @@ class CampManagerReceipts
         }   
 
         return $receipt;
-    }
-
-    public function get_receipt_items($id)
-    {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'mf_receipt_items';
-        $sql = "SELECT * FROM $table_name WHERE receipt_id = %d";
-        $items = $wpdb->get_results($wpdb->prepare($sql, $id));
-        return $items;
     }
 
     public function checkForDuplicateReceipt($store, $date, $total, $items = [])
