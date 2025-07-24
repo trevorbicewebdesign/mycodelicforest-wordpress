@@ -48,6 +48,8 @@ class CampManagerShortcodes
             '',
             'Name',
             'Dues Paid',
+            'RSVP',
+            'Status'
         ];
         $output .= '<tr>';
         foreach ($headers as $header) {
@@ -69,6 +71,8 @@ class CampManagerShortcodes
             $output .= '<td>' . $name . '</td>';
 
             $output .= '<td>' . ($member['fully_paid'] ? 'Yes' : 'No') . '</td>';
+            $output .= '<td>' . ($member['rsvp'] ? 'Yes' : 'No') . '</td>';
+            $output .= '<td>' . esc_html($member['status']) . '</td>';
             $output .= '</tr>';
         }
 
@@ -144,10 +148,10 @@ class CampManagerShortcodes
             $output .= '<tr>';
             $output .= '<td>' . esc_html($item->id) . '</td>';
             $output .= '<td>' . esc_html(stripslashes($item->name)) . '</td>';
-            $output .= '<td>' . esc_html(number_format($item->price ?? 0, 2)) . '</td>';
+            $output .= '<td>$' . esc_html(number_format($item->price ?? 0, 2)) . '</td>';
             $output .= '<td>' . esc_html($item->quantity ?? 1) . '</td>';
-            $output .= '<td>' . esc_html(number_format($item->tax ?? 0, 2)) . '</td>';
-            $output .= '<td>' . esc_html(number_format($item->total, 2)) . '</td>';
+            $output .= '<td>$' . esc_html(number_format($item->tax ?? 0, 2)) . '</td>';
+            $output .= '<td>$' . esc_html(number_format($item->total, 2)) . '</td>';
             $output .= '</tr>';
             $total += floatval($item->total);
         }
