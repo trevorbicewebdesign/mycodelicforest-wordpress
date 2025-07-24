@@ -117,30 +117,49 @@ class CampManagerShortcodes
             'season' => ''
         ], $atts, 'camp_manager_expenses');
 
-        $expenses = "";
+        $receipt_items = "";
 
-        if (empty($expenses)) {
+        // Pass the season attribute if get_receipt_items supports it
+       
+        $receipt_items = $this->receipts->get_receipt_items();
+        
+
+        if (empty($receipt_items)) {
             return '<p>No expenses found.</p>';
         }
 
-        $categories = $this->core->getItemCategories();
-        $expenses .= '<table class="camp-manager-expenses" style="width: 100%; border-collapse: collapse;">';
-        $expenses .= '<tr>';
-        $expenses .= '<th>Category</th>';
-        $expenses .= '<th>Description</th>';
-        $expenses .= '<th>Total</th>';
+        $output = '<table class="camp-manager-expenses" style="width: 100%; border-collapse: collapse;">';
+        $output .= '<tr>';
+        $output .= '<th>Expense ID</th>';
+        $output .= '<th>Name</th>';
+        $output .= '<th>Price</th>';
+        $output .= '<th>Quantity</th>';
+        $output .= '<th>Tax</th>';
+        $output .= '<th>Total</th>';
+        $output .= '</tr>';
 
-        foreach ($categories as $category) {
-            $expenses .= '<tr>';
-            $expenses .= '<td>' . esc_html($category['name']) . '</td>';
-            $expenses .= '<td>' . esc_html($category['description']) . '</td>';
-            $expenses .= '<td>' . esc_html($category['total']) . '</td>';
-            $expenses .= '</tr>';
+        $total = 0;
+
+        foreach ($receipt_items as $item) {
+            $output .= '<tr>';
+            $output .= '<td>' . esc_html($item->id) . '</td>';
+            $output .= '<td>' . esc_html(stripslashes($item->name)) . '</td>';
+            $output .= '<td>' . esc_html(number_format($item->price ?? 0, 2)) . '</td>';
+            $output .= '<td>' . esc_html($item->quantity ?? 1) . '</td>';
+            $output .= '<td>' . esc_html(number_format($item->tax ?? 0, 2)) . '</td>';
+            $output .= '<td>' . esc_html(number_format($item->total, 2)) . '</td>';
+            $output .= '</tr>';
+            $total += floatval($item->total);
         }
 
-        $expenses .= '</table>';
+        $output .= '<tr>';
+        $output .= '<td colspan="2" style="text-align:right;"><strong>Total</strong></td>';
+        $output .= '<td colspan="2"><strong>$' . esc_html(number_format($total, 2)) . '</strong></td>';
+        $output .= '</tr>';
 
-        return $expenses;
+        $output .= '</table>';
+
+        return $output;
     }
 }
 ?>
