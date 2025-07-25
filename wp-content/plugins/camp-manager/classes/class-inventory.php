@@ -12,6 +12,30 @@ class CampManagerInventory {
         add_action('admin_post_camp_manager_save_inventory', [$this, 'handle_inventory_save']);
         add_action('admin_post_camp_manager_save_and_close_inventory', [$this, 'handle_inventory_save']);
 
+        add_action('admin_post_camp_manager_save_tote', [$this, 'handle_tote_save']);
+        add_action('admin_post_camp_manager_save_and_close_tote', [$this, 'handle_tote_save']);
+
+    }
+
+    public function handle_tote_save()
+    {
+        // Handle saving a tote from the admin post request
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        try {
+            $tote_id = $this->upsertTote(
+                sanitize_text_field($_POST['tote_name']),
+                isset($_POST['tote_description']) ? sanitize_textarea_field($_POST['tote_description']) : '',
+                isset($_POST['tote_id']) ? (int)$_POST['tote_id'] : null
+            );
+        } catch (\Exception $e) {
+            wp_redirect(admin_url('admin.php?page=camp-manager-tote&error=' . urlencode($e->getMessage())));
+            exit;
+        }
+        wp_redirect(admin_url("admin.php?page=camp-manager-add-tote&id={$tote_id}&success=item_added"));
+        exit;
     }
 
     public function handle_inventory_save()
@@ -22,7 +46,7 @@ class CampManagerInventory {
         }
 
         try {
-            $this->upsertInventoryItem(
+            $item_id = $this->upsertInventoryItem(
                 sanitize_text_field($_POST['inventory_name']),
                 isset($_POST['inventory_description']) ? sanitize_textarea_field($_POST['inventory_description']) : '',
                 isset($_POST['inventory_id']) ? (int)$_POST['inventory_id'] : null
@@ -31,7 +55,7 @@ class CampManagerInventory {
             wp_redirect(admin_url('admin.php?page=camp-manager-inventory&error=' . urlencode($e->getMessage())));
             exit;
         }
-        wp_redirect(admin_url('admin.php?page=camp-manager-inventory&success=item_added'));
+        wp_redirect(admin_url("admin.php?page=camp-manager-inventory&id={$item_id}&success=item_added"));
         exit;
     }
 
@@ -76,6 +100,40 @@ class CampManagerInventory {
             $wpdb->insert($table, $data);
             return (int)$wpdb->insert_id;
         }
+    }
+
+    public function upsertTote($name, $description = '', $tote_id = null): int
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_totes";
+
+        // Prepare all fields, using defaults if not provided
+        $data = [
+            'name'         => sanitize_text_field($name),
+            'description'  => sanitize_textarea_field($description),
+            'weight'       => isset($_POST['tote_weight']) ? floatval($_POST['tote_weight']) : 0,
+            'uid'          => isset($_POST['tote_uid']) ? sanitize_text_field($_POST['tote_uid']) : '',
+            'status'       => isset($_POST['tote_status']) ? sanitize_text_field($_POST['tote_status']) : '',
+            'location'     => isset($_POST['tote_location']) ? sanitize_text_field($_POST['tote_location']) : '',
+            'size'         => isset($_POST['tote_size']) ? sanitize_text_field($_POST['tote_size']) : '',
+        ];
+
+        if ($tote_id && $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE id = %d", $tote_id))) {
+            // Update existing tote
+            $wpdb->update($table, $data, ['id' => (int)$tote_id]);
+            return (int)$tote_id;
+        } else {
+            // Insert new tote
+            $wpdb->insert($table, $data);
+            return (int)$wpdb->insert_id;
+        }
+    }
+
+    public function getTote($id)
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_totes";
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id));
     }
 
     public function getInventoryItem($id)

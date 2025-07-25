@@ -242,7 +242,9 @@ class CampManagerPages
                 'Inventory',
                 'manage_options',
                 'camp-manager-inventory',
-                [$this, 'render_inventory_view_all_page'],
+                function() {
+                    include(plugin_dir_path(__FILE__) . '../tmpl/inventory_view_all_page.php');
+                },
                 'dashicons-admin-site',
                 6
             );
@@ -257,12 +259,29 @@ class CampManagerPages
                 }   
             );
 
-        });
-    }
+            add_submenu_page(
+                'camp-manager-inventory',
+                'View Totes',
+                'View Totes',
+                'manage_options',
+                'camp-manager-totes',
+                function() {
+                    include plugin_dir_path(__FILE__) . '../tmpl/totes_view_all_page.php';
+                }
+            );
 
-    public function render_inventory_view_all_page()
-    {
-        include(plugin_dir_path(__FILE__) . '../tmpl/inventory_view_all_page.php');
+            add_submenu_page(
+                'camp-manager-totes',
+                'Add a Tote',
+                'Add a Tote',
+                'manage_options',
+                'camp-manager-add-tote',
+                function() {
+                    include plugin_dir_path(__FILE__) . '../tmpl/totes_add_page.php';
+                }
+            );
+
+        });
     }
 
     public function render_members_add_page()

@@ -29,6 +29,7 @@ require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-roster-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budget-items-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budget-categories-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-inventory-list-table.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-totes-list-table.php');
  
 register_activation_hook(__FILE__, function () {
     require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-install.php');
