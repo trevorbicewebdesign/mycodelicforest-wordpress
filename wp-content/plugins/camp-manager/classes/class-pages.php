@@ -8,13 +8,16 @@ class CampManagerPages
     private $roster;
     private $ledger;
 
-    public function __construct(CampManagerReceipts $receipts, CampManagerBudgets $budgets, CampManagerRoster $roster, CampManagerLedger $ledger, CampManagerCore $core)
+    private $inventory;
+
+    public function __construct(CampManagerReceipts $receipts, CampManagerBudgets $budgets, CampManagerRoster $roster, CampManagerLedger $ledger, CampManagerCore $core, CampManagerInventory $inventory)
     {
         $this->receipts = $receipts;
         $this->budgets = $budgets;
         $this->roster = $roster;
         $this->ledger = $ledger;
         $this->core = $core;
+        $this->inventory = $inventory;
     }
     
     public function init()
@@ -242,6 +245,16 @@ class CampManagerPages
                 [$this, 'render_inventory_view_all_page'],
                 'dashicons-admin-site',
                 6
+            );
+            add_submenu_page(
+                'camp-manager-inventory',
+                'Add Inventory',
+                'Add Inventory',
+                'manage_options',
+                'camp-manager-add-inventory',
+                function() {
+                    include plugin_dir_path(__FILE__) . '../tmpl/inventory_add_page.php';
+                }   
             );
 
         });

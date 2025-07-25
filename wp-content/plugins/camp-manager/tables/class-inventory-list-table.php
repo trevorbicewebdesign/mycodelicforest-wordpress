@@ -29,7 +29,6 @@ class CampManagerInventoryTable extends WP_List_Table
             'name'         => 'Name',
             'manufacturer' => 'Manufacturer',
             'model'        => 'Model',
-            'description'  => 'Description',
             'quantity'     => 'Quantity',
             'location'     => 'Location',
             'weight'       => 'Weight',
@@ -65,13 +64,24 @@ class CampManagerInventoryTable extends WP_List_Table
             case 'id':
                 return esc_html($item['id']);
             case 'name':
-                return esc_html(stripslashes($item['name']));
+                $edit_url = admin_url('admin.php?page=camp-manager-add-inventory&id=' . urlencode($item['id']));
+                $name_html = sprintf(
+                    '<a href="%s">%s</a>',
+                    esc_url($edit_url),
+                    esc_html(stripslashes($item['name']))
+                );
+                if (!empty($item['description'])) {
+                    $desc_html = sprintf(
+                        '<div style="font-size: 11px; color: #666; margin-top: 2px;">%s</div>',
+                        esc_html(stripslashes($item['description']))
+                    );
+                    return $name_html . $desc_html;
+                }
+                return $name_html;
             case 'manufacturer':
                 return esc_html($item['manufacturer']);
             case 'model':
                 return esc_html($item['model']);
-            case 'description':
-                return esc_html($item['description']);
             case 'quantity':
                 return number_format((float) $item['quantity'], 0);
             case 'location':

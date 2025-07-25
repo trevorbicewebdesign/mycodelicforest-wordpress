@@ -9,6 +9,8 @@ class CampManagerInventory {
 
     public function init()
     {
+        add_action('admin_post_camp_manager_save_inventory', [$this, 'handle_inventory_save']);
+        add_action('admin_post_camp_manager_save_and_close_inventory', [$this, 'handle_inventory_save']);
 
     }
 
@@ -74,6 +76,13 @@ class CampManagerInventory {
             $wpdb->insert($table, $data);
             return (int)$wpdb->insert_id;
         }
+    }
+
+    public function getInventoryItem($id)
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_inventory";
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id));
     }
 
 }

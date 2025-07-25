@@ -56,9 +56,10 @@ class CampManagerInit {
         $this->CampManagerLedger = new CampManagerLedger($this->CampManagerReceipts);
         $this->CampManagerBudgets = new CampManagerBudgets();
         $this->CampManagerRoster = new CampManagerRoster();
-        $this->CampManagerPages = new CampManagerPages($this->CampManagerReceipts, $this->CampManagerBudgets, $this->CampManagerRoster, $this->CampManagerLedger, $this->CampManagerCore);
-        $this->CampManagerShortcodes = new CampManagerShortcodes($this->CampManagerCore, $this->CampManagerReceipts, $this->CampManagerRoster);
         $this->CampManagerInventory = new CampManagerInventory();
+        $this->CampManagerPages = new CampManagerPages($this->CampManagerReceipts, $this->CampManagerBudgets, $this->CampManagerRoster, $this->CampManagerLedger, $this->CampManagerCore, $this->CampManagerInventory);
+        $this->CampManagerShortcodes = new CampManagerShortcodes($this->CampManagerCore, $this->CampManagerReceipts, $this->CampManagerRoster);
+        
         
     }
 

@@ -1,7 +1,7 @@
 <?php
 
 $inventory_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$inventory = $inventory_id ? $this->budgets->getBudgetItem($inventory_id) : null;
+$inventory = $inventory_id ? $this->inventory->getInventoryItem($inventory_id) : null;
 $is_edit = $inventory !== null;
 $inventory_id = $is_edit ? intval($inventory->id) : 0;
 ?>
