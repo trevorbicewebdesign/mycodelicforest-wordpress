@@ -87,7 +87,7 @@ class CampManagerInventoryTable extends WP_List_Table
             case 'location':
                 return esc_html($item['location']);
             case 'weight':
-                return number_format((float) $item['weight'], 2) . ' kg';
+                return number_format((float) $item['weight'], 2) . ' lbs';
             case 'category':
                 return esc_html($item['category']);
             case 'category_name':
