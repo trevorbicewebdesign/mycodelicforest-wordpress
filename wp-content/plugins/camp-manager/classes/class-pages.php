@@ -231,6 +231,25 @@ class CampManagerPages
                 }   
             );
         });
+
+        add_action('admin_menu', function () {
+            // Top-level menu
+            add_menu_page(
+                'View Inventory', 
+                'Inventory',
+                'manage_options',
+                'camp-manager-inventory',
+                [$this, 'render_inventory_view_all_page'],
+                'dashicons-admin-site',
+                6
+            );
+
+        });
+    }
+
+    public function render_inventory_view_all_page()
+    {
+        include(plugin_dir_path(__FILE__) . '../tmpl/inventory_view_all_page.php');
     }
 
     public function render_members_add_page()
