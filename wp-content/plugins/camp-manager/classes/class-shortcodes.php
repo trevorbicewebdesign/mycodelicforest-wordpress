@@ -48,6 +48,8 @@ class CampManagerShortcodes
             '',
             'Name',
             'Dues Paid',
+            'RSVP',
+            'Status'
         ];
         $output .= '<tr>';
         foreach ($headers as $header) {
@@ -59,8 +61,18 @@ class CampManagerShortcodes
             $output .= '<tr>';
             // Add a counter for the first column
             $output .= '<td>' . esc_html($member['id']) . '</td>';
-            $output .= '<td>' . esc_html($member['playaname'] . ' (' . $member['fname'] . ' ' . $member['lname'] . ')') . '</td>';
+
+            $name = '';
+            if (!empty($member['playaname'])) {
+            $name = esc_html($member['playaname']) . ' (' . esc_html($member['fname'] . ' ' . $member['lname']) . ')';
+            } else {
+            $name = esc_html($member['fname'] . ' ' . $member['lname']);
+            }
+            $output .= '<td>' . $name . '</td>';
+
             $output .= '<td>' . ($member['fully_paid'] ? 'Yes' : 'No') . '</td>';
+            $output .= '<td>' . ($member['rsvp'] ? 'Yes' : 'No') . '</td>';
+            $output .= '<td>' . esc_html($member['status']) . '</td>';
             $output .= '</tr>';
         }
 
@@ -69,37 +81,89 @@ class CampManagerShortcodes
         return $output;
     }
 
-    public function displayExpenses($atts = [], $content = null)
+    public function DisplayCampDuesPayments($atts = [])
+    {
+        // Accept 'season' as a shortcode attribute
+        $atts = shortcode_atts([
+            'season' => ''
+        ], $atts, 'camp_manager_dues_payments');
+
+        $payments = $this->receipts->getCampDuesPayments($atts['season']);
+
+        if (empty($payments)) {
+            return '<p>No camp dues payments found.</p>';
+        }
+
+        $output = '<table class="camp-manager-dues-payments" style="width: 100%; border-collapse: collapse;">';
+        $output .= '<tr>';
+        $output .= '<th>Member</th>';
+        $output .= '<th>Amount</th>';
+        $output .= '<th>Date</th>';
+        $output .= '</tr>';
+
+        foreach ($payments as $payment) {
+            $output .= '<tr>';
+            $output .= '<td>' . esc_html($payment['member_name']) . '</td>';
+            $output .= '<td>' . esc_html($payment['amount']) . '</td>';
+            $output .= '<td>' . esc_html($payment['date']) . '</td>';
+            $output .= '</tr>';
+        }
+
+        $output .= '</table>';
+
+        return $output;
+    }
+
+    public function displayExpenses($atts = [])
     {
         // Accept 'season' as a shortcode attribute
         $atts = shortcode_atts([
             'season' => ''
         ], $atts, 'camp_manager_expenses');
 
-        $expenses = "";
+        $receipt_items = "";
 
-        if (empty($expenses)) {
+        // Pass the season attribute if get_receipt_items supports it
+       
+        $receipt_items = $this->receipts->get_receipt_items();
+        
+
+        if (empty($receipt_items)) {
             return '<p>No expenses found.</p>';
         }
 
-        $categories = $this->core->getItemCategories();
-        $expenses .= '<table class="camp-manager-expenses" style="width: 100%; border-collapse: collapse;">';
-        $expenses .= '<tr>';
-        $expenses .= '<th>Category</th>';
-        $expenses .= '<th>Description</th>';
-        $expenses .= '<th>Total</th>';
+        $output = '<table class="camp-manager-expenses" style="width: 100%; border-collapse: collapse;">';
+        $output .= '<tr>';
+        $output .= '<th>Expense ID</th>';
+        $output .= '<th>Name</th>';
+        $output .= '<th>Price</th>';
+        $output .= '<th>Quantity</th>';
+        $output .= '<th>Tax</th>';
+        $output .= '<th>Total</th>';
+        $output .= '</tr>';
 
-        foreach ($categories as $category) {
-            $expenses .= '<tr>';
-            $expenses .= '<td>' . esc_html($category['name']) . '</td>';
-            $expenses .= '<td>' . esc_html($category['description']) . '</td>';
-            $expenses .= '<td>' . esc_html($category['total']) . '</td>';
-            $expenses .= '</tr>';
+        $total = 0;
+
+        foreach ($receipt_items as $item) {
+            $output .= '<tr>';
+            $output .= '<td>' . esc_html($item->id) . '</td>';
+            $output .= '<td>' . esc_html(stripslashes($item->name)) . '</td>';
+            $output .= '<td>$' . esc_html(number_format($item->price ?? 0, 2)) . '</td>';
+            $output .= '<td>' . esc_html($item->quantity ?? 1) . '</td>';
+            $output .= '<td>$' . esc_html(number_format($item->tax ?? 0, 2)) . '</td>';
+            $output .= '<td>$' . esc_html(number_format($item->total, 2)) . '</td>';
+            $output .= '</tr>';
+            $total += floatval($item->total);
         }
 
-        $expenses .= '</table>';
+        $output .= '<tr>';
+        $output .= '<td colspan="2" style="text-align:right;"><strong>Total</strong></td>';
+        $output .= '<td colspan="2"><strong>$' . esc_html(number_format($total, 2)) . '</strong></td>';
+        $output .= '</tr>';
 
-        return $expenses;
+        $output .= '</table>';
+
+        return $output;
     }
 }
 ?>
