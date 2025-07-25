@@ -41,13 +41,13 @@ $inventory_id = $is_edit ? intval($inventory->id) : 0;
             <tr>
                 <th><label for="inventory_description">Description</label></th>
                 <td>
-                    <input type="text" name="inventory_description" id="inventory_description" class="regular-text" value="<?php echo esc_attr($inventory->description ?? ''); ?>" required>
+                    <input type="text" name="inventory_description" id="inventory_description" class="regular-text" value="<?php echo esc_attr($inventory->description ?? ''); ?>">
                 </td>
             </tr>
             <tr>
                 <th><label for="inventory_quantity">Quantity</label></th>
                 <td>
-                    <input type="number" step="1" name="inventory_quantity" id="inventory_quantity" value="<?php echo esc_attr($inventory->quantity ?? '1'); ?>" required>
+                    <input type="number" step="1" name="inventory_quantity" id="inventory_quantity" value="<?php echo esc_attr($inventory->quantity ?? '1'); ?>">
                 </td>
             </tr>
             <tr>
@@ -65,19 +65,19 @@ $inventory_id = $is_edit ? intval($inventory->id) : 0;
             <tr>
                 <th><label for="inventory_weight">Weight</label></th>
                 <td>
-                    <input type="number" step="0.01" name="inventory_weight" id="inventory_weight" value="<?php echo esc_attr($inventory->weight ?? '0'); ?>" required>
+                    <input type="number" step="0.01" name="inventory_weight" id="inventory_weight" value="<?php echo esc_attr($inventory->weight ?? '0'); ?>">
                 </td>
             </tr>
             <tr>
                 <th><label for="inventory_category">Category</label></th>
                 <td>
-                    <input type="text" name="inventory_category" id="inventory_category" class="regular-text" value="<?php echo esc_attr($inventory->category ?? ''); ?>" required>
+                    <input type="text" name="inventory_category" id="inventory_category" class="regular-text" value="<?php echo esc_attr($inventory->category ?? ''); ?>">
                 </td>
             </tr>
             <tr>
                 <th><label for="inventory_category_name">Category Name</label></th>
                 <td>
-                    <input type="text" name="inventory_category_name" id="inventory_category_name" class="regular-text" value="<?php echo esc_attr($inventory->category_name ?? ''); ?>" required>
+                    <input type="text" name="inventory_category_name" id="inventory_category_name" class="regular-text" value="<?php echo esc_attr($inventory->category_name ?? ''); ?>">
                 </td>
             </tr>
             <tr>

@@ -271,7 +271,7 @@ class CampManagerPages
             );
 
             add_submenu_page(
-                'camp-manager-totes',
+                'camp-manager-inventory',
                 'Add a Tote',
                 'Add a Tote',
                 'manage_options',
@@ -280,6 +280,7 @@ class CampManagerPages
                     include plugin_dir_path(__FILE__) . '../tmpl/totes_add_page.php';
                 }
             );
+            
 
         });
     }

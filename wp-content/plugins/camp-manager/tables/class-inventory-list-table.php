@@ -121,6 +121,11 @@ class CampManagerInventoryTable extends WP_List_Table
         }
     }
 
+    public function get_primary_column_name()
+    {
+        return 'name';
+    }
+
     public function process_bulk_action()
     {
         if ('delete' === $this->current_action()) {

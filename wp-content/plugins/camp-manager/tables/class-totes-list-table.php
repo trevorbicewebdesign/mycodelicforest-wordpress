@@ -55,10 +55,12 @@ class CampManagerTotesTable extends WP_List_Table
                 return esc_html($item['id']);
             case 'name':
                 $edit_url = admin_url('admin.php?page=camp-manager-add-tote&id=' . urlencode($item['id']));
+                $description = isset($item['description']) ? '<div class="description">' . esc_html($item['description']) . '</div>' : '';
                 return sprintf(
-                    '<a href="%s">%s</a>',
+                    '<a href="%s">%s</a>%s',
                     esc_url($edit_url),
-                    esc_html(stripslashes($item['name']))
+                    esc_html(stripslashes($item['name'])),
+                    $description
                 );
             case 'weight':
                 return $item['weight'] !== null ? number_format((float) $item['weight'], 2) . ' lbs' : '';
@@ -73,6 +75,10 @@ class CampManagerTotesTable extends WP_List_Table
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
+    }
+
+    public function get_primary_column_name() {
+        return 'name';
     }
 
     public function process_bulk_action()
