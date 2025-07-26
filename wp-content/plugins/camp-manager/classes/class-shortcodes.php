@@ -5,12 +5,15 @@ class CampManagerShortcodes
 
     private $receipts;
     private $roster;
+
+    private $inventory;
     private $core;
-    public function __construct( CampManagerCore $CampManagerCore, CampManagerReceipts $CampManagerReceipts, CampManagerRoster $CampManagerRoster)
+    public function __construct( CampManagerCore $CampManagerCore, CampManagerReceipts $CampManagerReceipts, CampManagerRoster $CampManagerRoster, CampManagerInventory $CampManagerInventory)
     {
-       $this->core = $CampManagerCore;
-       $this->receipts = $CampManagerReceipts;
-       $this->roster = $CampManagerRoster;
+        $this->core = $CampManagerCore;
+        $this->receipts = $CampManagerReceipts;
+        $this->roster = $CampManagerRoster;
+        $this->inventory = $CampManagerInventory;
     }
 
     public function init()
@@ -18,6 +21,7 @@ class CampManagerShortcodes
         // need a custom shortcode for displaying the roster
         add_shortcode('camp_manager_roster', [$this, 'displayRoster']);
         add_shortcode('camp_manager_expenses', [$this, 'displayExpenses']);
+        add_shortcode('camp_manager_inventory', [$this, 'displayInventory']);
     }
 
     public function displayRoster($atts = [], $content = null)
@@ -160,6 +164,40 @@ class CampManagerShortcodes
         $output .= '<td colspan="2" style="text-align:right;"><strong>Total</strong></td>';
         $output .= '<td colspan="2"><strong>$' . esc_html(number_format($total, 2)) . '</strong></td>';
         $output .= '</tr>';
+
+        $output .= '</table>';
+
+        return $output;
+    }
+
+    public function displayInventory($atts = [])
+    {
+        $inventory_items = $this->inventory->getInventoryItems();
+
+        if (empty($inventory_items)) {
+            return '<p>No inventory items found.</p>';
+        }
+
+        $output = '<table class="camp-manager-inventory" style="width: 100%; border-collapse: collapse;">';
+        $output .= '<tr>';
+        $output .= '<th>ID</th>';
+        $output .= '<th>Name</th>';
+        $output .= '<th>Manufacturer</th>';
+        $output .= '<th>Model</th>';
+        $output .= '<th>Quantity</th>';
+        $output .= '<th>Location</th>';
+        $output .= '</tr>';
+
+        foreach ($inventory_items as $item) {
+            $output .= '<tr>';
+            $output .= '<td>' . esc_html($item->id) . '</td>';
+            $output .= '<td>' . esc_html(stripslashes($item->name)) . '</td>';
+            $output .= '<td>' . esc_html(stripslashes($item->manufacturer)) . '</td>';
+            $output .= '<td>' . esc_html(stripslashes($item->model)) . '</td>';
+            $output .= '<td>' . esc_html($item->quantity) . '</td>';
+            $output .= '<td>' . esc_html(stripslashes($item->location)) . '</td>';
+            $output .= '</tr>';
+        }
 
         $output .= '</table>';
 

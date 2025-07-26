@@ -143,4 +143,11 @@ class CampManagerInventory {
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id));
     }
 
+    public function getInventoryItems()
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_inventory";
+        return $wpdb->get_results("SELECT * FROM $table");
+    }
+
 }
