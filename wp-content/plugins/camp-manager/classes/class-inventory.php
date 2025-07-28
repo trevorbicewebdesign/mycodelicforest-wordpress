@@ -151,4 +151,11 @@ class CampManagerInventory {
         return $wpdb->get_results("SELECT * FROM $table");
     }
 
+    public function getAllTotes()
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_totes";
+        return $wpdb->get_results("SELECT * FROM $table");
+    }
+
 }
