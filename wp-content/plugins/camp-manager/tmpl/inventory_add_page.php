@@ -51,9 +51,17 @@ $inventory_id = $is_edit ? intval($inventory->id) : 0;
                 </td>
             </tr>
             <tr>
-                <th><label for="inventory_photo">Photo URL</label></th>
+                <th><label for="inventory_photo_id">Photo</label></th>
                 <td>
-                    <input type="text" name="inventory_photo" id="inventory_photo" class="regular-text" value="<?php echo esc_attr($inventory->photo ?? ''); ?>">
+                    <input type="hidden" name="inventory_photo_id" id="inventory_photo_id" value="<?php echo esc_attr($inventory->photo ?? ''); ?>">
+                    <button type="button" class="button" id="upload_inventory_image">Select Image</button>
+                    <div id="inventory_image_preview" style="margin-top: 10px;">
+                        <?php
+                        if (!empty($inventory->photo)) {
+                            echo wp_get_attachment_image($inventory->photo, 'medium');
+                        }
+                        ?>
+                    </div>
                 </td>
             </tr>
             <tr>
@@ -108,6 +116,40 @@ $inventory_id = $is_edit ? intval($inventory->id) : 0;
     </form>
 </div>
 <script type="text/javascript">
+jQuery(function ($) {
+    let mediaUploader;
+
+    $('#upload_inventory_image').on('click', function (e) {
+        e.preventDefault();
+
+        if (typeof wp === 'undefined' || typeof wp.media === 'undefined') {
+            alert('Media uploader not loaded. Please reload the page.');
+            return;
+        }
+
+        if (mediaUploader) {
+            mediaUploader.open();
+            return;
+        }
+
+        mediaUploader = wp.media({
+            title: 'Select Inventory Image',
+            button: {
+                text: 'Use this image'
+            },
+            multiple: false
+        });
+
+        mediaUploader.on('select', function () {
+            const attachment = mediaUploader.state().get('selection').first().toJSON();
+            $('#inventory_photo_id').val(attachment.id);
+            $('#inventory_image_preview').html('<img src="' + attachment.url + '" style="max-width: 200px;" />');
+        });
+
+        mediaUploader.open();
+    });
+});
+
 jQuery(document).ready(function ($) {
     if (typeof ajaxurl === 'undefined') {
         var ajaxurl = '<?php echo admin_url('admin-ajax.php'); ?>';

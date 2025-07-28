@@ -30,6 +30,7 @@ require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budget-items-list-table.p
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budget-categories-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-inventory-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-totes-list-table.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-tote-inventory-list-table.php');
  
 register_activation_hook(__FILE__, function () {
     require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-install.php');
@@ -60,8 +61,6 @@ class CampManagerInit {
         $this->CampManagerInventory = new CampManagerInventory();
         $this->CampManagerPages = new CampManagerPages($this->CampManagerReceipts, $this->CampManagerBudgets, $this->CampManagerRoster, $this->CampManagerLedger, $this->CampManagerCore, $this->CampManagerInventory);
         $this->CampManagerShortcodes = new CampManagerShortcodes($this->CampManagerCore, $this->CampManagerReceipts, $this->CampManagerRoster, $this->CampManagerInventory);
-        
-        
     }
 
     public function init()

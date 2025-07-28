@@ -23,6 +23,19 @@ class CampManagerPages
     public function init()
     {
 
+        add_action('admin_enqueue_scripts', function ($hook) {
+            if (strpos($hook, 'camp-manager') !== false) {
+                wp_enqueue_media();
+                wp_enqueue_script(
+                    'camp-manager-media-uploader',
+                    plugin_dir_url(__FILE__) . 'js/media-uploader.js',
+                    ['jquery'],
+                    null,
+                    true
+                );
+            }
+        });
+
         add_action('admin_menu', function () {
             global $menu;
 
@@ -267,6 +280,17 @@ class CampManagerPages
                 'camp-manager-totes',
                 function() {
                     include plugin_dir_path(__FILE__) . '../tmpl/totes_view_all_page.php';
+                }
+            );
+
+            add_submenu_page(
+                'camp-manager-inventory',
+                'Add Tote Inventory',
+                'Add Tote Inventory',
+                'manage_options',
+                'camp-manager-tote-inventory',
+                function() {
+                    include plugin_dir_path(__FILE__) . '../tmpl/totes_inventory_add_page.php';
                 }
             );
 

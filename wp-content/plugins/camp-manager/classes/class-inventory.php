@@ -68,20 +68,20 @@ class CampManagerInventory {
 
         // Prepare all fields, using defaults if not provided
         $data = [
-            'name'         => sanitize_text_field($name),
-            'description'  => sanitize_textarea_field($description),
-            'manufacturer' => isset($_POST['inventory_manufacturer']) ? sanitize_text_field($_POST['inventory_manufacturer']) : '',
-            'model'        => isset($_POST['inventory_model']) ? sanitize_text_field($_POST['inventory_model']) : '',
-            'quantity'     => isset($_POST['inventory_quantity']) ? (int)$_POST['inventory_quantity'] : 1,
-            'photo'        => isset($_POST['inventory_photo']) ? esc_url_raw($_POST['inventory_photo']) : '',
-            'location'     => isset($_POST['inventory_location']) ? sanitize_text_field($_POST['inventory_location']) : '',
-            'weight'       => isset($_POST['inventory_weight']) ? floatval($_POST['inventory_weight']) : 0,
-            'category'     => isset($_POST['inventory_category']) ? sanitize_text_field($_POST['inventory_category']) : '',
-            'category_name'=> isset($_POST['inventory_category_name']) ? sanitize_text_field($_POST['inventory_category_name']) : '',
-            'links'        => isset($_POST['inventory_links']) ? sanitize_text_field($_POST['inventory_links']) : null,
-            'amp'          => isset($_POST['inventory_amp']) ? floatval($_POST['inventory_amp']) : null,
-            'set_name'     => isset($_POST['inventory_set_name']) ? sanitize_text_field($_POST['inventory_set_name']) : null,
-            'uuid'         => isset($_POST['inventory_uuid']) ? intval($_POST['inventory_uuid']) : null,
+            'name'          => sanitize_text_field($name),
+            'description'   => sanitize_textarea_field($description),
+            'manufacturer'  => isset($_POST['inventory_manufacturer']) ? sanitize_text_field($_POST['inventory_manufacturer']) : '',
+            'model'         => isset($_POST['inventory_model']) ? sanitize_text_field($_POST['inventory_model']) : '',
+            'quantity'      => isset($_POST['inventory_quantity']) ? (int)$_POST['inventory_quantity'] : 1,
+            'photo'         => isset($_POST['inventory_photo_id']) && $_POST['inventory_photo_id'] !== '' ? intval($_POST['inventory_photo_id']) : 0,
+            'location'      => isset($_POST['inventory_location']) ? sanitize_text_field($_POST['inventory_location']) : '',
+            'weight'        => isset($_POST['inventory_weight']) ? floatval($_POST['inventory_weight']) : 0,
+            'category'      => isset($_POST['inventory_category']) ? sanitize_text_field($_POST['inventory_category']) : '',
+            'category_name' => isset($_POST['inventory_category_name']) ? sanitize_text_field($_POST['inventory_category_name']) : '',
+            'links'         => isset($_POST['inventory_links']) ? sanitize_text_field($_POST['inventory_links']) : '',
+            'amp'           => isset($_POST['inventory_amp']) && $_POST['inventory_amp'] !== '' ? floatval($_POST['inventory_amp']) : 0,
+            'set_name'      => isset($_POST['inventory_set_name']) ? sanitize_text_field($_POST['inventory_set_name']) : '',
+            'uuid'          => isset($_POST['inventory_uuid']) && $_POST['inventory_uuid'] !== '' ? intval($_POST['inventory_uuid']) : 0,
         ];
 
         // Remove null values for nullable fields
@@ -101,6 +101,7 @@ class CampManagerInventory {
             return (int)$wpdb->insert_id;
         }
     }
+
 
     public function upsertTote($name, $description = '', $tote_id = null): int
     {
