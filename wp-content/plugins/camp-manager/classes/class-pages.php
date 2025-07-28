@@ -290,7 +290,7 @@ class CampManagerPages
                 'manage_options',
                 'camp-manager-tote-inventory',
                 function() {
-                    include plugin_dir_path(__FILE__) . '../tmpl/totes_inventory_add_page.php';
+                    include plugin_dir_path(__FILE__) . '../tmpl/tote_inventory_add_page.php';
                 }
             );
 
