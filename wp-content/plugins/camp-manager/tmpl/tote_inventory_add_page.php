@@ -19,7 +19,7 @@ $tote_inventory_id = $is_edit ? intval($inventory->id) : 0;
                 <td>
                     <select name="inventory_id" id="inventory_id" required>
                         <?php
-                        $inventory_items = $this->inventory->getAllInventoryItems();
+                        $inventory_items = $this->inventory->getInventoryItems();
                         foreach ($inventory_items as $item) {
                             $selected = ($inventory->inventory_id ?? '') == $item->id ? 'selected' : '';
                             echo '<option value="' . esc_attr($item->id) . '" ' . $selected . '>' . esc_html($item->name) . '</option>';
