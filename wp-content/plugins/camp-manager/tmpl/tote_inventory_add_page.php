@@ -35,7 +35,7 @@ $tote_inventory_id = $is_edit ? intval($inventory->id) : 0;
                         <?php
                         $totes = $this->inventory->getAllTotes();
                         foreach ($totes as $tote) {
-                            $selected = ($inventory->tote_id ?? '') == $tote->id ? 'selected' : '';
+                            $selected = (($inventory->tote_id ?? '') == $tote->id || (isset($_GET['tote_id']) && intval($_GET['tote_id']) == $tote->id)) ? 'selected' : '';
                             echo '<option value="' . esc_attr($tote->id) . '" ' . $selected . '>' . esc_html($tote->name) . '</option>';
                         }
                         ?>

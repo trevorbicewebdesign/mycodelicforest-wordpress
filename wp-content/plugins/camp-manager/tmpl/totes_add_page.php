@@ -13,52 +13,66 @@ $tote_id = $is_edit ? intval($tote->id) : 0;
         <?php if ($is_edit): ?>
             <input type="hidden" name="tote_id" value="<?php echo esc_attr($tote_id); ?>">
         <?php endif; ?>
-        <table class="form-table">
-            <tr>
-                <th><label for="tote_name">Name</label></th>
-                <td>
-                    <input type="text" name="tote_name" id="tote_name" class="regular-text" value="<?php echo esc_attr($tote->name ?? ''); ?>" required>
-                </td>
-            </tr>
-            <tr>
-                <th><label for="tote_weight">Weight</label></th>
-                <td>
-                    <input type="number" step="0.01" name="tote_weight" id="tote_weight" value="<?php echo esc_attr($tote->weight ?? ''); ?>">
-                </td>
-            </tr>
-            <tr>
-                <th><label for="tote_uid">UID</label></th>
-                <td>
-                    <input type="text" name="tote_uid" id="tote_uid" class="regular-text" value="<?php echo esc_attr($tote->uid ?? ''); ?>">
-                </td>
-            </tr>
-            <tr>
-                <th><label for="tote_status">Status</label></th>
-                <td>
-                    <input type="text" name="tote_status" id="tote_status" class="regular-text" value="<?php echo esc_attr($tote->status ?? ''); ?>">
-                </td>
-            </tr>
-            <tr>
-                <th><label for="tote_location">Location</label></th>
-                <td>
-                    <input type="text" name="tote_location" id="tote_location" class="regular-text" value="<?php echo esc_attr($tote->location ?? ''); ?>">
-                </td>
-            </tr>
-            <tr>
-                <th><label for="tote_size">Size</label></th>
-                <td>
-                    <select name="tote_size" id="tote_size">
-                        <option value="Full" <?php selected($tote->size ?? 'Full', 'Full'); ?>>Full</option>
-                        <option value="Half" <?php selected($tote->size ?? 'Full', 'Half'); ?>>Half</option>
-                    </select>
-                </td>
-            </tr>
-        </table>
-
-        <div style="display: flex; gap: 10px;">
-            <?php submit_button('Save Tote', 'secondary', 'save_tote', false, array('id' => 'save-btn')); ?>
-            <?php submit_button('Save & Close Tote', 'primary', 'save_close_tote', false, array('id' => 'save-close-btn')); ?>
-            <?php submit_button('Close', 'secondary', 'close_tote', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
+        <div style="display: flex; gap: 20px;">
+            <div style="width: 50%;">
+                <table class="form-table">
+                    <tr>
+                        <th><label for="tote_name">Name</label></th>
+                        <td>
+                            <input type="text" name="tote_name" id="tote_name" class="regular-text" value="<?php echo esc_attr($tote->name ?? ''); ?>" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="tote_weight">Weight</label></th>
+                        <td>
+                            <input type="number" step="0.01" name="tote_weight" id="tote_weight" value="<?php echo esc_attr($tote->weight ?? ''); ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="tote_uid">UID</label></th>
+                        <td>
+                            <input type="text" name="tote_uid" id="tote_uid" class="regular-text" value="<?php echo esc_attr($tote->uid ?? ''); ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="tote_status">Status</label></th>
+                        <td>
+                            <input type="text" name="tote_status" id="tote_status" class="regular-text" value="<?php echo esc_attr($tote->status ?? ''); ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="tote_location">Location</label></th>
+                        <td>
+                            <input type="text" name="tote_location" id="tote_location" class="regular-text" value="<?php echo esc_attr($tote->location ?? ''); ?>">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="tote_size">Size</label></th>
+                        <td>
+                            <select name="tote_size" id="tote_size">
+                                <option value="Full" <?php selected($tote->size ?? 'Full', 'Full'); ?>>Full</option>
+                                <option value="Half" <?php selected($tote->size ?? 'Full', 'Half'); ?>>Half</option>
+                            </select>
+                        </td>
+                    </tr>
+                </table>
+                <div style="display: flex; gap: 10px;">
+                    <?php submit_button('Save Tote', 'secondary', 'save_tote', false, array('id' => 'save-btn')); ?>
+                    <?php submit_button('Save & Close Tote', 'primary', 'save_close_tote', false, array('id' => 'save-close-btn')); ?>
+                    <?php submit_button('Close', 'secondary', 'close_tote', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
+                </div>
+            </div>
+            <div style="width: 50%;">
+                <?php $tote_inventory_items = $this->inventory->getToteInventoryItems($tote_id); ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-tote-inventory&tote_id=' . $tote_id)); ?>" class="button button-secondary" style="margin-bottom: 15px;">
+                    + Add Tote Item
+                </a>
+                <ul>
+                    <?php foreach ($tote_inventory_items as $item): ?>
+                        <li><?php echo esc_html($item->inventory_name); ?> x <?php echo esc_html($item->quantity); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
         </div>
     </form>
 </div>

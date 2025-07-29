@@ -285,17 +285,6 @@ class CampManagerPages
 
             add_submenu_page(
                 'camp-manager-inventory',
-                'Add Tote Inventory',
-                'Add Tote Inventory',
-                'manage_options',
-                'camp-manager-tote-inventory',
-                function() {
-                    include plugin_dir_path(__FILE__) . '../tmpl/tote_inventory_add_page.php';
-                }
-            );
-
-            add_submenu_page(
-                'camp-manager-inventory',
                 'Add a Tote',
                 'Add a Tote',
                 'manage_options',
@@ -304,7 +293,28 @@ class CampManagerPages
                     include plugin_dir_path(__FILE__) . '../tmpl/totes_add_page.php';
                 }
             );
-            
+
+              add_submenu_page(
+                'camp-manager-inventory',
+                'Add Tote Inventory',
+                'Add Tote Inventory',
+                'manage_options',
+                'camp-manager-add-tote-inventory',
+                function() {
+                    include plugin_dir_path(__FILE__) . '../tmpl/tote_inventory_add_page.php';
+                }
+            );
+
+            add_submenu_page(
+                'camp-manager-inventory',
+                'View Tote Inventory',
+                'View Tote Inventory',
+                'manage_options',
+                'camp-manager-view-tote-inventory',
+                function() {
+                    include plugin_dir_path(__FILE__) . '../tmpl/tote_inventory_view_all_page.php';
+                }
+            );
 
         });
     }

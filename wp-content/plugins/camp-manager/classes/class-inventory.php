@@ -1,6 +1,7 @@
 <?php
 
-class CampManagerInventory {
+class CampManagerInventory
+{
 
     public function __construct()
     {
@@ -22,34 +23,24 @@ class CampManagerInventory {
 
     public function handle_tote_inventory_save()
     {
-        // Handle saving a tote inventory item from the admin post request
         if (!current_user_can('manage_options')) {
             wp_die('Unauthorized');
         }
 
         try {
-            $tote_id = isset($_POST['tote_id']) ? (int)$_POST['tote_id'] : null;
-            $inventory_id = isset($_POST['inventory_id']) ? (int)$_POST['inventory_id'] : null;
+            $tote_id = isset($_POST['tote_id']) ? (int) $_POST['tote_id'] : null;
+            $inventory_id = isset($_POST['inventory_id']) ? (int) $_POST['inventory_id'] : null;
 
-            global $wpdb;
-            $table = $wpdb->prefix . 'mf_tote_inventory';
-
-            // Insert or update the tote inventory item
             if ($tote_id && $inventory_id) {
-                $wpdb->replace($table, [
-                    'name' => isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '',
-                    'tote_id' => $tote_id,
-                    'inventory_id' => $inventory_id,
-                ]);
+                $tote_inventory_id = $this->upsertToteInventory($tote_id, $inventory_id);
             } else {
                 throw new Exception('Invalid Tote or Inventory ID');
             }
-
         } catch (\Exception $e) {
-            wp_redirect(admin_url('admin.php?page=camp-manager-tote-inventory&error=' . urlencode($e->getMessage())));
+            wp_redirect(admin_url('admin.php?page=camp-manager-add-tote-inventory&error=' . urlencode($e->getMessage())));
             exit;
         }
-        wp_redirect(admin_url('admin.php?page=camp-manager-tote-inventory&success=item_added'));
+        wp_redirect(admin_url("admin.php?page=camp-manager-add-tote-inventory&id={$tote_inventory_id}&success=item_added"));
         exit;
     }
 
@@ -64,7 +55,7 @@ class CampManagerInventory {
             $tote_id = $this->upsertTote(
                 sanitize_text_field($_POST['tote_name']),
                 isset($_POST['tote_description']) ? sanitize_textarea_field($_POST['tote_description']) : '',
-                isset($_POST['tote_id']) ? (int)$_POST['tote_id'] : null
+                isset($_POST['tote_id']) ? (int) $_POST['tote_id'] : null
             );
         } catch (\Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-tote&error=' . urlencode($e->getMessage())));
@@ -85,7 +76,7 @@ class CampManagerInventory {
             $item_id = $this->upsertInventoryItem(
                 sanitize_text_field($_POST['inventory_name']),
                 isset($_POST['inventory_description']) ? sanitize_textarea_field($_POST['inventory_description']) : '',
-                isset($_POST['inventory_id']) ? (int)$_POST['inventory_id'] : null
+                isset($_POST['inventory_id']) ? (int) $_POST['inventory_id'] : null
             );
         } catch (\Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-inventory&error=' . urlencode($e->getMessage())));
@@ -93,6 +84,32 @@ class CampManagerInventory {
         }
         wp_redirect(admin_url("admin.php?page=camp-manager-inventory&id={$item_id}&success=item_added"));
         exit;
+    }
+
+    public function upsertToteInventory($tote_id, $inventory_id, $name = ''): int
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_tote_inventory";
+
+        $data = [
+            'tote_id' => (int) $tote_id,
+            'inventory_id' => (int) $inventory_id,
+        ];
+
+        // Check if a record exists for this tote/inventory combo
+        $existing_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $table WHERE tote_id = %d AND inventory_id = %d",
+            $tote_id,
+            $inventory_id
+        ));
+
+        if ($existing_id) {
+            $wpdb->update($table, $data, ['id' => $existing_id]);
+            return (int) $existing_id;
+        } else {
+            $wpdb->insert($table, $data);
+            return (int) $wpdb->insert_id;
+        }
     }
 
 
@@ -104,20 +121,20 @@ class CampManagerInventory {
 
         // Prepare all fields, using defaults if not provided
         $data = [
-            'name'          => sanitize_text_field($name),
-            'description'   => sanitize_textarea_field($description),
-            'manufacturer'  => isset($_POST['inventory_manufacturer']) ? sanitize_text_field($_POST['inventory_manufacturer']) : '',
-            'model'         => isset($_POST['inventory_model']) ? sanitize_text_field($_POST['inventory_model']) : '',
-            'quantity'      => isset($_POST['inventory_quantity']) ? (int)$_POST['inventory_quantity'] : 1,
-            'photo'         => isset($_POST['inventory_photo_id']) && $_POST['inventory_photo_id'] !== '' ? intval($_POST['inventory_photo_id']) : 0,
-            'location'      => isset($_POST['inventory_location']) ? sanitize_text_field($_POST['inventory_location']) : '',
-            'weight'        => isset($_POST['inventory_weight']) ? floatval($_POST['inventory_weight']) : 0,
-            'category'      => isset($_POST['inventory_category']) ? sanitize_text_field($_POST['inventory_category']) : '',
+            'name' => sanitize_text_field($name),
+            'description' => sanitize_textarea_field($description),
+            'manufacturer' => isset($_POST['inventory_manufacturer']) ? sanitize_text_field($_POST['inventory_manufacturer']) : '',
+            'model' => isset($_POST['inventory_model']) ? sanitize_text_field($_POST['inventory_model']) : '',
+            'quantity' => isset($_POST['inventory_quantity']) ? (int) $_POST['inventory_quantity'] : 1,
+            'photo' => isset($_POST['inventory_photo_id']) && $_POST['inventory_photo_id'] !== '' ? intval($_POST['inventory_photo_id']) : 0,
+            'location' => isset($_POST['inventory_location']) ? sanitize_text_field($_POST['inventory_location']) : '',
+            'weight' => isset($_POST['inventory_weight']) ? floatval($_POST['inventory_weight']) : 0,
+            'category' => isset($_POST['inventory_category']) ? sanitize_text_field($_POST['inventory_category']) : '',
             'category_name' => isset($_POST['inventory_category_name']) ? sanitize_text_field($_POST['inventory_category_name']) : '',
-            'links'         => isset($_POST['inventory_links']) ? sanitize_text_field($_POST['inventory_links']) : '',
-            'amp'           => isset($_POST['inventory_amp']) && $_POST['inventory_amp'] !== '' ? floatval($_POST['inventory_amp']) : 0,
-            'set_name'      => isset($_POST['inventory_set_name']) ? sanitize_text_field($_POST['inventory_set_name']) : '',
-            'uuid'          => isset($_POST['inventory_uuid']) && $_POST['inventory_uuid'] !== '' ? intval($_POST['inventory_uuid']) : 0,
+            'links' => isset($_POST['inventory_links']) ? sanitize_text_field($_POST['inventory_links']) : '',
+            'amp' => isset($_POST['inventory_amp']) && $_POST['inventory_amp'] !== '' ? floatval($_POST['inventory_amp']) : 0,
+            'set_name' => isset($_POST['inventory_set_name']) ? sanitize_text_field($_POST['inventory_set_name']) : '',
+            'uuid' => isset($_POST['inventory_uuid']) && $_POST['inventory_uuid'] !== '' ? intval($_POST['inventory_uuid']) : 0,
         ];
 
         // Remove null values for nullable fields
@@ -129,12 +146,12 @@ class CampManagerInventory {
 
         if ($item_id && $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE id = %d", $item_id))) {
             // Update existing item
-            $wpdb->update($table, $data, ['id' => (int)$item_id]);
-            return (int)$item_id;
+            $wpdb->update($table, $data, ['id' => (int) $item_id]);
+            return (int) $item_id;
         } else {
             // Insert new item
             $wpdb->insert($table, $data);
-            return (int)$wpdb->insert_id;
+            return (int) $wpdb->insert_id;
         }
     }
 
@@ -146,23 +163,28 @@ class CampManagerInventory {
 
         // Prepare all fields, using defaults if not provided
         $data = [
-            'name'         => sanitize_text_field($name),
-            'description'  => sanitize_textarea_field($description),
-            'weight'       => isset($_POST['tote_weight']) ? floatval($_POST['tote_weight']) : 0,
-            'uid'          => isset($_POST['tote_uid']) ? sanitize_text_field($_POST['tote_uid']) : '',
-            'status'       => isset($_POST['tote_status']) ? sanitize_text_field($_POST['tote_status']) : '',
-            'location'     => isset($_POST['tote_location']) ? sanitize_text_field($_POST['tote_location']) : '',
-            'size'         => isset($_POST['tote_size']) ? sanitize_text_field($_POST['tote_size']) : '',
+            'name' => sanitize_text_field($name),
+            // 'description' => sanitize_textarea_field($description),
+            'weight' => isset($_POST['tote_weight']) ? floatval($_POST['tote_weight']) : 0,
+            'uid' => isset($_POST['tote_uid']) ? sanitize_text_field($_POST['tote_uid']) : '',
+            'status' => isset($_POST['tote_status']) ? sanitize_text_field($_POST['tote_status']) : '',
+            'location' => isset($_POST['tote_location']) ? sanitize_text_field($_POST['tote_location']) : '',
+            'size' => isset($_POST['tote_size']) ? sanitize_text_field($_POST['tote_size']) : '',
         ];
 
         if ($tote_id && $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE id = %d", $tote_id))) {
             // Update existing tote
-            $wpdb->update($table, $data, ['id' => (int)$tote_id]);
-            return (int)$tote_id;
+            if ($tote_id !== null && is_numeric($tote_id)) {
+                $wpdb->update($table, $data, ['id' => (int) $tote_id]);
+            } else {
+                throw new Exception('Invalid Tote ID for update.');
+            }
+
+            return (int) $tote_id;
         } else {
             // Insert new tote
             $wpdb->insert($table, $data);
-            return (int)$wpdb->insert_id;
+            return (int) $wpdb->insert_id;
         }
     }
 
@@ -171,6 +193,32 @@ class CampManagerInventory {
         global $wpdb;
         $table = "{$wpdb->prefix}mf_totes";
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id));
+    }
+
+    public function getToteInventoryItem($tote_inventory_item_id)
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_tote_inventory";
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $tote_inventory_item_id));
+    }
+
+    public function getToteInventoryItems($tote_id)
+    {
+        global $wpdb;
+        $tote_inventory_table = "{$wpdb->prefix}mf_tote_inventory";
+        $inventory_table = "{$wpdb->prefix}mf_inventory";
+        $totes_table = "{$wpdb->prefix}mf_totes";
+
+        $query = $wpdb->prepare(
+            "SELECT ti.*, i.name AS inventory_name, t.name AS tote_name
+             FROM $tote_inventory_table ti
+             LEFT JOIN $inventory_table i ON ti.inventory_id = i.id
+             LEFT JOIN $totes_table t ON ti.tote_id = t.id
+             WHERE ti.tote_id = %d",
+            $tote_id
+        );
+
+        return $wpdb->get_results($query);
     }
 
     public function getInventoryItem($id)
