@@ -129,10 +129,10 @@ class CampManagerInventoryTable extends WP_List_Table
     public function process_bulk_action()
     {
         if ('delete' === $this->current_action()) {
-            if (!empty($_POST['inventory-item']) && is_array($_POST['inventory-item'])) {
+            if (!empty($_POST['tote-inventory']) && is_array($_POST['tote-inventory'])) {
                 global $wpdb;
                 $table = "{$wpdb->prefix}mf_inventory";
-                $ids = array_map('intval', $_POST['inventory-item']);
+                $ids = array_map('intval', $_POST['tote-inventory']);
                 $placeholders = implode(',', array_fill(0, count($ids), '%d'));
                 $wpdb->query($wpdb->prepare(
                     "DELETE FROM $table WHERE id IN ($placeholders)", ...$ids
@@ -193,6 +193,6 @@ class CampManagerInventoryTable extends WP_List_Table
 
     public function column_cb($item)
     {
-        return sprintf('<input type="checkbox" name="inventory-item[]" value="%s" />', esc_attr($item['id']));
+        return sprintf('<input type="checkbox" name="tote-inventory[]" value="%s" />', esc_attr($item['id']));
     }
 }
