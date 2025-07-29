@@ -38,10 +38,20 @@ class CampManagerInventory
                 throw new Exception('Invalid Tote or Inventory ID');
             }
         } catch (\Exception $e) {
-            wp_redirect(admin_url('admin.php?page=camp-manager-add-tote-inventory&error=' . urlencode($e->getMessage())));
+            $redirect_url = isset($_POST['return_url']) && !empty($_POST['return_url'])
+                ? esc_url_raw(base64_decode($_POST['return_url']))
+                : admin_url('admin.php?page=camp-manager-add-tote-inventory&error=' . urlencode($e->getMessage()));
+            wp_redirect($redirect_url);
             exit;
         }
-        wp_redirect(admin_url("admin.php?page=camp-manager-add-tote-inventory&id={$tote_inventory_id}&success=item_added"));
+
+        if (isset($_POST['return_url']) && !empty($_POST['return_url'])) {
+            $decoded_url = base64_decode($_POST['return_url']);
+            $redirect_url = esc_url_raw($decoded_url);
+        } else {
+            $redirect_url = admin_url("admin.php?page=camp-manager-add-tote-inventory&id={$tote_inventory_id}&success=item_added");
+        }
+        wp_redirect($redirect_url);
         exit;
     }
 
