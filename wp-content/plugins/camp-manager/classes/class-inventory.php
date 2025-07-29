@@ -15,6 +15,42 @@ class CampManagerInventory {
         add_action('admin_post_camp_manager_save_tote', [$this, 'handle_tote_save']);
         add_action('admin_post_camp_manager_save_and_close_tote', [$this, 'handle_tote_save']);
 
+        add_action('admin_post_camp_manager_save_tote_inventory', [$this, 'handle_tote_inventory_save']);
+        add_action('admin_post_camp_manager_save_and_close_tote_inventory', [$this, 'handle_tote_inventory_save']);
+
+    }
+
+    public function handle_tote_inventory_save()
+    {
+        // Handle saving a tote inventory item from the admin post request
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        try {
+            $tote_id = isset($_POST['tote_id']) ? (int)$_POST['tote_id'] : null;
+            $inventory_id = isset($_POST['inventory_id']) ? (int)$_POST['inventory_id'] : null;
+
+            global $wpdb;
+            $table = $wpdb->prefix . 'mf_tote_inventory';
+
+            // Insert or update the tote inventory item
+            if ($tote_id && $inventory_id) {
+                $wpdb->replace($table, [
+                    'name' => isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '',
+                    'tote_id' => $tote_id,
+                    'inventory_id' => $inventory_id,
+                ]);
+            } else {
+                throw new Exception('Invalid Tote or Inventory ID');
+            }
+
+        } catch (\Exception $e) {
+            wp_redirect(admin_url('admin.php?page=camp-manager-tote-inventory&error=' . urlencode($e->getMessage())));
+            exit;
+        }
+        wp_redirect(admin_url('admin.php?page=camp-manager-tote-inventory&success=item_added'));
+        exit;
     }
 
     public function handle_tote_save()
