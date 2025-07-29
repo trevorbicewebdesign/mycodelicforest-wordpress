@@ -63,15 +63,26 @@ $tote_id = $is_edit ? intval($tote->id) : 0;
                 </div>
             </div>
             <div style="width: 50%;">
-                <?php $tote_inventory_items = $this->inventory->getToteInventoryItems($tote_id); ?>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-tote-inventory&tote_id=' . $tote_id)); ?>" class="button button-secondary" style="margin-bottom: 15px;">
-                    + Add Tote Item
-                </a>
-                <ul>
-                    <?php foreach ($tote_inventory_items as $item): ?>
-                        <li><?php echo esc_html($item->inventory_name); ?> x <?php echo esc_html($item->quantity); ?></li>
-                    <?php endforeach; ?>
-                </ul>
+                <h2>Tote Inventory Items</h2>
+                <?php
+                $table = new CampManagerToteInventoryTable($tote_id);
+                $table->process_bulk_action();
+                $table->prepare_items();
+                ?>
+                <style>
+                    .wp-list-table .column-inventory_name { width: 40%; }
+                    .wp-list-table .column-quantity       { width: 15%; text-align: right; }
+                    .wp-list-table .column-location       { width: 15%; }
+                    .wp-list-table .column-actions        { width: 15%; }
+                </style>
+
+                <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-tote-inventory&tote_id=' . $tote_id)); ?>" class="page-title-action">Add Tote Item</a>
+                <hr class="wp-header-end">
+                <form method="post">
+                    <?php
+                    $table->display();
+                    ?>
+                </form>
             </div>
         </div>
     </form>
