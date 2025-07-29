@@ -30,9 +30,10 @@ class CampManagerInventory
         try {
             $tote_id = isset($_POST['tote_id']) ? (int) $_POST['tote_id'] : null;
             $inventory_id = isset($_POST['inventory_id']) ? (int) $_POST['inventory_id'] : null;
+            $quantity = isset($_POST['quantity']) ? (int) $_POST['quantity'] : 1;
 
             if ($tote_id && $inventory_id) {
-                $tote_inventory_id = $this->upsertToteInventory($tote_id, $inventory_id);
+                $tote_inventory_id = $this->upsertToteInventory($tote_id, $inventory_id, $quantity);
             } else {
                 throw new Exception('Invalid Tote or Inventory ID');
             }
@@ -86,7 +87,7 @@ class CampManagerInventory
         exit;
     }
 
-    public function upsertToteInventory($tote_id, $inventory_id, $name = ''): int
+    public function upsertToteInventory($tote_id, $inventory_id, $quantity): int
     {
         global $wpdb;
         $table = "{$wpdb->prefix}mf_tote_inventory";
@@ -94,6 +95,7 @@ class CampManagerInventory
         $data = [
             'tote_id' => (int) $tote_id,
             'inventory_id' => (int) $inventory_id,
+            'quantity' => (int) $quantity
         ];
 
         // Check if a record exists for this tote/inventory combo
