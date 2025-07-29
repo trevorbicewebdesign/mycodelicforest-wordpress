@@ -211,6 +211,7 @@ $form_action = admin_url('admin-post.php');
             <td><input type="number" name="items[__INDEX__][quantity]" value="1" style="width: 100%;" /></td>
             <td><input type="text" name="items[__INDEX__][subtotal]" style="width: 100%;" /></td>
             <td><input type="text" name="items[__INDEX__][tax]" style="width: 100%;" /></td>
+            <td><input type="text" name="items[__INDEX__][shipping]" style="width: 100%;" /></td>
             <td><input type="text" name="items[__INDEX__][total]" style="width: 100%;" /></td>
             <td><button type="button" class="remove-item button">Remove</button></td>
         </tr>
@@ -321,22 +322,29 @@ jQuery(document).ready(function ($) {
         function addItemRow(item = {}) {
             const index = rowCount++;
             const $row = $template.clone().removeAttr('id').show();
-
+        
             $row.find('[name]').each(function () {
                 const name = $(this).attr('name').replace('__INDEX__', index);
                 $(this).attr('name', name);
-
+        
                 const match = name.match(/\[([a-z_]+)\]/);
                 const key = match ? match[1] : '';
                 const isSelect = $(this).is('select');
-
+        
+                // Handle possible alternate keys for total
+                let value = item[key];
+                if (key === 'total' && (value === undefined || value === null)) {
+                    value = item['item_total'] !== undefined ? item['item_total'] : '';
+                }
+        
                 if (isSelect) {
-                    $(this).val(item[key] !== undefined ? item[key] : '');
+                    $(this).val(value !== undefined ? value : '');
                 } else {
-                    $(this).val(item[key] !== undefined ? item[key] : (key === 'quantity' ? 1 : ''));
+                    let defaultVal = (key === 'quantity') ? 1 : '';
+                    $(this).val(value !== undefined ? value : defaultVal);
                 }
             });
-
+        
             $('table.widefat tbody').append($row);
         }
     }
