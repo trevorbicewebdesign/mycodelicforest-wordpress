@@ -63,16 +63,21 @@ class CampManagerToteInventoryTable extends WP_List_Table
 
     public function process_bulk_action()
     {
+        
         if ('delete' === $this->current_action()) {
-            if (!empty($_POST['inventory-item']) && is_array($_POST['inventory-item'])) {
+            if (!empty($_POST['tote-inventory']) && is_array($_POST['tote-inventory'])) {
                 global $wpdb;
                 $table = "{$wpdb->prefix}mf_tote_inventory";
-                $ids = array_map('intval', $_POST['inventory-item']);
+                $ids = array_map('intval', $_POST['tote-inventory']);
                 $placeholders = implode(',', array_fill(0, count($ids), '%d'));
                 $wpdb->query($wpdb->prepare(
-                    "DELETE FROM $table WHERE id IN ($placeholders)",
-                    ...$ids
+                    "DELETE FROM $table WHERE id IN ($placeholders)", ...$ids
                 ));
+                // REDIRECT!
+                $tote_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+                $redirect_url = admin_url("admin.php?page=camp-manager-add-tote&id={$tote_id}&deleted=1");
+                wp_redirect($redirect_url);
+                exit;
             }
         }
     }
@@ -139,7 +144,7 @@ class CampManagerToteInventoryTable extends WP_List_Table
 
     public function column_cb($item)
     {
-        return sprintf('<input type="checkbox" name="inventory-item[]" value="%s" />', esc_attr($item['id']));
+        return sprintf('<input type="checkbox" name="tote-inventory[]" value="%s" />', esc_attr($item['id']));
     }
 
     public function column_tote_name($item)
