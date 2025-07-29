@@ -12,8 +12,11 @@ class CampManagerToteInventoryTable extends WP_List_Table
 {
     private $data;
 
-    public function __construct()
+    private $tote_id;
+
+    public function __construct($tote_id = null)
     {
+        $this->tote_id = $tote_id;
         parent::__construct([
             'singular' => 'Tote Inventory Item',
             'plural' => 'Tote Inventory Items',
@@ -103,16 +106,23 @@ class CampManagerToteInventoryTable extends WP_List_Table
         $order_by = esc_sql($order_by);
         $order = ($order === 'ASC') ? 'ASC' : 'DESC';
 
-        // Use correct table column names and alias for display
+        // Build WHERE clause if tote_id is provided
+        $where = '';
+        $params = [$per_page, $offset];
+        if (!empty($this->tote_id)) {
+            $where = 'WHERE ti.tote_id = %d';
+            array_unshift($params, $this->tote_id);
+        }
+
         $sql = $wpdb->prepare(
             "SELECT ti.id, ti.inventory_id, ti.tote_id, ti.quantity, i.name AS inventory_name, t.name AS tote_name
-         FROM $table ti
-         LEFT JOIN {$wpdb->prefix}mf_inventory i ON ti.inventory_id = i.id
-         LEFT JOIN {$wpdb->prefix}mf_totes t ON ti.tote_id = t.id
-         ORDER BY $order_by $order
-         LIMIT %d OFFSET %d",
-            $per_page,
-            $offset
+             FROM $table ti
+             LEFT JOIN {$wpdb->prefix}mf_inventory i ON ti.inventory_id = i.id
+             LEFT JOIN {$wpdb->prefix}mf_totes t ON ti.tote_id = t.id
+             $where
+             ORDER BY $order_by $order
+             LIMIT %d OFFSET %d",
+            ...$params
         );
 
         $this->data = $wpdb->get_results($sql, ARRAY_A);
