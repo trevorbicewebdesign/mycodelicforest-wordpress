@@ -38,8 +38,8 @@ $budget_item_id = $is_edit ? intval($budget_item->id) : 0;
                     <?php $categories = $this->core->getItemCategories(); ?>
                     <select name="budget_item_category" id="budget_item_category" required>
                         <option value="">Select a category</option>
-                        <?php foreach ($categories as $cat_id => $cat): ?>
-                            <option value="<?php echo esc_attr($cat['id']); ?>" <?php selected(($budget_item->category_id ?? '') == $cat_id); ?>>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo esc_attr($cat['id']); ?>" <?php selected(($budget_item->category_id ?? '') == $cat['id']); ?>>
                                 <?php echo esc_html($cat['name']); ?>
                             </option>
                         <?php endforeach; ?>
