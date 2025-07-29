@@ -62,6 +62,8 @@ $tote_id = $is_edit ? intval($tote->id) : 0;
                     <?php submit_button('Close', 'secondary', 'close_tote', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
                 </div>
             </div>
+            <input type="hidden" name="return_url" value="<?php echo esc_url( base64_encode( admin_url('admin.php?page=camp-manager-tote-inventory') ) ); ?>">
+            </form>
             <div style="width: 50%;">
                 <h2>Tote Inventory Items</h2>
                 <?php
@@ -76,16 +78,23 @@ $tote_id = $is_edit ? intval($tote->id) : 0;
                     .wp-list-table .column-actions        { width: 15%; }
                 </style>
 
-                <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-tote-inventory&tote_id=' . $tote_id)); ?>" class="page-title-action">Add Tote Item</a>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-tote-inventory&tote_id=' . $tote_id)); ?>&return=<?php echo esc_attr(base64_encode(admin_url('admin.php?page=camp-manager-add-tote&id=' . $tote_id))); ?>" class="page-title-action">Add Tote Item</a>
                 <hr class="wp-header-end">
                 <form method="post">
                     <?php
                     $table->display();
                     ?>
+                    <?php
+                    $return_url = '';
+                    if (!empty($_REQUEST['return_url'])) {
+                        $return_url = base64_decode(sanitize_text_field($_REQUEST['return_url']));
+                    }
+                    ?>
+                    <input type="hidden" name="return_url" value="<?php echo esc_url( base64_encode( $return_url ? $return_url : admin_url('admin.php?page=camp-manager-add-tote&id=' . $tote_id) ) ); ?>">
                 </form>
             </div>
         </div>
-    </form>
+    
 </div>
 <script type="text/javascript">
 jQuery(document).ready(function ($) {
