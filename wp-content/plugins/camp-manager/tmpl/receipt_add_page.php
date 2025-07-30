@@ -78,6 +78,13 @@ $form_action = admin_url('admin-post.php');
                 </select>
             </td>
             </tr>
+            <tr>
+                <th><label for="reimbursed" id="label-reimbursed">Reimbursed</label></th>
+                <td>
+                    <input type="checkbox" name="reimbursed" id="reimbursed" value="1" <?php checked(!empty($receipt->reimbursed)); ?> />
+                    <label for="reimbursed">Has this receipt been reimbursed?</label>
+                </td>
+            </tr>
         </table>
 
         <h2 style="margin-top: 40px;">Items</h2>
@@ -181,6 +188,15 @@ $form_action = admin_url('admin-post.php');
             <?php submit_button('Save & Close Receipt', 'primary', 'save_close_receipt', false, array('id' => 'save-close-btn')); ?>
             <?php submit_button('Close Receipt', 'secondary', 'close_receipt', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
         </div>
+
+        <?php
+        $return_url = '';
+        if (!empty($_REQUEST['return'])) {
+            $return_url = base64_decode(sanitize_text_field($_REQUEST['return']));
+        }
+        ?>
+        <input type="hidden" name="return_url" value="<?php echo base64_encode( $return_url ? $return_url : admin_url('admin.php?page=camp-manager-actuals') ); ?>">
+
     </form>
     <table style="display: none;">
         <!-- Hidden row template for JS to clone -->
