@@ -15,14 +15,14 @@ class CampManagerReceipts
     public function init()
     {
         add_action('admin_post_camp_manager_save_receipt', array($this, 'handle_receipt_save'));
-        add_action('admin_post_camp_manager_save_and_close_receipt', array($this, 'handle_receipt_save'));
+        add_action('admin_post_camp_manager_save_and_close_receipt', array($this, 'handle_receipt_save_close'));
         // camp_manager_analyze_receipt
         add_action('wp_ajax_camp_manager_analyze_receipt', [$this, 'handle_receipt_analyze']);
 
         add_action('wp_ajax_camp_manager_get_receipt_total', [$this, 'handle_get_receipt_total']);
     }
 
-    
+
     public function handle_get_receipt_total()
     {
         if (!current_user_can('manage_options')) {
@@ -53,8 +53,9 @@ class CampManagerReceipts
 
         return $receipts;
     }
-    
-    public function handle_receipt_save() {
+
+    public function handle_receipt_save()
+    {
 
         try {
             $receipt_id = isset($_POST['receipt_id']) ? intval($_POST['receipt_id']) : 0;
@@ -77,35 +78,22 @@ class CampManagerReceipts
             $items = is_array($_POST['items']) ? $_POST['items'] : [];
             $raw = isset($_POST['raw']) ? sanitize_text_field($_POST['raw']) : '';
             $link = isset($_POST['link']) ? esc_url_raw($_POST['link']) : null;
+            $reimbursed = isset($_POST['reimbursed']) ? intval($_POST['reimbursed']) : 0;
 
-            if ($receipt_id) {
-                $receipt_id = $this->update_receipt(
-                    $receipt_id,
-                    $cmid,
-                    $store,
-                    $date,
-                    $subtotal,
-                    $tax,
-                    $shipping,
-                    $total,
-                    $items,
-                    $raw,
-                    $link
-                );
-            } else {
-                $receipt_id = $this->insert_receipt(
-                    $cmid,
-                    $store,
-                    $date,
-                    $subtotal,
-                    $tax,
-                    $shipping,
-                    $total,
-                    $items,
-                    $raw,
-                    $link
-                );
-            }
+            $receipt_id = $this->upsert_receipt(
+                $receipt_id,
+                $cmid,
+                $store,
+                $date,
+                $reimbursed,
+                $subtotal,
+                $tax,
+                $shipping,
+                $total,
+                $items,
+                $raw,
+                $link
+            );
 
             wp_redirect(admin_url('admin.php?page=camp-manager-add-receipt&id=' . $receipt_id . '&receipt_submitted=1'));
         } catch (Exception $e) {
@@ -115,7 +103,143 @@ class CampManagerReceipts
 
     }
 
-    public function handle_receipt_analyze() {
+    public function handle_receipt_save_close()
+    {
+        try {
+            $receipt_id = isset($_POST['receipt_id']) ? intval($_POST['receipt_id']) : 0;
+
+            // Validate required fields
+            $required_fields = ['store', 'date', 'subtotal', 'tax', 'shipping', 'total', 'items'];
+            foreach ($required_fields as $field) {
+                if (!isset($_POST[$field])) {
+                    throw new Exception("Missing required field: " . $field);
+                }
+            }
+
+            $store = sanitize_text_field($_POST['store']);
+            $cmid = isset($_POST['purchaser']) ? intval($_POST['purchaser']) : 0;
+            $date = sanitize_text_field($_POST['date']);
+            $subtotal = floatval($_POST['subtotal']);
+            $tax = floatval($_POST['tax']);
+            $shipping = floatval($_POST['shipping']);
+            $total = floatval($_POST['total']);
+            $items = is_array($_POST['items']) ? $_POST['items'] : [];
+            $raw = isset($_POST['raw']) ? sanitize_text_field($_POST['raw']) : '';
+            $link = isset($_POST['link']) ? esc_url_raw($_POST['link']) : null;
+            $reimbursed = isset($_POST['reimbursed']) ? intval($_POST['reimbursed']) : 0;
+
+            $receipt_id = $this->upsert_receipt(
+                $receipt_id,
+                $cmid,
+                $store,
+                $date,
+                $reimbursed,
+                $subtotal,
+                $tax,
+                $shipping,
+                $total,
+                $items,
+                $raw,
+                $link
+            );
+
+            // Redirect to the return URL if provided
+            $return_url = isset($_POST['return_url']) ? base64_decode(sanitize_text_field($_POST['return_url'])) : admin_url('admin.php?page=camp-manager-actuals');
+            wp_redirect($return_url);
+        } catch (Exception $e) {
+            wp_redirect(admin_url('admin.php?page=camp-manager-actuals&error=' . urlencode($e->getMessage())));
+        }
+        exit;
+    }
+
+    public function upsert_receipt(
+        $receipt_id,
+        $cmid,
+        string $store,
+        string $date,
+        int $reimbursed,
+        float $subtotal,
+        float $tax,
+        float $shipping,
+        float $total,
+        array $items,
+        string $raw,
+        string $link = null
+    ) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_receipts';
+        $items_table = $wpdb->prefix . 'mf_receipt_items';
+
+        $receipt_id = intval($receipt_id);
+        $date = date("Y-m-d H:i:s", strtotime(sanitize_text_field($date)));
+
+        $data = [
+            'cmid' => $cmid ? intval($cmid) : null,
+            'store' => sanitize_text_field($store),
+            'date' => $date,
+            'reimbursed' => $reimbursed,
+            'subtotal' => $subtotal,
+            'tax' => $tax,
+            'shipping' => $shipping,
+            'total' => $total,
+            'raw' => $raw,
+            'link' => $link ? esc_url_raw($link) : null,
+        ];
+
+        $is_update = false;
+
+        if ($receipt_id > 0 && $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE id = %d", $receipt_id))) {
+            $is_update = true;
+            $result = $wpdb->update($table, $data, ['id' => $receipt_id]);
+
+            if ($result === false) {
+                throw new \Exception("Failed to update receipt: " . $wpdb->last_error);
+            }
+
+            // Clear existing items
+            $wpdb->delete($items_table, ['receipt_id' => $receipt_id]);
+        } else {
+            $result = $wpdb->insert($table, $data);
+            if (!$result) {
+                throw new \Exception("Failed to insert receipt: " . $wpdb->last_error);
+            }
+            $receipt_id = $wpdb->insert_id;
+        }
+
+        // Insert line items
+        foreach ($items as $item) {
+            $name = trim($item['name'] ?? '');
+            $item_subtotal = floatval($item['subtotal'] ?? 0);
+            if ($name === '' || $item_subtotal === 0) {
+                continue;
+            }
+
+            $item_data = [
+                'receipt_id' => $receipt_id,
+                'name' => sanitize_text_field($item['name']),
+                'price' => floatval($item['price']),
+                'quantity' => intval($item['quantity']),
+                'subtotal' => $item_subtotal,
+                'tax' => isset($item['tax']) ? floatval($item['tax']) : 0.0,
+                'shipping' => isset($item['shipping']) ? floatval($item['shipping']) : 0.0,
+                'total' => floatval($item['total'] ?? 0.0),
+                'category_id' => isset($item['category']) ? intval($item['category']) : null,
+                'link' => isset($item['link']) ? sanitize_text_field($item['link']) : null,
+                'budget_item_id' => isset($item['budget_item_id']) ? intval($item['budget_item_id']) : null,
+            ];
+
+            $result = $wpdb->insert($items_table, $item_data);
+            if (!$result) {
+                throw new \Exception("Failed to insert receipt item: " . $wpdb->last_error);
+            }
+        }
+
+        return $receipt_id;
+    }
+
+
+    public function handle_receipt_analyze()
+    {
         if (!current_user_can('manage_options')) {
             wp_die('Unauthorized');
         }
@@ -198,7 +322,7 @@ class CampManagerReceipts
             $receipt->items = $this->get_receipt_items($id);
         } else {
             return null; // or throw an exception
-        }   
+        }
 
         return $receipt;
     }
@@ -214,27 +338,27 @@ class CampManagerReceipts
 
         // 2. If store is provided, filter further
         if ($store && !empty($possible)) {
-            $possible = array_filter($possible, function($r) use ($store) {
+            $possible = array_filter($possible, function ($r) use ($store) {
                 return strtolower($r->store) === strtolower($store);
             });
         }
 
         // 3. If items are provided, check for matching item names/totals
         if (!empty($items) && !empty($possible)) {
-            $item_names = array_map(function($item) {
+            $item_names = array_map(function ($item) {
                 return strtolower(trim($item['name'] ?? ''));
             }, $items);
-            $item_subtotals = array_map(function($item) {
+            $item_subtotals = array_map(function ($item) {
                 return floatval($item['subtotal'] ?? 0);
             }, $items);
 
             $filtered = [];
             foreach ($possible as $receipt) {
                 $receipt_items = $this->get_receipt_items($receipt->id);
-                $receipt_item_names = array_map(function($item) {
+                $receipt_item_names = array_map(function ($item) {
                     return strtolower(trim($item->name ?? ''));
                 }, $receipt_items);
-                $receipt_item_subtotals = array_map(function($item) {
+                $receipt_item_subtotals = array_map(function ($item) {
                     return floatval($item->subtotal ?? 0);
                 }, $receipt_items);
 
@@ -253,148 +377,6 @@ class CampManagerReceipts
         return array_values($possible);
     }
 
-    public function update_receipt(
-        int $receipt_id,
-        $cmid,
-        string $store,
-        string $date,
-        float $subtotal,
-        float $tax,
-        float $shipping,
-        float $total,
-        array $items,
-        string $raw,
-        string $link = null
-    ) {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'mf_receipts';
-
-        $date = date("Y-m-d H:i:s", strtotime(sanitize_text_field($date)));
-
-        $data = [
-            'store'    => sanitize_text_field($store),
-            'cmid'     => $cmid ? intval($cmid) : null,
-            'date'     => $date,
-            'subtotal' => $subtotal,
-            'tax'      => $tax,
-            'shipping' => $shipping,
-            'total'    => $total,
-            'raw'      => $raw,
-            'link'     => $link ? esc_url_raw($link) : null
-        ];
-
-        $where = ['id' => $receipt_id];
-        $result = $wpdb->update($table_name, $data, $where);
-
-        if ($result === false) {
-            throw new \Exception("Failed to update receipt: " . $wpdb->last_error);
-        }
-
-        // Delete existing items
-        $wpdb->delete($wpdb->prefix . 'mf_receipt_items', ['receipt_id' => $receipt_id]);
-
-        // Re-insert updated items
-        if (is_array($items)) {
-            foreach ($items as $item) {
-                // Skip empty rows (no name and no subtotal)
-                $name = trim($item['name'] ?? '');
-                $subtotal = floatval($item['subtotal'] ?? 0);
-                if ($name === '' || $subtotal === 0) {
-                    continue;
-                }
-
-                $item_data = [
-                    'receipt_id' => $receipt_id,
-                    'name' => sanitize_text_field($item['name']),
-                    'price' => floatval($item['price']),
-                    'quantity' => $item['quantity'],
-                    'subtotal' => floatval($item['subtotal']),
-                    'tax' => isset($item['tax']) ? floatval($item['tax']) : 0.0,
-                    'shipping' => isset($item['shipping']) ? floatval($item['shipping']) : 0.0,
-                    'total' => floatval($item['total'] ?? 0.0),
-                    'category_id' => isset($item['category']) ? intval($item['category']) : null,
-                    'link' => isset($item['link']) ? sanitize_text_field($item['link']) : null,
-                    'budget_item_id' => isset($item['budget_item_id']) ? intval($item['budget_item_id']) : null,
-                ];
-                $receipt_item = $this->insert_receipt_item($item_data);
-                if (!$receipt_item) {
-                    throw new \Exception("Failed to insert receipt item: " . $wpdb->last_error);
-                }
-            }
-        }
-
-        return $receipt_id;
-    }
-
-    public function insert_receipt(
-        $cmid,
-        string $store,
-        string $date,
-        float $subtotal,
-        float $tax,
-        float $shipping,
-        float $total,
-        array $items,
-        string $raw,
-        string $link = null,
-    )
-    {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'mf_receipts';
-
-        $date = date("Y-m-d H:i:s", strtotime(sanitize_text_field($date)));
-
-        $data = [
-            'cmid'     => $cmid ? intval($cmid) : null,
-            'store'    => sanitize_text_field($store),
-            'date'     => $date,
-            'subtotal' => $subtotal,
-            'tax'      => $tax,
-            'shipping' => $shipping,
-            'total'    => $total,
-            'raw'      => $raw,
-            'link'     => $link ? esc_url_raw($link) : null,
-        ];
-        $result = $wpdb->insert($table_name, $data);
-
-        if( $result ) {
-            $receipt_id = $wpdb->insert_id; // Get the last inserted ID
-            // Optionally, you can also insert items related to this receipt
-            if (is_array($items)) {
-                foreach ($items as $item) {
-                    // Skip empty rows (no name and no subtotal)
-                    $name = trim($item['name'] ?? '');
-                    $subtotal = floatval($item['subtotal'] ?? 0);
-                    if ($name === '' && $subtotal === 0) {
-                        continue;
-                    }
-
-                    $item_data = [
-                        'receipt_id' => $receipt_id,
-                        'name' => sanitize_text_field($item['name']),
-                        'price' => floatval($item['price']),
-                        'budget_item_id' => isset($item['budget_item_id']) ? intval($item['budget_item_id']) : null,
-                        'quantity' => $item['quantity'],
-                        'subtotal' => floatval($item['subtotal']),
-                        'tax' => isset($item['tax']) ? floatval($item['tax']) : 0.0,
-                        'shipping' => isset($item['shipping']) ? floatval($item['shipping']) : 0.0,
-                        'total' => floatval($item['total'] ?? 0.0),
-                        'category_id' => isset($item['category']) ? intval($item['category']) : null,
-                        'link' => isset($item['link']) ? sanitize_text_field($item['link']) : null
-                    ];
-                    $receipt_item = $this->insert_receipt_item($item_data);
-                    if (!$receipt_item) {
-                        throw new \Exception("Failed to insert receipt item: " . $wpdb->last_error);
-                    }
-                }
-            }
-        }
-        else {
-            throw new \Exception("Failed to insert receipt: " . $wpdb->last_error);
-        }
-        
-        return $receipt_id;
-    }
     public function insert_receipt_item($data)
     {
         global $wpdb;
