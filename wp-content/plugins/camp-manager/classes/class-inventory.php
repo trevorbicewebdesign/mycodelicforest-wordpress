@@ -17,8 +17,47 @@ class CampManagerInventory
         add_action('admin_post_camp_manager_save_and_close_tote', [$this, 'handle_tote_save']);
 
         add_action('admin_post_camp_manager_save_tote_inventory', [$this, 'handle_tote_inventory_save']);
-        add_action('admin_post_camp_manager_save_and_close_tote_inventory', [$this, 'handle_tote_inventory_save']);
+        add_action('admin_post_camp_manager_save_and_close_tote_inventory', [$this, 'handle_tote_inventory_save_close']);
 
+    }
+
+    public function handle_tote_inventory_save_close()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        try {
+            $tote_id = isset($_POST['tote_id']) ? (int) $_POST['tote_id'] : null;
+            $inventory_id = isset($_POST['inventory_id']) ? (int) $_POST['inventory_id'] : null;
+            $quantity = isset($_POST['quantity']) ? (int) $_POST['quantity'] : 1;
+
+            if ($tote_id && $inventory_id) {
+                $tote_inventory_id = $this->upsertToteInventory($tote_id, $inventory_id, $quantity);
+            } else {
+                throw new Exception('Invalid Tote or Inventory ID');
+            }
+        } catch (\Exception $e) {
+
+            die("Error: " . $e->getMessage());
+
+            $redirect_url = isset($_POST['return_url']) && !empty($_POST['return_url'])
+                ? esc_url_raw(base64_decode($_POST['return_url']))
+                : admin_url('admin.php?page=camp-manager-add-tote-inventory&error=' . urlencode($e->getMessage()));
+            wp_redirect($redirect_url);
+            exit;
+        }
+
+        if (isset($_POST['return_url']) && !empty($_POST['return_url'])) {
+            $decoded_url = base64_decode($_POST['return_url']);
+            $redirect_url = esc_url_raw($decoded_url);
+        } else {
+            print_r($_POST);
+            die();
+            $redirect_url = admin_url("admin.php?page=camp-manager-view-tote-inventory");
+        }
+        wp_redirect($redirect_url);
+        exit;
     }
 
     public function handle_tote_inventory_save()
