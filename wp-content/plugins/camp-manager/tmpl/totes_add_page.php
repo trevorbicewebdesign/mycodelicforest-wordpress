@@ -86,8 +86,8 @@ $tote_id = $is_edit ? intval($tote->id) : 0;
                     ?>
                     <?php
                     $return_url = '';
-                    if (!empty($_REQUEST['return_url'])) {
-                        $return_url = base64_decode(sanitize_text_field($_REQUEST['return_url']));
+                    if (!empty($_REQUEST['return'])) {
+                        $return_url = base64_decode(sanitize_text_field($_REQUEST['return']));
                     }
                     ?>
                     <input type="hidden" name="return_url" value="<?php echo esc_url( base64_encode( $return_url ? $return_url : admin_url('admin.php?page=camp-manager-add-tote&id=' . $tote_id) ) ); ?>">
