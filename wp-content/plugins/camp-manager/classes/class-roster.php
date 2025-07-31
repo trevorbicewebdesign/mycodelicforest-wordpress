@@ -31,8 +31,8 @@ class CampManagerRoster
                 'playaname' => isset($_POST['member_playaname']) ? sanitize_text_field($_POST['member_playaname']) : '',
                 'email' => isset($_POST['member_email']) ? sanitize_email($_POST['member_email']) : '',
                 //'wpid' => get_current_user_id(),
-                'low_income' => isset($_POST['low_income']) ? (int)$_POST['low_income'] : null,
-                'fully_paid' => isset($_POST['fully_paid']) ? (int)$_POST['fully_paid'] : null,
+                'low_income' => isset($_POST['member_low_income']) ? (int)$_POST['member_low_income'] : null,
+                'fully_paid' => isset($_POST['member_fully_paid']) ? (int)$_POST['member_fully_paid'] : null,
                 'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
                 'member_status' => isset($_POST['member_status']) ? sanitize_text_field($_POST['member_status']) : '',
             ]);
@@ -43,6 +43,62 @@ class CampManagerRoster
         wp_redirect(admin_url('admin.php?page=camp-manager-add-member&id=' . (isset($_POST['id']) ? intval($_POST['id']) : 0) ));
         exit;
     }
+
+    public function countRosterMembers()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT COUNT(*) FROM $table_name";
+        return $wpdb->get_var($query);
+    }
+
+    public function getRosterMembers(): array
+    {
+        // Get all members from mf_roster
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT * FROM $table_name ORDER BY lname, fname";
+        $members = $wpdb->get_results($query, ARRAY_A);
+        return $members ?: [];
+    }
+
+    public function countConfirmedRosterMembers()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT COUNT(*) FROM $table_name WHERE status = 'confirmed'";
+        return $wpdb->get_var($query);
+    }
+
+    public function getConfirmedRosterMembers(): array
+    {
+        // Get all confirmed members from mf_roster
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT * FROM $table_name WHERE status = 'confirmed' ORDER BY lname, fname";
+        $members = $wpdb->get_results($query, ARRAY_A);
+        return $members ?: [];
+    }
+
+    public function countPaidCampDues()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid = 1";
+        return $wpdb->get_var($query);
+    }
+
+    public function countUnpaidCampDues()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        // Count where fully_paid is NULL or 0 and status is 'confirmed'
+        $query = "SELECT COUNT(*) FROM $table_name WHERE (fully_paid IS NULL OR fully_paid = 0) AND status = 'confirmed'";
+        return $wpdb->get_var($query);
+    }
+
+
+    // ********************************* //
 
     public function countUnpaidMembers()
     {
@@ -69,31 +125,6 @@ class CampManagerRoster
         return $wpdb->get_var($query);
     }
 
-    public function countRosterMembers()
-    {
-        global $wpdb;
-        $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name";
-        return $wpdb->get_var($query);
-    }
-
-    public function countPaidCampDues()
-    {
-        global $wpdb;
-        $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid = 1";
-        return $wpdb->get_var($query);
-    }
-
-    public function countUnpaidCampDues()
-    {
-        global $wpdb;
-        $table_name = "{$wpdb->prefix}mf_roster";
-        // Count where fully_paid is NULL or 0
-        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid IS NULL OR fully_paid = 0";
-        return $wpdb->get_var($query);
-    }
-
     public function countPaidLowIncomeCampDues()
     {
         global $wpdb;
@@ -102,15 +133,6 @@ class CampManagerRoster
         return $wpdb->get_var($query);
     }
 
-    public function getRosterMembers(): array
-    {
-        // Get all members from mf_roster
-        global $wpdb;
-        $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT * FROM $table_name ORDER BY lname, fname";
-        $members = $wpdb->get_results($query, ARRAY_A);
-        return $members ?: [];
-    }
 
     public function getMemberById($memberId)
     {
