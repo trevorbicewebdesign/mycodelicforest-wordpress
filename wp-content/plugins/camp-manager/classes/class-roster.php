@@ -34,12 +34,13 @@ class CampManagerRoster
                 'low_income' => isset($_POST['low_income']) ? (int)$_POST['low_income'] : null,
                 'fully_paid' => isset($_POST['fully_paid']) ? (int)$_POST['fully_paid'] : null,
                 'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
+                'member_status' => isset($_POST['member_status']) ? sanitize_text_field($_POST['member_status']) : '',
             ]);
             
         } catch (\Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-add-member&error=' . urlencode($e->getMessage())));
         }
-        wp_redirect(admin_url('admin.php?page=camp-manager-members&success=member_added'));
+        wp_redirect(admin_url('admin.php?page=camp-manager-add-member&id=' . (isset($_POST['id']) ? intval($_POST['id']) : 0) ));
         exit;
     }
 
@@ -164,6 +165,7 @@ class CampManagerRoster
             'lname' => sanitize_text_field($memberData['lname']),
             'playaname' => sanitize_text_field($memberData['playaname']),
             'email' => sanitize_email($memberData['email']),
+            'status' => isset($memberData['member_status']) ? sanitize_text_field($memberData['member_status']) : '',
         ];
 
         if (isset($memberData['id']) && !empty($memberData['id'])) {
