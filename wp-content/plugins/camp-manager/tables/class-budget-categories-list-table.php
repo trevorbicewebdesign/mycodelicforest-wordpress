@@ -150,7 +150,7 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
         // Assuming there is a 'priority' column and '1' means "must have"
-        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 1");
+        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 1 AND purchased != 1");
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
@@ -159,7 +159,7 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
         // Assuming there is a 'priority' column and '2' means "should have"
-        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 2 OR priority = 1");
+        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 2 OR priority = 1 AND purchased != 1");
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
@@ -168,7 +168,7 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
         // Assuming there is a 'priority' column and '3' means "could have"
-        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 3 OR priority = 2 OR priority = 1");
+        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 3 OR priority = 2 OR priority = 1 AND purchased != 1");
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
@@ -177,7 +177,7 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
         // Assuming there is a 'priority' column and '4' means "nice to have"
-        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 4 OR priority = 3 OR priority = 2 OR priority = 1");
+        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 4 OR priority = 3 OR priority = 2 OR priority = 1 AND purchased != 1");
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 

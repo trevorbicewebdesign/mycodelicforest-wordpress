@@ -53,7 +53,9 @@ class CampManagerBudgets {
                 isset($_POST['budget_item_total']) ? floatval($_POST['budget_item_total']) : 0.0,
                 isset($_POST['budget_item_priority']) ? (int)$_POST['budget_item_priority'] : 0,
                 isset($_POST['budget_item_link']) ? sanitize_text_field($_POST['budget_item_link']) : null,
-                isset($_POST['budget_item_tax']) ? floatval($_POST['budget_item_tax']) : 0.0
+                isset($_POST['budget_item_tax']) ? floatval($_POST['budget_item_tax']) : 0.0,
+                isset($_POST['budget_item_purchased']) ? (int)$_POST['budget_item_purchased'] : 0
+                
             );
         } catch (\Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-budgets&error=' . urlencode($e->getMessage())));
@@ -101,33 +103,42 @@ class CampManagerBudgets {
         $query = $wpdb->prepare("SELECT * FROM $table WHERE id = %d", $budget_item_id);
         return $wpdb->get_row($query);
     }
-
-    // this should take the total receipts for a category and return the remaining budget
-    // that way an administrator can see how much is left in the budget for that category
+    
     public function get_remaining_budget_by_category($category_id, $priority): float
     {
-        // Should get the remaining budget for a category
         global $wpdb;
-        $table = "{$wpdb->prefix}mf_budget_items";
-        $query = $wpdb->prepare(
-            "SELECT SUM(total) FROM $table WHERE category_id = %d AND priority = %d",
-            $category_id, $priority
-        );
-        $total_budget = $wpdb->get_var($query);
-        $total_budget = $total_budget !== null ? (float) $total_budget : 0.0;
 
-        // now get the total receipts that are accounted for in this category (budget_item_id)
+        $budget_items_table = "{$wpdb->prefix}mf_budget_items";
         $receipts_table = "{$wpdb->prefix}mf_receipt_items";
-        $receipt_query = $wpdb->prepare(
-            "SELECT SUM(total) FROM $receipts_table WHERE budget_item_id IN (SELECT id FROM $table WHERE category_id = %d AND priority = %d)",
-            $category_id, $priority
-        );
-        $total_receipts = $wpdb->get_var($receipt_query);
-        $total_receipts = $total_receipts !== null ? (float) $total_receipts : 0.0;
 
-        // If no budget items found, return 0.0
-        return $total_budget - $total_receipts;
+        // Get all relevant budget items that aren't fully purchased
+        $budget_items = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, total FROM $budget_items_table 
+            WHERE category_id = %d AND priority = %d AND purchased != 1",
+            $category_id,
+            $priority
+        ));
+
+        $remaining_total = 0.0;
+
+        foreach ($budget_items as $item) {
+            $budgeted = (float) $item->total;
+
+            // Sum receipts linked to this budget item
+            $actual = (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT SUM(COALESCE(total, 0)) FROM $receipts_table 
+                WHERE budget_item_id = %d",
+                $item->id
+            ));
+
+            $remaining = max(0, $budgeted - $actual);
+            $remaining_total += $remaining;
+        }
+
+        return $remaining_total;
     }
+
+
 
     // Should insert or update a budget category
     public function upsertBudgetCategory($name, $description = '', $category_id = null): int
@@ -152,7 +163,7 @@ class CampManagerBudgets {
     }
 
     // Insert or update Budget Item
-    public function updateBudgetItem($budget_item_id, $category_id, $name, $price, $quantity, $subtotal, $total, $priority = 0, $link = null, $tax = 0.0): bool
+    public function updateBudgetItem($budget_item_id, $category_id, $name, $price, $quantity, $subtotal, $total, $priority = 0, $link = null, $tax = 0.0, $purchased = 0): bool
     {
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
@@ -166,6 +177,8 @@ class CampManagerBudgets {
             'total' => (float) $total,
             'priority' => (int) $priority,
             'link' => $link ? sanitize_text_field($link) : null,
+            'purchased' => (int) $purchased,
+            
         ];
 
         if ($budget_item_id && $wpdb->get_var($wpdb->prepare("SELECT id FROM $table WHERE id = %d", $budget_item_id))) {

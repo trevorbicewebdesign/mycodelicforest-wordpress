@@ -47,6 +47,13 @@ $budget_item_id = $is_edit ? intval($budget_item->id) : 0;
                 </td>
             </tr>
             <tr>
+                <th><label for="budget_item_purchased">Purchased</label></th>
+                <td>
+                    <input type="checkbox" name="budget_item_purchased" id="budget_item_purchased" value="1" <?php checked($budget_item->purchased ?? false); ?>>
+                    <span class="description">Check if this item has been purchased.</span>
+                </td>
+            </tr>
+            <tr>
                 <th><label for="budget_item_price">Price</label></th>
                 <td>
                     <input type="number" step="0.01" name="budget_item_price" id="budget_item_price" value="<?php echo esc_attr($budget_item->price ?? ''); ?>" required>

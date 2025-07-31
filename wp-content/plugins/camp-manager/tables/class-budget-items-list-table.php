@@ -80,14 +80,8 @@ class CampManagerBudgetItemsTable extends WP_List_Table
             case 'total':
                 return '$' . number_format((float) $item['total'], 2);
             case 'purchased':
-                // check if the receipt_item_id is set, that would represent a purchase
-                // If the item is purchased, it will have a receipt_item_id set
-                // we also need to link to the receipt if it exist
-                if (!empty($item['receipt_item_id']) && !empty($item['receipt_id'])) {
-                    $receipt_url = admin_url('admin.php?page=camp-manager-add-receipt&id=' . urlencode($item['receipt_id']));
-                    return sprintf('<a href="%s">Yes</a>', esc_url($receipt_url));
-                }
-                return "No";
+                // If the item is marked as purchased, show Yes, otherwise No
+                return !empty($item['purchased']) ? 'Yes' : 'No';
             case 'actual':                
                 return '$' . number_format((float) $item['actual'], 2);
             case 'priority':
@@ -158,7 +152,7 @@ class CampManagerBudgetItemsTable extends WP_List_Table
 
         // We'll join the receipt_items table to get the actual total for each item in one query
         $receipt_items_table = "{$wpdb->prefix}mf_receipt_items";
-        $select_fields = "bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link, bi.receipt_item_id, bi.receipt_id, bi.link,
+        $select_fields = "bi.id, c.name AS category, bi.name, bi.price, bi.quantity, bi.subtotal, bi.tax, bi.total, bi.priority, bi.link, bi.purchased, bi.receipt_id, bi.link,
             COALESCE(SUM(ri.total), 0) AS actual";
 
         $join_receipt_items = "LEFT JOIN $receipt_items_table AS ri ON bi.id = ri.budget_item_id";
