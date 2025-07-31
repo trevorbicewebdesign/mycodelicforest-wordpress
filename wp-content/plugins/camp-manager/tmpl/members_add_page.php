@@ -107,18 +107,18 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
                         <th><label for="member_status">Status</label></th>
                         <td>
                             <select name="member_status" id="member_status">
-                                <option value="confirmed" <?php selected($is_edit && $member->status == 'confirmed'); ?>>Confirmed</option>
-                                <option value="very_maybe" <?php selected($is_edit && $member->status == 'very_maybe'); ?>>Very Maybe</option>
-                                <option value="maybe" <?php selected($is_edit && $member->status == 'maybe'); ?>>Maybe</option>
-                                <option value="no" <?php selected($is_edit && $member->status == 'no'); ?>>No</option>
-                                <option value="dropped" <?php selected($is_edit && $member->status == 'dropped'); ?>>Dropped</option>
+                                <option value="Confirmed" <?php selected($is_edit && $member->status == 'Confirmed'); ?>>Confirmed</option>
+                                <option value="Very Maybe" <?php selected($is_edit && $member->status == 'Very Maybe'); ?>>Very Maybe</option>
+                                <option value="Maybe" <?php selected($is_edit && $member->status == 'Maybe'); ?>>Maybe</option>
+                                <option value="No" <?php selected($is_edit && $member->status == 'No'); ?>>No</option>
+                                <option value="Dropped" <?php selected($is_edit && $member->status == 'Dropped'); ?>>Dropped</option>
                             </select>
                         </td>
                     </tr>
                     <tr>
                         <th><label for="member_sponsor">Sponsor</label></th>
                         <td>
-                            <input type="text" name="member_sponsor" id="member_sponsor" class="regular-text" required
+                            <input type="text" name="member_sponsor" id="member_sponsor" class="regular-text" 
                                 value="<?php echo $sponsor; ?>">
                         </td>
                     </tr>
