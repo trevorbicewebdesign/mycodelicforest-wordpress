@@ -24,6 +24,7 @@ $table->prepare_items();
     <a href="<?php echo admin_url('admin.php?page=camp-manager-add-member'); ?>" class="page-title-action">Add New</a>
     <hr class="wp-header-end">
     <h3>Total Camp Members: <?php echo $this->roster->countRosterMembers(); ?></h3>
+    <h3>Confirmed Camp Members: <?php echo $this->roster->countConfirmedRosterMembers(); ?></h3>
     <h4>Low Income Camp Members: <?php echo $this->roster->countLowIncomeMembers(); ?></h4>
     <h3>Total Camp Dues: <?php echo $this->ledger->totalCampDues(); ?></h3>
     <h3>Low Income Camp Dues Paid: <?php echo $this->roster->countPaidLowIncomeCampDues(); ?></h3>
