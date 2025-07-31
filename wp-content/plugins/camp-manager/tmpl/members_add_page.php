@@ -67,7 +67,7 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
                     <tr>
                         <th><label for="member_email">Email</label></th>
                         <td>
-                            <input type="email" name="member_email" id="member_email" class="regular-text" required
+                            <input type="email" name="member_email" id="member_email" class="regular-text"  
                                 value="<?php echo $email; ?>">
                         </td>
                     </tr>
