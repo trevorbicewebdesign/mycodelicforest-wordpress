@@ -37,7 +37,8 @@ class CampManagerRosterTable extends WP_List_Table
             'low_income' => 'Low Income',
             'fully_paid' => 'Fully Paid',
             'wpid'  => 'WordPress ID',
-            
+            'status' => 'Status',
+            'sponsor' => 'Sponsor',
         ];
     }
 
