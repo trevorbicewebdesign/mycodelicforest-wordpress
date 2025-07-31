@@ -103,12 +103,40 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
                             <label for="member_fully_paid">Check if fully paid</label>
                         </td>
                     </tr>
+                    <tr>
+                        <th><label for="member_status">Status</label></th>
+                        <td>
+                            <select name="member_status" id="member_status">
+                                <option value="confirmed" <?php selected($is_edit && $member->status == 'confirmed'); ?>>Confirmed</option>
+                                <option value="very_maybe" <?php selected($is_edit && $member->status == 'very_maybe'); ?>>Very Maybe</option>
+                                <option value="maybe" <?php selected($is_edit && $member->status == 'maybe'); ?>>Maybe</option>
+                                <option value="no" <?php selected($is_edit && $member->status == 'no'); ?>>No</option>
+                                <option value="dropped" <?php selected($is_edit && $member->status == 'dropped'); ?>>Dropped</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="member_sponsor">Sponsor</label></th>
+                        <td>
+                            <input type="text" name="member_sponsor" id="member_sponsor" class="regular-text" required
+                                value="<?php echo $sponsor; ?>">
+                        </td>
+                    </tr>
                 </table>
+
                 <div style="display: flex; gap: 10px;">
                     <?php submit_button('Save Member', 'secondary', 'save_member', false, array('id' => 'save-btn')); ?>
                     <?php submit_button('Save & Close Member', 'primary', 'save_close_member', false, array('id' => 'save-close-btn')); ?>
                     <?php submit_button('Close Member', 'secondary', 'close_member', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
                 </div>
+
+                <?php
+                $return_url = '';
+                if (!empty($_REQUEST['return'])) {
+                    $return_url = base64_decode(sanitize_text_field($_REQUEST['return']));
+                }
+                ?>
+                <input type="hidden" name="return_url" value="<?php echo esc_url( base64_encode( $return_url ? $return_url : "") ) ; ?>">                    
         </form>
     </div>
     <div class="col-md-6">
