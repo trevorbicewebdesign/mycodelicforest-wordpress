@@ -23,7 +23,7 @@ $form_action = admin_url('admin-post.php');
     <h3>Total Donations: $<?php echo esc_html(number_format($this->ledger->totalDonations(), 2)); ?></h3>
     <h3>Total Assets Sold: $<?php echo esc_html(number_format($this->ledger->totalAssetsSold(), 2)); ?></h3>
     <h3>Total Expected Revenue: <?php  echo esc_html(number_format($this->roster->expectedCampDuesRevenue() + $this->ledger->totalDonations() + $this->ledger->totalAssetsSold(), 2)); ?></h3>
-    <h3>Remaining Camp Dues: $<?php echo esc_html(number_format($this->roster->remainingCampDues()), 2); ?></h3>
+    <h3>Remaining Camp Dues: $<?php echo esc_html(number_format($this->roster->totalUnpaidCampDues()), 2); ?></h3>
     <?php
     // get all the categories at the top so they're available for both chart and table
     $categories = $this->core->getItemCategories();
