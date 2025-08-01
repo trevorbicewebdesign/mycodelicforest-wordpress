@@ -24,6 +24,7 @@ class CampManagerShortcodes
         add_shortcode('camp_manager_inventory', [$this, 'displayInventory']);
 
         add_shortcode('camp_manager_financial_summary', [$this, 'displayFinancialSummary']);
+        add_shortcode('camp_manager_actuals_chart', [$this, 'displayActualsChart']);
     }
 
     public function displayRoster($atts = [], $content = null)
@@ -267,6 +268,36 @@ class CampManagerShortcodes
             </div>
         ';
         return $output;
+    }
+
+    public function displayActualsChart()
+    {
+        $categories = $this->core->getItemCategories();
+        $rows = [];
+        foreach ($categories as $category) {
+            $total = $this->receipts->get_total_receipts_by_category($category['id']);
+            $rows[] = "['" . str_replace('&amp;', '&', $category['name']) . " $" . number_format($total, 2) . "', " . floatval($total) . "]";
+        }
+        $chart_html = '
+        <div id="piechart" style="width: 100%; height: 500px;"></div>
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <script>
+        google.charts.load("current", {packages:["corechart"]});
+        google.charts.setOnLoadCallback(drawChart);
+        function drawChart() {
+            var data = google.visualization.arrayToDataTable([
+                ["Category", "Amount"],
+                ' . implode(",\n                ", $rows) . '
+            ]);
+            var options = {
+                title: "Camp Spending Breakdown"
+            };
+            var chart = new google.visualization.PieChart(document.getElementById("piechart"));
+            chart.draw(data, options);
+        }
+        </script>
+        ';
+        return $chart_html;
     }
 }
 ?>
