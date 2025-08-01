@@ -162,7 +162,7 @@ $estimated_funds_remaining = $estimated_revenue - $total_expenses;
                                 <td>$<?php echo number_format($estimated_revenue, 2); ?></td>
                             </tr>
                             <tr>
-                                <th>Estimated Funds Remaining</th>
+                                <th>Estimated Revenue Remaining</th>
                                 <td>$<?php echo number_format($estimated_funds_remaining, 2); ?></td>
                             </tr>
                             <tr>
