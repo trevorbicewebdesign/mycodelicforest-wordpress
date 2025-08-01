@@ -62,11 +62,21 @@ class CampManagerRoster
         return $members ?: [];
     }
 
+    public function getMemberById($memberId)
+    {
+        // Get a specific member by ID from mf_roster
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", (int)$memberId);
+        $member = $wpdb->get_row($query);
+        return $member ?: null;
+    }
+
     public function countConfirmedRosterMembers()
     {
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name WHERE status = 'confirmed'";
+        $query = "SELECT COUNT(*) FROM $table_name WHERE status = 'Confirmed'";
         return $wpdb->get_var($query);
     }
 
@@ -75,7 +85,7 @@ class CampManagerRoster
         // Get all confirmed members from mf_roster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT * FROM $table_name WHERE status = 'confirmed' ORDER BY lname, fname";
+        $query = "SELECT * FROM $table_name WHERE status = 'Confirmed' ORDER BY lname, fname";
         $members = $wpdb->get_results($query, ARRAY_A);
         return $members ?: [];
     }
@@ -93,29 +103,31 @@ class CampManagerRoster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
         // Count where fully_paid is NULL or 0 and status is 'confirmed'
-        $query = "SELECT COUNT(*) FROM $table_name WHERE (fully_paid IS NULL OR fully_paid = 0) AND status = 'confirmed'";
+        $query = "SELECT COUNT(*) FROM $table_name WHERE (fully_paid IS NULL OR fully_paid = 0) AND status = 'Confirmed'";
+        return $wpdb->get_var($query);
+    }
+    
+    public function countLowIncomeMembers()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $query = "SELECT COUNT(*) FROM $table_name WHERE low_income = 1 AND status = 'confirmed'";
+        return $wpdb->get_var($query);
+    }
+
+    public function countUnpaidMembers()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        // Count where fully_paid is NULL or 0 and status is 'confirmed'
+        $query = "SELECT COUNT(*) FROM $table_name WHERE (fully_paid IS NULL OR fully_paid = 0) AND status = 'Confirmed'";
         return $wpdb->get_var($query);
     }
 
 
     // ********************************* //
 
-    public function countUnpaidMembers()
-    {
-        global $wpdb;
-        $table_name = "{$wpdb->prefix}mf_roster";
-        // Count where fully_paid is NULL or 0
-        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid IS NULL OR fully_paid = 0";
-        return $wpdb->get_var($query);
-    }
-
-    public function countLowIncomeMembers()
-    {
-        global $wpdb;
-        $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name WHERE low_income = 1";
-        return $wpdb->get_var($query);
-    }
+   
 
     public function countUnpaidLowIncomeMembers()
     {
@@ -131,18 +143,7 @@ class CampManagerRoster
         $table_name = "{$wpdb->prefix}mf_roster";
         $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid = 1 AND low_income = 1";
         return $wpdb->get_var($query);
-    }
-
-
-    public function getMemberById($memberId)
-    {
-        // Get a specific member by ID from mf_roster
-        global $wpdb;
-        $table_name = "{$wpdb->prefix}mf_roster";
-        $query = $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", (int)$memberId);
-        $member = $wpdb->get_row($query);
-        return $member ?: null;
-    }
+    }   
 
     // figure out how many regular and low income campers there are left to pay dues
     // use that information at 350 for regular and 250 for low income to calculate expected revenue remaining
