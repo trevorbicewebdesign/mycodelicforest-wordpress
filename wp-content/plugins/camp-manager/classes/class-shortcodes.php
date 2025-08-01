@@ -218,7 +218,7 @@ class CampManagerShortcodes
         $total_camp_dues = $CampManagerLedger->totalCampDues();
         $total_donations = $CampManagerLedger->totalDonations();
         $other_revenue = $CampManagerLedger->totalAssetsSold();
-        $total_revenue = $total_camp_dues + $total_donations + $other_revenue;
+        $total_revenue = $CampManagerLedger->totalMoneyIn();
         $total_expenses = $CampManagerLedger->totalMoneyOut();
 
         $starting_balance = $CampManagerLedger->startingBalance();
