@@ -27,11 +27,11 @@ $total_regular_members = $total_camp_members - $total_low_income_members;
 $total_paid_low_income_camp_dues = $CampManagerRoster->countPaidLowIncomeCampDues();
 $total_paid_camp_dues = $CampManagerRoster->countPaidCampDues()-$total_paid_low_income_camp_dues;
 
-$total_unpaid_camp_dues = $CampManagerRoster->countUnpaidCampDues();
+$total_unpaid_camp_dues = $CampManagerRoster->totalUnpaidCampDues();
 
-$estimated_revenue = ($total_low_income_members * 250) + (($total_camp_members - $total_low_income_members) * 350)+$total_donations+$other_revenue;
-$estimated_funds_remaining = $estimated_revenue - $total_expenses;
 $collected_revenue = $total_revenue;
+$estimated_revenue = $collected_revenue + $total_unpaid_camp_dues;
+$estimated_funds_remaining = $estimated_revenue - $total_expenses;
 ?>
 <div class="wrap">
     <h1 class="wp-heading-inline">Camp Manager Dashboard</h1>
