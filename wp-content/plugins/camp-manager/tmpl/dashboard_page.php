@@ -21,8 +21,9 @@ $total_camp_members = $CampManagerRoster->countConfirmedRosterMembers();
 $total_low_income_members = $CampManagerRoster->countLowIncomeMembers();
 $total_regular_members = $total_camp_members - $total_low_income_members;
 // Count members who have paid full camp dues
-$total_paid_camp_dues = $CampManagerRoster->countPaidCampDues();
+
 $total_paid_low_income_camp_dues = $CampManagerRoster->countPaidLowIncomeCampDues();
+$total_paid_camp_dues = $CampManagerRoster->countPaidCampDues()-$total_paid_low_income_camp_dues;
 
 $total_unpaid_camp_dues = $CampManagerRoster->countUnpaidCampDues();
 
