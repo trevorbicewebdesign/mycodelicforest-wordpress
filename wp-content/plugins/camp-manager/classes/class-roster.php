@@ -106,6 +106,23 @@ class CampManagerRoster
         $query = "SELECT COUNT(*) FROM $table_name WHERE (fully_paid IS NULL OR fully_paid = 0) AND status = 'Confirmed'";
         return $wpdb->get_var($query);
     }
+
+    public function totalUnpaidCampDues()
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        // Count where fully_paid is NULL or 0 and status is 'confirmed'
+        $query = "SELECT 
+            SUM(
+            CASE 
+                WHEN (fully_paid IS NULL OR fully_paid = 0) AND status = 'Confirmed' AND low_income = 1 THEN 250
+                WHEN (fully_paid IS NULL OR fully_paid = 0) AND status = 'Confirmed' AND (low_income IS NULL OR low_income = 0) THEN 350
+                ELSE 0
+            END
+            ) 
+            FROM $table_name";
+        return $wpdb->get_var($query);
+    }
     
     public function countLowIncomeMembers()
     {
