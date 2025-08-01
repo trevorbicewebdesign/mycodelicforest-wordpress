@@ -15,6 +15,8 @@ $total_revenue = $CampManagerLedger->totalMoneyIn();
 $total_expenses = $CampManagerLedger->totalMoneyOut();
 $other_revenue = $CampManagerLedger->totalAssetsSold();
 
+$total_unpaid_receipts = $CampManagerReceipts->totalUnpaidReceipts();
+
 $paypal_balance = $starting_balance + $total_revenue - $total_expenses;
 
 $total_camp_members = $CampManagerRoster->countConfirmedRosterMembers();
@@ -27,7 +29,7 @@ $total_paid_camp_dues = $CampManagerRoster->countPaidCampDues()-$total_paid_low_
 
 $total_unpaid_camp_dues = $CampManagerRoster->countUnpaidCampDues();
 
-$estimated_revenue = ($total_low_income_members * 250) + (($total_camp_members - $total_low_income_members) * 350);
+$estimated_revenue = ($total_low_income_members * 250) + (($total_camp_members - $total_low_income_members) * 350)+$total_donations+$other_revenue;
 $estimated_funds_remaining = $estimated_revenue - $total_expenses;
 $collected_revenue = $total_revenue;
 ?>
@@ -108,6 +110,38 @@ $collected_revenue = $total_revenue;
                 </div>
             </div>
         </div>
+
+         <div style="flex: 1 1 350px; min-width: 350px;">
+            <div class="postbox">
+                <h2 class="hndle"><span>Ledger</span></h2>
+                <div class="inside">
+                    <table class="widefat striped">
+                        <tbody>
+                            <tr>
+                                <th>Money In</th>
+                                <td>$<?php echo number_format($total_revenue, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <th>Money Out</th>
+                                <td>$<?php echo number_format($total_expenses, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <th>Net Revenue</th>
+                                <td>$<?php echo number_format($total_revenue - $total_expenses, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <th>Unpaid Receipts</th>
+                                <td>$<?php echo number_format($total_unpaid_receipts, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <th>Remaining</th>
+                                <td>$<?php echo number_format($total_revenue - $total_expenses - $total_unpaid_receipts, 2); ?></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
 
         <!-- Right column: Revenue & Estimates -->
         <div style="flex: 1 1 350px; min-width: 350px;">
