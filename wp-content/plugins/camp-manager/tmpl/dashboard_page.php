@@ -165,10 +165,6 @@ $estimated_funds_remaining = $estimated_revenue - $total_expenses;
                                 <th>Estimated Revenue Remaining</th>
                                 <td>$<?php echo number_format($estimated_funds_remaining, 2); ?></td>
                             </tr>
-                            <tr>
-                                <th>Unallocated Funds</th>
-                                <td><!-- Add calculation if needed --></td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
