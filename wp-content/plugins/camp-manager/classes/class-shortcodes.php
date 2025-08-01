@@ -22,6 +22,8 @@ class CampManagerShortcodes
         add_shortcode('camp_manager_roster', [$this, 'displayRoster']);
         add_shortcode('camp_manager_expenses', [$this, 'displayExpenses']);
         add_shortcode('camp_manager_inventory', [$this, 'displayInventory']);
+
+        add_shortcode('camp_manager_financial_summary', [$this, 'displayFinancialSummary']);
     }
 
     public function displayRoster($atts = [], $content = null)
@@ -201,6 +203,70 @@ class CampManagerShortcodes
 
         $output .= '</table>';
 
+        return $output;
+    }
+
+    public function displayFinancialSummary()
+    {
+
+        $CampManagerChatGPT = new CampManagerChatGPT($this->core);
+        $CampManagerReceipts = new CampManagerReceipts($this->core, $CampManagerChatGPT);
+        $CampManagerLedger = new CampManagerLedger($CampManagerReceipts);
+        $CampManagerRoster = new CampManagerRoster();
+
+        
+        $total_camp_dues = $CampManagerLedger->totalCampDues();
+        $total_donations = $CampManagerLedger->totalDonations();
+        $other_revenue = $CampManagerLedger->totalAssetsSold();
+        $total_revenue = $total_camp_dues + $total_donations + $other_revenue;
+        $total_expenses = $CampManagerLedger->totalMoneyOut();
+
+        $starting_balance = $CampManagerLedger->startingBalance();
+        $paypal_balance = $starting_balance + $total_revenue - $total_expenses;
+
+        $output = '
+            <div class="postbox">
+            <h2 class="hndle"><span>Financial Summary</span></h2>
+            <div class="inside">
+                <table class="widefat striped">
+                <tbody>
+                    <tr>
+                    <th>PayPal Balance</th>
+                    <td><strong>$' . number_format($paypal_balance, 2) . '</strong></td>
+                    </tr>
+                    <tr>
+                    <th>Starting Funds</th>
+                    <td>$' . number_format($starting_balance, 2) . '</td>
+                    </tr>
+                    <tr>
+                    <th>Camp Dues Collected</th>
+                    <td>$' . number_format($total_camp_dues, 2) . '</td>
+                    </tr>
+                    <tr>
+                    <th>Donations Collected</th>
+                    <td>$' . number_format($total_donations, 2) . '</td>
+                    </tr>
+                    <tr>
+                    <th>Other Revenue</th>
+                    <td>$' . number_format($other_revenue, 2) . '</td>
+                    </tr>
+                    <tr>
+                    <th>Total Revenue</th>
+                    <td>$' . number_format($total_revenue, 2) . '</td>
+                    </tr>
+                    <tr>
+                    <th>Revenue Spent</th>
+                    <td class="danger">$' . number_format($total_expenses, 2) . '</td>
+                    </tr>
+                    <tr>
+                    <th>Funds Remaining</th>
+                    <td><strong>$' . number_format($total_revenue - $total_expenses, 2) . '</strong></td>
+                    </tr>
+                </tbody>
+                </table>
+            </div>
+            </div>
+        ';
         return $output;
     }
 }
