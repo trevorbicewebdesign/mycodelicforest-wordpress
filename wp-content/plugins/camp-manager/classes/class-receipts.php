@@ -283,6 +283,14 @@ class CampManagerReceipts
         return $receipts;
     }
 
+    public function totalUnpaidReceipts()
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'mf_receipts';
+        $sql = "SELECT SUM(total) FROM $table_name WHERE reimbursed != 1 OR reimbursed IS NULL";
+        return (float) $wpdb->get_var($sql);
+    }
+
     public function get_receipt_items($receipt_id = null)
     {
         global $wpdb;
