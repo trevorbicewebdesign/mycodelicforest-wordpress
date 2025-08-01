@@ -25,9 +25,11 @@ $table->prepare_items();
     <hr class="wp-header-end">
     <h3>Total Camp Members: <?php echo $this->roster->countRosterMembers(); ?></h3>
     <h3>Confirmed Camp Members: <?php echo $this->roster->countConfirmedRosterMembers(); ?></h3>
-    <h4>Low Income Camp Members: <?php echo $this->roster->countLowIncomeMembers(); ?></h4>
+    <h4>Unpaid Camp Members: <?php echo $this->roster->countUnpaidMembers(); ?></h4>
     <h3>Total Camp Dues: <?php echo $this->ledger->totalCampDues(); ?></h3>
+    <h3>Expected Camp Dues Revenue: <?php echo $this->roster->expectedCampDuesRevenue(); ?></h3>
     <h3>Low Income Camp Dues Paid: <?php echo $this->roster->countPaidLowIncomeCampDues(); ?></h3>
+    <h4>Low Income Camp Members: <?php echo $this->roster->countLowIncomeMembers(); ?></h4>
 
     <form method="post">
         <?php
