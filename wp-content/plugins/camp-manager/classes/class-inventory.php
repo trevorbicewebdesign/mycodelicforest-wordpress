@@ -39,8 +39,6 @@ class CampManagerInventory
             }
         } catch (\Exception $e) {
 
-            die("Error: " . $e->getMessage());
-
             $redirect_url = isset($_POST['return_url']) && !empty($_POST['return_url'])
                 ? esc_url_raw(base64_decode($_POST['return_url']))
                 : admin_url('admin.php?page=camp-manager-add-tote-inventory&error=' . urlencode($e->getMessage()));
