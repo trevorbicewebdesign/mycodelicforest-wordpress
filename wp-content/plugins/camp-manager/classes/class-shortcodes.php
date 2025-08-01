@@ -212,7 +212,6 @@ class CampManagerShortcodes
         $CampManagerChatGPT = new CampManagerChatGPT($this->core);
         $CampManagerReceipts = new CampManagerReceipts($this->core, $CampManagerChatGPT);
         $CampManagerLedger = new CampManagerLedger($CampManagerReceipts);
-        $CampManagerRoster = new CampManagerRoster();
 
         
         $total_camp_dues = $CampManagerLedger->totalCampDues();
