@@ -67,17 +67,20 @@ $estimated_funds_remaining = $estimated_revenue - $total_expenses;
                                 <td>$<?php echo number_format($total_donations, 2); ?></td>
                             </tr>
                             <tr>
-                                <tr>
-                                    <th>Other Revenue</th>
-                                    <td>$<?php echo number_format($other_revenue, 2); ?></td>
-                                </tr>
+                                <th>Other Revenue</th>
+                                <td>$<?php echo number_format($other_revenue, 2); ?></td>
+                            </tr>
+                            <tr>
+                                <th>Total Revenue</th>
+                                <td>$<?php echo number_format($total_revenue, 2); ?></td>
+                            </tr>
                             <tr>
                                 <th>Revenue Spent</th>
                                 <td class="danger">$<?php echo number_format($total_expenses, 2); ?></td>
                             </tr>
                             <tr>
                                 <th>Funds Remaining</th>
-                                <td><strong>$<?php echo number_format($total_camp_dues+$total_donations+$other_revenue - $total_expenses, 2); ?></strong></td>
+                                <td><strong>$<?php echo number_format($total_revenue - $total_expenses, 2); ?></strong></td>
                             </tr>
                         </tbody>
                     </table>
