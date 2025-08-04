@@ -58,6 +58,13 @@ class CampManagerInventory
         exit;
     }
 
+    public function getToteByCode($tote_code)
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_totes";
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE uid = %s", $tote_code));
+    }
+
     public function handle_tote_inventory_save()
     {
         if (!current_user_can('manage_options')) {
