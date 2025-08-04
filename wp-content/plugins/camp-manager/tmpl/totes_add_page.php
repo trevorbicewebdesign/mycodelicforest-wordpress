@@ -1,7 +1,11 @@
 <?php
 
 $tote_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$tote = $tote_id ? $this->inventory->getTote($tote_id) : null;
+if($tote_id) {
+    $tote = $this->inventory->getTote($tote_id);
+} else {
+    $tote = $this->inventory->getToteByCode($_GET['tote_code'] ?? '');
+}
 $is_edit = $tote !== null;
 $tote_id = $is_edit ? intval($tote->id) : 0;
 ?>
