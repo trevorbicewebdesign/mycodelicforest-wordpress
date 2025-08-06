@@ -32,6 +32,7 @@ class CampManagerToteInventoryTable extends WP_List_Table
             'inventory_name' => 'Inventory Name',
             'tote_name' => 'Tote Name',
             'quantity' => 'Quantity',
+            'total_weight' => 'Total Weight',
         ];
     }
 
@@ -42,6 +43,7 @@ class CampManagerToteInventoryTable extends WP_List_Table
             'inventory_name' => ['inventory_name', false],
             'tote_name' => ['tote_name', false],
             'quantity' => ['quantity', false],
+            'total_weight' => ['total_weight', false],
         ];
     }
 
@@ -52,6 +54,7 @@ class CampManagerToteInventoryTable extends WP_List_Table
             'inventory_name' => esc_html($item['inventory_name']),
             'tote_name' => esc_html($item['tote_name']),
             'quantity' => esc_html($item['quantity']),
+            'total_weight' => esc_html($item['total_weight'] ?? ''),
             default => isset($item[$column_name]) ? esc_html($item[$column_name]) : '',
         };
     }
@@ -120,11 +123,13 @@ class CampManagerToteInventoryTable extends WP_List_Table
         }
 
         $sql = $wpdb->prepare(
-            "SELECT ti.id, ti.inventory_id, ti.tote_id, ti.quantity, i.name AS inventory_name, t.name AS tote_name
+            "SELECT ti.id, ti.inventory_id, ti.tote_id, ti.quantity, 
+                i.name AS inventory_name, t.name AS tote_name,
+                (ti.quantity * i.weight) AS total_weight
              FROM $table ti
              LEFT JOIN {$wpdb->prefix}mf_inventory i ON ti.inventory_id = i.id
              LEFT JOIN {$wpdb->prefix}mf_totes t ON ti.tote_id = t.id
-             $where
+             $where 
              ORDER BY $order_by $order
              LIMIT %d OFFSET %d",
             ...$params
