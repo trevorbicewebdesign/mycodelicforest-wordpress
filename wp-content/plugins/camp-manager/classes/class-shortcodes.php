@@ -36,12 +36,11 @@ class CampManagerShortcodes
 
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_roster';
-
-        // Build query with optional season filter
+        // Build query with optional season filter, only include Confirmed members
         if (!empty($atts['season'])) {
-            $query = $wpdb->prepare("SELECT * FROM $table_name WHERE season = %s", $atts['season']);
+            $query = $wpdb->prepare("SELECT * FROM $table_name WHERE season = %s AND status = %s", $atts['season'], 'Confirmed');
         } else {
-            $query = "SELECT * FROM $table_name";
+            $query = $wpdb->prepare("SELECT * FROM $table_name WHERE status = %s", 'Confirmed');
         }
 
         $roster = $wpdb->get_results($query, ARRAY_A);
@@ -67,7 +66,8 @@ class CampManagerShortcodes
         foreach ($roster as $member) {
             $output .= '<tr>';
             // Add a counter for the first column
-            $output .= '<td>' . esc_html($member['id']) . '</td>';
+            static $counter = 1;
+            $output .= '<td>' . $counter++ . '</td>';
 
             $name = '';
             if (!empty($member['playaname'])) {
