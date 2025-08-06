@@ -56,6 +56,16 @@ class CampManagerInventory
         exit;
     }
 
+    public function generateQRToteUrl($tote_code)
+    {
+        $base_url = admin_url('admin.php?page=camp-manager-add-tote');
+        $query_args = [
+            'tote_code' => $tote_code
+        ];
+        return add_query_arg($query_args, $base_url);
+
+    }
+
     public function getToteByCode($tote_code)
     {
         global $wpdb;
