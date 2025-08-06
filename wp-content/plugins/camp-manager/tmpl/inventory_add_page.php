@@ -113,6 +113,14 @@ $inventory_id = $is_edit ? intval($inventory->id) : 0;
             <?php submit_button('Save & Close Inventory', 'primary', 'save_close_receipt', false, array('id' => 'save-close-btn')); ?>
             <?php submit_button('Close Inventory', 'secondary', 'close_receipt', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
         </div>
+
+        <?php
+        $return_url = '';
+        if (!empty($_REQUEST['return'])) {
+            $return_url = $_REQUEST['return'];
+        }
+        ?>
+        <input type="hidden" name="return_url" value="<?php echo esc_attr($return_url); ?>">
     </form>
 </div>
 <script type="text/javascript">
