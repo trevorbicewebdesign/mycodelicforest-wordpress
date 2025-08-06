@@ -90,11 +90,22 @@ jQuery(document).ready(function ($) {
                 return false;
             }
         }
-        window.location.href = '<?php echo esc_url(admin_url('admin.php?page=camp-manager-inventory')); ?>';
+        var returnUrl = '';
+        var returnField = $('input[name="return_url"]').val();
+        if (returnField) {
+            try {
+                returnUrl = atob(returnField);
+            } catch (e) {
+                returnUrl = atob('<?php echo base64_encode(admin_url('admin.php?page=camp-manager-inventory')); ?>');
+            }
+        } else {
+            returnUrl = atob('<?php echo base64_encode(admin_url('admin.php?page=camp-manager-inventory')); ?>');
+        }
+        window.location.href = returnUrl;
         e.preventDefault();
     });
 
-     $('#inventory_id, #tote_id').select2({
+    $('#inventory_id, #tote_id').select2({
         width: 'resolve',
         placeholder: 'Select an option',
         allowClear: true
