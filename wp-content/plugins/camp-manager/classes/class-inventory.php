@@ -50,8 +50,6 @@ class CampManagerInventory
             $decoded_url = base64_decode($_POST['return_url']);
             $redirect_url = esc_url_raw($decoded_url);
         } else {
-            print_r($_POST);
-            die();
             $redirect_url = admin_url("admin.php?page=camp-manager-view-tote-inventory");
         }
         wp_redirect($redirect_url);
