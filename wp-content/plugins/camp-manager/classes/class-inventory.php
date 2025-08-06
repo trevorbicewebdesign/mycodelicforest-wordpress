@@ -11,7 +11,7 @@ class CampManagerInventory
     public function init()
     {
         add_action('admin_post_camp_manager_save_inventory', [$this, 'handle_inventory_save']);
-        add_action('admin_post_camp_manager_save_and_close_inventory', [$this, 'handle_inventory_save']);
+        add_action('admin_post_camp_manager_save_and_close_inventory', [$this, 'handle_inventory_save_close']);
 
         add_action('admin_post_camp_manager_save_tote', [$this, 'handle_tote_save']);
         add_action('admin_post_camp_manager_save_and_close_tote', [$this, 'handle_tote_save']);
@@ -19,6 +19,37 @@ class CampManagerInventory
         add_action('admin_post_camp_manager_save_tote_inventory', [$this, 'handle_tote_inventory_save']);
         add_action('admin_post_camp_manager_save_and_close_tote_inventory', [$this, 'handle_tote_inventory_save_close']);
 
+    }
+
+    public function handle_inventory_save_close()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        try {
+            $item_id = isset($_POST['inventory_id']) ? (int) $_POST['inventory_id'] : null;
+            $this->upsertInventoryItem(
+                sanitize_text_field($_POST['inventory_name']),
+                isset($_POST['inventory_description']) ? sanitize_textarea_field($_POST['inventory_description']) : '',
+                $item_id
+            );
+        } catch (\Exception $e) {
+            $redirect_url = isset($_POST['return_url']) && !empty($_POST['return_url'])
+                ? esc_url_raw(base64_decode($_POST['return_url']))
+                : admin_url('admin.php?page=camp-manager-add-inventory&error=' . urlencode($e->getMessage()));
+            wp_redirect($redirect_url);
+            exit;
+        }
+
+        if (isset($_POST['return_url']) && !empty($_POST['return_url'])) {
+            $decoded_url = base64_decode($_POST['return_url']);
+            $redirect_url = esc_url_raw($decoded_url);
+        } else {
+            $redirect_url = admin_url("admin.php?page=camp-manager-inventory");
+        }
+        wp_redirect($redirect_url);
+        exit;
     }
 
     public function handle_tote_inventory_save_close()
