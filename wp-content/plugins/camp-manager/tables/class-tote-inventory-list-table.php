@@ -32,6 +32,7 @@ class CampManagerToteInventoryTable extends WP_List_Table
             'inventory_name' => 'Inventory Name',
             'tote_name' => 'Tote Name',
             'quantity' => 'Quantity',
+            'weight' => 'Weight',
             'total_weight' => 'Total Weight',
         ];
     }
@@ -43,6 +44,7 @@ class CampManagerToteInventoryTable extends WP_List_Table
             'inventory_name' => ['inventory_name', false],
             'tote_name' => ['tote_name', false],
             'quantity' => ['quantity', false],
+            'weight' => ['weight', false],
             'total_weight' => ['total_weight', false],
         ];
     }
@@ -54,7 +56,8 @@ class CampManagerToteInventoryTable extends WP_List_Table
             'inventory_name' => esc_html($item['inventory_name']),
             'tote_name' => esc_html($item['tote_name']),
             'quantity' => esc_html($item['quantity']),
-            'total_weight' => (!empty($item['total_weight'])) ? esc_html($item['total_weight']) : '',
+            'weight' => esc_html($item['weight']),
+            'total_weight' => (!empty($item['total_weight'])) ? esc_html(number_format((float)$item['total_weight'], 2)) : '',
             default => isset($item[$column_name]) ? esc_html($item[$column_name]) : '',
         };
     }
