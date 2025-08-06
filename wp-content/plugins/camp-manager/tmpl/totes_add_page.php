@@ -125,7 +125,18 @@ jQuery(document).ready(function ($) {
                 return false;
             }
         }
-        window.location.href = '<?php echo esc_url(admin_url('admin.php?page=camp-manager-totes')); ?>';
+        var returnUrl = '';
+        var returnField = $('input[name="return_url"]').val();
+        if (returnField) {
+            try {
+            returnUrl = atob(returnField);
+            } catch (e) {
+            returnUrl = atob('<?php echo base64_encode(admin_url('admin.php?page=camp-manager-totes')); ?>');
+        }
+    } else {
+        returnUrl = atob('<?php echo base64_encode(admin_url('admin.php?page=camp-manager-totes')); ?>');
+        }
+        window.location.href = returnUrl;
         e.preventDefault();
     });
 
