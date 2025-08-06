@@ -294,7 +294,7 @@ class CampManagerPages
                 }
             );
 
-              add_submenu_page(
+            add_submenu_page(
                 'camp-manager-inventory',
                 'Add Tote Inventory',
                 'Add Tote Inventory',
@@ -317,6 +317,15 @@ class CampManagerPages
             );
 
         });
+
+         add_action('admin_enqueue_scripts', function($hook) {
+            if (strpos($hook, 'camp-manager') !== false) { // adjust this as needed for your page
+                // Use CDN for latest version, or use WP core's select2 for older look
+                wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css');
+                wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', ['jquery'], null, true);
+            }
+        });
+
     }
 
     public function render_members_add_page()
