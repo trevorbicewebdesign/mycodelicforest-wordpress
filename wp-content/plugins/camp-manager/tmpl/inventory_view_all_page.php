@@ -13,6 +13,7 @@ $table->prepare_items();
     <hr class="wp-header-end">
     <form method="post">
         <?php
+        $table->search_box('Search Inventory', 'tote-inventory-search');
         $table->display();
         ?>
     </form>
