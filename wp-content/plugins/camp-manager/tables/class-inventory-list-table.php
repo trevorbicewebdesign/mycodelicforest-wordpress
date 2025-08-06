@@ -157,7 +157,8 @@ class CampManagerInventoryTable extends WP_List_Table
         $offset       = ($current_page - 1) * $per_page;
         $table        = "{$wpdb->prefix}mf_inventory";
 
-        $total_items = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+        // --- Search logic
+        $search = isset($_REQUEST['s']) ? trim($_REQUEST['s']) : '';
 
         $order_by = $_GET['orderby'] ?? 'id';
         $order    = (isset($_GET['order']) && strtolower($_GET['order']) === 'asc') ? 'ASC' : 'DESC';
@@ -170,16 +171,36 @@ class CampManagerInventoryTable extends WP_List_Table
         $order_by = esc_sql($order_by);
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
-        $sql = $wpdb->prepare(
-            "SELECT id, uuid, name, manufacturer, model, description, quantity, photo, location, weight, category, category_name, links, amp, set_name
-             FROM $table
-             ORDER BY $order_by $order
-             LIMIT %d OFFSET %d",
-            $per_page,
-            $offset
-        );
+        // --- Build WHERE clause if searching
+        $where = '';
+        $params = [];
+        if (!empty($search)) {
+            $where = "WHERE name LIKE %s OR manufacturer LIKE %s OR model LIKE %s OR location LIKE %s OR category_name LIKE %s";
+            $like = '%' . $wpdb->esc_like($search) . '%';
+            $params = array_fill(0, 5, $like);
+        }
 
-        $this->data = $wpdb->get_results($sql, ARRAY_A);
+        // --- Count for pagination (respect WHERE)
+        $count_sql = "SELECT COUNT(*) FROM $table " . $where;
+        $total_items = empty($params)
+            ? $wpdb->get_var($count_sql)
+            : $wpdb->get_var($wpdb->prepare($count_sql, ...$params));
+
+        // --- Main query
+        $sql = "
+            SELECT id, uuid, name, manufacturer, model, description, quantity, photo, location, weight, category, category_name, links, amp, set_name
+            FROM $table
+            $where
+            ORDER BY $order_by $order
+            LIMIT %d OFFSET %d
+        ";
+
+        // Combine params for main query
+        $main_params = array_merge($params, [$per_page, $offset]);
+        $this->data = empty($params)
+            ? $wpdb->get_results($wpdb->prepare($sql, $per_page, $offset), ARRAY_A)
+            : $wpdb->get_results($wpdb->prepare($sql, ...$main_params), ARRAY_A);
+
         $this->items = $this->data;
 
         $this->_column_headers = [$this->get_columns(), [], $this->get_sortable_columns()];
