@@ -94,5 +94,11 @@ jQuery(document).ready(function ($) {
         e.preventDefault();
     });
 
+     $('#inventory_id, #tote_id').select2({
+        width: 'resolve',
+        placeholder: 'Select an option',
+        allowClear: true
+    });
+
 });
 </script>
