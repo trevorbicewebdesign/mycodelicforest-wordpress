@@ -1,0 +1,46 @@
+services:
+  joomla:
+    image: ghcr.io/trevorbicewebdesign/mothership:php8.2-joomla5.3.0
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+      - selenium
+    volumes:
+      - ./tests:/var/www/html/tests
+      - ./codeception.yml:/var/www/html/codeception.yml
+      - ./tests/configuration.php:/var/www/html/configuration.php
+    restart: always
+    networks:
+      - proxy
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: local
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./tests/sql:/docker-entrypoint-initdb.d
+      - db_data:/var/lib/mysql
+
+  selenium:
+    image: selenium/standalone-chrome:latest
+    ports:
+      - "4444:4444"
+    shm_size: 2gb
+  
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"   # Web UI
+      - "1025:1025"   # SMTP port
+    restart: always
+
+volumes:
+  db_data:
+networks:
+  proxy:
+    external: true
