@@ -35,6 +35,9 @@ jobs:
       - name: Start Docker Services
         run: docker compose up -d
 
+      - name: Make proxy network available
+        run: docker network create proxy
+
       - name: Wait for Database to be ready
         run: |
           echo "Waiting for Database..."
