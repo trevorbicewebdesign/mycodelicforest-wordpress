@@ -36,6 +36,8 @@ services:
     ports:
       - "4444:4444"
     shm_size: 2gb
+    networks:
+      - proxy
   
   mailpit:
     image: axllent/mailpit
@@ -43,6 +45,8 @@ services:
       - "8025:8025"   # Web UI
       - "1025:1025"   # SMTP port
     restart: always
+    networks:
+      - proxy
 
 volumes:
   db_data:
