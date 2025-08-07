@@ -8,6 +8,10 @@ services:
       - selenium
     volumes:
       - ./wp-content:/var/www/html/wp-content
+      - ./tests:/var/www/html/tests
+      - ./codeception.yml:/var/www/html/codeception.yml
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
     restart: always
     networks:
       - proxy
