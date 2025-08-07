@@ -58,6 +58,10 @@ jobs:
           done
           echo "Test Database is ready."
 
+      - name: Install sql file
+        run: |
+          docker compose exec db sh -c "mysql -uroot -proot test < /var/www/html/tests/_support/Data/db/dump.sql"
+
       - name: Wait for WordPress to be ready
         run: |
           echo "Waiting for WordPress Web..."
