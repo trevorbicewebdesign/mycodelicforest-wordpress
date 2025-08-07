@@ -29,6 +29,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Pull Joomla Docker Image from GHCR
+        run: docker pull ghcr.io/trevorbicewebdesign/mycodelicforest-wordpress:php8.2-apache
+
       - name: Copy .env for CI
         run: cp ./tests/.env.ci ./tests/.env
 
