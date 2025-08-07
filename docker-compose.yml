@@ -1,9 +1,6 @@
 services:
   wordpress:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    ports:
+    image: ghcr.io/trevorbicewebdesign/mycodelicforest-wordpress:php8.2-apache
       - "8081:80"
     depends_on:
       - db
