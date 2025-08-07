@@ -7,7 +7,7 @@ services:
       - db
       - selenium
     volumes:
-      - ./:/var/www/html
+      - ./wp-content:/var/www/html/wp-content
     restart: always
     networks:
       - proxy
