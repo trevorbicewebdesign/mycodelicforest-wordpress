@@ -83,6 +83,7 @@ $tote_id = $is_edit ? intval($tote->id) : 0;
                 </style>
 
                 <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-tote-inventory&tote_id=' . $tote_id)); ?>&return=<?php echo esc_attr(base64_encode(admin_url('admin.php?page=camp-manager-add-tote&id=' . $tote_id))); ?>" class="page-title-action">Add Tote Item</a>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-inventory')); ?>&return=<?php echo esc_attr(base64_encode(admin_url('admin.php?page=camp-manager-add-tote&id=' . $tote_id))); ?>" class="page-title-action">Add Inventory Item</a>
                 <hr class="wp-header-end">
                 <form method="post">
                     <?php
