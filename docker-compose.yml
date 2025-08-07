@@ -1,6 +1,7 @@
 services:
   wordpress:
     image: ghcr.io/trevorbicewebdesign/mycodelicforest-wordpress:php8.2-apache
+    ports:
       - "8081:80"
     depends_on:
       - db
