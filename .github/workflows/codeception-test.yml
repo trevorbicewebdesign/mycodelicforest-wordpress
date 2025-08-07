@@ -77,7 +77,7 @@ jobs:
           if [ "${{ matrix.group }}" != "" ]; then
             docker compose exec wordpress sh -c "vendor/bin/codecept run ${{ matrix.suite }} --group ${{ matrix.group }} -d --no-interaction --skip-group=skipCI --html"
           else
-            docker compose exec wordpress sh -c "vendor/bin/codecept run ${{ matrix.suite }} -d -f --no-interaction --skip-group=skipCI --html"
+            docker compose exec wordpress sh -c "vendor/bin/codecept run ${{ matrix.suite }} -d --no-interaction --skip-group=skipCI --html"
           fi
 
       - name: Copy Test Artifacts (always)
