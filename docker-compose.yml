@@ -21,7 +21,7 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./tests/sql:/docker-entrypoint-initdb.d
+      - ./tests/_support/Data/db/dump.sql:/docker-entrypoint-initdb.d/dump.sql
       - db_data:/var/lib/mysql
     networks:
       - proxy
