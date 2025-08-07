@@ -1,206 +1,89 @@
-# Workflow Name
-name: Tests
+name: Run WordPress Codeception Tests
 
-# Events that trigger this workflow
 on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
   push:
     branches:
-      - master
       - main
-  pull_request:
-    types: [opened, reopened, synchronize]
-  workflow_dispatch:
+      - master
 
-# Set default shell for all `run` commands
-defaults:
-  run:
-    shell: bash
-
-# Define environment variables to avoid duplication
-env:
-  PHP_VERSION: '8.2'  # PHP version to use across jobs
-  CACHE_PATHS: |      # Paths to cache composer dependencies
-    vendor/
-    wp-admin/
-    wp-includes/
-    wp-content/plugins/
-    wp-content/themes/
-    index.php
-    wp-activate.php
-    wp-blog-header.php
-    wp-comments-post.php
-    wp-config-sample.php
-    wp-cron.php
-    wp-links-opml.php
-    wp-load.php
-    wp-login.php
-    wp-mail.php
-    wp-settings.php
-    wp-signup.php
-    wp-trackback.php
-    xmlrpc.php
-  COMPOSER_VERSION: 'v2'  # Composer version for setup
-
-# Job to cache Composer dependencies
 jobs:
-  setup:
-    name: Cache Composer Dependencies
-    runs-on: ubuntu-latest
-    outputs:
-      cache-hit: ${{ steps.cache-hit.outputs.cache-hit }}  # Output for cache status
-      cache-key: ${{ steps.cache-key.outputs.key }}        # Output for cache key
-
-    steps:
-      # Step to check out the code repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Step to prepare the workspace by removing unnecessary files
-      - name: Prepare workspace for caching composer dependencies
-        run: |
-          rm -rf *
-          rm -r .github
-          rm .deployignore .gitignore
-          git checkout composer.json
-          git checkout composer.lock
-          rm -r .git
-          ls -a
-
-      # Set up PHP and Composer environment
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          tools: composer:${{ env.COMPOSER_VERSION }}
-
-      # Generate a unique cache key based on the `composer.lock` file
-      - name: Generate cache key from composer.lock
-        id: cache-key
-        run: echo "key=$(echo ${{ runner.os }}-composer-$(sha256sum composer.lock | awk '{ print $1 }'))" >> $GITHUB_OUTPUT
-  
-      # Look up cache based on the generated key
-      - name: Lookup Composer cache
-        id: cache-hit
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ steps.cache-key.outputs.key }}
-          restore-keys: |
-            ${{ runner.os }}-composer
-          lookup-only: true
-
-      # Output whether cache was hit
-      - name: Debug cache hit
-        run: echo "Cache hit was ${{ steps.cache-hit.outputs.cache-hit }}"
-
-      # Install dependencies if cache is missing
-      - name: Install Dependencies if no cache hit
-        if: steps.cache-hit.outputs.cache-hit != 'true'
-        run: composer install --no-interaction --no-progress --optimize-autoloader
-
-      # Remove composer files to avoid caching them
-      - name: Remove composer files from caching
-        if: steps.cache-hit.outputs.cache-hit != 'true'
-        run: rm composer.json
-
-      # Cache dependencies if they were not previously cached
-      - name: Cache Composer dependencies
-        if: steps.cache-hit.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer
-
-  # Job to run tests
-  run-tests:
-    name: Test 
-    needs: [setup]
+  test:
+    name: Testing ${{ matrix.suite }}${{ matrix.group && format(' ({0})', matrix.group) || '' }}
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false  # Allow tests to continue even if some fail
+      fail-fast: false
       matrix:
         include:
-          - test-type: integration
-          - test-type: functional
-          - test-type: acceptance
+          - suite: integration
+          - suite: functional
+          - suite: acceptance
+            group: frontend
+          - suite: acceptance
+            group: backend
+          # Add more suites/groups as needed
 
     steps:
-      # Check out repository for tests
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref }}
 
-      # Set up PHP and Composer environment
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          tools: composer:${{ env.COMPOSER_VERSION }}, wp
+      - name: Copy .env for CI
+        run: cp ./tests/.env.ci ./tests/.env
 
-      # Restore cached dependencies
-      - name: Restore Cached dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ needs.setup.outputs.cache-key }}
-          restore-keys: |
-            ${{ runner.os }}-composer
+      - name: Start Docker Services
+        run: docker compose up -d
 
-      # Create .env file for testing
-      - name: Create .env file for tests
+      - name: Wait for Database to be ready
         run: |
-          cp ./tests/.env.ci ./tests/.env
-          echo "DISCORD_CHANNEL_ANNOUNCEMENT_TESTS=${{ secrets.DISCORD_CHANNEL_ANNOUNCEMENT_TESTS }}" >> ./tests/.env
+          echo "Waiting for Database..."
+          until docker compose exec db mysqladmin ping -h "localhost" --silent; do
+            echo "Still waiting for MySQL server to start..."
+            sleep 5
+          done
+          echo "MySQL server is up."
+          until docker compose exec db mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS test;"; do
+            echo "Still waiting for test database to be ready..."
+            sleep 5
+          done
+          echo "Test Database is ready."
 
-           # Start MySQL and setup databases
-      - name: Start and Setup MySQL
+      - name: Wait for WordPress to be ready
         run: |
-          # Start MySQL service
-          sudo systemctl start mysql.service
-          # Verify MySQL service status
-          sudo systemctl status mysql.service
-          # Set up test databases
-          mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS seed;"
-          mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS test;"
-          
-      - name: Run Setup
-        run: make setup
+          echo "Waiting for WordPress Web..."
+          until curl --fail --silent --output /dev/null http://localhost:8080; do
+            echo "Still waiting for WordPress Web..."
+            sleep 5
+          done
+          echo "WordPress Web is ready."
 
-      # Restart Chromedriver for acceptance tests
-      - name: Restart Chromedriver
-        if: ${{ matrix.test-type == 'acceptance' }}
+      - name: Run Setup (Composer, WP CLI, etc)
+        run: docker compose exec wordpress sh -c "composer install --no-interaction --no-progress --optimize-autoloader && wp core install --url='http://localhost:8080' --title='Test Site' --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email"
+
+      - name: Run Codeception Tests for ${{ matrix.suite }}
         run: |
-          ./vendor/bin/codecept chromedriver:update
-          ./vendor/bin/codecept dev:restart
+          if [ "${{ matrix.group }}" != "" ]; then
+            docker compose exec wordpress sh -c "vendor/bin/codecept run ${{ matrix.suite }} --group ${{ matrix.group }} -d -f --no-interaction --skip-group=skipCI --html"
+          else
+            docker compose exec wordpress sh -c "vendor/bin/codecept run ${{ matrix.suite }} -d -f --no-interaction --skip-group=skipCI --html"
+          fi
 
-      # Configure WordPress URLs for tests
-      - name: Checkout wp-config.php & add defines
+      - name: Copy Test Artifacts (always)
+        if: always()
         run: |
-          wp config set WP_HOME 'http://127.0.0.1' --type=constant
-          wp config set WP_SITEURL 'http://127.0.0.1' --type=constant
+          mkdir -p test-artifacts/${{ matrix.suite }}-${{ matrix.group || 'default' }}
+          cp -v tests/_output/* test-artifacts/${{ matrix.suite }}-${{ matrix.group || 'default' }}/ || true
+          cp -v wp-content/debug.log test-artifacts/${{ matrix.suite }}-${{ matrix.group || 'default' }}/ || true
+          cp -v /var/log/php_errors.log test-artifacts/${{ matrix.suite }}-${{ matrix.group || 'default' }}/ || true
 
-      # Start NGIX server for functional and acceptance tests
-      - name: Start NGIX Server
-        if: ${{ matrix.test-type != 'integration' && matrix.test-type != 'unit' }}
-        uses: ./.github/actions/setup-nginx
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-
-      # Run the tests based on matrix test-type
-      - name: Run ${{ matrix.test-type }} tests
-        run: ./vendor/bin/codecept run ${{ matrix.test-type }} -d -f --no-interaction --skip-group=skipCI --html
-
-      # Upload artifacts if any tests fail
-      - name: Upload Artifacts on Failure
-        if: failure()
+      - name: Upload Artifacts for Suite
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.test-type }}-test-artifacts-${{ github.sha }}
-          path: |
-            tests/_output/*.html
-            tests/_output/*.png
-            wp-content/debug.log
-            /var/log/php_errors.log
+          name: ${{ matrix.suite }}-${{ matrix.group || 'default' }}-output-${{ github.sha }}
+          path: test-artifacts/${{ matrix.suite }}-${{ matrix.group || 'default' }}/
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v
