@@ -45,7 +45,7 @@ env:
 jobs:
   setup:
     name: Cache Composer Dependencies
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     outputs:
       cache-hit: ${{ steps.cache-hit.outputs.cache-hit }}  # Output for cache status
       cache-key: ${{ steps.cache-key.outputs.key }}        # Output for cache key
@@ -117,7 +117,7 @@ jobs:
   run-tests:
     name: Test 
     needs: [setup]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false  # Allow tests to continue even if some fail
       matrix:
