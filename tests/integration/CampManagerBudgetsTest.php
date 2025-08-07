@@ -24,10 +24,8 @@ class CampManagerBudgetsTest extends \lucatume\WPBrowser\TestCase\WPTestCase
 
         $CampManagerBudgets = $this->make('CampManagerBudgets', []);
 
-            'description' => 'This is a test category',
         $remaining_budget = $CampManagerBudgets->get_remaining_budget_by_category(1, 1);
 
-        // Check that the category was inserted
         codecept_debug("Remainig budget");
         codecept_debug($remaining_budget);
     }
