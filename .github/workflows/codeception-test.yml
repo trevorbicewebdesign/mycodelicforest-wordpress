@@ -39,7 +39,7 @@ jobs:
         run: docker compose up -d
 
       - name: Run Setup (Composer, WP CLI, etc)
-        run: docker compose exec wordpress sh -c "composer install --no-interaction --no-progress --optimize-autoloader && wp core install --url='http://localhost:8081' --title='Test Site' --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email"
+        run: docker compose exec wordpress sh -c "composer install --no-interaction --no-progress --optimize-autoloader"
 
       - name: Wait for Database to be ready
         run: |
