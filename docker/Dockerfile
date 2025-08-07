@@ -18,8 +18,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Copy *your* composer.json and composer.lock INTO Joomla root
 # Ensure composer.json and composer.lock exist in the build context
-COPY /docker/composer.json ./composer.json
-COPY /docker/composer.lock ./composer.lock
+COPY ./docker/composer.json ./composer.json
+COPY ./docker/composer.lock ./composer.lock
 
 # Install the dev dependencies (e.g., Codeception, Helper\DbHelper)
 RUN composer update --no-interaction --no-scripts --prefer-dist
