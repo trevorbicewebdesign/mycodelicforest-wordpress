@@ -1,17 +1,15 @@
 services:
-  joomla:
+  wordpress:
     build:
       context: .
       dockerfile: docker/Dockerfile
     ports:
-      - "8080:80"
+      - "8085:80"
     depends_on:
       - db
       - selenium
     volumes:
-      - ./tests:/var/www/html/tests
-      - ./codeception.yml:/var/www/html/codeception.yml
-      - ./tests/configuration.php:/var/www/html/configuration.php
+      - ./:/var/www/html
     restart: always
     networks:
       - proxy
@@ -27,6 +25,8 @@ services:
     volumes:
       - ./tests/sql:/docker-entrypoint-initdb.d
       - db_data:/var/lib/mysql
+    networks:
+      - proxy
 
   selenium:
     image: selenium/standalone-chrome:latest
