@@ -41,6 +41,9 @@ jobs:
       - name: Start Docker Services
         run: docker compose up -d
 
+      - name: Fix permissions for Composer
+        run: docker compose exec wordpress sh -c "chown -R www-data:www-data /var/www/html"
+
       - name: Run Setup (Composer, WP CLI, etc)
         run: docker compose exec wordpress sh -c "composer install --no-interaction --no-progress --optimize-autoloader"
 
