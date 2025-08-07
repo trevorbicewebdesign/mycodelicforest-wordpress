@@ -12,6 +12,7 @@ services:
       - ./codeception.yml:/var/www/html/codeception.yml
       - ./composer.json:/var/www/html/composer.json
       - ./composer.lock:/var/www/html/composer.lock
+    user: root
     restart: always
     networks:
       - proxy
