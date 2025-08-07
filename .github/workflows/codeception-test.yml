@@ -61,11 +61,17 @@ jobs:
       - name: Wait for WordPress to be ready
         run: |
           echo "Waiting for WordPress Web..."
+          count=0
           until curl --fail --silent --output /dev/null http://localhost:8081; do
-            echo "Still waiting for WordPress Web..."
-            sleep 5
-          done
-          echo "WordPress Web is ready."
+          if [ $count -ge 5 ]; then
+            echo "WordPress Web did not become ready after 5 attempts."
+            exit 1
+          fi
+          echo "Still waiting for WordPress Web..."
+          sleep 5
+          count=$((count + 1))
+            done
+            echo "WordPress Web is ready."
 
       - name: Run Codeception Tests for ${{ matrix.suite }}
         run: |
