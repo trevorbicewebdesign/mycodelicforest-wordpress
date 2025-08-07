@@ -32,11 +32,11 @@ jobs:
       - name: Copy .env for CI
         run: cp ./tests/.env.ci ./tests/.env
 
-      - name: Start Docker Services
-        run: docker compose up -d
-
       - name: Make proxy network available
         run: docker network create proxy
+
+      - name: Start Docker Services
+        run: docker compose up -d
 
       - name: Wait for Database to be ready
         run: |
