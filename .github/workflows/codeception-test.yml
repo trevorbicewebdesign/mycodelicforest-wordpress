@@ -20,10 +20,6 @@ jobs:
           - suite: integration
           - suite: functional
           - suite: acceptance
-            group: frontend
-          - suite: acceptance
-            group: backend
-          # Add more suites/groups as needed
 
     steps:
       - name: Checkout Code
