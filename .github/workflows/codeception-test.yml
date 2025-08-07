@@ -52,14 +52,14 @@ jobs:
       - name: Wait for WordPress to be ready
         run: |
           echo "Waiting for WordPress Web..."
-          until curl --fail --silent --output /dev/null http://localhost:8080; do
+          until curl --fail --silent --output /dev/null http://localhost:8081; do
             echo "Still waiting for WordPress Web..."
             sleep 5
           done
           echo "WordPress Web is ready."
 
       - name: Run Setup (Composer, WP CLI, etc)
-        run: docker compose exec wordpress sh -c "composer install --no-interaction --no-progress --optimize-autoloader && wp core install --url='http://localhost:8080' --title='Test Site' --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email"
+        run: docker compose exec wordpress sh -c "composer install --no-interaction --no-progress --optimize-autoloader && wp core install --url='http://localhost:8081' --title='Test Site' --admin_user=admin --admin_password=admin --admin_email=admin@example.com --skip-email"
 
       - name: Run Codeception Tests for ${{ matrix.suite }}
         run: |
