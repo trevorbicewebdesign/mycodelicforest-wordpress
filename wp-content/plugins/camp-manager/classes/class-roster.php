@@ -67,14 +67,8 @@ class CampManagerRoster
         // Get a specific member by ID from mf_roster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = $wpdb->prepare(
-            "SELECT r.*, CONCAT(s.fname, ' ', s.lname) AS sponsor
-             FROM $table_name r
-             LEFT JOIN $table_name s ON r.sponsor_cmid = s.cmid
-             WHERE r.id = %d",
-            (int)$memberId
-        );
-        $member = $wpdb->get_row($query, ARRAY_A);
+        $query = $wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", (int)$memberId);
+        $member = $wpdb->get_row($query);
         return $member ?: null;
     }
 
