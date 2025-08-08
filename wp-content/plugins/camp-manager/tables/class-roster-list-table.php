@@ -108,7 +108,17 @@ class CampManagerRosterTable extends WP_List_Table
 
     public function single_row($item)
     {
-        $class = !empty($item['fully_paid']) ? 'paid-row' : 'unpaid-row';
+        $class = '';
+        $style = '';
+
+        if (isset($item['status']) && $item['status'] === 'Dropped') {
+            $class = 'dropped-row';
+        } elseif (!empty($item['fully_paid']) && isset($item['status']) && $item['status'] === 'Confirmed') {
+            $class = 'paid-row';
+        } elseif (isset($item['status']) && $item['status'] === 'Confirmed') {
+            $class = 'unpaid-row';
+        }
+
         echo '<tr class="' . esc_attr($class) . '">';
         $this->single_row_columns($item);
         echo '</tr>';
