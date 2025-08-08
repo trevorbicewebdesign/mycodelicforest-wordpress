@@ -64,7 +64,8 @@ class CampManagerRosterTable extends WP_List_Table
             case 'lname':
                 return $link . esc_html(stripslashes($item['lname']))."</a>";
             case 'playaname':
-                $playaname = esc_html(stripslashes($item['playaname']));
+                $playaname = isset($item['playaname']) ? stripslashes($item['playaname']) : '';
+                $playaname = esc_html($playaname);
                 return $link . $playaname . "</a>";
             case 'email':
                 return $link . esc_html(stripslashes($item['email']))."</a>";
