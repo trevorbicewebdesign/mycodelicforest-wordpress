@@ -18,6 +18,15 @@ $table->prepare_items();
     .unpaid-row {
         background-color: #ffe6e6 !important;
     }
+    .dropped-row {
+        background: repeating-linear-gradient(
+            45deg,
+            #b0b0b0,
+            #b0b0b0 10px,
+            #e6b0b0 10px,
+            #e6b0b0 20px
+        ) !important;
+    }
 </style>
 <div class="wrap">
     <h1 class="wp-heading-inline">Roster</h1>
