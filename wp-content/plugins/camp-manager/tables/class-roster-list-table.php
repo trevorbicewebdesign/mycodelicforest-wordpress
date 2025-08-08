@@ -146,8 +146,14 @@ class CampManagerRosterTable extends WP_List_Table
         $order_by = esc_sql($order_by);
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
+        // Always put Dropped at the end
         $sql = $wpdb->prepare(
-            "SELECT * FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT * FROM $table 
+             ORDER BY 
+                (status = %s) ASC, 
+                $order_by $order 
+             LIMIT %d OFFSET %d",
+            'Dropped',
             $per_page,
             $offset
         );
