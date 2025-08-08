@@ -107,19 +107,31 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
                         <th><label for="member_status">Status</label></th>
                         <td>
                             <select name="member_status" id="member_status">
-                                <option value="Confirmed" <?php selected($is_edit && $member->status == 'Confirmed'); ?>>Confirmed</option>
-                                <option value="Very Maybe" <?php selected($is_edit && $member->status == 'Very Maybe'); ?>>Very Maybe</option>
-                                <option value="Maybe" <?php selected($is_edit && $member->status == 'Maybe'); ?>>Maybe</option>
-                                <option value="No" <?php selected($is_edit && $member->status == 'No'); ?>>No</option>
-                                <option value="Dropped" <?php selected($is_edit && $member->status == 'Dropped'); ?>>Dropped</option>
+                                <option value="">Select a status</option>
+                                <option value="Confirmed" <?php selected($is_edit && isset($member->status) && $member->status == 'Confirmed'); ?>>Confirmed</option>
+                                <option value="Very Maybe" <?php selected($is_edit && isset($member->status) && $member->status == 'Very Maybe'); ?>>Very Maybe</option>
+                                <option value="Maybe" <?php selected($is_edit && isset($member->status) && $member->status == 'Maybe'); ?>>Maybe</option>
+                                <option value="No" <?php selected($is_edit && isset($member->status) && $member->status == 'No'); ?>>No</option>
+                                <option value="Dropped" <?php selected($is_edit && isset($member->status) && $member->status == 'Dropped'); ?>>Dropped</option>
                             </select>
                         </td>
                     </tr>
                     <tr>
                         <th><label for="member_sponsor">Sponsor</label></th>
                         <td>
-                            <input type="text" name="member_sponsor" id="member_sponsor" class="regular-text" 
-                                value="<?php echo $sponsor; ?>">
+                            <?php
+                            $roster_members = $this->roster->getRosterMembers();
+                            ?>
+                            <select name="member_sponsor" id="member_sponsor">
+                                <option value="">Select a sponsor</option>
+                                <?php
+                                foreach ($roster_members as $roster_member) {
+                                    $selected = ($is_edit && isset($member->sponsor_cmd) && $member->sponsor_cmd == $roster_member['id']) ? 'selected' : '';
+                                    $display_name = esc_html($roster_member['fname'] . ' ' . $roster_member['lname'] . (!empty($roster_member['playaname']) ? " ({$roster_member['playaname']})" : ''));
+                                    echo "<option value=\"" . esc_attr($roster_member['id']) . "\" $selected>$display_name</option>";
+                                }
+                                ?>
+                            </select>
                         </td>
                     </tr>
                 </table>
@@ -151,8 +163,26 @@ jQuery(document).ready(function ($) {
     $('#save-btn').on('click', function() {
         $('#action-field').val('camp_manager_save_member');
     });
+
     $('#save-close-btn').on('click', function() {
         $('#action-field').val('camp_manager_save_and_close_member');
+    });
+
+        // Handle Close button (no form submit, just redirect with prompt)
+    $('#close-btn').on('click', function(e) {
+        if ($('#member-form').serialize() !== initialForm) {
+            if (!confirm('You have unsaved changes. Are you sure you want to close?')) {
+                e.preventDefault();
+                return false;
+            }
+        }
+        var returnUrl = $('input[name="return_url"]').val();
+        if (returnUrl) {
+            window.location.href = decodeURIComponent(atob(returnUrl));
+        } else {
+            window.location.href = '<?php echo esc_url(admin_url('admin.php?page=camp-manager-members')); ?>';
+        }
+        e.preventDefault();
     });
 });
 </script>
