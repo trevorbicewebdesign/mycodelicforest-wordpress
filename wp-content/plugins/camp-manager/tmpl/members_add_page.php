@@ -33,7 +33,7 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
 <div class="wrap">
     <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Member' : 'Add New Member'; ?></h1>
     <hr />
-    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="member-form">
         <input type="hidden" name="action" value="camp_manager_save_member">
 
         <?php if ($is_edit): ?>
@@ -168,7 +168,8 @@ jQuery(document).ready(function ($) {
         $('#action-field').val('camp_manager_save_and_close_member');
     });
 
-        // Handle Close button (no form submit, just redirect with prompt)
+    // Track initial state for dirty check
+    let initialForm = $('#member-form').serialize();
     $('#close-btn').on('click', function(e) {
         if ($('#member-form').serialize() !== initialForm) {
             if (!confirm('You have unsaved changes. Are you sure you want to close?')) {
