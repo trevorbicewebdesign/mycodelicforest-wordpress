@@ -163,7 +163,7 @@ class CampManagerToteInventoryTable extends WP_List_Table
 
     public function column_inventory_name($item)
     {
-        $url = admin_url("admin.php?page=camp-manager-add-tote-inventory&id={$item['inventory_id']}");
+        $url = admin_url("admin.php?page=camp-manager-add-tote-inventory&id={$item['id']}");
         return '<a href="' . esc_url($url) . '">' . esc_html($item['inventory_name']) . '</a>';
     }
 }
