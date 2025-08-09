@@ -34,9 +34,6 @@ jobs:
       - name: Start Docker Services
         run: docker compose up -d
 
-      - name: Configure Composer GitHub OAuth in container
-        run: docker compose exec wordpress composer config --global github-oauth.github.com ${{ secrets.GH_TOKEN }}
-
       - name: Fix permissions for Composer
         run: docker compose exec wordpress sh -c "chown -R www-data:www-data /var/www/html"
 
