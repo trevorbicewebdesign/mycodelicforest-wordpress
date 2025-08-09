@@ -43,9 +43,6 @@ jobs:
       - name: Copy config to container
         run: docker compose cp ./tests/wp-config.php wordpress:/var/www/html/wp-config.php
 
-      - name: Copy database dump to wordpress container
-        run: docker compose cp ./wp-content/mysql.sql wordpress:/var/www/html/tests/_support/Data/db/dump.sql
-
       - name: Check that mod_rewrite is enabled
         if: matrix.suite == 'functional' || matrix.suite == 'acceptance'
         run: |
