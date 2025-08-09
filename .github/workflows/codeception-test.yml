@@ -24,10 +24,7 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Pull Wordpress Docker Image from GHCR
-        run: docker pull ghcr.io/trevorbicewebdesign/mycodelicforest-wordpress:php8.2-apache
-
+      
       - name: Copy .env for CI
         run: cp ./tests/.env.ci ./tests/.env
 
@@ -37,11 +34,34 @@ jobs:
       - name: Start Docker Services
         run: docker compose up -d
 
+      - name: Configure Composer GitHub OAuth in container
+        run: docker compose exec wordpress composer config --global github-oauth.github.com ${{ secrets.GH_TOKEN }}
+
       - name: Fix permissions for Composer
         run: docker compose exec wordpress sh -c "chown -R www-data:www-data /var/www/html"
 
       - name: Run Setup (Composer, WP CLI, etc)
         run: docker compose exec wordpress sh -c "composer install --no-interaction --no-progress --optimize-autoloader"
+
+      - name: Copy config to container
+        run: docker compose cp ./tests/wp-config.php wordpress:/var/www/html/wp-config.php
+
+      - name: Copy database dump to wordpress container
+        run: docker compose cp ./wp-content/mysql.sql wordpress:/var/www/html/tests/_support/Data/db/dump.sql
+
+      - name: Check that mod_rewrite is enabled
+        if: matrix.suite == 'functional' || matrix.suite == 'acceptance'
+        run: |
+          docker compose exec wordpress sh -c "echo 'ServerName wordpress' >> /etc/apache2/apache2.conf && apache2ctl graceful"
+          if ! docker compose exec wordpress apache2ctl -M 2>/dev/null | grep -qi rewrite_module; then
+            echo "ERROR: mod_rewrite is not enabled"
+            exit 1
+          else
+            echo "mod_rewrite is enabled ✅"
+          fi
+
+      - name: list files and folders in wordpress container
+        run: docker compose exec wordpress sh -c "ls -la /var/www/html/"
 
       - name: Wait for Database to be ready
         run: |
@@ -56,28 +76,18 @@ jobs:
             sleep 5
           done
           echo "Test Database is ready."
-
-      - name: Wait for WordPress to be ready
-        run: |
-          echo "Waiting for WordPress Web..."
-          count=0
-          until curl --fail --silent --output /dev/null http://localhost:8081; do
-          if [ $count -ge 5 ]; then
-            echo "WordPress Web did not become ready after 5 attempts."
-            exit 1
-          fi
-          echo "Still waiting for WordPress Web..."
-          sleep 5
-          count=$((count + 1))
-            done
-            echo "WordPress Web is ready."
+          until docker compose exec db mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS seed;"; do
+            echo "Still waiting for seed database to be ready..."
+            sleep 5
+          done
+          echo "Seed Database is ready."
 
       - name: Run Codeception Tests for ${{ matrix.suite }}
         run: |
           if [ "${{ matrix.group }}" != "" ]; then
-            docker compose exec wordpress sh -c "vendor/bin/codecept run ${{ matrix.suite }} --group ${{ matrix.group }} -d --no-interaction --skip-group=skipCI --html"
+            docker compose exec wordpress sh -c "vendor/bin/codecept run ${{ matrix.suite }} --group ${{ matrix.group }} -d -f --no-interaction --skip-group=skipCI --html"
           else
-            docker compose exec wordpress sh -c "vendor/bin/codecept run ${{ matrix.suite }} -d --no-interaction --skip-group=skipCI --html"
+            docker compose exec wordpress sh -c "vendor/bin/codecept run ${{ matrix.suite }} -d -f --no-interaction --skip-group=skipCI --html"
           fi
 
       - name: Copy Test Artifacts (always)
