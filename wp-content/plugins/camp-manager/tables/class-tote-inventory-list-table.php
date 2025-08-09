@@ -56,7 +56,7 @@ class CampManagerToteInventoryTable extends WP_List_Table
             'inventory_name' => esc_html($item['inventory_name']),
             'tote_name' => esc_html($item['tote_name']),
             'quantity' => esc_html($item['quantity']),
-            'weight' => esc_html($item['weight']),
+            'weight' => !empty($item['weight']) ? esc_html(number_format((float)$item['weight'], 2)) : '',
             'total_weight' => (!empty($item['total_weight'])) ? esc_html(number_format((float)$item['total_weight'], 2)) : '',
             default => isset($item[$column_name]) ? esc_html($item[$column_name]) : '',
         };
