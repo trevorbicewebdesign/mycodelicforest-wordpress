@@ -75,7 +75,7 @@ class CampManagerLedgerTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $ledger = $CampManagerLedger->getLedger($ledger_id);
         $this->assertEquals('Update Test', $ledger->note);
         $this->assertEquals(222.22, $ledger->amount);
-        $this->assertEquals('2025-08-01', $ledger->date);
+        $this->assertEquals('2025-08-01 00:00:00', $ledger->date);
         $this->assertEquals('https://camp.org/doc/222', $ledger->link);
     }
 

@@ -12,6 +12,7 @@ class CampManagerReceiptsTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         
     }
 
+    
     public function testInsertReceipt()
     {
         global $wpdb;
@@ -24,13 +25,16 @@ class CampManagerReceiptsTest extends \lucatume\WPBrowser\TestCase\WPTestCase
 
         $CampManagerReceipts = $this->make('CampManagerReceipts', []);
 
-        $results = $CampManagerReceipts->insert_receipt(
+        $results = $CampManagerReceipts->upsert_receipt(
             'Test Store', // store (string)
             '2023-10-01', // receipt_date (string)
             100.00, // receipt_description (string)
             1.00, // receipt_amount (float)
-            0.00, // fill in with appropriate value or null if optional
-            101.00, // fill in with appropriate value or null if optional
+            0.00, // argument 6 (float or appropriate type)
+            101.00, // argument 7 (float or appropriate type)
+            0.00, // argument 8 (float or appropriate type)
+            0.00,   // argument 9 (string or appropriate type)
+            101.00,   // argument 10 (string or appropriate type)   // argument 11 (string or appropriate type)
             [
                 [
                     'name' => 'Test Item 1',

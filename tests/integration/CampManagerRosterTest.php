@@ -24,7 +24,7 @@ class CampManagerRosterTest extends \lucatume\WPBrowser\TestCase\WPTestCase
 
         $CampManagerRoster = $this->make('CampManagerRoster', []);
 
-        $results = $CampManagerRoster->addMember([
+        $results = $CampManagerRoster->updateMember([
             'wpid' => get_current_user_id(), // Current user ID
             'low_income' => 0, // Example value, adjust as needed
             'fully_paid' => 1, // Example value, adjust as needed
