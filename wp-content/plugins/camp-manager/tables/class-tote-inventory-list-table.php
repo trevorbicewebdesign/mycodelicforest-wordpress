@@ -120,9 +120,16 @@ class CampManagerToteInventoryTable extends WP_List_Table
         // Build WHERE clause if tote_id is provided
         $where = '';
         $params = [$per_page, $offset];
-        if (!empty($this->tote_id)) {
+        if ($this->tote_id === false) {
+            // If tote_id is explicitly false, return no entries
+            $where = 'WHERE 1=0';
+        } elseif ($this->tote_id !== null) {
+            // If tote_id is set (not null), filter by tote_id
             $where = 'WHERE ti.tote_id = %d';
             array_unshift($params, $this->tote_id);
+        } else {
+            // If tote_id is null, select all entries (no WHERE clause)
+            $where = '';
         }
 
         $sql = $wpdb->prepare(
