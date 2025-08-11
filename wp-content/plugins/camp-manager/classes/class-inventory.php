@@ -250,6 +250,14 @@ class CampManagerInventory
         }
     }
 
+    public function sumPackedTotes(): float
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_totes";
+        $query = "SELECT SUM(weight) FROM $table WHERE status = 'PACKED'";
+        return (float) $wpdb->get_var($query);
+    }
+
 
     public function upsertTote($name, $description = '', $tote_id = null): int
     {
