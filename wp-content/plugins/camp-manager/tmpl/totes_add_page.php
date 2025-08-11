@@ -1,10 +1,13 @@
 <?php
 
 $tote_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$tote_code = isset($_GET['tote_code']) ? sanitize_text_field($_GET['tote_code']) : '';
 if($tote_id) {
     $tote = $this->inventory->getTote($tote_id);
+} else if ($tote_code) {
+    $tote = $this->inventory->getToteByCode($tote_code);
 } else {
-    $tote = $this->inventory->getToteByCode($_GET['tote_code'] ?? '');
+    $tote = null;
 }
 $is_edit = $tote !== null;
 $tote_id = $is_edit ? intval($tote->id) : 0;
