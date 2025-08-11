@@ -74,7 +74,7 @@ $tote_id = $is_edit ? intval($tote->id) : 0;
             <div style="width: 50%;">
                 <h2>Tote Inventory Items</h2>
                 <?php
-                $table = new CampManagerToteInventoryTable($tote_id);
+                $table = new CampManagerToteInventoryTable($tote_id !== null ? $tote_id : false);
                 $table->process_bulk_action();
                 $table->prepare_items();
                 ?>
