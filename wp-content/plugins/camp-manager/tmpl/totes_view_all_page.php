@@ -23,6 +23,7 @@ $table->prepare_items();
 <div class="wrap">
     <h1 class="wp-heading-inline">Totes</h1>
     <h4><?php echo "Packed Totes: " . number_format($this->inventory->sumPackedTotes(), 2); ?> lbs</h4>
+    <h4><?php echo "Sojourner Totes: " . number_format($this->inventory->sumSojournerTotes(), 2); ?> lbs</h4>
     <a href="<?php echo admin_url('admin.php?page=camp-manager-add-tote'); ?>" class="page-title-action">Add New</a>
     <hr class="wp-header-end">
     <form method="post">
