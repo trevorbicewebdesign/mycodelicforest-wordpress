@@ -258,6 +258,14 @@ class CampManagerInventory
         return (float) $wpdb->get_var($query);
     }
 
+    public function sumSojournerTotes(): float
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_totes";
+        $query = "SELECT SUM(weight) FROM $table WHERE location = 'Sojourner'";
+        return (float) $wpdb->get_var($query);
+    }
+
 
     public function upsertTote($name, $description = '', $tote_id = null): int
     {
