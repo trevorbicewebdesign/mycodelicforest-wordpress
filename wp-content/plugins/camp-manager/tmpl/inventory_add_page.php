@@ -109,9 +109,9 @@ $inventory_id = $is_edit ? intval($inventory->id) : 0;
         </table>
 
         <div style="display: flex; gap: 10px;">
-            <?php submit_button('Save Inventory', 'secondary', 'save_receipt', false, array('id' => 'save-btn')); ?>
-            <?php submit_button('Save & Close Inventory', 'primary', 'save_close_receipt', false, array('id' => 'save-close-btn')); ?>
-            <?php submit_button('Close Inventory', 'secondary', 'close_receipt', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
+            <?php submit_button('Save Inventory', 'secondary', 'save_inventory', false, array('id' => 'save-btn')); ?>
+            <?php submit_button('Save & Close Inventory', 'primary', 'save_close_inventory', false, array('id' => 'save-close-btn')); ?>
+            <?php submit_button('Close Inventory', 'secondary', 'close_inventory', false, array('id' => 'close-btn', 'formnovalidate' => true)); ?>
         </div>
 
         <?php
