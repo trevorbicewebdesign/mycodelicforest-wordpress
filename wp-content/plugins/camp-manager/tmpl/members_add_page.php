@@ -34,7 +34,7 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
     <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Member' : 'Add New Member'; ?></h1>
     <hr />
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="member-form">
-        <input type="hidden" name="action" value="camp_manager_save_member">
+        <input type="hidden" name="action" value="camp_manager_save_member" id="action-field">
 
         <?php if ($is_edit): ?>
             <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">

@@ -12,7 +12,7 @@ class CampManagerRoster
     {
         // add action processing for `camp_manager_save_member`
         add_action('admin_post_camp_manager_save_member', [$this, 'handle_member_save']);
-        add_action('admin_post_camp_manager_save_and_close_member', [$this, 'handle_member_save']);
+        add_action('admin_post_camp_manager_save_and_close_member', [$this, 'handle_member_save_close']);
     }
 
     public function handle_member_save()
@@ -42,6 +42,36 @@ class CampManagerRoster
         }
         wp_redirect(admin_url('admin.php?page=camp-manager-add-member&id=' . (isset($_POST['id']) ? intval($_POST['id']) : 0) ));
         exit;
+    }
+
+    public function handle_member_save_close(){
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+
+        $member_id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+
+        $data = [
+            'id' => $member_id,
+            'fname' => isset($_POST['member_fname']) ? sanitize_text_field($_POST['member_fname']) : '',
+            'lname' => isset($_POST['member_lname']) ? sanitize_text_field($_POST['member_lname']) : '',
+            'playaname' => isset($_POST['member_playaname']) ? sanitize_text_field($_POST['member_playaname']) : '',
+            'email' => isset($_POST['member_email']) ? sanitize_email($_POST['member_email']) : '',
+            //'wpid' => get_current_user_id(),
+            'low_income' => isset($_POST['member_low_income']) ? (int)$_POST['member_low_income'] : null,
+            'fully_paid' => isset($_POST['member_fully_paid']) ? (int)$_POST['member_fully_paid'] : null,
+            'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
+            'member_status' => isset($_POST['member_status']) ? sanitize_text_field($_POST['member_status']) : '',
+        ];
+
+        try {
+            $this->updateMember($data);
+            wp_redirect(admin_url('admin.php?page=camp-manager-members&success=1'));
+            exit;
+        } catch (\Exception $e) {
+            wp_redirect(admin_url('admin.php?page=camp-manager-add-member&error=' . urlencode($e->getMessage())));
+            exit;
+        }
     }
 
     public function countRosterMembers()
