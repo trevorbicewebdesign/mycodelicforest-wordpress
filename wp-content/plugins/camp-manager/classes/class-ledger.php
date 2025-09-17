@@ -12,7 +12,7 @@ class CampManagerLedger
     public function init()
     {
         add_action('admin_post_camp_manager_save_ledger', [$this, 'handle_ledger_entry_save']);
-        add_action('admin_post_camp_manager_save_and_close_ledger', [$this, 'handle_ledger_entry_save']);
+        add_action('admin_post_camp_manager_save_and_close_ledger', [$this, 'handle_ledger_entry_save_close']);
 
     }
     public function handle_ledger_entry_save()
@@ -52,6 +52,46 @@ class CampManagerLedger
 
         // Redirect
         wp_redirect(admin_url('admin.php?page=camp-manager-add-ledger&id=' . $ledger_id . '&success=1'));
+        exit;
+    }
+
+    public function handle_ledger_entry_save_close()
+    {
+        global $wpdb;
+
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have permission.'));
+        }
+
+        $ledger_id = intval($_POST['ledger_id'] ?? 0);
+        $note = sanitize_text_field($_POST['ledger_note'] ?? '');
+        $date = sanitize_text_field($_POST['ledger_date'] ?? '');
+        $amount = floatval($_POST['ledger_amount'] ?? 0);
+        $link = isset($_POST['ledger_link']) ? esc_url_raw($_POST['ledger_link']) : null;
+        
+        $table_ledger = $wpdb->prefix . 'mf_ledger';
+        $table_lines = $wpdb->prefix . 'mf_ledger_line_items';
+
+        $data = [
+            'ledger_id' => $ledger_id>0? $ledger_id : null,
+            'note' => $note,
+            'date' => $date,
+            'amount' => $amount,
+            'link' => $link,
+            'line_items' => $this->normalizeLedgerLineItems(
+                $_POST['ledger_line_item_id'] ?? [],
+                $_POST['ledger_line_item_note'] ?? [],
+                $_POST['ledger_line_item_amount'] ?? [],
+                $_POST['ledger_line_item_receipt_id'] ?? [],
+                $_POST['ledger_line_item_type'] ?? []
+            )
+        ];
+     
+        // Save the ledger entry
+        $ledger_id = $this->saveLedger($data);
+
+        // Redirect
+        wp_redirect(admin_url('admin.php?page=camp-manager-ledger&success=1'));
         exit;
     }
 

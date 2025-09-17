@@ -16,7 +16,7 @@ $ledger = $ledger_id ? $CampManagerLedger->getLedger($ledger_id) : null;
     <h1 class="wp-heading-inline"><?php echo $ledger ? 'Edit Ledger Entry' : 'Add Ledger Entry'; ?></h1>
     <hr/>
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-        <input type="hidden" name="action" value="camp_manager_save_ledger">
+        <input type="hidden" name="action" value="camp_manager_save_ledger" id="action-field">
         <input type="hidden" name="ledger_id" value="<?php echo esc_attr($ledger->id ?? ''); ?>">
 
         <table class="form-table">
