@@ -1,0 +1,55 @@
+services:
+  wordpress:
+    image: ghcr.io/trevorbicewebdesign/mycodelicforest-wordpress:php8.2-apache
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+      - selenium
+    volumes:
+      - ./wp-content:/var/www/html/wp-content
+      - ./tests:/var/www/html/tests
+      - ./codeception.yml:/var/www/html/codeception.yml
+      - ./composer.json:/var/www/html/composer.json
+      - ./composer.lock:/var/www/html/composer.lock
+    user: root
+    restart: always
+    networks:
+      - proxy
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: seed
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./tests/_support/Data/db/dump.sql:/docker-entrypoint-initdb.d/dump.sql
+      - db_data:/var/lib/mysql
+    networks:
+      - proxy
+
+  selenium:
+    image: selenium/standalone-chrome:latest
+    ports:
+      - "4444:4444"
+    shm_size: 2gb
+    networks:
+      - proxy
+  
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"   # Web UI
+      - "1025:1025"   # SMTP port
+    restart: always
+    networks:
+      - proxy
+
+volumes:
+  db_data:
+networks:
+  proxy:
+    external: true

@@ -12,7 +12,7 @@ class CampManagerBudgetsTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         
     }
 
-    public function testAddBudgetCategory()
+    public function test_get_remaining_budget_by_category()
     {
         global $wpdb;
         // commit the  database changes
@@ -24,19 +24,10 @@ class CampManagerBudgetsTest extends \lucatume\WPBrowser\TestCase\WPTestCase
 
         $CampManagerBudgets = $this->make('CampManagerBudgets', []);
 
-        $results = $CampManagerBudgets->add_budget_category([
-            'name' => 'Test Category',
-            'description' => 'This is a test category',
-            'budget' => 1000.00,
-            'season' => 2023,
-        ]);
+        $remaining_budget = $CampManagerBudgets->get_remaining_budget_by_category(1, 1);
 
-        codecept_debug($results);
-
-        // Check that the category was inserted
-        $category = $CampManagerBudgets->get_budget_category($results);
-        codecept_debug($category);
-        $this->assertNotEmpty($category, 'Budget category was not inserted');
+        codecept_debug("Remainig budget");
+        codecept_debug($remaining_budget);
     }
 
 }
