@@ -31,7 +31,7 @@
         }
     ],
     "require": {
-        "johnpbloch/wordpress": "^6.0",      
+        "johnpbloch/wordpress": "^7.0",      
         "wpackagist-plugin/google-site-kit": "*",
         "wpackagist-plugin/really-simple-ssl": "*",
         "wpackagist-plugin/redirection": "*",
