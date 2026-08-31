@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Tests\Support;
+namespace Tests\Support\Helper;
+use \lucatume\WPBrowser\Module\WPWebDriver;
 
 /**
  * Inherited Methods
