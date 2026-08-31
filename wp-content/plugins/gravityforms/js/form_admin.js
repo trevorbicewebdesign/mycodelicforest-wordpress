@@ -511,10 +511,26 @@ function GetFieldById( id ) {
 	}
 
 	id = parseInt( id );
-	for(var i=0; i<form.fields.length; i++){
-		if(form.fields[i].id == id)
-			return form.fields[i];
+
+	return recursivelyGetFieldsById( id, form.fields );
+}
+
+function recursivelyGetFieldsById( id, fields ) {
+	for ( var i =0; i < fields.length; i++ ) {
+		var thisField = fields[i];
+
+		if ( thisField.id == id ) {
+			return thisField;
+		}
+
+		if ( thisField.fields ) {
+			var subCheck = recursivelyGetFieldsById( id, thisField.fields );
+			if ( subCheck ) {
+				return subCheck;
+			}
+		}
 	}
+
 	return null;
 }
 
@@ -1104,7 +1120,7 @@ var gfMergeTagsObj = function( form, element ) {
 		var inputType     = self.elem.is( 'input' ) ? 'input' : 'textarea',
 			positionClass = self.getClassProperty( self.elem, 'position' );
 
-		self.mergeTagIcon  = jQuery( '<span class="all-merge-tags ' + positionClass + ' ' + inputType + '"><button class="open-list tooltip-merge-tag gform-button gform-button--unstyled" title="' + gf_vars.mergeTagsText + '"><i class="gform-icon gform-icon--merge-tag gform-button__icon"></i>' + gf_vars.mergeTagsText + '</button></span>' );
+		self.mergeTagIcon  = jQuery( '<span class="all-merge-tags ' + positionClass + ' ' + inputType + '"><button class="open-list tooltip-merge-tag gform-button gform-button--unstyled" title="' + gf_vars.mergeTagsText + '"><i class="gform-icon gform-icon--merge-tag gform-button__icon" aria-hidden="true"></i>' + gf_vars.mergeTagsText + '</button></span>' );
 
 		// Add the target element to the merge tag icon data for reference later when determining where the selected merge tag should be inserted.
 		self.mergeTagIcon.data( 'targetElement', self.elem.attr( 'id' ) );

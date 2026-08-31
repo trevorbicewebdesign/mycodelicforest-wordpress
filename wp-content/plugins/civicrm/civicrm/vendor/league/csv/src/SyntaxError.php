@@ -13,7 +13,12 @@ declare(strict_types=1);
 
 namespace League\Csv;
 
+use Deprecated;
 use Throwable;
+
+use function array_count_values;
+use function array_filter;
+use function array_keys;
 
 /**
  * SyntaxError Exception.
@@ -23,14 +28,14 @@ class SyntaxError extends Exception
     /**
      * @var array<string>
      */
-    protected $duplicateColumnNames = [];
+    protected array $duplicateColumnNames = [];
 
     /**
      * DEPRECATION WARNING! This class will be removed in the next major point release.
      *
      * @deprecated since version 9.7.0
      */
-    public function __construct(string $message = '', int $code = 0, Throwable $previous = null)
+    public function __construct(string $message = '', int $code = 0, ?Throwable $previous = null)
     {
         parent::__construct($message, $code, $previous);
     }
@@ -47,12 +52,8 @@ class SyntaxError extends Exception
 
     public static function dueToDuplicateHeaderColumnNames(array $header): self
     {
-        $duplicates = array_keys(array_filter(array_count_values($header), function (int $value): bool {
-            return $value > 1;
-        }));
-
         $instance = new self('The header record contains duplicate column names.');
-        $instance->duplicateColumnNames = $duplicates;
+        $instance->duplicateColumnNames = array_keys(array_filter(array_count_values($header), fn (int $value): bool => $value > 1));
 
         return $instance;
     }

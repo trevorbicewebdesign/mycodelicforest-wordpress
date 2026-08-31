@@ -1,0 +1,114 @@
+.elementor-widget-slider_revolution .sr--block--wrap {
+    font-family: Inter
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--label {
+    border-radius: 4px;
+    color: #fff;
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 10px;
+    padding: 6px 8px;
+    text-transform: uppercase;
+    z-index: 1
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--premium {
+    background-color: #5c24ff
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--error {
+    background-color: #cc1818
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--head {
+    min-height: 40px;
+    position: relative;
+    overflow: auto;
+    padding-top: 10px;
+    background-color: #fff;
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--head .sr--block--logo {
+    height: 30px;
+    left: 10px;
+    position: absolute;
+    top: 10px;
+    width: 30px
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--head .sr--block--logo svg {
+    height: 30px;
+    width: 30px
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--head .sr--block--title {
+    color: #000;
+    font-size: 15px;
+    font-weight: 600;
+    height: 30px;
+    line-height: 30px;
+    margin: 0 0 10px 50px;
+    display: inline-block;
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--head .sr--block--notfound {
+    display: block;
+    float: right;
+    margin: 4px 20px 14px 0;
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--head .sr--block--button {
+    display: block;
+    float: right;
+    font-weight: 500;
+    height: 30px;
+    line-height: 16px;
+    margin: 0 10px 10px 0;
+    font-size: 13px;
+    padding: 6px 12px;
+    border: 0;
+    cursor: pointer;
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--head .sr--block--button svg {
+    height: 14px;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--head .sr--block--button:hover {
+    background-color: var(--e-a-btn-bg-hover);
+    color: var(--e-a-btn-color-invert);
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--preview {
+    background-position: 50%;
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-radius: 2px;
+    height: 240px;
+    position: relative
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--preview:before {
+    backdrop-filter: blur(30px) brightness(1.5);
+    background-color: transparent;
+    content: "";
+    height: 100%;
+    position: absolute;
+    width: 100%
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--preview:hover .sr--hide--on--parent--hover,
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--preview:not(:hover) .sr--show--on--parent--hover {
+    display: none!important
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--preview .sr--block--label {
+    left: 10px;
+    position: absolute;
+    top: 10px
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--preview .sr--block--label svg {
+    fill: #fff;
+    height: 14px;
+    margin-right: 10px;
+    vertical-align: middle
+}
+.elementor-widget-slider_revolution .sr--block--wrap .sr--block--preview .sr--block--thumb {
+    background-size: cover;
+    height: 180px;
+    left: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    width: 320px;
+    max-width: calc(100% - 20px);
+}

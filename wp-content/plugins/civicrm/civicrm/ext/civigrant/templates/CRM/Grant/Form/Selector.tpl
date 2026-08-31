@@ -16,7 +16,7 @@
   <thead class="sticky">
   <tr>
   {if ! $single and $context eq 'Search'}
-     <th scope="col" title="{ts}Select rows{/ts}">{$form.toggleSelect.html}</th>
+     <th scope="col" title="{ts escape='htmlattribute'}Select rows{/ts}">{$form.toggleSelect.html}</th>
   {/if}
   {foreach from=$columnHeaders item=header}
     <th scope="col">
@@ -43,8 +43,8 @@
     <td>{$row.contact_type}</td>
     <td><a href="{crmURL p='civicrm/contact/view' q="reset=1&cid=`$row.contact_id`"}">{$row.sort_name}</a></td>
   {/if}
-    <td class="crm-grant-grant_status">{$row.grant_status}</td>
-    <td class="crm-grant-grant_type">{$row.grant_type}</td>
+    <td class="crm-grant-grant_status">{$row.grant_status|escape}</td>
+    <td class="crm-grant-grant_type">{$row.grant_type|escape}</td>
     <td class="right crm-grant-grant_amount_total">{$row.grant_amount_total|crmMoney}</td>
     <td class="right crm-grant-grant_amount_granted">{$row.grant_amount_granted|crmMoney}</td>
     <td class="right crm-grant-grant_application_received_date">{$row.grant_application_received_date|truncate:10:''|crmDate}</td>
@@ -56,7 +56,7 @@
 
 {if ($context EQ 'dashboard') AND $pager->_totalItems GT $limit}
   <tr class="even-row">
-    <td colspan="9"><a href="{crmURL p='civicrm/grant/search' q='reset=1&force=1'}"><i class="crm-i fa-chevron-right" aria-hidden="true"></i> {ts}List more Grants{/ts}...</a></td></tr>
+    <td colspan="9"><a href="{crmURL p='civicrm/grant/search' q='reset=1&force=1'}"><i class="crm-i fa-chevron-right" role="img" aria-hidden="true"></i> {ts}List more Grants{/ts}...</a></td></tr>
   </tr>
 {/if}
 </table>

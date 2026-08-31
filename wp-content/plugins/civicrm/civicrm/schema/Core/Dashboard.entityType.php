@@ -28,6 +28,7 @@ return [
       'required' => TRUE,
       'description' => ts('Domain for dashboard'),
       'add' => '3.1',
+      'default_callback' => ['CRM_Core_BAO_Domain', 'getDomainID'],
       'input_attrs' => [
         'label' => ts('Domain'),
       ],
@@ -79,7 +80,7 @@ return [
       'description' => ts('Permission Operator'),
       'add' => '3.1',
       'pseudoconstant' => [
-        'callback' => 'CRM_Core_SelectValues::andOr',
+        'callback' => ['CRM_Core_SelectValues', 'andOr'],
       ],
     ],
     'fullscreen_url' => [

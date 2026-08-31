@@ -133,7 +133,16 @@ class GF_Field_FileUpload extends GF_Field {
 		return 'gform-icon--upload';
 	}
 
-	function get_form_editor_field_settings() {
+	/**
+	 * Returns the class names of the settings which should be available on the field in the form editor.
+	 *
+	 * @since 1.9
+	 * @since 2.9.18 Updated to include the dynamic population setting.
+	 * @since 2.10.3 Removed the dynamic population setting.
+	 *
+	 * @return string[]
+	 */
+	public function get_form_editor_field_settings() {
 		return array(
 			'conditional_logic_field_setting',
 			'error_message_setting',
@@ -150,97 +159,317 @@ class GF_Field_FileUpload extends GF_Field {
 		);
 	}
 
-	public function validate( $value, $form ) {
-		$file_names = array();
-		$input_name = 'input_' . $this->id;
-		GFCommon::log_debug( __METHOD__ . '(): Validating field ' . $input_name );
+	/**
+	 * Determines if the file type and extension check should be disabled.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @return bool
+	 */
+	public function is_check_type_and_ext_disabled() {
+		static $disabled;
 
-		$allowed_extensions = ! empty( $this->allowedExtensions ) ? GFCommon::clean_extensions( explode( ',', strtolower( $this->allowedExtensions ) ) ) : array();
-		if ( $this->multipleFiles ) {
-			$file_names = isset( GFFormsModel::$uploaded_files[ $form['id'] ][ $input_name ] ) ? GFFormsModel::$uploaded_files[ $form['id'] ][ $input_name ] : array();
-		} elseif ( ! empty( $_FILES[ $input_name ] ) ) {
-			$max_upload_size_in_bytes = isset( $this->maxFileSize ) && $this->maxFileSize > 0 ? $this->maxFileSize * 1048576 : wp_max_upload_size();
-			$max_upload_size_in_mb    = $max_upload_size_in_bytes / 1048576;
-			if ( ! empty( $_FILES[ $input_name ]['name'] ) && $_FILES[ $input_name ]['error'] > 0 ) {
-				$uploaded_file_name = isset( GFFormsModel::$uploaded_files[ $form['id'] ][ $input_name ] ) ? GFFormsModel::$uploaded_files[ $form['id'] ][ $input_name ] : '';
-				if ( empty( $uploaded_file_name ) ) {
-					$this->failed_validation = true;
-					switch ( $_FILES[ $input_name ]['error'] ) {
-						case UPLOAD_ERR_INI_SIZE :
-						case UPLOAD_ERR_FORM_SIZE :
-							GFCommon::log_debug( __METHOD__ . '(): File ' . $_FILES[ $input_name ]['name'] . ' exceeds size limit. Maximum file size: ' . $max_upload_size_in_mb . 'MB' );
-							$fileupload_validation_message = sprintf( esc_html__( 'File exceeds size limit. Maximum file size: %dMB', 'gravityforms' ), $max_upload_size_in_mb );
-							break;
-						default :
-							GFCommon::log_debug( __METHOD__ . '(): The following error occurred while uploading - ' . $_FILES[ $input_name ]['error'] );
-							$fileupload_validation_message = sprintf( esc_html__( 'There was an error while uploading the file. Error code: %d', 'gravityforms' ), $_FILES[ $input_name ]['error'] );
-					}
-					$this->validation_message = empty( $this->errorMessage ) ? $fileupload_validation_message : $this->errorMessage;
-					return;
-				}
-			} elseif ( $_FILES[ $input_name ]['size'] > 0 && $_FILES[ $input_name ]['size'] > $max_upload_size_in_bytes ) {
-				$this->failed_validation = true;
-				GFCommon::log_debug( __METHOD__ . '(): File ' . $_FILES[ $input_name ]['name'] . ' exceeds size limit. Maximum file size: ' . $max_upload_size_in_mb . 'MB' );
-				$this->validation_message = sprintf( esc_html__( 'File exceeds size limit. Maximum file size: %dMB', 'gravityforms' ), $max_upload_size_in_mb );
-				return;
-			}
-
+		if ( ! is_bool( $disabled ) ) {
 			/**
-			 * A filter to allow or disallow whitelisting when uploading a file
+			 * Allows disabling the file type and extension check.
 			 *
-			 * @param bool false To set upload whitelisting to true or false (default is false, which means it is enabled)
+			 * @param bool $disabled Is the file type and extension check disabled? Default is false.
 			 */
-			$whitelisting_disabled = apply_filters( 'gform_file_upload_whitelisting_disabled', false );
+			$disabled = (bool) apply_filters( 'gform_file_upload_whitelisting_disabled', false );
+		}
 
-			if ( ! empty( $_FILES[ $input_name ]['name'] ) && ! $whitelisting_disabled ) {
-				$check_result = GFCommon::check_type_and_ext( $_FILES[ $input_name ] );
+		return $disabled;
+	}
+
+	/**
+	 * Returns the maximum file size in bytes.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @return int
+	 */
+	public function get_max_file_size_bytes() {
+		$max_size = $this->get_context_property( 'max_file_size_bytes' );
+		if ( is_null( $max_size ) ) {
+			$max_size = $this->maxFileSize > 0 ? $this->maxFileSize * 1048576 : wp_max_upload_size();
+			$this->set_context_property( 'max_file_size_bytes', $max_size );
+		}
+
+		return $max_size;
+	}
+
+	/**
+	 * Returns an array of cleaned allowed extensions.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @return array
+	 */
+	public function get_clean_allowed_extensions() {
+		$extensions = $this->get_context_property( 'clean_allowed_extensions' );
+		if ( is_null( $extensions ) ) {
+			$extensions = GFCommon::clean_extensions( $this->allowedExtensions );
+			$this->set_context_property( 'clean_allowed_extensions', $extensions );
+		}
+
+		return $extensions;
+	}
+
+	/**
+	 * Returns the file size validation message.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @return string
+	 */
+	public function get_size_validation_message() {
+		$max_upload_size_in_bytes = $this->get_max_file_size_bytes();
+		$max_upload_size_in_mb    = $max_upload_size_in_bytes / 1048576;
+
+		/* translators: %d: maximum file size in MB. */
+		return sprintf( esc_html__( 'File exceeds size limit. Maximum file size: %dMB.', 'gravityforms' ), $max_upload_size_in_mb );
+	}
+
+	/**
+	 * Returns an array containing the error message and file ID.
+	 *
+	 * @since 2.9.18
+	 *
+	 *
+	 * @param array  $file     The file that was validated.
+	 * @param string $message  The error message.
+	 * @param string $name_key The key used to access the file name.
+	 *
+	 * @return array
+	 */
+	private function get_invalid_file_result( $file, $message, $name_key ) {
+		$name = rgar( $file, $name_key );
+		$name = ( $name_key === 'url' ) ? esc_url( $name ) : sanitize_file_name( $name );
+
+		return array(
+			'message' => $name . ' - ' . $message,
+			'id'      => rgar( $file, 'id' ),
+		);
+	}
+
+	/**
+	 * Returns a hash for the given populated file URL details.
+	 *
+	 * @since 2.9.23
+	 *
+	 * @param array $url_details The populated file URL details
+	 *
+	 * @return string
+	 */
+	private function get_populated_file_url_hash( $url_details ) {
+		unset( $url_details['hash'] );
+
+		$url_details['field_id'] = (int) $this->id;
+		$url_details['form_id']  = (int) $this->formId;
+
+		return wp_hash( json_encode( $url_details ) );
+	}
+
+	/**
+	 * Determines if the file details contain a valid populated file URL record generated by Gravity Forms.
+	 *
+	 * @since 2.10.4
+	 *
+	 * @param array $file File details.
+	 *
+	 * @return bool
+	 */
+	public function is_valid_populated_file_url( $file ) {
+		if ( ! is_array( $file ) || empty( $file['url'] ) || empty( $file['uploaded_filename'] ) || empty( $file['hash'] ) ) {
+			return false;
+		}
+
+		if ( ! is_string( $file['url'] ) || ! is_string( $file['uploaded_filename'] ) || ! is_string( $file['hash'] ) ) {
+			return false;
+		}
+
+		$file_name = sanitize_file_name( wp_basename( $file['uploaded_filename'] ) );
+		if ( empty( $file_name ) ) {
+			return false;
+		}
+
+		$args = array(
+			'allowed_extensions' => $this->get_clean_allowed_extensions(),
+			'file_name'          => $file_name,
+		);
+
+		$validation = GFCommon::validate_file_url( $file['url'], $args );
+
+		if ( is_wp_error( $validation ) ) {
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): URL rejected (%s): %s', $validation->get_error_code(), esc_url_raw( $file['url'] ) ) );
+			return false;
+		}
+
+		return hash_equals( $this->get_populated_file_url_hash( $file ), $file['hash'] );
+	}
+
+	/**
+	 * Validates the given file.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param array $file   The file to validate.
+	 * @param bool  $is_new Whether the file is new (from $_FILES) or an existing file (from GFFormsModel::$uploaded_files).
+	 *
+	 * @return array|false Returns an array containing the sanitized file name and validation message when invalid, or false when valid.
+	 */
+	public function is_invalid_file( $file, $is_new = true ) {
+		GFCommon::log_debug( __METHOD__ . '(): Validating file: ' . json_encode( $file ) );
+		$name_key  = $is_new ? 'name' : 'uploaded_filename';
+		$file_name = rgar( $file, $name_key );
+
+		if ( $is_new ) {
+			$max_upload_size_in_bytes = $this->get_max_file_size_bytes();
+			$max_upload_size_in_mb    = $max_upload_size_in_bytes / 1048576;
+
+			if ( rgar( $file, 'error' ) !== UPLOAD_ERR_OK ) {
+				switch ( rgar( $file, 'error' ) ) {
+					case UPLOAD_ERR_INI_SIZE:
+					case UPLOAD_ERR_FORM_SIZE:
+						GFCommon::log_debug( __METHOD__ . '(): File exceeds size limit. Maximum file size: ' . $max_upload_size_in_mb . 'MB' );
+						$message = $this->get_size_validation_message();
+						break;
+					default:
+						/* translators: %d: PHP file upload error code. */
+						$message = $this->errorMessage ?: sprintf( esc_html__( 'There was an error while uploading the file. Error code: %d.', 'gravityforms' ), $file['error'] );
+				}
+
+				return $this->get_invalid_file_result( $file, $message, $name_key );
+			} elseif ( rgar( $file, 'size' ) > 0 && $file['size'] > $max_upload_size_in_bytes ) {
+				GFCommon::log_debug( __METHOD__ . '(): File exceeds size limit. Maximum file size: ' . $max_upload_size_in_mb . 'MB' );
+
+				return $this->get_invalid_file_result( $file, $this->get_size_validation_message(), $name_key );
+			} elseif ( ! is_uploaded_file( rgar( $file, 'tmp_name' ) ) ) {
+				GFCommon::log_debug( __METHOD__ . '(): File was not uploaded via HTTP POST.' );
+				$message = $this->errorMessage ?: esc_html__( 'The file is not valid.', 'gravityforms' );
+
+				return $this->get_invalid_file_result( $file, $message, $is_new );
+			}
+
+			if ( ! empty( $file_name ) && ! $this->is_check_type_and_ext_disabled() ) {
+				$check_result = GFCommon::check_type_and_ext( $file, $file_name );
 				if ( is_wp_error( $check_result ) ) {
-					$this->failed_validation = true;
-					GFCommon::log_debug( sprintf( '%s(): %s; %s', __METHOD__, $check_result->get_error_code(), $check_result->get_error_message()  ) );
-					$this->validation_message = esc_html__( 'The uploaded file type is not allowed.', 'gravityforms' );
-					return;
+					GFCommon::log_debug( sprintf( '%s(): %s; %s', __METHOD__, $check_result->get_error_code(), $check_result->get_error_message() ) );
+
+					return $this->get_invalid_file_result( $file, $check_result->get_error_message(), $name_key );
 				}
 			}
-			$single_file_name = $_FILES[ $input_name ]['name'];
-			if ( ! empty( $single_file_name ) ) {
-				$file_names[] = array( 'uploaded_filename' => $single_file_name );
-			}
-		}
+		} elseif ( isset( $file['url'] ) && ! $this->is_valid_populated_file_url( $file ) ) {
+			$message = $this->errorMessage ?: esc_html__( 'The file is not valid.', 'gravityforms' );
 
-		foreach ( $file_names as $file_name ) {
-			GFCommon::log_debug( __METHOD__ . '(): Validating file upload for ' . $file_name['uploaded_filename'] );
-			$info = pathinfo( rgar( $file_name, 'uploaded_filename' ) );
+			return $this->get_invalid_file_result( $file, $message, 'url' );
+		} elseif ( ! empty( $file['temp_filename'] ) ) {
+			$temp_file_extension     = strtolower( pathinfo( $file['temp_filename'], PATHINFO_EXTENSION ) );
+			$uploaded_file_extension = strtolower( pathinfo( $file_name, PATHINFO_EXTENSION ) );
 
-			if ( empty( $allowed_extensions ) ) {
-				if ( GFCommon::file_name_has_disallowed_extension( rgar( $file_name, 'uploaded_filename' ) ) ) {
-					GFCommon::log_debug( __METHOD__ . '(): The file has a disallowed extension, failing validation.' );
-					$this->failed_validation  = true;
-					$this->validation_message = empty( $this->errorMessage ) ? esc_html__( 'The uploaded file type is not allowed.', 'gravityforms' ) : $this->errorMessage;
-				}
-			} else {
-				if ( ! empty( $info['basename'] ) && ! GFCommon::match_file_extension( rgar( $file_name, 'uploaded_filename' ), $allowed_extensions ) ) {
-					GFCommon::log_debug( __METHOD__ . '(): The file is of a type that cannot be uploaded, failing validation.' );
-					$this->failed_validation  = true;
-					$this->validation_message = empty( $this->errorMessage ) ? sprintf( esc_html__( 'The uploaded file type is not allowed. Must be one of the following: %s', 'gravityforms' ), strtolower( implode( ', ', GFCommon::clean_extensions( explode( ',', $this->allowedExtensions ) ) ) ) ) : $this->errorMessage;
-				}
+			if ( empty( $temp_file_extension ) || empty( $uploaded_file_extension ) || $temp_file_extension !== $uploaded_file_extension ) {
+				GFCommon::log_debug( __METHOD__ . sprintf( '(): Temporary file extension (%s) does not match uploaded file extension (%s).', $temp_file_extension, $uploaded_file_extension ) );
+				$message = $this->errorMessage ? $this->errorMessage : esc_html__( 'The file is not valid.', 'gravityforms' );
+
+				return $this->get_invalid_file_result( $file, $message, $name_key );
 			}
 		}
 
-		if ( ( $this->multipleFiles && ! rgblank( $this->maxFiles ) ) || ( ! $this->multipleFiles && $this->type !== 'post_image' ) ) {
+		$allowed_extensions = $this->get_clean_allowed_extensions();
+
+		if ( empty( $allowed_extensions ) ) {
+			if ( GFCommon::file_name_has_disallowed_extension( $file_name ) ) {
+				GFCommon::log_debug( __METHOD__ . '(): The file has a disallowed extension.' );
+				$message = $this->errorMessage ?: esc_html__( 'The uploaded file type is not allowed.', 'gravityforms' );
+
+				return $this->get_invalid_file_result( $file, $message, $name_key );
+			}
+		} else {
+			if ( ! GFCommon::match_file_extension( $file_name, $allowed_extensions ) ) {
+				$allowed_extensions = implode( ', ', $allowed_extensions );
+				GFCommon::log_debug( __METHOD__ . '(): The file extension is not allowed. Allowed extensions: ' . $allowed_extensions . '.' );
+
+				/* translators: %s: comma-separated list of allowed file extensions. */
+				$message = $this->errorMessage ?: sprintf( esc_html__( 'The uploaded file type is not allowed. Must be one of the following: %s.', 'gravityforms' ), $allowed_extensions );
+
+				return $this->get_invalid_file_result( $file, $message, $name_key );
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Validates the field value(s).
+	 *
+	 * @since 1.9
+	 * @since 2.9.18 Updated to use $this->get_submission_files() & $this->is_valid_file().
+	 *
+	 * @param string $value Empty or the JSON encoded array of files for an existing entry.
+	 * @param array  $form  The form being processed.
+	 *
+	 * @return void
+	 */
+	public function validate( $value, $form ) {
+		$files = $this->get_submission_files();
+		if ( $this->is_submission_files_empty( $files ) ) {
+			return;
+		}
+
+		GFCommon::log_debug( __METHOD__ . sprintf( '(): Validating field #%d (name: input_%d).', $this->id, $this->id ) );
+
+		if ( ! $this->multipleFiles || ! rgblank( $this->maxFiles ) ) {
 			$limit = $this->multipleFiles ? absint( $this->maxFiles ) : 1;
-			$count = count( $file_names );
-			if ( ! empty( $value ) ) {
-				$entry_files   = is_array( $value ) ? $value : json_decode( $value, true );
-				$count       += is_array( $entry_files ) ? count( $entry_files ) : 1;
+			$count = count( $files['existing'] ) + count( $files['new'] );
+
+			if ( ! empty( $value ) && $this->type !== 'post_image' ) {
+				$entry_files = is_array( $value ) ? $value : json_decode( $value, true );
+				$count      += is_array( $entry_files ) ? count( $entry_files ) : 1;
 			}
 
 			if ( $count && $count > $limit ) {
-				$this->failed_validation  = true;
-				$this->validation_message = empty( $this->errorMessage ) ? sprintf( esc_html__( 'Maximum number of files (%d) exceeded.', 'gravityforms' ), $limit ) : $this->errorMessage;
+				$this->failed_validation = true;
+				/* translators: %1$d: the number of submitted files. %2$d: the allowed limit. */
+				$this->validation_message = $this->errorMessage ?: sprintf( esc_html__( 'Number of files (%1$d) exceeds limit (%2$d).', 'gravityforms' ), $count, $limit );
+				GFCommon::log_debug( __METHOD__ . sprintf( '(): Number of files (%d) exceeds limit (%d).', $count, $limit ) );
+
+				return;
+			}
+		}
+
+		$errors = array();
+
+		foreach ( array( 'existing', 'new' ) as $key ) {
+			foreach ( $files[ $key ] as $file ) {
+				$is_new = ( $key === 'new' );
+				$result = $this->is_invalid_file( $file, $is_new );
+				if ( ! $result ) {
+					continue;
+				}
+
+				$this->failed_validation = true;
+				$errors[]                = $result;
 			}
 		}
 
 		GFCommon::log_debug( __METHOD__ . '(): Validation complete.' );
+
+		if ( ! $this->failed_validation ) {
+			return;
+		}
+
+		if ( GFFormDisplay::get_submission_context() !== 'form-submit' ) {
+			$this->validation_message = $this->multipleFiles ? array_column( $errors, 'message' ) : rgars( $errors, '0/message' );
+		} else {
+			if ( $this->multipleFiles ) {
+				$count = count( $errors );
+				/* translators: %d: the number of invalid files. */
+				$this->set_context_property( 'validation_summary_message', sprintf( esc_html( _n( '%d file is invalid.', '%d files are invalid.', $count, 'gravityforms' ) ), $count ) );
+				$this->set_context_property( 'multifile_messages', $errors );
+			} else {
+				$this->validation_message = rgars( $errors, '0/message' );
+			}
+		}
 	}
 
 	public function get_first_input_id( $form ) {
@@ -248,6 +477,18 @@ class GF_Field_FileUpload extends GF_Field {
 		return $this->multipleFiles ? 'gform_browse_button_' . $form['id'] . '_' . $this->id : 'input_' . $form['id'] . '_' . $this->id;
 	}
 
+	/**
+	 * Returns the field inner markup.
+	 *
+	 * @since 1.9
+	 * @since 2.9.18 Updated to use $this->get_clean_allowed_extensions(), $this->get_max_file_size_bytes(), and $this->get_submission_files_for_preview().
+	 *
+	 * @param array        $form  The Form Object currently being processed.
+	 * @param string|array $value The field value. From default/dynamic population, $_POST, or a resumed incomplete submission.
+	 * @param null|array   $entry Null or the Entry Object currently being edited.
+	 *
+	 * @return string
+	 */
 	public function get_field_input( $form, $value = '', $entry = null ) {
 
 		$lead_id = absint( rgar( $entry, 'id' ) );
@@ -266,19 +507,19 @@ class GF_Field_FileUpload extends GF_Field {
 
 		$disabled_text = $is_form_editor ? 'disabled="disabled"' : '';
 
-		$tabindex        = $this->get_tabindex();
-		$multiple_files  = $this->multipleFiles;
-		$file_list_id    = 'gform_preview_' . $form_id . '_' . $id;
+		$tabindex       = $this->get_tabindex();
+		$multiple_files = $this->multipleFiles;
+		$file_list_id   = 'gform_preview_' . $form_id . '_' . $id;
 
 		// Generate upload rules messages ( allowed extensions, max no. of files, max file size ).
 		$upload_rules_messages = array();
 		// Extensions.
-		$allowed_extensions = ! empty( $this->allowedExtensions ) ? join( ',', GFCommon::clean_extensions( explode( ',', strtolower( $this->allowedExtensions ) ) ) ) : array();
+		$allowed_extensions = implode( ',', $this->get_clean_allowed_extensions() );
 		if ( ! empty( $allowed_extensions ) ) {
 			$upload_rules_messages[] = esc_attr( sprintf( __( 'Accepted file types: %s', 'gravityforms' ), str_replace( ',', ', ', $allowed_extensions ) ) );
 		}
 		// File size.
-		$max_upload_size = $this->maxFileSize > 0 ? $this->maxFileSize * 1048576 : wp_max_upload_size();
+		$max_upload_size = $this->get_max_file_size_bytes();
 		// translators: %s is replaced with a numeric string representing the maximum file size
 		$upload_rules_messages[] = esc_attr( sprintf( __( 'Max. file size: %s', 'gravityforms' ), GFCommon::format_file_size( $max_upload_size ) ) );
 		// No. of files.
@@ -296,13 +537,13 @@ class GF_Field_FileUpload extends GF_Field {
 		if ( $multiple_files ) {
 			$upload_action_url = trailingslashit( site_url() ) . '?gf_page=' . GFCommon::get_upload_page_slug();
 
-			$browse_button_id  = 'gform_browse_button_' . $form_id . '_' . $id;
-			$container_id      = 'gform_multifile_upload_' . $form_id . '_' . $id;
-			$drag_drop_id      = 'gform_drag_drop_area_' . $form_id . '_' . $id;
+			$browse_button_id = 'gform_browse_button_' . $form_id . '_' . $id;
+			$container_id     = 'gform_multifile_upload_' . $form_id . '_' . $id;
+			$drag_drop_id     = 'gform_drag_drop_area_' . $form_id . '_' . $id;
 
 			$validation_message_id = 'gform_multifile_messages_' . $form_id . '_' . $id;
 
-			$messages_id        = "gform_multifile_messages_{$form_id}_{$id}";
+			$messages_id = "gform_multifile_messages_{$form_id}_{$id}";
 			if ( empty( $allowed_extensions ) ) {
 				$allowed_extensions = '*';
 			}
@@ -323,31 +564,27 @@ class GF_Field_FileUpload extends GF_Field {
 					'flash_swf_url'       => includes_url( 'js/plupload/plupload.flash.swf' ),
 					'silverlight_xap_url' => includes_url( 'js/plupload/plupload.silverlight.xap' ),
 					'filters'             => array(
-						'mime_types'    => array( array( 'title' => __( 'Allowed Files', 'gravityforms' ), 'extensions' => $allowed_extensions ) ),
+						'mime_types'    => array(
+							array(
+								'title'      => __( 'Allowed Files', 'gravityforms' ),
+								'extensions' => $allowed_extensions,
+							),
+						),
 						'max_file_size' => $max_upload_size . 'b',
 					),
 					'multipart'           => true,
 					'urlstream_upload'    => false,
 					'multipart_params'    => array(
-						'form_id'  => $form_id,
-						'field_id' => $id,
+						'form_id'                                   => $form_id,
+						'field_id'                                  => $id,
+						"_gform_file_upload_nonce_{$form_id}_{$id}" => wp_create_nonce( "gform_file_upload_{$form_id}_{$id}" ),
 					),
 					'gf_vars'             => array(
 						'max_files'             => $max_files,
 						'message_id'            => $messages_id,
 						'disallowed_extensions' => $disallowed_extensions,
-					)
+					),
 				);
-
-				if ( GFCommon::form_requires_login( $form ) ) {
-					$plupload_init['multipart_params'][ '_gform_file_upload_nonce_' . $form_id ] = wp_create_nonce( 'gform_file_upload_' . $form_id, '_gform_file_upload_nonce_' . $form_id );
-				}
-
-				// plupload 2 was introduced in WordPress 3.9. Plupload 1 accepts a slightly different init array.
-				if ( version_compare( get_bloginfo( 'version' ), '3.9-RC1', '<' ) ) {
-					$plupload_init['max_file_size'] = $max_upload_size . 'b';
-					$plupload_init['filters']       = array( array( 'title' => __( 'Allowed Files', 'gravityforms' ), 'extensions' => $allowed_extensions ) );
-				}
 			}
 
 			$plupload_init = gf_apply_filters( array( 'gform_plupload_settings', $form_id ), $plupload_init, $form_id, $this );
@@ -364,8 +601,17 @@ class GF_Field_FileUpload extends GF_Field {
 									</div>";
 
 			$upload .= $rules_messages ? "<span class='gfield_description gform_fileupload_rules' id='{$rules_messages_id}'>{$rules_messages}</span>" : '';
-			$upload .= "<ul class='validation_message--hidden-on-empty gform-ul-reset' id='{$messages_id}'></ul> <!-- Leave <ul> empty to support CSS :empty selector. -->";
 
+			$messages       = '';
+			$messages_array = $this->get_context_property( 'multifile_messages' );
+			if ( is_array( $messages_array ) ) {
+				foreach ( $messages_array as $message_array ) {
+					$messages .= sprintf( "<li id='error_%s' class='gfield_description gfield_validation_message'>%s</li>", esc_attr( rgar( $message_array, 'id' ) ), esc_html( rgar( $message_array, 'message' ) ) );
+				}
+			}
+
+			// The JS will also populate this.
+			$upload .= "<ul class='validation_message--hidden-on-empty gform-ul-reset' id='{$messages_id}'>{$messages}</ul>";
 
 			if ( $is_entry_detail ) {
 				$upload .= sprintf( '<input type="hidden" name="input_%d" value=\'%s\' />', $id, esc_attr( $value ) );
@@ -386,11 +632,13 @@ class GF_Field_FileUpload extends GF_Field {
 		}
 
 		if ( $is_entry_detail && ! empty( $value ) ) { // edit entry
-			$file_urls      = $multiple_files ? json_decode( $value ) : array( $value );
 			$upload_display = $multiple_files ? '' : "style='display:none'";
 			$preview        = "<div id='upload_$id' {$upload_display}>$upload</div>";
+
 			$preview .= sprintf( "<div id='%s' class='ginput_preview_list'></div>", $file_list_id );
 			$preview .= sprintf( "<div id='preview_existing_files_%d'>", $id );
+
+			$file_urls = $this->to_array( $value );
 
 			foreach ( $file_urls as $file_index => $file_url ) {
 
@@ -409,16 +657,18 @@ class GF_Field_FileUpload extends GF_Field {
 				 */
 				$field_ssl = apply_filters( 'gform_secure_file_download_is_https', true, $file_url, $this );
 
-				if ( GFCommon::is_ssl() && strpos( $file_url, 'http:' ) !== false && $field_ssl === true ) {
+				if ( $field_ssl === true && GFCommon::is_ssl() && str_contains( $file_url, 'http:' ) ) {
 					$file_url = str_replace( 'http:', 'https:', $file_url );
 				}
-				$download_file_text  = esc_attr__( 'Download file', 'gravityforms' );
-				$delete_file_text    = esc_attr__( 'Delete file', 'gravityforms' );
-				$view_file_text      = esc_attr__( 'View file', 'gravityforms' );
-				$file_index          = intval( $file_index );
-				$file_url            = esc_attr( $file_url );
-				$display_file_url    = GFCommon::truncate_url( $file_url );
-				$file_url            = $this->get_download_url( $file_url );
+
+				$download_file_text = esc_attr__( 'Download file', 'gravityforms' );
+				$delete_file_text   = esc_attr__( 'Delete file', 'gravityforms' );
+				$view_file_text     = esc_attr__( 'View file', 'gravityforms' );
+				$file_index         = intval( $file_index );
+				$file_url           = esc_attr( $file_url );
+				$display_file_url   = GFCommon::truncate_url( $file_url );
+				$file_url           = $this->get_download_url( $file_url, false, $lead_id );
+
 				$preview .= "<div id='preview_file_{$file_index}' class='ginput_preview'>
 								<a href='{$file_url}' target='_blank' aria-label='{$view_file_text}'>{$display_file_url}</a>
 								<a href='{$file_url}' target='_blank' aria-label='{$download_file_text}' class='ginput_preview_control gform-icon gform-icon--circle-arrow-down'></a>
@@ -430,118 +680,172 @@ class GF_Field_FileUpload extends GF_Field {
 
 			return $preview;
 		} else {
-			$input_name     = "input_{$id}";
-			$uploaded_files = isset( GFFormsModel::$uploaded_files[ $form_id ][ $input_name ] ) ? GFFormsModel::$uploaded_files[ $form_id ][ $input_name ] : array();
-			$file_infos     = $multiple_files ? $uploaded_files : RGFormsModel::get_temp_filename( $form_id, $input_name );
+			$files = $this->get_submission_files_for_preview();
 
-			if ( ! empty( $file_infos ) ) {
-				$preview   = sprintf( "<div id='%s' class='ginput_preview_list'>", $file_list_id );
-				$file_infos = $multiple_files ? $uploaded_files : array( $file_infos );
-				foreach ( $file_infos as $file_info ) {
-
-					if ( GFCommon::is_legacy_markup_enabled( $form ) ) {
-						$file_upload_markup = "<img alt='" . esc_attr__( 'Delete file', 'gravityforms' ) . "' class='gform_delete' src='" . GFCommon::get_base_url() . "/images/delete.png' onclick='gformDeleteUploadedFile({$form_id}, {$id}, this);' onkeypress='gformDeleteUploadedFile({$form_id}, {$id}, this);' /> <strong>" . esc_html( $file_info['uploaded_filename'] ) . '</strong>';
-					} else {
-						$file_upload_markup = sprintf( '<span class="gfield_fileupload_filename">%s</span>', esc_html( $file_info['uploaded_filename'] ) );
-						// TODO: get file size $file_upload_markup .= sprintf( '<span class="gfield_fileupload_filesize">%s</span>', esc_html( $file_info['uploaded_filesize'] ) );
-						$file_upload_markup .= '<span class="gfield_fileupload_progress gfield_fileupload_progress_complete"><span class="gfield_fileupload_progressbar"><span class="gfield_fileupload_progressbar_progress" style="width: 100%;"></span></span><span class="gfield_fileupload_percent">100%</span></span>';
-						$file_upload_markup .= sprintf(
-							'<button class="gform_delete_file gform-theme-button gform-theme-button--simple" onclick="gformDeleteUploadedFile( %d, %d, this );"><span class="dashicons dashicons-trash" aria-hidden="true"></span><span class="screen-reader-text">%s: %s</span></button>',
-							$form_id,
-							$id,
-							esc_html__( 'Delete this file', 'gravityforms' ),
-							esc_html( $file_info['uploaded_filename'] )
-						);
-					}
-
-					/**
-					 * Modify the HTML for the Multi-File Upload "preview."
-					 *
-					 * @since Unknown
-					 *
-					 * @param string $file_upload_markup The current HTML for the field.
-					 * @param array  $file_info          Details about the file uploaded.
-					 * @param int    $form_id            The current Form ID.
-					 * @param int    $id                 The current Field ID.
-					 */
-					$file_upload_markup = apply_filters( 'gform_file_upload_markup', $file_upload_markup, $file_info, $form_id, $id );
-					$preview            .= "<div class='ginput_preview'>{$file_upload_markup}</div>";
+			if ( ! empty( $files ) ) {
+				$preview = sprintf( "<div id='%s' class='ginput_preview_list'>", $file_list_id );
+				foreach ( $files as $file_info ) {
+					$preview .= $this->get_file_preview_markup( $file_info, $form );
 				}
 				$preview .= '</div>';
-				if ( ! $multiple_files ) {
-					$upload = str_replace( " class='", " class='gform_hidden ", $upload );
-				}
 
 				return "<div class='ginput_container ginput_container_fileupload'>" . $upload . " {$preview}</div>";
 			} else {
 
 				$preview = $multiple_files ? sprintf( "<div id='%s' class='ginput_preview_list'></div>", $file_list_id ) : '';
 
-				return "<div class='ginput_container ginput_container_fileupload'>$upload</div>" . $preview;
+				return "<div class='ginput_container ginput_container_fileupload'>$upload $preview</div>";
 			}
 		}
 	}
 
-	public function is_value_submission_empty( $form_id ) {
-		$input_name = 'input_' . $this->id;
-		$tmp_location = GFFormsModel::get_tmp_upload_location( $form_id );
-		$tmp_path     = $tmp_location['path'];
+	/**
+	 * Returns the file preview HTML for the given uploaded file.
+	 *
+	 * @since 2.9.31
+	 *
+	 * @param array $file The uploaded file details.
+	 * @param array $form The current form.
+	 *
+	 * @return string
+	 */
+	public function get_file_preview_markup( $file, $form ) {
+		$form_id = absint( rgar( $form, 'id' ) );
+		$id      = absint( $this->id );
 
-		if ( $this->multipleFiles ) {
-			$uploaded_files = GFFormsModel::$uploaded_files[ $form_id ];
-			$file_info      = rgar( $uploaded_files, $input_name );
-
-			if ( empty( $file_info ) ) {
-				return true;
-			}
-
-			foreach ( $file_info as $key => $file ) {
-				if ( empty( $file['uploaded_filename'] ) ) {
-					$this->unset_uploaded_file( $input_name, $key );
-					continue;
-				}
-
-				/*
-				 * Allow add-ons and custom code to skip the file validation.
-				 *
-				 * @since 2.7.4
-				 *
-				 * @param bool   $skip_validation Whether to skip the file validation.
-				 * @param array  $file            The file information.
-				 * @param object $field           The current field object.
-				*/
-				if ( ! gf_apply_filters( array(
-					'gform_validate_required_file_exists',
-					$form_id,
-					$this->id,
-				), isset( $file['temp_filename'] ), $file, $this ) ) {
-					// Skipping existing file populated by an add-on or custom code.
-					continue;
-				}
-
-				if ( empty( $file['temp_filename'] ) ) {
-					$this->unset_uploaded_file( $input_name, $key );
-					continue;
-				}
-
-				$tmp_file = $tmp_path . wp_basename( $file['temp_filename'] );
-				if ( ! file_exists( $tmp_file ) ) {
-					$this->unset_uploaded_file( $input_name, $key );
-				}
-			}
-
-			return empty( GFFormsModel::$uploaded_files[ $form_id ][ $input_name ] );
+		if ( GFCommon::is_legacy_markup_enabled( $form ) ) {
+			$markup = "<img alt='" . esc_attr__( 'Delete file', 'gravityforms' ) . "' class='gform_delete' src='" . GFCommon::get_base_url() . "/images/delete.png' onclick='gformDeleteUploadedFile({$form_id}, {$id}, this);' onkeypress='gformDeleteUploadedFile({$form_id}, {$id}, this);' /> <strong>" . esc_html( rgar( $file, 'uploaded_filename' ) ) . '</strong>';
 		} else {
-			$file_info = GFFormsModel::get_temp_filename( $form_id, $input_name );
-
-			return ! $file_info && empty( $_FILES[ $input_name ]['name'] );
+			$markup = sprintf( '<span class="gfield_fileupload_filename">%s</span>', esc_html( rgar( $file, 'uploaded_filename' ) ) );
+			// TODO: get file size $markup .= sprintf( '<span class="gfield_fileupload_filesize">%s</span>', esc_html( rgar( $file, 'uploaded_filesize' ) ) );
+			$markup .= '<span class="gfield_fileupload_progress gfield_fileupload_progress_complete"><span class="gfield_fileupload_progressbar"><span class="gfield_fileupload_progressbar_progress" style="width: 100%;"></span></span><span class="gfield_fileupload_percent">100%</span></span>';
+			$markup .= sprintf(
+				'<button class="gform_delete_file gform-theme-button gform-theme-button--simple" onclick="gformDeleteUploadedFile( %d, %d, this );"><span class="dashicons dashicons-trash" aria-hidden="true"></span><span class="screen-reader-text">%s: %s</span></button>',
+				$form_id,
+				$id,
+				esc_html__( 'Delete this file', 'gravityforms' ),
+				esc_html( rgar( $file, 'uploaded_filename' ) )
+			);
 		}
+
+		/**
+		 * Modify the HTML for the uploaed file preview.
+		 *
+		 * @since Unknown
+		 *
+		 * @param string $markup  The file preview HTML.
+		 * @param array  $file    Details about the uploaded file.
+		 * @param int    $form_id The current Form ID.
+		 * @param int    $id      The current Field ID.
+		 */
+		$markup = apply_filters( 'gform_file_upload_markup', $markup, $file, $form_id, $id );
+
+		return sprintf( "<div id='%s' class='ginput_preview'>%s</div>", esc_attr( rgar( $file, 'id' ) ), $markup );
+	}
+
+	/**
+	 * Is the given value considered empty for this field.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param string|array $value The value to check.
+	 *
+	 * @return bool
+	 */
+	public function is_value_empty( $value ) {
+		return $this->is_value_submission_empty( $this->formId );
+	}
+
+	/**
+	 * Used to determine the required validation result.
+	 *
+	 * @since 1.9
+	 * @since 2.7.1  Updated to validate multifile uploads exist in the tmp folder.
+	 * @since 2.7.4  Added the gform_validate_required_file_exists filter.
+	 * @since 2.9.2  Updated to use GFFormsModel::get_tmp_upload_location().
+	 * @since 2.9.18 Updated to use $this->get_submission_files().
+	 *
+	 * @param int $form_id The ID of the form currently being processed.
+	 *
+	 * @return bool
+	 */
+	public function is_value_submission_empty( $form_id ) {
+		$files = $this->get_submission_files();
+		if ( $this->is_submission_files_empty( $files ) ) {
+			return true;
+		}
+
+		$input_name   = 'input_' . absint( $this->id );
+		$tmp_path     = rgar( GFFormsModel::get_tmp_upload_location( $form_id ), 'path' );
+		$file_removed = false;
+
+		foreach ( $files['existing'] as $key => $file ) {
+			if ( empty( $file['uploaded_filename'] ) ) {
+				GFCommon::log_debug( __METHOD__ . "(): Removing invalid file for {$input_name} key {$key}." );
+				unset( $files['existing'][ $key ] );
+				$file_removed = true;
+				continue;
+			}
+
+			if ( ! empty( $file['url'] ) ) {
+				if ( $this->is_valid_populated_file_url( $file ) ) {
+					continue;
+				}
+
+				GFCommon::log_debug( __METHOD__ . "(): Removing invalid file for {$input_name} key {$key}." );
+				unset( $files['existing'][ $key ] );
+				$file_removed = true;
+				continue;
+			}
+
+			/*
+			 * Allow add-ons and custom code to skip the file validation.
+			 *
+			 * @since 2.7.4
+			 *
+			 * @param bool   $skip_validation Whether to skip the file validation.
+			 * @param array  $file            The file information.
+			 * @param object $field           The current field object.
+			*/
+			if ( ! gf_apply_filters(
+				array( 'gform_validate_required_file_exists', $form_id, $this->id ),
+				isset( $file['temp_filename'] ),
+				$file,
+				$this
+			) ) {
+				// Skipping existing file populated by an add-on or custom code.
+				continue;
+			}
+
+			if ( empty( $file['temp_filename'] ) ) {
+				GFCommon::log_debug( __METHOD__ . "(): Removing invalid file for {$input_name} key {$key}." );
+				unset( $files['existing'][ $key ] );
+				$file_removed = true;
+				continue;
+			}
+
+			$tmp_file = $tmp_path . wp_basename( $file['temp_filename'] );
+			if ( ! file_exists( $tmp_file ) ) {
+				GFCommon::log_debug( __METHOD__ . "(): Removing invalid file for {$input_name} key {$key}." );
+				unset( $files['existing'][ $key ] );
+				$file_removed = true;
+			}
+		}
+
+		if ( $file_removed ) {
+			$files['existing'] = array_values( $files['existing'] );
+			$this->set_submission_files( $files );
+		}
+
+		return $this->is_submission_files_empty( $files );
 	}
 
 	/**
 	 * Remove invalid file from the uploaded files array.
 	 *
 	 * @since 2.7.4
+	 * @deprecated 2.9.18
+	 * @remove-in 4.0
 	 *
 	 * @param $input_name
 	 * @param $key
@@ -553,105 +857,159 @@ class GF_Field_FileUpload extends GF_Field {
 		unset( GFFormsModel::$uploaded_files[ $this->formId ][ $input_name ][ $key ] );
 	}
 
-	public function get_value_save_entry( $value, $form, $input_name, $lead_id, $lead ) {
+	/**
+	 * Returns the value to be saved to the entry.
+	 *
+	 * @since 1.9
+	 * @since 2.9.18 Updated to cache the entry and form in context properties.
+	 * @since 3.0.0 Renamed to get_value_save_input
+	 *
+	 * @param string $value          The value to be saved.
+	 * @param array  $form           The form currently being processed.
+	 * @param string $input_name     The input name used when accessing the $_POST.
+	 * @param int    $entry_id        The ID of the entry currently being saved.
+	 * @param array  $entry           The entry properties and values that have already been saved for the current submission.
+	 * @param string $repeater_index The repeater index if the field is inside a repeater.
+	 *
+	 * @return string The sanitized and formatted input value to be saved.
+	 */
+	public function get_value_save_input( $value, $form, $input_name, $entry_id, $entry, $repeater_index = '' ) {
+
+		$this->set_context_property( 'entry', $entry );
+		$this->set_context_property( 'form', $form );
+
 		if ( ! $this->multipleFiles ) {
-			return $this->get_single_file_value( $form['id'], $input_name );
+			return $this->to_string( $this->get_single_file_value( $form['id'], $input_name, $entry_id ) );
 		}
 
-		if ( $this->is_entry_detail() && empty( $lead ) ) {
+		if ( $this->is_entry_detail() && empty( $entry ) ) {
 			// Deleted files remain in the $value from $_POST so use the updated entry value.
-			$lead  = GFFormsModel::get_lead( $lead_id );
-			$value = rgar( $lead, strval( $this->id ) );
+			$entry  = GFFormsModel::get_lead( $entry_id );
+			$value = rgar( $entry, strval( $this->id ) );
 		}
 
-		return $this->get_multifile_value( $form['id'], $input_name, $value, $lead_id );
+		return $this->get_multifile_value( $form['id'], $input_name, $value, $entry_id );
 	}
 
 	/**
-	 * Get the value of the multifile input.
+	 * Gets the JSON encoded array of file URLs to be saved for the multifile enabled field.
 	 *
-	 * @since 2.6.8 Added $entry_id parameter.
+	 * @since 1.9
+	 * @since 2.6.8  Added $entry_id parameter.
+	 * @since 2.9.18 Updated to use $this->get_submission_files() and $this->filter_submission_files_pre_save().
 	 *
-	 * @param int    $form_id    ID of the form
-	 * @param string $input_name Name of the input (input_1)
-	 * @param string $value      Value of the input
-	 * @param int    $entry_id   ID of the entry
+	 * @param int    $form_id    ID of the form.
+	 * @param string $input_name Name of the input (e.g. input_1).
+	 * @param string $value      Value of the input.
+	 * @param int    $entry_id   ID of the entry.
 	 *
 	 * @return string
 	 */
 	public function get_multifile_value( $form_id, $input_name, $value, $entry_id = null ) {
 		global $_gf_uploaded_files;
 
-		GFCommon::log_debug( __METHOD__ . '(): Starting.' );
-
-		if ( isset( $_gf_uploaded_files[ $input_name ] ) ) {
+		if ( empty( $_gf_uploaded_files ) ) {
+			$_gf_uploaded_files = array();
+		} elseif ( isset( $_gf_uploaded_files[ $input_name ] ) ) {
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): Using $_gf_uploaded_files global for field #%d.', $this->id ) );
 			$value = $_gf_uploaded_files[ $input_name ];
-		} else {
-			if ( isset( GFFormsModel::$uploaded_files[ $form_id ][ $input_name ] ) ) {
-				$uploaded_temp_files = GFFormsModel::$uploaded_files[ $form_id ][ $input_name ];
-				$uploaded_files      = array();
-				foreach ( $uploaded_temp_files as $i => $file_info ) {
 
-					// File was previously uploaded to form; do not process temp.
-					if ( ! isset( $file_info['temp_filename'] ) ) {
-						$existing_file = $this->check_existing_entry( $entry_id, $input_name, $file_info );
+			if ( ! GFCommon::is_json( $value ) ) {
+				$value = $this->get_parsed_list_of_files( $value );
+			}
 
-						// If existing file is an array, we need to get the filename to avoid a fatal.
-						if ( rgar( $existing_file, 'uploaded_filename' ) ) {
-							$existing_file = $existing_file['uploaded_filename'];
-						}
+			return $this->sanitize_entry_value( $value, $form_id );
+		}
 
-						// We already have the file path in $existing_file, however it's good to check that the file path in the entry meta matches.
-						$uploaded_path = gform_get_meta( $entry_id, self::get_file_upload_path_meta_key_hash( $existing_file ) );
+		GFCommon::log_debug( __METHOD__ . sprintf( '(): Running for field #%d.', $this->id ) );
+		$files = $this->filter_submission_files_pre_save( $this->get_submission_files() );
 
-						if ( $uploaded_path ) {
-							$uploaded_files[ $i ] = $uploaded_path['url'] . $uploaded_path['file_name'];
-						} else {
-							// If there is no file path in the entry meta or we're not editing an existing entry, get the upload path.
-							$uploaded_path = GFFormsModel::get_file_upload_path( $form_id, $existing_file, false );
+		if ( $this->is_submission_files_empty( $files ) ) {
+			GFCommon::log_debug( __METHOD__ . '(): Aborting; no files.' );
 
-							if ( $uploaded_path ) {
-								$uploaded_files[ $i ] = $uploaded_path['url'];
-							}
-						}
-						continue;
-					}
+			return '';
+		}
 
-					$tmp_location  = GFFormsModel::get_tmp_upload_location( $form_id );
-					$temp_filepath = $tmp_location['path'] . wp_basename( $file_info['temp_filename'] );
-					if ( $file_info && file_exists( $temp_filepath ) ) {
-						$uploaded_files[ $i ] = $this->move_temp_file( $form_id, $file_info );
-					}
+		$uploaded_files = array();
+		$tmp_location   = GFFormsModel::get_tmp_upload_location( $form_id );
+
+		foreach ( $files['existing'] as $file ) {
+			if ( ! isset( $file['temp_filename'] ) ) {
+				// File was previously uploaded to form; do not process temp.
+				$existing_file = $this->check_existing_entry( $entry_id, $input_name, $file );
+
+				if ( ! is_string( $existing_file ) ) {
+					$uploaded_path    = GFFormsModel::get_file_upload_path( $form_id, $existing_file['uploaded_filename'], false );
+					$uploaded_files[] = $uploaded_path['url'];
+					continue;
 				}
 
-				if ( ! empty( $value ) ) { // merge with existing files (admin edit entry)
-					$value = json_decode( $value, true );
-					$value = array_merge( $value, $uploaded_files );
-					$value = json_encode( $value );
+				if ( isset( $file['url'] ) ) {
+					if ( $this->is_valid_populated_file_url( $file ) ) {
+						$uploaded_files[] = $existing_file;
+					}
+					continue;
+				}
+
+				// We already have the file path in $existing_file, however it's good to check that the file path in the entry meta matches.
+				$uploaded_path = gform_get_meta( $entry_id, self::get_file_upload_path_meta_key_hash( $existing_file ) );
+
+				if ( $uploaded_path ) {
+					$uploaded_files[] = $uploaded_path['url'] . $uploaded_path['file_name'];
 				} else {
-					$value = json_encode( $uploaded_files );
+					// If there is no file path in the entry meta or we're not editing an existing entry, get the upload path.
+					$uploaded_path = GFFormsModel::get_file_upload_path( $form_id, $existing_file, false );
+
+					if ( $uploaded_path ) {
+						$uploaded_files[] = $uploaded_path['url'];
+					}
 				}
 			} else {
-				GFCommon::log_debug( __METHOD__ . '(): No files uploaded. Exiting.' );
-
-				$value = '';
+				$temp_filepath = $tmp_location['path'] . wp_basename( $file['temp_filename'] );
+				if ( file_exists( $temp_filepath ) ) {
+					$uploaded_files[] = $this->move_temp_file( $form_id, $file );
+				}
 			}
-			$_gf_uploaded_files[ $input_name ] = $value;
 		}
 
-		if ( ! GFCommon::is_json( $value ) ) {
-			$value = $this->get_parsed_list_of_files( $value, $form_id, $input_name );
+		foreach ( $files['new'] as $file ) {
+			if ( $file['error'] !== UPLOAD_ERR_OK || ! is_uploaded_file( $file['tmp_name'] ) ) {
+				continue;
+			}
+
+			$uploaded_files[] = $this->upload_file( $form_id, $file );
 		}
 
-		$value_safe = $this->sanitize_entry_value( $value, $form_id );
+		if ( ! empty( $value ) ) {
+			// Merge with existing files (entry detail edit page or an add-on edit entry page).
+			if ( ! empty( $uploaded_files ) ) {
+				$array = $this->to_array( $value );
+				if ( empty( $array ) ) {
+					$value = $uploaded_files;
+				} else {
+					$value = array_unique( array_merge( $array, $uploaded_files ) );
+				}
+				$value = $this->to_string( $value );
+			}
+		} else {
+			if ( empty( $uploaded_files ) ) {
+				GFCommon::log_debug( __METHOD__ . '(): Aborting; no valid file, name, or URL to save.' );
 
-		return $value_safe;
+				return '';
+			}
+			$value = $this->to_string( $uploaded_files );
+		}
+
+		$_gf_uploaded_files[ $input_name ] = $value;
+
+		return $this->sanitize_entry_value( $value, $form_id );
 	}
 
 	/**
 	 * Check existing entry for the file to re-use its URL rather than recreating as the date may be different.
 	 *
 	 * @since 2.6.8
+	 * @since 2.9.18 Updated to support dynamically populated file URLs.
 	 *
 	 * @param int    $entry_id   The id of the current entry
 	 * @param string $input_name The name of the input field (input_1)
@@ -667,17 +1025,29 @@ class GF_Field_FileUpload extends GF_Field {
 		}
 
 		$input_id          = str_replace( 'input_', '', $input_name );
-		$existing_files    = GFCommon::maybe_decode_json( rgar( $existing_entry, $input_id ) );
+		$existing_files    = $this->to_array( rgar( $existing_entry, $input_id ) );
 		$existing_file_url = null;
 
-		if ( ! is_array( $existing_files ) ) {
+		if ( empty( $existing_files ) ) {
 			return $file_info;
 		}
 
 		foreach ( $existing_files as $existing_file ) {
-			$existing_file_pathinfo = pathinfo( $existing_file );
+			if ( isset( $file_info['url'] ) && $existing_file === $file_info['url'] ) {
+				$existing_file_url = $existing_file;
+				break;
+			}
 
-			if ( $file_info['uploaded_filename'] === $existing_file_pathinfo['basename'] ) {
+			if ( isset( $file_info['url'] ) ) {
+				continue;
+			}
+
+			$existing_file_name = $this->get_file_name_from_url( $existing_file );
+			if ( empty( $existing_file_name['sanitized'] ) ) {
+				continue;
+			}
+
+			if ( $file_info['uploaded_filename'] === $existing_file_name['sanitized'] ) {
 				$existing_file_url = $existing_file;
 				break;
 			}
@@ -695,6 +1065,7 @@ class GF_Field_FileUpload extends GF_Field {
 	 * any which still exist (i.e., haven't been deleted using the UI).
 	 *
 	 * @since 2.5.8
+	 * @since 2.9.18 Updated to use $this->get_submission_files() and deprecated the $form_id and $input_name params.
 	 *
 	 * @param string $value      A comma-delimited list of file paths.
 	 * @param int    $form_id    The form ID for this entry.
@@ -702,47 +1073,108 @@ class GF_Field_FileUpload extends GF_Field {
 	 *
 	 * @return false|string
 	 */
-	public function get_parsed_list_of_files( $value, $form_id, $input_name ) {
-		$parts    = explode( ',', $value );
-		$uploaded = rgars( GFFormsModel::$uploaded_files, $form_id . '/' . $input_name, array() );
-		$uploaded = wp_list_pluck( $uploaded, 'uploaded_filename' );
-		$parts    = array_filter( $parts, function ( $part ) use ( $uploaded ) {
-			$basename = wp_basename( trim( $part ) );
+	public function get_parsed_list_of_files( $value, $form_id = 0, $input_name = '' ) {
+		if ( func_num_args() === 1 ) {
+			$uploaded = rgar( $this->get_submission_files(), 'existing' );
+		} else {
+			_deprecated_argument( __METHOD__, '2.9.18', 'The $form_id and $input_name parameters are no longer required.' );
+			$uploaded = rgar( GFFormsModel::$uploaded_files, $form_id . '/' . $input_name, array() );
+		}
 
-			return in_array( $basename, $uploaded, true );
-		} );
+		$uploaded = wp_list_pluck( $uploaded, 'uploaded_filename' );
+
+		$parts = explode( ',', $value );
+		$parts = array_filter(
+			$parts,
+			function ( $part ) use ( $uploaded ) {
+				$basename = wp_basename( trim( $part ) );
+
+				return in_array( $basename, $uploaded, true );
+			}
+		);
 
 		return wp_json_encode( $parts );
 	}
 
-	public function get_single_file_value( $form_id, $input_name ) {
+	/**
+	 * Gets the value to be saved for the single file input.
+	 *
+	 * @since 1.9
+	 * @since 2.9.18 Updated to use $this->get_submission_files(), $this->filter_submission_files_pre_save(), & GFFormsModel::get_tmp_upload_location().
+	 *
+	 * @param int    $form_id    ID of the form.
+	 * @param string $input_name Name of the input (e.g. input_1).
+	 * @param int    $entry_id   ID of the entry.
+	 *
+	 * @return string
+	 */
+	public function get_single_file_value( $form_id, $input_name, $entry_id = null ) {
 		global $_gf_uploaded_files;
-
-		GFCommon::log_debug( __METHOD__ . '(): Starting.' );
 
 		if ( empty( $_gf_uploaded_files ) ) {
 			$_gf_uploaded_files = array();
+		} elseif ( isset( $_gf_uploaded_files[ $input_name ] ) ) {
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): Using $_gf_uploaded_files global for field #%d.', $this->id ) );
+
+			return $this->sanitize_entry_value( $_gf_uploaded_files[ $input_name ], $form_id );
 		}
 
-		if ( ! isset( $_gf_uploaded_files[ $input_name ] ) ) {
+		GFCommon::log_debug( __METHOD__ . sprintf( '(): Running for field #%d.', $this->id ) );
+		$files = $this->filter_submission_files_pre_save( $this->get_submission_files() );
 
-			//check if file has already been uploaded by previous step
-			$file_info     = GFFormsModel::get_temp_filename( $form_id, $input_name );
-			$temp_filename = rgar( $file_info, 'temp_filename', '' );
-			$temp_filepath = GFFormsModel::get_upload_path( $form_id ) . '/tmp/' . $temp_filename;
+		if ( $this->is_submission_files_empty( $files ) ) {
+			GFCommon::log_debug( __METHOD__ . '(): Aborting; no file.' );
 
-			if ( $file_info && file_exists( $temp_filepath ) ) {
-				GFCommon::log_debug( __METHOD__ . '(): File already uploaded to tmp folder, moving.' );
-				$_gf_uploaded_files[ $input_name ] = $this->move_temp_file( $form_id, $file_info );
-			} else if ( ! empty( $_FILES[ $input_name ]['name'] ) ) {
-				GFCommon::log_debug( __METHOD__ . '(): calling upload_file' );
-				$_gf_uploaded_files[ $input_name ] = $this->upload_file( $form_id, $_FILES[ $input_name ] );
-			} else {
-				GFCommon::log_debug( __METHOD__ . '(): No file uploaded. Exiting.' );
+			return '';
+		}
+
+		$count = ( count( $files['existing'] ) + count( $files['new'] ) );
+		if ( $count > 1 ) {
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): %d files uploaded, only saving one.', $count ) );
+		}
+
+		$value = '';
+
+		if ( ! empty( $files['new'][0] ) ) {
+			if ( rgar( $files['new'][0], 'error' ) === UPLOAD_ERR_OK ) {
+				GFCommon::log_debug( __METHOD__ . '(): Calling upload_file.' );
+				$value = $this->upload_file( $form_id, $files['new'][0] );
 			}
+		} elseif ( ! empty( $files['existing'][0]['url'] ) ) {
+			$existing_file = $this->check_existing_entry( $entry_id, $input_name, $files['existing'][0] );
+
+			if ( is_string( $existing_file ) && $this->is_valid_populated_file_url( $files['existing'][0] ) ) {
+				GFCommon::log_debug( __METHOD__ . '(): Reusing existing file URL.' );
+				$value = $existing_file;
+			}
+		} elseif ( ! empty( $files['existing'][0]['temp_filename'] ) ) {
+			$tmp_path = rgar( GFFormsModel::get_tmp_upload_location( $form_id ), 'path' );
+			if ( empty( $tmp_path ) ) {
+				GFCommon::log_debug( __METHOD__ . '(): Aborting; GFFormsModel::get_tmp_upload_location() returned an empty path.' );
+
+				return '';
+			}
+
+			$temp_filename = $files['existing'][0]['temp_filename'];
+			if ( ! file_exists( $tmp_path . $temp_filename ) ) {
+				GFCommon::log_debug( __METHOD__ . sprintf( '(): Temporary file %s does not exist.', $tmp_path . $temp_filename ) );
+
+				return '';
+			}
+
+			GFCommon::log_debug( __METHOD__ . '(): File already uploaded to tmp folder, moving.' );
+			$value = $this->move_temp_file( $form_id, $files['existing'][0] );
 		}
 
-		return rgget( $input_name, $_gf_uploaded_files );
+		if ( empty( $value ) ) {
+			GFCommon::log_debug( __METHOD__ . '(): Aborting; no valid file, name, or URL to save.' );
+
+			return '';
+		}
+
+		$_gf_uploaded_files[ $input_name ] = $value;
+
+		return $this->sanitize_entry_value( $value, $form_id );
 	}
 
 	public function upload_file( $form_id, $file ) {
@@ -756,52 +1188,55 @@ class GF_Field_FileUpload extends GF_Field {
 		GFCommon::log_debug( __METHOD__ . '(): Upload folder is ' . print_r( $target, true ) );
 
 		if ( move_uploaded_file( $file['tmp_name'], $target['path'] ) ) {
-			GFCommon::log_debug( __METHOD__ . '(): File ' . $file['tmp_name'] . ' successfully moved to ' . $target['path'] . '.' );
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): File (tmp_name: %s) successfully moved to %s.', $file['tmp_name'], $target['path'] ) );
 			$this->set_permissions( $target['path'] );
 
 			return $target['url'];
 		} else {
-			GFCommon::log_debug( __METHOD__ . '(): FAILED (Temporary file ' . $file['tmp_name'] . ' could not be copied to ' . $target['path'] . '.)' );
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): Aborting; move_uploaded_file() failed for file (tmp_name: %s) to %s.', $file['tmp_name'], $target['path'] ) );
 
 			return 'FAILED (Temporary file could not be copied.)';
 		}
 	}
 
 	public function get_value_entry_list( $value, $entry, $field_id, $columns, $form ) {
-		if ( $this->multipleFiles ) {
-			if ( is_array( $value ) ) {
-				$uploaded_files_arr = $value;
-			} else {
-				$uploaded_files_arr = json_decode( $value, true );
-				if ( ! is_array( $uploaded_files_arr ) ) {
-					$uploaded_files_arr = array( $value );
-				}
-			}
-
-
-			$file_count         = count( $uploaded_files_arr );
-			if ( $file_count > 1 ) {
-				$value = empty( $uploaded_files_arr ) ? '' : sprintf( esc_html__( '%d files', 'gravityforms' ), count( $uploaded_files_arr ) );
-				return $value;
-			} elseif ( $file_count == 1 ) {
-				$value = current( $uploaded_files_arr );
-			} elseif ( $file_count == 0 ) {
-				return;
-			}
+		$files = $this->to_array( $value );
+		if ( empty( $files ) ) {
+			return '';
 		}
 
-		$file_path = $value;
+		$count = count( $files );
+		if ( $count > 1 ) {
+			return sprintf( esc_html__( '%d files', 'gravityforms' ), $count );
+		}
+
+		$file_path = rgar( $files, 0 );
 		if ( ! empty( $file_path ) ) {
 			//displaying thumbnail (if file is an image) or an icon based on the extension
 			$thumb     = GFEntryList::get_icon_url( $file_path );
-			$file_path = $this->get_download_url( $file_path );
+			$file_path = $this->get_download_url( $file_path, false, rgar( $entry, 'id' ) );
 			$file_path = esc_attr( $file_path );
-			$value     = "<a href='$file_path' target='_blank' aria-label='" . esc_attr__( 'View the image', 'gravityforms' ) . "'><img src='$thumb' alt='' /></a>";
+			$value = "<a href='$file_path' target='_blank'><span class='screen-reader-text'>" . esc_html__( 'View the image', 'gravityforms' ) . "</span><span class='screen-reader-text'>" . esc_html__( '(opens in a new tab)', 'gravityforms' ) . "</span><img src='$thumb' alt='' /></a>";
 		}
+
 		return $value;
 	}
 
-	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
+	/**
+	 * Format the entry value for display on the entry detail page and for the {all_fields} merge tag.
+	 *
+	 * @since 2.9.18 Updated to use $this->get_file_name_from_url().
+	 * @since 2.9.29 Changed the second parameter $currency (string) to $entry (array).
+	 *
+	 * @param string|array $value    The field value.
+	 * @param array        $entry    The entry.
+	 * @param bool|false   $use_text When processing choice based fields should the choice text be returned instead of the value.
+	 * @param string       $format   The format requested for the location the merge is being used. Possible values: html, text, or url.
+	 * @param string       $media    The location where the value will be displayed. Possible values: screen or email.
+	 *
+	 * @return string|false
+	 */
+	public function get_value_entry_detail( $value, $entry = array(), $use_text = false, $format = 'html', $media = 'screen' ) {
 		if ( empty( $value ) ) {
 			return '';
 		}
@@ -809,23 +1244,21 @@ class GF_Field_FileUpload extends GF_Field {
 		$output     = '';
 		$output_arr = array();
 
-		$files = json_decode( $value, true );
-		if ( ! is_array( $files ) ) {
-			$files = array( $value );
-		}
+		$files = $this->to_array( $value );
 
-		$force_download = in_array( 'download', $this->get_modifiers() );
+		if ( ! empty( $files ) ) {
+			$force_download = in_array( 'download', $this->get_modifiers() );
+			$entry_id       = rgar( $entry, 'id' );
 
-		if ( is_array( $files ) ) {
 			foreach ( $files as $file_path ) {
 				if ( is_array( $file_path ) ) {
 					$basename  = rgar( $file_path, 'uploaded_name' );
 					$file_path = rgar( $file_path, 'tmp_url' );
 				} else {
-					$basename = wp_basename( $file_path );
+					$basename = rgar( $this->get_file_name_from_url( $file_path ), 'sanitized', $file_path );
 				}
 
-				$file_path = $this->get_download_url( $file_path, $force_download );
+				$file_path = $this->get_download_url( $file_path, $force_download, $entry_id );
 
 				/**
 				 * Allow for override of SSL replacement
@@ -842,7 +1275,7 @@ class GF_Field_FileUpload extends GF_Field {
 				 */
 				$field_ssl = apply_filters( 'gform_secure_file_download_is_https', true, $file_path, $this );
 
-				if ( GFCommon::is_ssl() && strpos( $file_path, 'http:' ) !== false && $field_ssl === true ) {
+				if ( $field_ssl === true && GFCommon::is_ssl() && str_starts_with( $file_path, 'http:' ) ) {
 					$file_path = str_replace( 'http:', 'https:', $file_path );
 				}
 
@@ -855,13 +1288,13 @@ class GF_Field_FileUpload extends GF_Field {
 				 * @param GF_Field_FileUpload $field     The field object for further context.
 				 */
 				$file_path    = str_replace( ' ', '%20', apply_filters( 'gform_fileupload_entry_value_file_path', $file_path, $this ) );
-				$output_arr[] = $format == 'text' ? $file_path : sprintf( "<li><a href='%s' target='_blank' aria-label='%s'>%s</a></li>", esc_attr( $file_path ), esc_attr__( 'Click to view', 'gravityforms' ), $basename );
+				$output_arr[] = $format === 'text' ? $file_path : sprintf( "<li><a href='%s' target='_blank' aria-label='%s'>%s</a></li>", esc_attr( $file_path ), esc_attr__( 'Click to view', 'gravityforms' ), esc_html( $basename ) );
 
 			}
 			$output = join( PHP_EOL, $output_arr );
 		}
 
-		return empty( $output ) || $format == 'text' ? $output : sprintf( '<ul>%s</ul>', $output );
+		return empty( $output ) || $format === 'text' ? $output : sprintf( '<ul>%s</ul>', $output );
 	}
 
 	/**
@@ -893,17 +1326,15 @@ class GF_Field_FileUpload extends GF_Field {
 		}
 
 		$force_download = in_array( 'download', $this->get_modifiers() );
+		$entry_id       = rgar( $entry, 'id' );
 
-		$files = json_decode( $raw_value, true );
-		if ( ! is_array( $files ) ) {
-			$files = array( $raw_value );
-		}
+		$files = $this->to_array( $raw_value );
 
 		foreach ( $files as &$file ) {
 			if ( is_array( $file ) ) {
 				$file = rgar( $file, 'tmp_url' );
 			}
-			$file = str_replace( ' ', '%20', $this->get_download_url( $file, $force_download ) );
+			$file = str_replace( ' ', '%20', $this->get_download_url( $file, $force_download, $entry_id ) );
 			if ( $esc_html ) {
 				$file = esc_html( $file );
 			}
@@ -928,13 +1359,40 @@ class GF_Field_FileUpload extends GF_Field {
 
 		GFCommon::log_debug( __METHOD__ . '(): Moving temp file from: ' . $source );
 
+		$temp_file_extension     = strtolower( pathinfo( $tempfile_info['temp_filename'], PATHINFO_EXTENSION ) );
+		$uploaded_file_extension = strtolower( pathinfo( $tempfile_info['uploaded_filename'], PATHINFO_EXTENSION ) );
+
+		if ( empty( $temp_file_extension ) || empty( $uploaded_file_extension ) || $temp_file_extension !== $uploaded_file_extension ) {
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): Aborting; temporary file extension (%s) does not match uploaded file extension (%s).', $temp_file_extension, $uploaded_file_extension ) );
+			@unlink( $source ); // nosemgrep audit.php.lang.security.file.read-write-delete
+
+			return '';
+		}
+
+		if ( ! $this->is_check_type_and_ext_disabled() ) {
+			$check_result = GFCommon::check_type_and_ext(
+				array(
+					'tmp_name' => $source,
+					'name'     => $tempfile_info['uploaded_filename'],
+				),
+				$tempfile_info['uploaded_filename']
+			);
+
+			if ( is_wp_error( $check_result ) ) {
+				GFCommon::log_debug( sprintf( '%s(): Aborting; %s; %s', __METHOD__, $check_result->get_error_code(), $check_result->get_error_message() ) );
+				@unlink( $source ); // nosemgrep audit.php.lang.security.file.read-write-delete
+
+				return '';
+			}
+		}
+
 		if ( rename( $source, $target['path'] ) ) {
-			GFCommon::log_debug( __METHOD__ . '(): File successfully moved.' );
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): File (temp_filename: %s) successfully moved to %s.', $tempfile_info['temp_filename'], $target['path'] ) );
 			$this->set_permissions( $target['path'] );
 
 			return $target['url'];
 		} else {
-			GFCommon::log_debug( __METHOD__ . '(): FAILED (Temporary file could not be moved.)' );
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): Aborting; rename() failed for file (temp_filename: %s) to %s.', $tempfile_info['temp_filename'], $target['path'] ) );
 
 			return 'FAILED (Temporary file could not be moved.)';
 		}
@@ -946,6 +1404,12 @@ class GF_Field_FileUpload extends GF_Field {
 		GFFormsModel::set_permissions( $path );
 	}
 
+	/**
+	 * Forces settings into expected values while saving the form object.
+	 *
+	 * @since 1.9.7
+	 * @since 2.10.0 Added storageType property.
+	 */
 	public function sanitize_settings() {
 		parent::sanitize_settings();
 		if ( $this->maxFileSize ) {
@@ -959,6 +1423,8 @@ class GF_Field_FileUpload extends GF_Field {
 		$this->multipleFiles = (bool) $this->multipleFiles;
 
 		$this->allowedExtensions = sanitize_text_field( $this->allowedExtensions );
+
+		$this->storageType = empty( $this->storageType ) || $this->storageType === 'json' ? $this->storageType : 'json';
 	}
 
 	public function get_value_export( $entry, $input_id = '', $use_text = false, $is_csv = false ) {
@@ -966,32 +1432,23 @@ class GF_Field_FileUpload extends GF_Field {
 			$input_id = $this->id;
 		}
 
-		$value = rgar( $entry, $input_id );
-		if ( $this->multipleFiles && ! empty( $value ) ) {
-			$decoded = json_decode( $value, true );
-			if ( ! is_array( $decoded ) ) {
-				return $value;
-			}
-
-			return implode( ' , ', $decoded );
-		}
-
-		return $value;
+		return implode( ' , ', $this->to_array( rgar( $entry, $input_id ) ) );
 	}
 
 	/**
 	 * Returns the download URL for a file. The URL is not escaped for output.
 	 *
-	 * @since  2.0
-	 * @access public
+	 * @since 2.0
+	 * @since 2.9.29 Added the $entry_id param.
 	 *
 	 * @param string $file           The complete file URL.
 	 * @param bool   $force_download If the download should be forced. Defaults to false.
+	 * @param int    $entry_id       The entry ID. Optional.
 	 *
 	 * @return string
 	 */
-	public function get_download_url( $file, $force_download = false ) {
-		$download_url = $file;
+	public function get_download_url( $file, $force_download = false, $entry_id = 0 ) {
+		$download_url = str_replace( ' ', '', $file );
 
 		$secure_download_location = true;
 
@@ -1030,18 +1487,25 @@ class GF_Field_FileUpload extends GF_Field {
 
 		// Only hide the real URL if the location of the file is in the upload root for the form.
 		// The upload root is calculated using the WP Salts so if the WP Salts have changed then file can't be located during the download request.
-		if ( strpos( $file, $upload_root ) !== false ) {
-			$file = str_replace( $upload_root, '', $file );
+		if ( str_contains( $file, $upload_root ) ) {
+			$file         = str_replace( $upload_root, '', $file );
+			$file         = str_replace( ' ', '', $file );
 			$download_url = site_url( 'index.php' );
-			$args = array(
+			$args         = array(
 				'gf-download' => urlencode( $file ),
-				'form-id' => $this->formId,
-				'field-id' => $this->id,
-				'hash' => GFCommon::generate_download_hash( $this->formId, $this->id, $file ),
+				'form-id'     => $this->formId,
+				'field-id'    => $this->id,
+				'entry-id'    => absint( $entry_id ),
+				'hash'        => GFCommon::generate_download_hash( $this->formId, $this->id, $file, $entry_id ),
 			);
 			if ( $force_download ) {
 				$args['dl'] = 1;
 			}
+
+			if ( empty( $args['entry-id'] ) ) {
+				unset( $args['entry-id'] );
+			}
+
 			$download_url = add_query_arg( $args, $download_url );
 		}
 
@@ -1069,50 +1533,52 @@ class GF_Field_FileUpload extends GF_Field {
 	 * @return array The array that contains the file URLs and their corresponding physical paths.
 	 */
 	public function get_extra_entry_metadata( $form, $entry ) {
-
-		$value = $entry[ $this->id ];
-
+		$value = rgar( $entry, absint( $this->id ) );
 		if ( empty( $value ) ) {
 			return array();
 		}
 
-		$file_values = array();
+		$file_values = $this->to_array( $value );
 		$extra_meta  = array();
-		if ( $this->multipleFiles && ! empty( $value ) ) {
-			$file_values = json_decode( $value, true );
-		} else {
-			$file_values = array( $value );
-		}
+
+		$form_id  = absint( rgar( $form, 'id' ) );
+		$entry_id = absint( rgar( $entry, 'id' ) );
+
+		// Use the filtered path to get the actual file path.
+		$upload_root_info = self::get_upload_root_info( $form_id );
+
+		// Default upload path to fall back to.
+		$default_upload_root_info = self::get_default_upload_roots( $form_id );
+
+		$root_url  = rgar( $upload_root_info, 'url', rgar( $default_upload_root_info, 'url' ) );
+		$root_path = rgar( $upload_root_info, 'path', rgar( $default_upload_root_info, 'path' ) );
 
 		foreach ( $file_values as $file_value ) {
-
 			if ( is_array( $file_value ) ) {
 				continue;
 			}
 
+			// Skip URLs that don't start with the root URL (e.g those populated on form display, Dropbox etc.)
+			if ( ! str_starts_with( $file_value, $root_url ) ) {
+				continue;
+			}
+
 			// If file already has a stored path, skip it.
-			$stored_path_info = gform_get_meta( rgar( $entry, 'id' ), self::get_file_upload_path_meta_key_hash( $file_value ) );
+			$stored_path_info = gform_get_meta( $entry_id, self::get_file_upload_path_meta_key_hash( $file_value ) );
 			if ( ! empty( $stored_path_info ) ) {
 				continue;
-			};
+			}
 
-			// Use the filtered path to get the actual file path.
-			$upload_root_info = self::get_upload_root_info( rgar( $form, 'id' ) );
-
-			// Default upload path to fall back to.
-			$default_upload_root_info = self::get_default_upload_roots( rgar( $form, 'id' ) );
-
-			$url            = rgar( $upload_root_info, 'url', $default_upload_root_info['url'] );
-			$path           = rgar( $upload_root_info, 'path', $default_upload_root_info['path'] );
 			$file_path_info = array(
-				'path'      => $path,
-				'url'       => $url,
+				'path'      => $root_path,
+				'url'       => $root_url,
 				'file_name' => wp_basename( $file_value ),
 			);
 
 			$file_url_hash                = self::get_file_upload_path_meta_key_hash( $file_value );
 			$extra_meta[ $file_url_hash ] = $file_path_info;
 		}
+
 		return $extra_meta;
 	}
 
@@ -1128,6 +1594,655 @@ class GF_Field_FileUpload extends GF_Field {
 	public static function get_file_upload_path_meta_key_hash( $file_url ) {
 		return substr( hash( 'sha512', $file_url ), 0, 254 );
 	}
+
+	/**
+	 * Returns an array of files found in the submission for the current field.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @return array[] {
+	 *      @type array[] $new {
+	 *          File details from $_FILES.
+	 *
+	 *          @type string $name      The original name of the file on the client machine.
+	 *          @type string $type      The MIME type of the file provided by the browser.
+	 *          @type int    $size      The size of the file in bytes.
+	 *          @type string $tmp_name  The temporary filename of the file in which the uploaded file was stored on the server.
+	 *          @type int    $error     The PHP error code for the file upload. See https://www.php.net/manual/en/filesystem.constants.php#constant.upload-err-cant-write
+	 *          @type string $full_path The full path as submitted by the browser. Only populated with PHP 8.1+.
+	 *      }
+	 *      @type array[] $existing {
+	 *          File details from GFFormsModel::$uploaded_files.
+	 *
+	 *          @type string      $uploaded_filename The name of the uploaded file, an existing file, or the name parsed from the populated URL.
+	 *          @type string|null $temp_filename     The temporary name of the file. Only present if the file has been saved to the form tmp folder.
+	 *          @type string|null $url               The file URL. Only present if the file has been dynamically populated on initial form display.
+	 *      }
+	 * }
+	 */
+	public function get_submission_files() {
+		$files = $this->get_context_property( 'submission_files' );
+		if ( is_array( $files ) ) {
+			return $files;
+		}
+
+		$input_name = 'input_' . absint( $this->id );
+		$value      = rgars( GFFormsModel::$uploaded_files, absint( $this->formId ) . '/' . $input_name, array() );
+
+		// Backwards compatibility; for integrations that set the input value to a file/basename.
+		if ( is_string( $value ) ) {
+			$value = array( array( 'uploaded_filename' => sanitize_file_name( $value ) ) );
+		}
+
+		$files = array(
+			'existing' => $value,
+			'new'      => array(),
+		);
+
+		if ( rgpost( "is_submit_{$this->formId}" ) !== '1' ) {
+			return $files;
+		}
+
+		$files_input = rgar( $_FILES, $input_name ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! isset( $files_input['error'] ) ) {
+			$this->set_submission_files( $files );
+
+			return $files;
+		}
+
+		if ( is_array( $files_input['error'] ) ) {
+			foreach ( $files_input['error'] as $key => $error ) {
+				if ( $error === UPLOAD_ERR_NO_FILE ) {
+					continue;
+				}
+
+				$files['new'][] = array(
+					'name'      => rgars( $files_input, "name/{$key}" ),
+					'type'      => rgars( $files_input, "type/{$key}" ),
+					'size'      => rgars( $files_input, "size/{$key}", 0 ),
+					'tmp_name'  => rgars( $files_input, "tmp_name/{$key}" ),
+					'error'     => $error,
+					'full_path' => rgars( $files_input, "full_path/{$key}" ), // PHP 8.1+.
+				);
+			}
+		} elseif ( $files_input['error'] !== UPLOAD_ERR_NO_FILE ) {
+			$files['new'][] = $files_input;
+		}
+
+		$this->set_submission_files( $files );
+
+		return $files;
+	}
+
+	/**
+	 * Caches the submission files in a context property and the existing files in GFFormsModel::$uploaded_files.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param null|array[] $files Null to flush the submission_files property or the array to be cached. See get_submission_files() for format.
+	 *
+	 * @return void
+	 */
+	public function set_submission_files( $files ) {
+		$this->set_context_property( 'submission_files', $files );
+		if ( is_null( $files ) ) {
+			return;
+		}
+
+		$form_id    = absint( $this->formId );
+		$input_name = 'input_' . absint( $this->id );
+
+		if ( empty( $files['existing'] ) ) {
+			unset( GFFormsModel::$uploaded_files[ $form_id ][ $input_name ] );
+		} else {
+			GFFormsModel::$uploaded_files[ $form_id ] ??= array();
+
+			GFFormsModel::$uploaded_files[ $form_id ][ $input_name ] = $files['existing'];
+		}
+	}
+
+	/**
+	 * Allows filtering (e.g., renaming) of the submission files before they are saved to the form uploads folder and entry.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param array[] $files See get_submission_files() for format.
+	 *
+	 * @return array[]
+	 */
+	private function filter_submission_files_pre_save( $files ) {
+		$field = $this;
+		$entry = $this->get_context_property( 'entry' );
+		$form  = $this->get_context_property( 'form' );
+
+		/**
+		 * Allows filtering (e.g., renaming) of the submission files before they are saved to the form uploads folder and entry.
+		 *
+		 * @since 2.9.18
+		 *
+		 * @param array[]             $files See GF_Field_FileUpload::get_submission_files() for format.
+		 * @param GF_Field_FileUpload $field The field the files are for.
+		 * @param array               $entry The entry currently being saved. Only fields located before the current field will be included.
+		 * @param array               $form  The form currently being processed.
+		 */
+		$filtered = apply_filters( 'gform_submission_files_pre_save_field_value', $files, $field, $entry, $form );
+
+		if ( $filtered !== $files ) {
+			$this->set_submission_files( $filtered );
+		}
+
+		return $filtered;
+	}
+
+	/**
+	 * Determines if the submission files array is empty.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param null|array[] $files See get_submission_files().
+	 *
+	 * @return bool
+	 */
+	public function is_submission_files_empty( $files = null ) {
+		if ( is_null( $files ) ) {
+			$files = $this->get_submission_files();
+		}
+
+		return empty( $files['existing'] ) && empty( $files['new'] );
+	}
+
+	/**
+	 * Normalizes the submission files array, including the uploaded_filename for new files, so it can be used to generate the preview markup.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @return array[]
+	 */
+	public function get_submission_files_for_preview() {
+		$files = $this->get_submission_files();
+		if ( $this->is_submission_files_empty( $files ) ) {
+			return array();
+		}
+
+		$normalized = $files['existing'];
+
+		foreach ( $files['new'] as $file ) {
+			$normalized[] = $this->get_tmp_file_details( $file );
+		}
+
+		$normalized = array_values(
+			array_filter(
+				$normalized,
+				fn( $file ) => ! empty( $file['uploaded_filename'] )
+			)
+		);
+
+		if ( $this->multipleFiles || empty( $normalized ) ) {
+			return $normalized;
+		}
+
+		return array( $normalized[0] );
+	}
+
+	/**
+	 * Returns the file details from the existing submission files.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param string $name The original file name.
+	 *
+	 * @return array
+	 */
+	public function get_tmp_file_details_from_submission_files( $name ) {
+		$files = $this->get_submission_files();
+		if ( empty( $files['existing'] ) ) {
+			return array();
+		}
+
+		$sanitized_name = sanitize_file_name( $name );
+
+		foreach ( $files['existing'] as $existing_file ) {
+			if ( rgar( $existing_file, 'uploaded_filename' ) === $sanitized_name || rgar( $existing_file, 'uploaded_filename' ) === $name ) {
+				return $existing_file;
+			}
+		}
+
+		return array();
+	}
+
+	/**
+	 * Returns the file parsed from $_FILES by $this->get_submission_files() that matches the given name.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param string $name The original file name.
+	 *
+	 * @return array
+	 */
+	public function get_new_file_from_submission_files( $name ) {
+		$files = $this->get_submission_files();
+		if ( empty( $files['new'] ) ) {
+			return array();
+		}
+
+		foreach ( $files['new'] as $new_file ) {
+			if ( rgar( $new_file, 'name' ) === $name ) {
+				return $new_file;
+			}
+		}
+
+		return array();
+	}
+
+	/**
+	 * Returns the temporary file details.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param array|string $file_or_name A file from $this->get_submission_files() or $_FILES, or a filename.
+	 *
+	 * @return array {
+	 *      @type string $uploaded_filename Sanitized version of the original file name.
+	 *      @type string $temp_filename     The unique name to be used when the file is stored in the form tmp folder.
+	 *      @type string $id                The UUID to be used with the ID attributes of the file preview and error markup.
+	 * }
+	 */
+	public function get_tmp_file_details( $file_or_name ) {
+		if ( is_string( $file_or_name ) ) {
+			$details = $this->get_tmp_file_details_from_submission_files( $file_or_name );
+			if ( ! empty( $details ) ) {
+				return $details;
+			}
+
+			$file = $this->get_new_file_from_submission_files( $file_or_name );
+			if ( empty( $file ) ) {
+				return array();
+			}
+		} else {
+			$file = $file_or_name;
+		}
+
+		// Abort early if we've already generated a temp filename or if a saved filename has been populated.
+		if ( isset( $file['details'] ) || isset( $file['temp_filename'] ) || isset( $file['uploaded_filename'] ) ) {
+			return empty( $file['details'] ) ? $file : $file['details'];
+		}
+
+		$uploaded_filename = rgar( $file, 'error' ) === UPLOAD_ERR_OK ? sanitize_file_name( $file['name'] ) : '';
+		if ( empty( $uploaded_filename ) ) {
+			return array();
+		}
+
+		$extension = pathinfo( $uploaded_filename, PATHINFO_EXTENSION );
+		$uuid      = GFFormsModel::get_uuid();
+
+		// This is the approach used by upload.php. The only difference is the use of GFFormsModel::get_uuid() instead of a UUID provided by plupload.js.
+		$tmp_file_name = GFFormsModel::get_form_unique_id( absint( $this->formId ) ) . '_input_' . absint( $this->id ) . '_' . GFCommon::random_str( 16 ) . '_' . $uuid . '.' . $extension;
+
+		$tmp_file = array(
+			'uploaded_filename' => $uploaded_filename,
+			'temp_filename'     => sanitize_file_name( $tmp_file_name ),
+			'id'                => $uuid,
+		);
+
+		GFCommon::log_debug( __METHOD__ . '(): Details to use for new temporary file are: ' . json_encode( $tmp_file ) );
+
+		return $tmp_file;
+	}
+
+	/**
+	 * Returns an array of temporary files uploaded to the form tmp folder for the current submission.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @return array[]
+	 */
+	public function upload_submission_tmp_files() {
+		$id = absint( $this->id );
+
+		if ( $this->failed_validation ) {
+			GFCommon::log_debug( __METHOD__ . "(): Skipping field because it failed validation: {$this->label}({$id} - {$this->type})." );
+
+			return array();
+		}
+
+		$files = $this->get_submission_files();
+		if ( empty( $files['new'] ) ) {
+			GFCommon::log_debug( __METHOD__ . "(): Skipping field because there are no files to process: {$this->label}({$id} - {$this->type})." );
+
+			return array();
+		}
+
+		GFCommon::log_debug( __METHOD__ . "(): Processing files for field: {$this->label}({$id} - {$this->type})." );
+
+		$allowed_extensions = $this->get_clean_allowed_extensions();
+		$uploaded_files     = array();
+
+		foreach ( $files['new'] as $key => $file ) {
+			if ( $file['error'] !== UPLOAD_ERR_OK ) {
+				GFCommon::log_debug( __METHOD__ . '(): Skipping file because there was an error: ' . json_encode( $file ) );
+				continue;
+			}
+
+			if ( ! is_uploaded_file( $file['tmp_name'] ) ) {
+				GFCommon::log_debug( __METHOD__ . '(): Skipping file because it was not uploaded via HTTP POST: ' . json_encode( $file ) );
+				continue;
+			}
+
+			$file_name = $file['name'];
+			if ( GFCommon::file_name_has_disallowed_extension( $file_name ) ) {
+				GFCommon::log_debug( __METHOD__ . '(): Skipping file because the file extension is disallowed: ' . $file_name );
+				continue;
+			}
+
+			if ( ! empty( $allowed_extensions ) && ! GFCommon::match_file_extension( $file_name, $allowed_extensions ) ) {
+				GFCommon::log_debug( __METHOD__ . '(): Skipping file because the file extension is not allowed: ' . $file_name );
+				continue;
+			}
+
+			if ( empty( $allowed_extensions ) && ! $this->is_check_type_and_ext_disabled() ) {
+				$valid_file_name = GFCommon::check_type_and_ext( $file, $file_name );
+
+				if ( is_wp_error( $valid_file_name ) ) {
+					GFCommon::log_debug( __METHOD__ . '(): Skipping file because the uploaded file type is not allowed: ' . $file_name );
+					continue;
+				}
+			}
+
+			$tmp_file = $this->upload_tmp_file( $file );
+			if ( empty( $tmp_file ) ) {
+				continue;
+			}
+
+			$uploaded_files[]    = $tmp_file;
+			$files['existing'][] = $tmp_file;
+			unset( $files['new'][ $key ] );
+
+			if ( ! $this->multipleFiles ) {
+				break;
+			}
+		}
+
+		if ( ! empty( $uploaded_files ) ) {
+			if ( ! empty( $files['new'] ) ) {
+				$files['new'] = array_values( $files['new'] );
+				GFCommon::log_debug( __METHOD__ . '(): The following files were not uploaded: ' . json_encode( $files['new'] ) );
+			}
+			$this->set_submission_files( $files );
+		}
+
+		GFCommon::log_debug( __METHOD__ . "(): Processing completed for field: {$this->label}({$id} - {$this->type})." );
+
+		return $uploaded_files;
+	}
+
+	/**
+	 * Moves the file from the PHP tmp folder to the form tmp folder.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param array $file The file details parsed by $this->get_submission_files() from $_FILES.
+	 *
+	 * @return array The temporary file details.
+	 */
+	public function upload_tmp_file( $file ) {
+		$details = $this->get_tmp_file_details( $file );
+		if ( empty( $details ) ) {
+			return array();
+		}
+
+		$form_id  = absint( $this->formId );
+		$location = GFFormsModel::get_tmp_upload_location( $form_id );
+		if ( empty( $location['path'] ) ) {
+			GFCommon::log_debug( __METHOD__ . '(): Aborting; GFFormsModel::get_tmp_upload_location() returned an empty path.' );
+
+			return array();
+		}
+
+		$tmp_file_path = $location['path'] . $details['temp_filename'];
+		if ( file_exists( $tmp_file_path ) ) {
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): Aborting; File (tmp_name: %s) already moved to %s.', $file['tmp_name'], $location['path'] ) );
+
+			return $details;
+		}
+
+		if ( ! move_uploaded_file( $file['tmp_name'], $tmp_file_path ) ) {
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): Aborting; move_uploaded_file() failed for file (tmp_name: %s) to %s.', $file['tmp_name'], $location['path'] ) );
+
+			return array();
+		}
+
+		GFCommon::log_debug( __METHOD__ . sprintf( '(): File (tmp_name: %s) successfully moved to %s.', $file['tmp_name'], $location['path'] ) );
+
+		$this->set_permissions( $tmp_file_path );
+
+		return $details;
+	}
+
+	/**
+	 * Gets the input value without hydrating public dynamic population values as uploaded files.
+	 *
+	 * @since 2.9.18
+	 * @since 2.10.3 Removed support for dynamic population.
+	 *
+	 * @param string $standard_name            The input name used when accessing the $_POST.
+	 * @param string $custom_name              The dynamic population parameter name.
+	 * @param array  $field_values             The dynamic population parameter names with their corresponding values to be populated.
+	 * @param bool   $get_from_post_global_var Whether to get the value from the $_POST array as opposed to $field_values.
+	 *
+	 * @return array|string|null
+	 */
+	public function get_input_value_submission( $standard_name, $custom_name = '', $field_values = array(), $get_from_post_global_var = true ) {
+		return parent::get_input_value_submission( $standard_name, $custom_name, $field_values, $get_from_post_global_var );
+	}
+
+	/**
+	 * Triggers population of GFFormsModel::$uploaded_files with any file URLs found in the given value.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param string|array $value A single file URL, a comma-seperated list of file URLs, a JSON encoded array of file URLs, or an array of file URLs.
+	 *
+	 * @return void
+	 */
+	public function populate_file_urls_from_value( $value ) {
+		if ( GFCommon::is_empty_array( $value ) ) {
+			return;
+		}
+
+		if ( is_array( $value ) ) {
+			$urls = $value;
+		} else {
+			$urls = json_decode( $value, true );
+			if ( ! is_array( $urls ) ) {
+				$urls = explode( ',', $value );
+			}
+		}
+
+		foreach ( $urls as $url ) {
+			if ( ! is_string( $url ) ) {
+				continue;
+			}
+
+			$details = $this->populate_file_url( trim( $url ) );
+			if ( ! empty( $details ) && ! $this->multipleFiles ) {
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Populates the submission_files context property & GFFormsModel::$uploaded_files with the details array for the given file URL.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param string $url The file URL.
+	 *
+	 * @return false|array {
+	 *      @type string $uploaded_filename Sanitized version of the file/basename parsed from the URL.
+	 *      @type string $url               Sanitized version of the file URL.
+	 * }
+	 */
+	public function populate_file_url( $url ) {
+		$name = $this->get_file_name_from_url( $url );
+		if ( empty( $name['sanitized'] ) ) {
+			return false;
+		}
+
+		$files         = $this->get_submission_files();
+		$sanitized_url = esc_url_raw( $url );
+
+		$validation = GFCommon::validate_file_url( $url, array(
+			'allowed_extensions' => $this->get_clean_allowed_extensions(),
+			'file_name'          => $name['sanitized'],
+		) );
+
+		if ( is_wp_error( $validation ) ) {
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): URL rejected (%s): %s', $validation->get_error_code(), $sanitized_url ) );
+			return false;
+		}
+
+		$details = null;
+
+		// If this is not empty, it was populated before the gform_field_value filter (e.g., old version of UR).
+		if ( ! empty( $files['existing'] ) ) {
+			foreach ( $files['existing'] as &$existing_file ) {
+				$existing_name = rgar( $existing_file, 'uploaded_filename' );
+				if ( $existing_name !== $name['sanitized'] && $existing_name !== $name['original'] ) {
+					continue;
+				}
+
+				// Abort early if the URL has already been populated.
+				if ( isset( $existing_file['url'] ) && $existing_file['url'] === $sanitized_url ) {
+					return $existing_file;
+				}
+
+				$existing_file['uploaded_filename'] = $name['sanitized'];
+				if ( isset( $existing_file['tmp_filename'] ) ) {
+					$details = $existing_file;
+					break;
+				}
+
+				$existing_file['url'] = $sanitized_url;
+
+				if ( empty( $existing_file['id'] ) ) {
+					$existing_file['id'] = GFFormsModel::get_uuid();
+				}
+
+				$details = $existing_file;
+				break;
+			}
+		}
+
+		if ( empty( $details ) ) {
+			$details             = array(
+				'uploaded_filename' => $name['sanitized'],
+				'url'               => $sanitized_url,
+				'id'                => GFFormsModel::get_uuid(),
+			);
+			$details['hash']     = $this->get_populated_file_url_hash( $details );
+			$files['existing'][] = $details;
+		}
+
+		$this->set_submission_files( $files );
+
+		return $details;
+	}
+
+	/**
+	 * Parses the file name/basename from the given URL.
+	 *
+	 * @since 2.9.18
+	 *
+	 * @param string $url The file URL.
+	 *
+	 * @return false|array {
+	 *      @type string $original  The original file name.
+	 *      @type string $sanitized The sanitized file name.
+	 * }
+	 */
+	public function get_file_name_from_url( $url ) {
+		if ( empty( $url ) || ! GFCommon::is_valid_url( $url ) ) {
+			return false;
+		}
+
+		$components   = parse_url( $url );
+		$query_string = rgars( $components, 'query' );
+
+		// If the URL is one of our secure URLs, get the name from the appropriate query arg, with a fallback to the path.
+		if ( $query_string ) {
+			parse_str( $query_string, $query_args );
+			$file_name = rgar( $query_args, 'gf-download' ) ?? rgar( $query_args, 'gf-signature' );
+			$file_name = $file_name ? urldecode( $file_name ) : rgar( $components, 'path' );
+		} else {
+			$file_name = rgar( $components, 'path' );
+		}
+
+		$file_name = wp_basename( $file_name );
+
+		return array(
+			'original'  => $file_name,
+			'sanitized' => sanitize_file_name( $file_name ),
+		);
+	}
+
+
+	/**
+	 * Actions to be performed after the field has been converted to an object.
+	 *
+	 * @since 2.10.0
+	 */
+	public function post_convert_field() {
+		parent::post_convert_field();
+
+		if ( $this->storageType === 'json' ) {
+			return;
+		}
+
+		if ( $this->multipleFiles ) {
+			$this->storageType = 'json';
+		}
+	}
+
+	/**
+	 * Converts an array to a string.
+	 *
+	 * @since 2.10.0
+	 *
+	 * @param string|array $value The file URL or array of URLs being saved.
+	 *
+	 * @return string
+	 */
+	public function to_string( $value ) {
+		if ( $this->storageType === 'json' || $this->multipleFiles || is_array( $value ) ) {
+			return empty( $value ) ? '' : json_encode( is_array( $value ) ? array_values( $value ) : array( $value ) );
+		} else {
+			return $value;
+		}
+	}
+
+	/**
+	 * Converts a string to an array.
+	 *
+	 * @since 2.10.0
+	 *
+	 * @param string|array $value The file URL or JSON encoded array of file URLs to convert.
+	 *
+	 * @return array
+	 */
+	public function to_array( $value ) {
+		if ( empty( $value ) ) {
+			return array();
+		} elseif ( is_array( $value ) ) {
+			return $value;
+		} elseif ( $this->storageType === 'json' || $this->multipleFiles || GFCommon::is_json( $value ) ) {
+			$array = json_decode( $value, true );
+
+			return is_array( $array ) ? $array : array();
+		} else {
+			return array( $value );
+		}
+	}
+
 }
 
 GF_Fields::register( new GF_Field_FileUpload() );

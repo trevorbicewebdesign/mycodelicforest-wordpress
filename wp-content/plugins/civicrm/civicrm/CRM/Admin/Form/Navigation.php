@@ -31,19 +31,26 @@ class CRM_Admin_Form_Navigation extends CRM_Admin_Form {
    */
   public $submitOnce = TRUE;
 
+  public function getDefaultEntity(): string {
+    return 'Navigation';
+  }
+
   /**
    * Build the form object.
    */
   public function buildQuickForm() {
     parent::buildQuickForm();
 
-    if ($this->_action & CRM_Core_Action::DELETE) {
-      return;
-    }
-
     if (isset($this->_id)) {
       $params = ['id' => $this->_id];
-      CRM_Core_BAO_Navigation::retrieve($params, $this->_defaults);
+      $navDao = CRM_Core_BAO_Navigation::retrieve($params, $this->_defaults);
+    }
+
+    if ($this->_action & CRM_Core_Action::DELETE) {
+      $childCount = CRM_Core_BAO_Navigation::getChildCount($this->_id);
+      $this->assign('label', $navDao->label ?: $navDao->url);
+      $this->assign('childCount', $childCount);
+      return;
     }
 
     $this->applyFilter('__ALL__', 'trim');
@@ -71,7 +78,7 @@ class CRM_Admin_Form_Navigation extends CRM_Admin_Form {
     );
 
     $operators = ['AND' => ts('AND'), 'OR' => ts('OR')];
-    $this->add('select', 'permission_operator', NULL, $operators);
+    $this->add('select', 'permission_operator', ts('Permission Operator'), $operators);
 
     //make separator location configurable
     $separator = CRM_Core_SelectValues::navigationMenuSeparator();
@@ -86,14 +93,10 @@ class CRM_Admin_Form_Navigation extends CRM_Admin_Form {
       $parentMenu = CRM_Core_BAO_Navigation::getNavigationList();
 
       if (isset($this->_id)) {
-        unset($parentMenu[$this->_id]);
+        CRM_Utils_Array::removeRecursive($parentMenu, ['id' => $this->_id]);
       }
 
-      // also unset home.
-      $homeMenuId = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_Navigation', 'Home', 'id', 'name');
-      unset($parentMenu[$homeMenuId]);
-
-      $this->add('select', 'parent_id', ts('Parent'), ['' => ts('Top level')] + $parentMenu, FALSE, ['class' => 'crm-select2 huge']);
+      $this->add('select2', 'parent_id', ts('Parent'), $parentMenu, FALSE, ['class' => 'huge', 'placeholder' => ts('Top level')]);
     }
   }
 
@@ -102,6 +105,11 @@ class CRM_Admin_Form_Navigation extends CRM_Admin_Form {
    */
   public function setDefaultValues() {
     $defaults = parent::setDefaultValues();
+
+    if ($this->_action & CRM_Core_Action::DELETE) {
+      return $defaults;
+    }
+
     if (isset($this->_id)) {
       //Take parent id in object variable to calculate the menu
       //weight if menu parent id changed
@@ -127,6 +135,17 @@ class CRM_Admin_Form_Navigation extends CRM_Admin_Form {
   public function postProcess() {
     // get the submitted form values.
     $params = $this->controller->exportValues($this->_name);
+
+    if ($this->_action & CRM_Core_Action::DELETE) {
+      CRM_Core_BAO_Navigation::deleteRecords([['id' => $this->_id]]);
+      $childCount = $this->getTemplateVars('childCount');
+      $msg = ts('One menu item permanently deleted.', [
+        'plural' => '%count menu items permanently deleted.',
+        'count' => $childCount + 1,
+      ]);
+      CRM_Core_Session::setStatus($msg, ts('Deleted'), 'success');
+      return;
+    }
 
     if (isset($this->_id)) {
       $params['id'] = $this->_id;

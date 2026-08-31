@@ -249,12 +249,15 @@ class CRM_Contact_BAO_GroupContact extends CRM_Contact_DAO_GroupContact implemen
    *   Contact id.
    *
    * @param bool $visibility
-   *
-   *
+   * @param string $textFormat
+   *   Preferred encoding for the title
+   *   - 'plain' for plain text. (Ex: "Bill & Ted's >est Adventure")
+   *   - 'html' for HTML entities. (Ex: "Bill &amp; Ted's &gt;est Adventure")
+   *   - 'html-ish' for partial HTML entities (Ex: "Bill & Ted's &gt;est Adventure") [DEPRECATED]
    * @return array
    *   this array has key-> group id and value group title
    */
-  public static function getGroupList($contactId = 0, $visibility = FALSE) {
+  public static function getGroupList($contactId = 0, $visibility = FALSE, string $textFormat = 'html-ish') {
     $select = 'SELECT civicrm_group.id, civicrm_group.title ';
     $from = ' FROM civicrm_group ';
     $where = " WHERE civicrm_group.is_active = 1 ";
@@ -276,7 +279,7 @@ class CRM_Contact_BAO_GroupContact extends CRM_Contact_DAO_GroupContact implemen
 
     $values = [];
     while ($group->fetch()) {
-      $values[$group->id] = $group->title;
+      $values[$group->id] = CRM_Utils_API_HTMLInputCoder::singleton()->transcode('title', $group->title, $textFormat);
     }
 
     return $values;
@@ -401,7 +404,7 @@ class CRM_Contact_BAO_GroupContact extends CRM_Contact_DAO_GroupContact implemen
         $id = $dao->civicrm_group_contact_id;
         $values[$id]['id'] = $id;
         $values[$id]['group_id'] = $dao->group_id;
-        $values[$id]['title'] = ($public && !empty($group->group_public_title) ? $group->group_public_title : $dao->group_title);
+        $values[$id]['title'] = ($public && !empty($dao->group_public_title)) ? $dao->group_public_title : $dao->group_title;
         $values[$id]['visibility'] = $dao->visibility;
         $values[$id]['is_hidden'] = $dao->is_hidden;
         $values[$id]['saved_search_id'] = $dao->saved_search_id;
@@ -664,8 +667,15 @@ AND       group_id IN ( $groupIDString )
     $groupID,
     $method = 'Admin',
     $status = 'Added',
-    $tracking = NULL
+    $tracking = ''
   ) {
+
+    // security/core#152 Escape inputs
+    $contactIDs = array_map('intval', $contactIDs);
+    $groupID = (int) $groupID;
+    $method = CRM_Core_DAO::escapeString($method);
+    $status = CRM_Core_DAO::escapeString($status);
+    $tracking = CRM_Core_DAO::escapeString($tracking);
 
     $numContactsAdded = 0;
     $numContactsNotAdded = 0;
@@ -736,27 +746,25 @@ AND    contact_id IN ( $contactStr )
   }
 
   /**
-   * Get options for a given field.
-   * @see CRM_Core_DAO::buildOptions
+   * Legacy option getter
+   *
+   * @deprecated
    *
    * @param string $fieldName
    * @param string $context
-   * @see CRM_Core_DAO::buildOptionsContext
    * @param array $props
-   *   whatever is known about this dao object.
    *
    * @return array|bool
    */
   public static function buildOptions($fieldName, $context = NULL, $props = []) {
-    $options = CRM_Core_PseudoConstant::get(__CLASS__, $fieldName, [], $context);
-
-    // Sort group list by hierarchy
-    // TODO: This will only work when api.entity is "group_contact". What about others?
+    // Legacy formatting used by some forms
+    // TODO: Do any forms still use this? If not, remove this function.
     if (($fieldName == 'group' || $fieldName == 'group_id') && ($context == 'search' || $context == 'create')) {
-      $options = CRM_Contact_BAO_Group::getGroupsHierarchy($options, NULL, '- ', TRUE);
+      $options = CRM_Core_PseudoConstant::get(__CLASS__, $fieldName, [], $context);
+      return CRM_Contact_BAO_Group::getGroupsHierarchy($options, NULL, '- ', TRUE);
     }
 
-    return $options;
+    return parent::buildOptions($fieldName, $context, $props);
   }
 
 }

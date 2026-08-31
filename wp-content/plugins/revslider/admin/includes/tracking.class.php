@@ -9,6 +9,13 @@
 if(!defined('ABSPATH')) exit();
 
 
+/**
+ * Opt-in usage statistics.
+ *
+ * Only active when the global 'tracking' setting is 'enabled'. Counts how the plugin is used (slider
+ * count, sources, navigation types, export runs) and attaches that summary, together with an anonymous
+ * install id, to the requests that already go to the ThemePunch servers - it never sends on its own.
+ */
 class RevSliderTracking extends RevSliderFunctions {
 	
 	public $tracking_enabled;
@@ -17,42 +24,51 @@ class RevSliderTracking extends RevSliderFunctions {
 
 	public function __construct(){
 		$gs = $this->get_global_settings();
-
+		
 		$this->tracking_status = $this->get_val($gs, 'tracking', '1999-01-01');
 		$this->tracking_enabled = ($this->tracking_status === 'enabled') ? true : false;
-
+		
 		if($this->is_enabled() === true){
-			add_filter('revslider_doing_html_export', array($this, 'count_html_export'), 10, 1);
-			add_filter('revslider_exportSlider_export_data', array($this, 'count_regular_exports'), 10, 1);
-			add_filter('revslider_retrieve_version_info_addition', array($this, 'add_additional_data'), 10, 1);
-			add_filter('revslider_deactivate_plugin_info_addition', array($this, 'add_additional_data'), 10, 1);
-			add_filter('revslider_activate_plugin_info_addition', array($this, 'add_additional_data'), 10, 1);
-			add_action('revslider-retrieve_version_info', array($this, '_run'), 10);
+			add_filter('revslider_doing_html_export', [$this, 'count_html_export'], 10, 1);
+			add_filter('revslider_exportSlider_export_data', [$this, 'count_regular_exports'], 10, 1);
+			add_filter('revslider_retrieve_version_info_addition', [$this, 'add_additional_data'], 10, 1);
+			add_filter('revslider_deactivate_plugin_info_addition', [$this, 'add_additional_data'], 10, 1);
+			add_filter('revslider_activate_plugin_info_addition', [$this, 'add_additional_data'], 10, 1);
+			add_action('revslider-retrieve_version_info', [$this, '_run'], 10);
 		}
 	}
 
+	/** @return bool */
 	public function is_enabled(){
 		return $this->tracking_enabled;
 	}
 
+	/** @return string 'enabled', 'disabled', or the date the user was last asked */
 	public function get_status(){
 		return $this->tracking_status;
 	}
 
+	/** @return array the collected counters */
 	public function get_tracking_data(){
-		$data = get_option('rs-tracking-data', array());
+		$data = $this->get_options(['tracking', 'tracking'], []);
 
-		return (!is_array($data)) ? array() : $data;
+		return (!is_array($data)) ? [] : $data;
 	}
 
+	/** @return mixed */
 	public function update_tracking_data($data){
-		return update_option('rs-tracking-data', $data);
+		return $this->update_option(['tracking', 'tracking'], $data);
 	}
 
+	/** @return mixed */
 	public function delete_tracking_data(){
-		return delete_option('rs-tracking-data');
+		return $this->delete_option(['tracking', 'tracking']);
 	}
 
+	/**
+	 * filter on the export routine: bumps the export counter and passes the data through untouched
+	 * @return mixed $_data
+	 */
 	public function count_regular_exports($_data){
 		$data = $this->get_tracking_data();
 		if(!isset($data['regular_exports'])) $data['regular_exports'] = 0;
@@ -63,6 +79,10 @@ class RevSliderTracking extends RevSliderFunctions {
 		return $_data;
 	}
 
+	/**
+	 * same for HTML exports
+	 * @return mixed $slider
+	 */
 	public function count_html_export($slider){
 		$data = $this->get_tracking_data();
 		if(!isset($data['html_exports'])) $data['html_exports'] = 0;
@@ -73,11 +93,15 @@ class RevSliderTracking extends RevSliderFunctions {
 		return $slider;
 	}
 
+	/**
+	 * anonymous install id, generated once and stored in the options - carries no site data
+	 * @return string 12 characters
+	 */
 	public function get_unique_identifier(){
-		$uid = get_option('revslider-uid');
+		$uid = $this->get_options(['system', 'uid'], '');
 		if(strlen($uid) !== 12){
 			$uid = substr(md5(mt_rand()), 0, 12);
-			update_option('revslider-uid', $uid);
+			$this->update_option(['system', 'uid'], $uid);
 		}
 
 		return $uid;
@@ -85,6 +109,9 @@ class RevSliderTracking extends RevSliderFunctions {
 
 	/**
 	 * this will run the tracking functions and prepare it to be send to the themepunch servers
+	 * collects the current counters into the options; returns early when tracking is switched off
+	 * @param bool|string $deactivation false while deactivating, so the payload reports the licence as gone
+	 * @return bool|void false when tracking is disabled
 	 **/
 	public function _run($deactivation = 'default'){
 		if(!$this->is_enabled()) return false;
@@ -93,28 +120,28 @@ class RevSliderTracking extends RevSliderFunctions {
 		$sl			= new RevSliderSlide();
 		$data		= $this->get_tracking_data();
 		$pages		= $this->get_all_shortcode_pages();
-		$shortcodes = array();
+		$shortcodes = [];
 
 		if(!empty($pages)) $shortcodes = $this->get_shortcode_from_page($pages);
 
 		if(!isset($data['html_exports'])) $data['html_exports'] = 0;
-		$data['environment'] = array(
+		$data['environment'] = [
 			'version'		=> RS_REVISION,
-			'engine'		=> $this->get_val($SR_GLOBALS, 'front_version', 6)
-		);
-		$data['licensed']	= (!in_array($deactivation, array(true, false), true)) ? $this->_truefalse(get_option('revslider-valid', 'true')) : $deactivation; //if $deactivation === false, we are in deactivation process, so set already to false
-		$data['slider']		= array(
+			'engine'		=> 7
+		];
+		$data['licensed']	= (!in_array($deactivation, [true, false], true)) ? $this->_truefalse($this->get_options(['system', 'valid'], 'false')) : $deactivation; //if $deactivation === false, we are in deactivation process, so set already to false
+		$data['slider']		= [
 			'number'		=> 0,
 			'premium'		=> 0,
 			'import'		=> 0,
-			'sources'		=> array(
+			'sources'		=> [
 				'custom'		=> 0,
 				'post'			=> 0,
 				'woocommerce'	=> 0,
 				'social'		=> 0,
-				'social_detail'	=> array(),
-			),
-			'navigations'	=> array(
+				'social_detail'	=> [],
+			],
+			'navigations'	=> [
 				'arrows'	=> 0,
 				'bullets'	=> 0,
 				'tabs'		=> 0,
@@ -123,31 +150,31 @@ class RevSliderTracking extends RevSliderFunctions {
 				'mouse'		=> 0,
 				'swipe'		=> 0,
 				'keyboard'	=> 0
-			),
+			],
 			'parallax'		=> 0,
 			'scrolleffects'	=> 0,
 			'timeline_scroll'=> 0,
 			'color_skins'	=> 0,
-		);
-		$data['slides']		= array(
+		];
+		$data['slides']		= [
 			'number'		=> 0,
-			'background'	=> array(),
+			'background'	=> [],
 			'kenburns'		=> 0
-		);
-		$data['layer']		= array(
+		];
+		$data['layer']		= [
 			'number'	=> 0,
-			'types'		=> array(),
-			'actions'	=> array(),
-			'frames'	=> array(),
-			'presets'	=> array(),
+			'types'		=> [],
+			'actions'	=> [],
+			'frames'	=> [],
+			'presets'	=> [],
 			'presets_modified'	=> 0,
 			'loop'		=> 0,
 			'library'	=> 0,
-			'in'		=> array(
+			'in'		=> [
 				'column'	=> 0,
 				'group'		=> 0
-			),
-		);
+			],
+		];
 
 		if(!empty($shortcodes)){
 			foreach($shortcodes as $alias){
@@ -155,7 +182,7 @@ class RevSliderTracking extends RevSliderFunctions {
 				$sldr = new RevSliderSlider();
 				$sldr->init_by_alias($alias);
 				if($sldr->inited === false) continue;
-				$premium	= $sldr->get_param('pakps', false);
+				$premium	= $sldr->get_param('prem', false);
 				if($data['licensed'] === false && $premium === true) continue; // do not fetch premium data on unlicensed slider
 
 				$data['slider']['number']++;
@@ -181,7 +208,7 @@ class RevSliderTracking extends RevSliderFunctions {
 				$type			= $sldr->get_param('sourcetype', 'gallery');				
 				$import			= $sldr->get_param('imported', false);
 				if($post){
-					if(in_array($type, array('woocommerce', 'woo'))){
+					if(in_array($type, ['woocommerce', 'woo'])){
 						$wc		= true;
 						$post	= false;
 					}
@@ -201,18 +228,18 @@ class RevSliderTracking extends RevSliderFunctions {
 
 				if($sldr->get_param('type', 'standard') !== 'hero'){
 					foreach($data['slider']['navigations'] as $n => $count){
-						if($sldr->get_param(array('nav', $n, 'set'), false) === true) $data['slider']['navigations'][$n]++;
+						if($sldr->get_param(['nav', $n, 'set'], false) === true) $data['slider']['navigations'][$n]++;
 					}
 
-					if($sldr->get_param(array('nav', 'swipe', 'set'), false) === false){
-						if($sldr->get_param(array('nav', 'swipe', 'setOnDesktop'), false) === true) $data['slider']['navigations']['swipe']++;
+					if($sldr->get_param(['nav', 'swipe', 'set'], false) === false){
+						if($sldr->get_param(['nav', 'swipe', 'setOnDesktop'], false) === true) $data['slider']['navigations']['swipe']++;
 					}
 				}
 
-				if($sldr->get_param(array('parallax', 'set'), false) === true || $sldr->get_param(array('parallax', 'setDDD'), false) === true) $data['slider']['parallax']++;
-				if($sldr->get_param(array('scrolleffects', 'set'), false) === true)		$data['slider']['scrolleffects']++;
-				if($sldr->get_param(array('scrolltimeline', 'set'), false) === true)	$data['slider']['timeline_scroll']++;
-				if($sldr->get_param(array('skins', 'colors'), array()) > 0)				$data['slider']['color_skins']++;
+				if($sldr->get_param(['parallax', 'set'], false) === true || $sldr->get_param(['parallax', 'setDDD'], false) === true) $data['slider']['parallax']++;
+				if($sldr->get_param(['scrolleffects', 'set'], false) === true)		$data['slider']['scrolleffects']++;
+				if($sldr->get_param(['scrolltimeline', 'set'], false) === true)	$data['slider']['timeline_scroll']++;
+				if($sldr->get_param(['skins', 'colors'], []) > 0)				$data['slider']['color_skins']++;
 
 				if(!empty($slides)){
 					$data['slides']['number'] += count($slides);
@@ -222,17 +249,17 @@ class RevSliderTracking extends RevSliderFunctions {
 						//'html5'
 						//'streamtwitter', 'streamtwitterboth', 'streaminstagram', 'streaminstagramboth'
 						//'streamyoutube', 'streamyoutubeboth', 'youtube', 'streamvimeo', 'streamvimeoboth', 'vimeo'
-						$bg_type = $slide->get_param(array('bg', 'type'), 'transparent');
+						$bg_type = $slide->get_param(['bg', 'type'], 'transparent');
 						if(!isset($data['slides']['background'][$bg_type])) $data['slides']['background'][$bg_type] = 0;
 
 						$data['slides']['background'][$bg_type]++;
 						
-						if($slide->get_param(array('panzoom', 'set'), false) === true) $data['slides']['kenburns']++;
+						if($slide->get_param(['panzoom', 'set'], false) === true) $data['slides']['kenburns']++;
 
 						$layers = $slide->get_layers();
 						
 						if(!empty($layers) && is_array($layers)){
-							$list = array('group' => array(), 'column' => array());
+							$list = ['group' => [], 'column' => []];
 
 							foreach($layers as $key => $layer){
 								$layer_type = $this->get_val($layer, 'type', 'text');
@@ -240,11 +267,11 @@ class RevSliderTracking extends RevSliderFunctions {
 								if($layer_type === 'group')		$list['group'][] = (string)$this->get_val($layer, 'uid');
 							}
 							foreach($layers as $key => $layer){
-								if(in_array($key, array('top', 'middle', 'bottom'))) continue;
+								if(in_array($key, ['top', 'middle', 'bottom'])) continue;
 								$layer_type = $this->get_val($layer, 'type', 'text');
-								if(in_array($layer_type, array('column', 'row'))) continue;
+								if(in_array($layer_type, ['column', 'row'])) continue;
 								
-								$puid = (string)$this->get_val($layer, array('group', 'puid'), '-1');
+								$puid = (string)$this->get_val($layer, ['group', 'puid'], '-1');
 								if($puid !== '-1'){
 									if(in_array($puid, $list['column'])) $data['layer']['in']['column']++;
 									if(in_array($puid, $list['group'])) $data['layer']['in']['group']++;
@@ -255,7 +282,7 @@ class RevSliderTracking extends RevSliderFunctions {
 								if(!isset($data['layer']['types'][$layer_type])) $data['layer']['types'][$layer_type] = 0;
 								$data['layer']['types'][$layer_type]++;
 
-								$actions	 = $this->get_val($layer, array('actions', 'action'), array());
+								$actions	 = $this->get_val($layer, ['actions', 'action'], []);
 								
 								if(!empty($actions)){
 									foreach($actions as $num => $action){
@@ -267,16 +294,16 @@ class RevSliderTracking extends RevSliderFunctions {
 									}
 								}
 								
-								$frames	 = $this->get_val($layer, array('timeline', 'frames'), false);
+								$frames	 = $this->get_val($layer, ['timeline', 'frames'], false);
 								if(!empty($frames)){
 									foreach($frames as $fk => $frame){
 										if(!isset($data['layer']['frames'][$fk])) $data['layer']['frames'][$fk] = 0;
 										$data['layer']['frames'][$fk]++;
-										$preset = $this->get_val($frame, array('timeline', 'preset'));
-										$presetBased = $this->get_val($frame, array('timeline', 'presetBased'), 1);
+										$preset = $this->get_val($frame, ['timeline', 'preset']);
+										$presetBased = $this->get_val($frame, ['timeline', 'presetBased'], 1);
 										if(!empty($preset) && $presetBased < 1) $data['layer']['presets_modified']++;
 
-										if(in_array($fk, array('frame_0', 'frame_1', 'frame_999'))){
+										if(in_array($fk, ['frame_0', 'frame_1', 'frame_999'])){
 											if(!empty($preset)){
 												if(!isset($data['layer']['presets'][$preset])) $data['layer']['presets'][$preset] = 0;
 
@@ -287,8 +314,8 @@ class RevSliderTracking extends RevSliderFunctions {
 									}
 								}
 
-								if($this->get_val($layer, array('layerLibSrc'), false) !== false) $data['layer']['library']++;
-								if($this->get_val($layer, array('timeline', 'loop', 'use'), false) === true) $data['layer']['loop']++;
+								if($this->get_val($layer, ['layerLibSrc'], false) !== false) $data['layer']['library']++;
+								if($this->get_val($layer, ['timeline', 'loop', 'use'], false) === true) $data['layer']['loop']++;
 							}
 							$layers = null;
 							unset($layers);
@@ -307,11 +334,12 @@ class RevSliderTracking extends RevSliderFunctions {
 
 	/**
 	 * will return all posts/pages that include the [rev_slider] shortcode
+	 * @return array post ids
 	 **/
 	public function get_all_shortcode_pages(){
 		global $wpdb;
 		
-		$ids = array();
+		$ids = [];
 		$pages = $wpdb->get_results("SELECT ID FROM ".$wpdb->posts." WHERE `post_content` LIKE '%[rev_slider %' AND post_status IN ('publish', 'private', 'draft')");
 		if(!empty($pages)){
 			foreach($pages as $page){
@@ -322,14 +350,18 @@ class RevSliderTracking extends RevSliderFunctions {
 		return $ids;
 	}
 
+	/**
+	 * filter on the licence/update requests: appends the tracking payload to what is already being sent
+	 * @return array
+	 */
 	public function add_additional_data($addition){
 		if(!$this->is_enabled()) return $addition;
 
 		$data = $this->get_tracking_data();
-		$addition['tracking'] = array(
+		$addition['tracking'] = [
 			'uid'	=> $this->get_unique_identifier(),
 			'data'	=> $data,
-		);
+		];
 
 		return $addition;
 	}

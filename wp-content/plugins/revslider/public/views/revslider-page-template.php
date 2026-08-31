@@ -7,12 +7,11 @@
  
 if(!defined('ABSPATH')) exit();
 $page_bg = get_post_meta(get_the_ID(), 'rs_page_bg_color', true);
-$page_bg = ($page_bg == '' || $page_bg == 'transparent') ? 'transparent' : $page_bg.";";
+$page_bg = (in_array($page_bg, ['', 'transparent'])) ? 'transparent;' : $page_bg.";";
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?> class="no-js">
 	<head>
-	
 		<meta charset="<?php bloginfo('charset'); ?>">
 		<meta name="viewport" content="width=device-width">
 		<link rel="profile" href="http://gmpg.org/xfn/11">
@@ -21,7 +20,7 @@ $page_bg = ($page_bg == '' || $page_bg == 'transparent') ? 'transparent' : $page
 		<style>
 			body:before { display:none !important}
 			body:after { display:none !important}
-			body, body.page-template-revslider-page-template, body.page-template---publicviewsrevslider-page-template-php { background:<?php echo $page_bg;?>}
+			body, body.page-template-revslider-page-template, body.page-template---publicviewsrevslider-page-template-php { background:<?php echo esc_attr($page_bg);?>}
 		</style>
 	</head>
 
@@ -29,18 +28,15 @@ $page_bg = ($page_bg == '' || $page_bg == 'transparent') ? 'transparent' : $page
 		<?php do_action('rs_page_template_pre_content'); ?>
 		<div>
 			<?php
-			// Start the loop.
-			while(have_posts()) : the_post();
-
-				// Include the page content template.
-				if(!isset($SR_GLOBALS['preview_mode']) || $SR_GLOBALS['preview_mode'] === false){
-					the_content();
-				}else{
-					echo do_shortcode(get_the_content());
-				}
-
-			// End the loop.
-			endwhile;
+				// Start the loop.
+				while(have_posts()) : the_post();
+					if(!isset($SR_GLOBALS['preview_mode']) || $SR_GLOBALS['preview_mode'] === false){
+						the_content();
+					}else{
+						echo do_shortcode(get_the_content());
+					}
+					// End the loop.
+				endwhile;
 			?>
 		</div>
 		<?php do_action('rs_page_template_post_content'); ?>

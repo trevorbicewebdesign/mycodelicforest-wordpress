@@ -126,8 +126,7 @@ return [
             [
               'type' => 'field',
               'key' => 'activity_type_id:label',
-              'dataType' => 'Integer',
-              'label' => ts('Type'),
+              'label' => 'Type',
               'sortable' => TRUE,
               'icons' => [
                 [
@@ -139,31 +138,27 @@ return [
             [
               'type' => 'field',
               'key' => 'subject',
-              'dataType' => 'String',
-              'label' => ts('Subject'),
+              'label' => 'Subject',
               'sortable' => TRUE,
               'editable' => TRUE,
             ],
             [
               'type' => 'field',
               'key' => 'activity_date_time',
-              'dataType' => 'Timestamp',
-              'label' => ts('Date'),
+              'label' => 'Date',
               'sortable' => TRUE,
             ],
             [
               'type' => 'field',
               'key' => 'status_id:label',
-              'dataType' => 'Integer',
-              'label' => ts('Status'),
+              'label' => 'Status',
               'sortable' => TRUE,
               'editable' => TRUE,
             ],
             [
               'type' => 'field',
               'key' => 'GROUP_CONCAT_Activity_ActivityContact_Contact_02_sort_name',
-              'dataType' => 'String',
-              'label' => ts('Added By'),
+              'label' => 'Added By',
               'sortable' => TRUE,
               'link' => [
                 'entity' => 'Contact',
@@ -175,8 +170,7 @@ return [
             [
               'type' => 'field',
               'key' => 'GROUP_CONCAT_Activity_ActivityContact_Contact_03_sort_name',
-              'dataType' => 'String',
-              'label' => ts('With'),
+              'label' => 'With',
               'sortable' => TRUE,
               'link' => [
                 'entity' => 'Contact',
@@ -188,8 +182,7 @@ return [
             [
               'type' => 'field',
               'key' => 'GROUP_CONCAT_Activity_ActivityContact_Contact_04_sort_name',
-              'dataType' => 'String',
-              'label' => ts('Assigned'),
+              'label' => 'Assigned',
               'sortable' => TRUE,
               'link' => [
                 'entity' => 'Contact',
@@ -209,7 +202,7 @@ return [
                   'action' => 'view',
                   'target' => 'crm-popup',
                   'icon' => 'fa-external-link',
-                  'text' => ts('View Activity'),
+                  'text' => 'View Activity',
                   'style' => 'default',
                 ],
                 [
@@ -217,7 +210,7 @@ return [
                   'action' => 'update',
                   'target' => 'crm-popup',
                   'icon' => 'fa-pencil',
-                  'text' => ts('Update Activity'),
+                  'text' => 'Update Activity',
                   'style' => 'default',
                 ],
                 [
@@ -225,7 +218,7 @@ return [
                   'action' => 'delete',
                   'target' => 'crm-popup',
                   'icon' => 'fa-trash',
-                  'text' => ts('Delete Activity'),
+                  'text' => 'Delete Activity',
                   'style' => 'danger',
                 ],
               ],
@@ -241,7 +234,7 @@ return [
             [
               'action' => 'add',
               'entity' => 'Activity',
-              'text' => ts('Add Activity'),
+              'text' => 'Add Activity',
               'icon' => 'fa-plus',
               'style' => 'primary',
               'target' => 'crm-popup',

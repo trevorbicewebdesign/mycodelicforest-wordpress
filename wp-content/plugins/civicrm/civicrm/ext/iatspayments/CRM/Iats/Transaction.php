@@ -90,6 +90,7 @@ class CRM_Iats_Transaction {
     $auth_code = $payment_result['auth_code'];
     $auth_response = empty($payment_result['auth_response']) ? '' : $payment_result['auth_response'];
     $trxn_id = empty($payment_result['trxn_id']) ? '' : $payment_result['trxn_id'];
+    $contribution['source'] = $contribution['source'] ?? '';
     // Handle any case of a failure of some kind, either the card failed, or the system failed.
     if (!$success) {
       $error_message = $payment_result['message'];
@@ -156,7 +157,7 @@ class CRM_Iats_Transaction {
           'contribution_recur_id' => $contribution['contribution_recur_id'],
         ));
         // watchdog('iats_civicrm','repeat transaction result <pre>@params</pre>',array('@params' => print_r($pending,TRUE)));.
-        $contribution['id'] = CRM_Utils_Array::value('id', $contributionResult);
+        $contribution['id'] = $contributionResult['id'] ?? NULL;
       }
       catch (Exception $e) {
         // Ignore this, though perhaps I should log it.
@@ -226,7 +227,7 @@ class CRM_Iats_Transaction {
         $contributionResult = [];
       }
       // Pass back the created id indirectly since I'm calling by reference.
-      $contribution['id'] = CRM_Utils_Array::value('id', $contributionResult);
+      $contribution['id'] = $contributionResult['id'] ?? NULL;
       // Connect to a membership if requested.
       if (!empty($contribution['id']) && !empty($contribution['membership_id'])) {
         try {

@@ -14,6 +14,8 @@ namespace Civi\API\Provider;
 use Civi\API\Events;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
+require_once 'api/v3/Generic.php';
+
 /**
  * This class manages the loading of API's using strict file+function naming
  * conventions.
@@ -23,7 +25,7 @@ class MagicFunctionProvider implements EventSubscriberInterface, ProviderInterfa
   /**
    * @return array
    */
-  public static function getSubscribedEvents() {
+  public static function getSubscribedEvents(): array {
     return [
       'civi.api.resolve' => [
         ['onApiResolve', Events::W_MIDDLE],
@@ -156,10 +158,10 @@ class MagicFunctionProvider implements EventSubscriberInterface, ProviderInterfa
     $prefix = 'civicrm_api' . $version . '_' . _civicrm_api_get_entity_name_from_camel($entity) . '_';
     $prefixGeneric = 'civicrm_api' . $version . '_generic_';
     foreach ($functions['user'] as $fct) {
-      if (strpos($fct, $prefix) === 0) {
+      if (str_starts_with($fct, $prefix)) {
         $actions[] = substr($fct, strlen($prefix));
       }
-      elseif (strpos($fct, $prefixGeneric) === 0) {
+      elseif (str_starts_with($fct, $prefixGeneric)) {
         $actions[] = substr($fct, strlen($prefixGeneric));
       }
     }
@@ -217,7 +219,6 @@ class MagicFunctionProvider implements EventSubscriberInterface, ProviderInterfa
     }
 
     // Determine if there is a generic implementation of the action
-    require_once 'api/v3/Generic.php';
     # $genericFunction = 'civicrm_api3_generic_' . $apiRequest['action'];
     $genericFunction = $this->getFunctionName('generic', $apiRequest['action'], $apiRequest['version']);
     $genericFiles = [

@@ -60,21 +60,48 @@ class GFFormDetail {
 
 		?>
 
-		<script type="text/javascript" data-js-reload="gforms-scripts-globals">
+		<script type="text/javascript">
 			<?php GFCommon::gf_global(); ?>
 			<?php GFCommon::gf_vars(); ?>
 		</script>
 
-		<script type="text/javascript"  data-js-reload="gforms-scripts-form-scripts" >
+		<script type="text/javascript">
+
+			var submitted_fields = [];
+			var submitted_fields_loaded = false;
 
 			function has_entry(fieldNumber) {
-				var submitted_fields = [<?php echo RGFormsModel::get_submitted_fields( $form_id ); ?>];
+				// Assume fields have entries until AJAX confirms otherwise
+				if (!submitted_fields_loaded) {
+					return true;
+				}
 				for (var i = 0; i < submitted_fields.length; i++) {
 					if (submitted_fields[i] == fieldNumber)
 						return true;
 				}
 				return false;
 			}
+
+			document.addEventListener('DOMContentLoaded', function() {
+				var formData = new FormData();
+				formData.append('action', 'gf_get_submitted_fields');
+				formData.append('form_id', <?php echo intval( $form_id ); ?>);
+				formData.append('nonce', '<?php echo esc_js( wp_create_nonce( 'gf_get_submitted_fields' ) ); ?>');
+
+				fetch(ajaxurl, {
+					method: 'POST',
+					body: formData
+				})
+				.then(function(response) {
+					return response.json();
+				})
+				.then(function(response) {
+					if (response.success && response.data && response.data.fields) {
+						submitted_fields = response.data.fields;
+						submitted_fields_loaded = true;
+					}
+				});
+			});
 
 			function InsertPostImageVariable(element_id, callback) {
 				var variable = jQuery('#' + element_id + '_image_size_select').attr("variable");
@@ -143,14 +170,14 @@ class GFFormDetail {
 			unset( $form['notifications'] );
 			unset( $form['confirmations'] );
 
-			echo "<script type=\"text/javascript\" data-js-reload=\"gforms-scripts-form-object\">var form = " . json_encode( $form ) . ';</script>';
+			echo "<script type=\"text/javascript\">var form = " . json_encode( $form ) . ';</script>';
 		} else {
-			echo "<script data-js-reload=\"gforms-scripts-form-object\" type=\"text/javascript\">var form = new Form();</script>";
+			echo "<script type=\"text/javascript\">var form = new Form();</script>";
 		}
 
 		?>
 		<!-- Legacy Container allow old addons js to find legacy elements in a hidden container so they don't break other js code -->
-		<div id="legacy_field_settings_container" data-js-reload="gforms-legacy-elements-container">
+		<div id="legacy_field_settings_container">
 			<div id="field_settings">
 				<ul>
 					<li style="width:100px; padding:0px;">
@@ -177,10 +204,10 @@ class GFFormDetail {
 		</div>
 		<!-- End legacy container -->
 		<h1 class="gform-visually-hidden"><?php esc_html_e( 'Edit Form', 'gravityforms' ); ?></h1>
-		<div class="wrap gforms_edit_form <?php echo GFCommon::get_browser_class() ?>" data-js="form-editor-wrapper">
+		<div class="wrap gforms_edit_form <?php echo esc_attr( GFCommon::get_browser_class() ); ?>" data-js="form-editor-wrapper">
 		<?php
 		$forms         = RGFormsModel::get_forms( null, 'title' );
-		$id            = rgempty( 'id', $_GET ) ? count( $forms ) > 0 ? $forms[0]->id : '0' : rgget( 'id' );
+		$id            = rgempty( 'id', $_GET ) ? ( count( $forms ) > 0 ? $forms[0]->id : '0' ) : rgget( 'id' );
 		$browser_icons = array( 'ie', 'opera', 'chrome', 'firefox', 'safari', 'edge' );
 		?>
 
@@ -192,8 +219,8 @@ class GFFormDetail {
 				</a>
 			</div>
 
-			<div class="gform-form-toolbar__form-title gform-form-toolbar__form-title--form-editor" data-js-reload="gforms-form-switcher">
-				<?php GFForms::form_switcher( $form['title'] ); ?>
+			<div class="gform-form-toolbar__form-title gform-form-toolbar__form-title--form-editor">
+				<?php GFForms::form_switcher( $form['title'], $id ); ?>
 			</div>
 
 			<ul id="gform-form-toolbar__menu" class="gform-form-toolbar__menu">
@@ -206,10 +233,12 @@ class GFFormDetail {
 						$dynamic_menu_items[ $key ] = $item;
 					}
 				}
-				echo GFForms::format_toolbar_menu_items( $fixed_menu_items );
+				if ( ! empty( $fixed_menu_items ) ) {
+					echo GFForms::format_toolbar_menu_items( $fixed_menu_items ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				}
 				if ( ! empty( $dynamic_menu_items ) ) {
 					echo '<span class="gform-form-toolbar__divider"></span>';
-					echo GFForms::format_toolbar_menu_items( $dynamic_menu_items );
+					echo GFForms::format_toolbar_menu_items( $dynamic_menu_items ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				}
 				?>
 			</ul>
@@ -230,20 +259,20 @@ class GFFormDetail {
 				$preview_args = array(
 					'form_id' => $form_id,
 				);
-				echo GFCommon::get_preview_link( $preview_args );
+				echo GFCommon::get_preview_link( $preview_args );  // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 
 				$ajax_save_disabled = $save_form_helper->is_ajax_save_disabled( $form_id );
 				if ( $ajax_save_disabled ) {
-					$save_button = '<button aria-disabled="false" aria-expanded="false" class="update-form gform-button gform-button--primary-new gform-button--icon-leading " onclick="SaveForm();" onkeypress="SaveForm();"> <i class="gform-button__icon gform-icon gform-icon--floppy-disk"></i>' . esc_html__( 'Save Form', 'gravityforms' ) . '</button>';
+					$save_button = '<button aria-disabled="false" aria-expanded="false" class="update-form gform-button gform-button--primary-new gform-button--icon-leading " onclick="SaveForm();" onkeypress="SaveForm();"> <i class="gform-button__icon gform-icon gform-icon--floppy-disk" aria-hidden="true"></i>' . esc_html__( 'Save Form', 'gravityforms' ) . '</button>';
 				} else {
 					$save_button = '<button
 						id="ajax-save-form-menu-bar"
 						data-js="ajax-save-form"
-						aria-disabled="false" 
-						aria-expanded="false" 
+						aria-disabled="false"
+						aria-expanded="false"
 						class="update-form update-form-ajax gform-button gform-button--primary-new gform-button--interactive gform-button--active-type-loader gform-button--icon-leading"
 					>
-						<i class="gform-button__icon gform-button__icon--inactive gform-icon gform-icon--floppy-disk" data-js="button-icon"></i>
+						<i class="gform-button__icon gform-button__icon--inactive gform-icon gform-icon--floppy-disk" data-js="button-icon" aria-hidden="true"></i>
 						<span class="gform-button__text gform-button__text--inactive" data-js="button-inactive-text">
 							' . esc_html__( 'Save Form', 'gravityforms' ) . '
 						</span>
@@ -262,7 +291,7 @@ class GFFormDetail {
 				* @param string $save_button The Form Save button HTML.
 				*/
 				$save_button = apply_filters( 'gform_save_form_button', $save_button );
-				echo $save_button;
+				echo $save_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				?>
 				<?php
 				/**
@@ -306,63 +335,33 @@ class GFFormDetail {
 		?>
 		<?php GFFormDetail::editor_notices( $form ); ?>
 
-			<div class="gform_editor gform_wrapper gform-theme gform-theme--foundation gform-theme--framework gform-theme--orbital<?php echo $form_wrapper_compact_view_class . $form_wrapper_compact_view_id_class . $form_wrapper_legacy_class; ?>">
+			<div class="gform_editor gform_wrapper gform-theme gform-theme--foundation gform-theme--framework gform-theme--orbital<?php echo esc_attr( $form_wrapper_compact_view_class . $form_wrapper_compact_view_id_class . $form_wrapper_legacy_class ); ?>">
 
 				<div id="gform_pagination" data-title="<?php esc_attr_e('Pagination Options', 'gravityforms');?>" data-description="<?php esc_attr_e('Manage pagination options', 'gravityforms');?>" class="selectable gform-theme__disable" style="display:<?php echo $has_pages ? 'block' : 'none' ?>;">
 					<div class="gf-pagebreak-first gf-pagebreak"><?php esc_html_e( 'Start Paging', 'gravityforms' ) ?></div>
 				</div>
 
-				<<?php echo $wrapper_el; ?> id="gform_fields" class="<?php echo GFCommon::get_ul_classes( $form ) ?>">
+				<<?php echo $wrapper_el; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped?> id="gform_fields" class="<?php echo esc_attr( GFCommon::get_ul_classes( $form ) ) ?>">
 					<?php
 					if ( is_array( rgar( $form, 'fields' ) ) ) {
 						require_once( GFCommon::get_base_path() . '/form_display.php' );
 						foreach ( $form['fields'] as $field ) {
-							echo GFFormDisplay::get_field( $field, '', true, $form );
-							echo GFFormDisplay::get_row_spacer( $field, $form );
+							echo GFFormDisplay::get_field( $field, '', true, $form ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+							echo GFFormDisplay::get_row_spacer( $field, $form ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 						}
 					}
 					?>
-				</<?php echo $wrapper_el; ?>>
+				</<?php echo $wrapper_el;  // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
 
 				<div id="no-fields-drop" class="dropzone__target gform-theme__disable" style="<?php echo empty( $form['fields'] ) ? '' : 'display:none;'; ?>"></div>
 				<div id="no-fields" class="dropzone__placeholder gform-theme__disable" style="<?php echo empty( $form['fields'] ) ? '' : 'display:none;'; ?>">
-					<img class="gform-editor__no-fields-graphic" src="<?php echo GFCommon::get_base_url() . '/images/no-fields.svg'; ?>" alt="" />
+					<img class="gform-editor__no-fields-graphic" src="<?php echo esc_url( GFCommon::get_base_url() . '/images/no-fields.svg' ); ?>" alt="" />
 					<p><?php esc_html_e( 'Simply drag and drop the fields or elements you want in this form.', 'gravityforms' ); ?></p>
 				</div>
 
 				<div id="gform_last_page_settings" data-title="<?php esc_attr_e('Last page options', 'gravityforms');?>" data-description="<?php esc_attr_e('Manage last page options', 'gravityforms');?>" class="selectable gform-theme__disable" style="display:<?php echo $has_pages ? 'block' : 'none' ?>;">
 					<div class="gf-pagebreak-end gf-pagebreak"><?php esc_html_e( 'End Paging', 'gravityforms' ) ?></div>
 				</div>
-
-			</div>
-
-			<div>
-
-				<div id="after_insert_dialog" style="display:none;">
-					<h3><?php esc_html_e( 'You have successfully saved your form!', 'gravityforms' ); ?></h3>
-
-					<p><?php esc_html_e( 'What would you like to do next?', 'gravityforms' ); ?></p>
-
-					<div class="new-form-option">
-						<a id="preview_form_link" href="<?php echo esc_url_raw( trailingslashit( site_url() ) ); ?>?gf_page=preview&id={formid}" target="_blank"><?php esc_html_e( 'Preview this Form', 'gravityforms' ); ?></a>
-					</div>
-
-					<?php if ( GFCommon::current_user_can_any( 'gravityforms_edit_forms' ) ) { ?>
-						<div class="new-form-option">
-							<a id="notification_form_link" href="#"><?php esc_html_e( 'Setup Email Notifications for this Form', 'gravityforms' ); ?></a>
-						</div>
-					<?php } ?>
-
-					<div class="new-form-option">
-						<a id="edit_form_link" href="#"><?php esc_html_e( 'Continue Editing this Form', 'gravityforms' ); ?></a>
-					</div>
-
-					<div class="new-form-option">
-						<a href="?page=gf_edit_forms"><?php esc_html_e( 'Return to Form List', 'gravityforms' ); ?></a>
-					</div>
-
-				</div>
-
 
 			</div>
 
@@ -401,7 +400,7 @@ class GFFormDetail {
 								$panel_title       = empty( $panel['title'] ) ? esc_html__( 'Custom settings', 'gravityforms' ) : $panel['title'];
 								$panel_nav_classes = ! empty( $panel['nav_classes'] ) ? $panel['nav_classes'] : array();
 							?>
-								<li class="sidebar__nav__item <?php echo is_array( $panel_nav_classes ) ? implode(' ', $panel_nav_classes) : $panel_nav_classes; ?>" ><a href="#<?php echo $panel['id']; ?>"><span class="sidebar__nav__item-text"><span class="sidebar__nav__item-text-inner"><?php echo $panel_title; ?></span></span></a></li>
+								<li class="sidebar__nav__item <?php echo  esc_attr( is_array( $panel_nav_classes ) ? implode(' ', $panel_nav_classes) : $panel_nav_classes ); ?>" ><a href="#<?php echo esc_attr( $panel['id'] ); ?>"><span class="sidebar__nav__item-text"><span class="sidebar__nav__item-text-inner"><?php echo esc_html( $panel_title ); ?></span></span></a></li>
 								<?php
 						}
 						?>
@@ -548,7 +547,15 @@ class GFFormDetail {
 									<input type="text" id="percentage_confirmation_page_name" autocomplete="off"/>
 								</div>
 							</li>
-							<li class="last_pagination_setting">
+							<li class="pagination_setting" id="percentage_confirmation_page_name_setting">
+								<div class="percentage_confirmation_page_name_setting">
+									<label for="percentage_confirmation_page_name" style="display:block;" class="section_label">
+										<?php esc_html_e( 'Completion Text', 'gravityforms' ); ?>
+									</label>
+									<input type="text" id="percentage_confirmation_page_name" autocomplete="off"/>
+								</div>
+							</li>
+							<li class="last_pagination_setting last_page_button_setting field_setting">
 								<fieldset>
 									<legend class="section_label">
 										<?php esc_html_e( 'Previous Button', 'gravityforms' ); ?>
@@ -557,24 +564,22 @@ class GFFormDetail {
 									<div class="last_page_button_options" id="last_page_button_container">
 										<input type="radio" id="last_page_button_text" name="last_page_button" value="text" onclick="TogglePageButton('last_page');" onkeypress="TogglePageButton('last_page');"/>
 										<label for="last_page_button_text" class="inline"><?php esc_html_e( 'Default', 'gravityforms' ); ?><?php gform_tooltip( 'previous_button_text' ); ?></label>
-										&nbsp;&nbsp;
 										<input type="radio" id="last_page_button_image" name="last_page_button" value="image" onclick="TogglePageButton('last_page');" onkeypress="TogglePageButton('last_page');"/>
 										<label for="last_page_button_image" class="inline"><?php esc_html_e( 'Image', 'gravityforms' ); ?><?php gform_tooltip( 'previous_button_image' ); ?></label>
 									</div>
 								</fieldset>
-								<div id="last_page_button_text_container">
-									<label for="last_page_button_text_input" class="section_label">
-										<?php esc_html_e( 'Button Text:', 'gravityforms' ); ?>
-									</label>
-									<input type="text" id="last_page_button_text_input" class="input_size_b" autocomplete="off"/>
-								</div>
-
-								<div id="last_page_button_image_container">
-									<label for="last_page_button_image_url" class="section_label">
-										<?php esc_html_e( 'Image Path:', 'gravityforms' ); ?>
-									</label>
-									<input type="text" id="last_page_button_image_url" autocomplete="off"/>
-								</div>
+							</li>
+							<li class="last_pagination_setting last_page_text_setting field_setting">
+								<label for="last_page_button_text_input" class="section_label">
+									<?php esc_html_e( 'Button Text', 'gravityforms' ); ?>
+								</label>
+								<input type="text" id="last_page_button_text_input" class="input_size_b" autocomplete="off"/>
+							</li>
+							<li class="last_pagination_setting last_page_image_setting field_setting">
+								<label for="last_page_button_image_url" class="section_label">
+									<?php esc_html_e( 'Previous Button Image URL', 'gravityforms' ); ?>
+								</label>
+								<input type="text" id="last_page_button_image_url" autocomplete="off"/>
 							</li>
 
 							<?php
@@ -622,7 +627,6 @@ class GFFormDetail {
 								</label>
 								<input type="text" id="submit_image" autocomplete="off"/>
 							</li>
-
 							<?php
 							do_action( 'gform_field_standard_settings', 5, $form_id );
 							?>
@@ -772,29 +776,28 @@ class GFFormDetail {
 							?>
 							<li class="next_button_setting field_setting">
 								<fieldset>
-									<legend><?php esc_html_e( 'Next Button', 'gravityforms' ); ?></legend>
+									<legend class="section_label">
+										<?php esc_html_e( 'Next Button Type', 'gravityforms' ); ?>
+									</legend>
 									<div class="next_button_options" id="next_button_container">
 										<input type="radio" id="next_button_text" name="next_button" value="text" onclick="TogglePageButton('next'); SetPageButton('next');" onkeypress="TogglePageButton('next'); SetPageButton('next');"/>
 										<label for="next_button_text" class="inline"><?php esc_html_e( 'Default', 'gravityforms' ); ?><?php gform_tooltip( 'next_button_text' ); ?></label>
-										&nbsp;&nbsp;
 										<input type="radio" id="next_button_image" name="next_button" value="image" onclick="TogglePageButton('next'); SetPageButton('next');" onkeypress="TogglePageButton('next'); SetPageButton('next');"/>
 										<label for="next_button_image" class="inline"><?php esc_html_e( 'Image', 'gravityforms' ); ?><?php gform_tooltip( 'next_button_image' ); ?></label>
 									</div>
 								</fieldset>
-
-								<div id="next_button_text_container" style="margin-top:5px;">
-									<label for="next_button_text_input" class="inline">
-										<?php esc_html_e( 'Text:', 'gravityforms' ); ?>
-									</label>
-									<input type="text" id="next_button_text_input" class="input_size_b" autocomplete="off"/>
-								</div>
-
-								<div id="next_button_image_container" style="margin-top:5px;">
-									<label for="next_button_image_url" class="inline">
-										<?php esc_html_e( 'Image Path:', 'gravityforms' ); ?>
-									</label>
-									<input type="text" id="next_button_image_url" autocomplete="off"/>
-								</div>
+							</li>
+							<li class="next_text_setting field_setting">
+								<label for="next_button_text_input" class="section_label">
+									<?php esc_html_e( 'Next Button Text', 'gravityforms' ); ?>
+								</label>
+								<input type="text" id="next_button_text_input" autocomplete="off"/>
+							</li>
+							<li class="next_image_setting field_setting">
+								<label for="next_button_image_url" class="section_label">
+									<?php esc_html_e( 'Next Button Image URL', 'gravityforms' ); ?>
+								</label>
+								<input type="text" id="next_button_image_url" autocomplete="off"/>
 							</li>
 
 							<?php
@@ -802,33 +805,29 @@ class GFFormDetail {
 							?>
 							<li class="previous_button_setting field_setting">
 								<fieldset>
-									<legend>
-										<?php esc_html_e( 'Previous Button', 'gravityforms' ); ?>
+									<legend class="section_label">
+										<?php esc_html_e( 'Previous Button Type', 'gravityforms' ); ?>
 										<?php gform_tooltip( 'form_field_previous_button' ); ?>
 									</legend>
-
 									<div class="previous_button_options" id="previous_button_container">
 										<input type="radio" id="previous_button_text" name="previous_button" value="text" onclick="TogglePageButton('previous'); SetPageButton('previous');" onkeypress="TogglePageButton('previous'); SetPageButton('previous');"/>
 										<label for="previous_button_text" class="inline"><?php esc_html_e( 'Default', 'gravityforms' ); ?><?php gform_tooltip( 'previous_button_text' ); ?></label>
-										&nbsp;&nbsp;
 										<input type="radio" id="previous_button_image" name="previous_button" value="image" onclick="TogglePageButton('previous'); SetPageButton('previous');" onkeypress="TogglePageButton('previous'); SetPageButton('previous');"/>
 										<label for="previous_button_image" class="inline"><?php esc_html_e( 'Image', 'gravityforms' ); ?><?php gform_tooltip( 'previous_button_image' ); ?></label>
 									</div>
 								</fieldset>
-
-								<div id="previous_button_text_container" style="margin-top:5px;">
-									<label for="previous_button_text_input" class="inline">
-										<?php esc_html_e( 'Text:', 'gravityforms' ); ?>
-									</label>
-									<input type="text" id="previous_button_text_input" class="input_size_b" autocomplete="off"/>
-								</div>
-
-								<div id="previous_button_image_container" style="margin-top:5px;">
-									<label for="previous_button_image_url" class="inline">
-										<?php esc_html_e( 'Image Path:', 'gravityforms' ); ?>
-									</label>
-									<input type="text" id="previous_button_image_url" autocomplete="off"/>
-								</div>
+							</li>
+							<li class="previous_text_setting field_setting">
+								<label for="previous_button_text_input" class="section_label">
+									<?php esc_html_e( 'Previous Button Text', 'gravityforms' ); ?>
+								</label>
+								<input type="text" id="previous_button_text_input" autocomplete="off"/>
+							</li>
+							<li class="previous_image_setting field_setting">
+								<label for="previous_button_image_url" class="section_label">
+									<?php esc_html_e( 'Previous Button Image URL', 'gravityforms' ); ?>
+								</label>
+								<input type="text" id="previous_button_image_url" autocomplete="off"/>
 							</li>
 
 							<?php
@@ -948,7 +947,7 @@ class GFFormDetail {
 										<?php esc_html_e( 'Theme', 'gravityforms' ); ?>
 										<?php gform_tooltip( 'form_field_recaptcha_theme' ); ?>
 									</label>
-									<select id="field_captcha_theme" onchange="SetCaptchaTheme(this.value, '<?php echo GFCommon::get_base_url() . $recaptcha_image_base ?>' + this.value + '.svg')">
+									<select id="field_captcha_theme" onchange="SetCaptchaTheme(this.value, '<?php echo esc_js( esc_url_raw( GFCommon::get_base_url() . $recaptcha_image_base ) ); ?>' + this.value + '.svg')">
 										<option value="light"><?php esc_html_e( 'Light', 'gravityforms' ); ?></option>
 										<option value="dark"><?php esc_html_e( 'Dark', 'gravityforms' ); ?></option>
 									</select>
@@ -991,17 +990,9 @@ class GFFormDetail {
 									</fieldset>
 
 									<input type="text" id="field_custom_field_name_text" autocomplete="off"/>
-									<select id="field_custom_field_name_select" onchange="SetFieldProperty( 'postCustomFieldName', jQuery(this).val() );" style="max-width:100%;">
-										<option value=""><?php esc_html_e( 'Select an existing custom field', 'gravityforms' ); ?></option>
-										<?php
-										$custom_field_names = RGFormsModel::get_custom_field_names();
-										foreach ( $custom_field_names as $name ) {
-											?>
-											<option value="<?php echo esc_attr( $name ); ?>"><?php echo esc_html( $name ); ?></option>
-											<?php
-										}
-										?>
-									</select>
+									<div id="gform-post-custom-select-container" style="margin-bottom: 10px;">
+									<!-- populated dynamically in assets/js/admin/form-editor/post-custom-field-select/dropdown.js -->
+									</div>
 								</li>
 								<?php
 								do_action( 'gform_field_standard_settings', 700, $form_id );
@@ -1032,11 +1023,14 @@ class GFFormDetail {
 									<?php esc_html_e( 'Default Post Author', 'gravityforms' ); ?>
 									<?php gform_tooltip( 'form_field_post_author' ); ?>
 								</label>
-								<?php
-								$args = array( 'name' => 'field_post_author' );
-								$args = gf_apply_filters( array( 'gform_author_dropdown_args', rgar( $form, 'id' ) ), $args );
-								wp_dropdown_users( $args );
-								?>
+								<div id="gform-author-select-container" style="margin-bottom: 10px;">
+									<!-- Default author dropdown is populated dynamically in js/src/admin.form/editor/author-select -->
+								</div>
+								<input type="hidden"
+									id="field_post_author"
+									name="field_post_author"
+									value="<?php echo esc_attr( rgar( $form, 'postAuthor' ) ); ?>"
+								/>
 								<div>
 									<input type="checkbox" id="gfield_current_user_as_author"/>
 									<label for="gfield_current_user_as_author" class="inline"><?php esc_html_e( 'Use logged in user as author', 'gravityforms' ); ?><?php gform_tooltip( 'form_field_current_user_as_author' ); ?></label>
@@ -1065,7 +1059,7 @@ class GFFormDetail {
 									$post_formats_dropdown .= "<option value='$post_format_val'>" . ucfirst( $post_format_text ) . '</option>';
 								}
 
-								echo '<select name="field_post_format" id="field_post_format">' . $post_formats_dropdown . '</select>';
+								echo '<select name="field_post_format" id="field_post_format">' . $post_formats_dropdown . '</select>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 
 								?>
 
@@ -1119,7 +1113,7 @@ class GFFormDetail {
 								<label for="gfield_category_select" class="inline"><?php esc_html_e( 'Select Categories', 'gravityforms' ); ?></label>
 							</fieldset>
 
-								<div id="gfield_settings_category_container" data-js-reload="gfield_settings_category_container">
+								<div id="gfield_settings_category_container">
 									<fieldset>
 										<legend class="screen-reader-text">
 											<?php esc_html_e( 'Select Categories', 'gravityforms' ); ?>
@@ -1130,7 +1124,7 @@ class GFFormDetail {
 											$count         = 0;
 											$category_rows = '';
 											self::_cat_rows( $categories, $count, $category_rows );
-											echo $category_rows;
+											echo $category_rows; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 											?>
 										</ul>
 									</fieldset>
@@ -1272,31 +1266,31 @@ class GFFormDetail {
 								?>
 								<div id="address_type_container_<?php echo esc_attr( $key ); ?>" class="gfield_sub_setting gfield_address_type_container">
 									<input type="hidden" id="field_address_country_<?php echo esc_attr( $key ); ?>" value="<?php echo isset( $addressType['country'] ) ? esc_attr( $addressType['country'] ) : ''; ?>"/>
-									<input type="hidden" id="field_address_zip_label_<?php echo esc_attr( $key ); ?>" value="<?php echo isset( $addressType['zip_label'] ) ? esc_attr( $addressType['zip_label'] ) : __( 'Postal Code', 'gravityforms' ); ?>"/>
-									<input type="hidden" id="field_address_state_label_<?php echo esc_attr( $key ); ?>" value="<?php echo $state_label; ?>"/>
+									<input type="hidden" id="field_address_zip_label_<?php echo esc_attr( $key ); ?>" value="<?php echo isset( $addressType['zip_label'] ) ? esc_attr( $addressType['zip_label'] ) : esc_attr__( 'Postal Code', 'gravityforms' ); ?>"/>
+									<input type="hidden" id="field_address_state_label_<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $state_label ); ?>"/>
 									<input type="hidden" id="field_address_has_states_<?php echo esc_attr( $key ); ?>" value="<?php echo is_array( rgget( 'states', $addressType ) ) ? '1' : ''; ?>"/>
 
 									<?php
 									if ( isset( $addressType['states'] ) && is_array( $addressType['states'] ) ) {
 										?>
 										<label for="field_address_default_state_<?php echo esc_attr( $key ); ?>" class="section_label">
-										<?php echo sprintf( __( 'Default %s', 'gravityforms' ), $state_label ); ?>
+										<?php echo sprintf( esc_html__( 'Default %s', 'gravityforms' ), esc_html( $state_label ) ); ?>
 										<?php gform_tooltip( "form_field_address_default_state_{$key}" ); ?>
 									</label>
 
 									<select id="field_address_default_state_<?php echo esc_attr( $key ); ?>" class="field_address_default_state" onchange="SetAddressProperties();">
-										<?php echo $gf_address_field->get_state_dropdown( $addressType['states'] ); ?>
+										<?php echo $gf_address_field->get_state_dropdown( $addressType['states'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 									</select>
 										<?php
 										}
 									if ( ! isset( $addressType['country'] ) ) {
 										?>
-										<label for="field_address_default_country_<?php echo $key; ?>" class="section_label">
+										<label for="field_address_default_country_<?php echo esc_attr( $key ); ?>" class="section_label">
 											<?php esc_html_e( 'Default Country', 'gravityforms' ); ?>
 											<?php gform_tooltip( 'form_field_address_default_country' ); ?>
 										</label>
-										<select id="field_address_default_country_<?php echo $key; ?>" class="field_address_default_country" onchange="SetAddressProperties();">
-											<?php echo $gf_address_field->get_country_dropdown() ?>
+										<select id="field_address_default_country_<?php echo esc_attr( $key ); ?>" class="field_address_default_country" onchange="SetAddressProperties();">
+											<?php echo $gf_address_field->get_country_dropdown(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 										</select>
 										<?php
 									}
@@ -1343,17 +1337,14 @@ class GFFormDetail {
 									<?php gform_tooltip( 'form_field_date_input_type' ); ?>
 								</label>
 								<select id="field_date_input_type" onchange="SetDateInputType(jQuery(this).val());">
-									<option value="datefield"><?php esc_html_e( 'Date Field', 'gravityforms' ) ?></option>
-									<option value="datepicker"><?php esc_html_e( 'Date Picker', 'gravityforms' ) ?></option>
-									<option value="datedropdown"><?php esc_html_e( 'Date Drop Down', 'gravityforms' ) ?></option>
+									<option value="datefield"><?php esc_html_e( 'Date Field', 'gravityforms' ); ?></option>
+									<option value="datepicker"><?php esc_html_e( 'Date Picker', 'gravityforms' ); ?></option>
+									<option value="datedropdown"><?php esc_html_e( 'Date Drop Down', 'gravityforms' ); ?></option>
 								</select>
 
 								<div id="date_picker_container">
 									<fieldset>
-										<legend><?php esc_html_e( 'Date Picker Icon', 'gravityforms' ); ?></legend>
-										<input type="radio" id="gsetting_icon_none" name="gsetting_icon" value="none" onclick="SetCalendarIconType(this.value);" onkeypress="SetCalendarIconType(this.value);"/>
-										<label for="gsetting_icon_none" class="inline"><?php esc_html_e( 'No Icon', 'gravityforms' ); ?></label>
-										&nbsp;&nbsp;
+										<legend><?php esc_html_e( 'Date Picker Icon', 'gravityforms' ); ?></legend>								&nbsp;&nbsp;
 										<input type="radio" id="gsetting_icon_calendar" name="gsetting_icon" value="calendar" onclick="SetCalendarIconType(this.value);" onkeypress="SetCalendarIconType(this.value);"/>
 										<label for="gsetting_icon_calendar" class="inline"><?php esc_html_e( 'Calendar Icon', 'gravityforms' ); ?></label>
 										&nbsp;&nbsp;
@@ -1362,12 +1353,10 @@ class GFFormDetail {
 									</fieldset>
 
 									<div id="gfield_icon_url_container">
-										<label for="gfield_calendar_icon_url" class="inline">
-											<?php esc_html_e( 'Image Path: ', 'gravityforms' ); ?>
+										<label for="gfield_calendar_icon_url" class="section_label">
+											<?php esc_html_e( 'Image Path', 'gravityforms' ); ?>
 										</label>
 										<input type="text" id="gfield_calendar_icon_url" autocomplete="off"/>
-
-										<div class="instruction"><?php esc_html_e( 'Preview this form to see your custom icon.', 'gravityforms' ) ?></div>
 									</div>
 								</div>
 							</li>
@@ -1464,10 +1453,10 @@ class GFFormDetail {
 
 								</label>
 								<input type="text" id="field_max_file_size" autocomplete="off" placeholder="<?php $max_upload_size = wp_max_upload_size() / 1048576;
-								echo $max_upload_size; ?>MB"/>
+								echo esc_attr( $max_upload_size ); ?>MB"/>
 
 								<div id="gform_server_max_file_size_notice">
-									<small><?php printf( esc_html__( 'Maximum allowed on this server: %sMB', 'gravityforms' ), $max_upload_size ); ?></small>
+									<small><?php printf( esc_html__( 'Maximum allowed on this server: %sMB', 'gravityforms' ), esc_html( $max_upload_size ) ); ?></small>
 								</div>
 							</li>
 
@@ -1522,7 +1511,7 @@ class GFFormDetail {
 									<?php esc_html_e( 'Phone Format', 'gravityforms' ); ?>
 									<?php gform_tooltip( 'form_field_phone_format' ); ?>
 								</label>
-								<select id="field_phone_format" onchange="SetFieldPhoneFormat(jQuery(this).val());">
+								<select id="field_phone_format" onchange="SetFieldPhoneFormat(this.value);">
 									<?php
 									$phone_formats = GF_Fields::get( 'phone' )->get_phone_formats( $form_id );
 
@@ -1534,6 +1523,25 @@ class GFFormDetail {
 									?>
 								</select>
 							</li>
+							<li class="default_country_setting field_setting" style="display:none;">
+								<label for="field_default_country" class="section_label">
+									<?php esc_html_e( 'Default Country', 'gravityforms' ); ?>
+									<?php gform_tooltip( 'form_field_default_country' ); ?>
+								</label>
+								<div class="gform-phone-country-select-wrapper gform-country-flag-icon-wrapper">
+									<div class="gform-phone-country-flag gform-phone__flag-icon--us"></div>
+									<select id="field_default_country" onchange="SetFieldProperty('defaultCountry', this.value); RefreshSelectedFieldPreview();" class="gform-phone-country-select">
+										<!-- Countries will be populated dynamically -->
+									</select>
+								</div>
+							</li>
+							<li class="show_country_code_setting field_setting" style="display:none;">
+								<input type="checkbox" id="field_show_country_code" onclick="SetFieldProperty('showCountryCode', this.checked); RefreshSelectedFieldPreview();" />
+								<label for="field_show_country_code" class="inline">
+									<?php esc_html_e( 'Show country dial code', 'gravityforms' ); ?>
+									<?php gform_tooltip( 'form_field_show_country_code' ); ?>
+								</label>
+							</li>
 							<?php
 							do_action( 'gform_field_standard_settings', 1350, $form_id );
 							?>
@@ -1544,7 +1552,7 @@ class GFFormDetail {
 									data-js="choices-ui-trigger"
 									style="display:none;"
 								>
-									<span class="gform-button__icon gform-icon gform-icon--cog choices-ui__trigger-icon"></span>
+									<span class="gform-button__icon gform-icon gform-icon--cog choices-ui__trigger-icon" aria-hidden="true"></span>
 									<?php esc_html_e( 'Edit Choices', 'gravityforms' ); ?>
 								</button>
 							</li>
@@ -1555,7 +1563,7 @@ class GFFormDetail {
 									<label class="gfield_choice_header_price" data-js="choices-ui-label"><?php esc_html_e( 'Price', 'gravityforms' ) ?></label>
 									<ul id="field_choices"></ul>
 									<button class='field-choice-clear-default gform-button gform-button--size-r gform-button--white gform-button--icon-leading' onclick="ResetDefaultChoices();" style="display: none;">
-										<i class="gform-button__icon gform-icon gform-icon--circle-close"></i>
+										<i class="gform-button__icon gform-icon gform-icon--circle-close" aria-hidden="true"></i>
 										<?php esc_attr_e( 'Clear Default Choices', 'gravityforms' ); ?>
 									</button>
 								</div>
@@ -1587,8 +1595,8 @@ class GFFormDetail {
 									<input
 										type='button'
 										value='<?php echo esc_attr( $window_title ) ?>'
-										onclick="tb_show(<?php echo esc_js( $modal ); ?>, '#TB_inline?height=460&amp;width=600&amp;inlineId=gfield_bulk_add', '');"
-										onkeypress="tb_show(<?php echo esc_js( $modal ); ?>, '#TB_inline?height=460&amp;width=600&amp;inlineId=gfield_bulk_add', '');"
+										onclick="tb_show(<?php echo esc_attr( esc_js( $modal ) ); ?>, '#TB_inline?height=460&amp;width=600&amp;inlineId=gfield_bulk_add', '');"
+										onkeypress="tb_show(<?php echo esc_attr( esc_js( $modal ) ); ?>, '#TB_inline?height=460&amp;width=600&amp;inlineId=gfield_bulk_add', '');"
 										class="gform-button gform-button--white gform-button--size-sm"
 									/>
 								</div>
@@ -1644,8 +1652,8 @@ class GFFormDetail {
 													$key = str_replace( "'", "\'", $name );
 													?>
 													<li>
-														<a href="javascript:void(0);" onclick="SelectPredefinedChoice('<?php echo $key ?>');" onkeypress="SelectPredefinedChoice('<?php echo $key ?>');"
-																class="bulk-choice"><?php echo $name ?>
+														<a href="javascript:void(0);" onclick="SelectPredefinedChoice('<?php echo esc_attr( esc_js( $key ) ) ?>');" onkeypress="SelectPredefinedChoice('<?php echo esc_attr( esc_js( $key ) ) ?>');"
+																class="bulk-choice"><?php echo $name; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped?>
 														</a>
 													</li>
 													<?php } ?>
@@ -1675,7 +1683,7 @@ class GFFormDetail {
 
 											<div id="bulk_custom_edit" style="display:none;">
 												<?php esc_html_e( 'Save as', 'gravityforms' ); ?>
-												<input type="text" id="custom_choice_name" autocomplete="off" value="<?php esc_attr_e( 'Enter name', 'gravityforms' ); ?>" onfocus="if(this.value == '<?php echo esc_js( __( 'enter name', 'gravityforms' ) ); ?>'){this.value='';
+												<input type="text" id="custom_choice_name" autocomplete="off" value="<?php esc_attr_e( 'Enter name', 'gravityforms' ); ?>" onfocus="if(this.value == '<?php echo esc_attr( esc_js( esc_html__( 'enter name', 'gravityforms' ) ) ); ?>'){this.value='';
 														}">&nbsp;&nbsp;
 												<a href="javascript:void(0);" onclick="SaveCustomChoices();" onkeypress="SaveCustomChoices();" class="button" id="bulk_save_button"><?php esc_html_e( 'Save', 'gravityforms' ) ?></a>&nbsp;
 												<a href="javascript:void(0);" onclick="CloseCustomChoicesPanel();" onkeypress="CloseCustomChoicesPanel();" id="bulk_cancel_link"><?php esc_html_e( 'Cancel', 'gravityforms' ) ?></a>
@@ -1688,8 +1696,8 @@ class GFFormDetail {
 
 										<script type="text/javascript">
 											var gform_selected_custom_choice = '';
-											var gform_custom_choices = <?php echo GFCommon::json_encode( $custom_choices ) ?>;
-											var gform_predefined_choices = <?php echo GFCommon::json_encode( $predefined_choices ) ?>;
+											var gform_custom_choices = <?php echo GFCommon::json_encode( $custom_choices ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>;
+											var gform_predefined_choices = <?php echo GFCommon::json_encode( $predefined_choices ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>;
 										</script>
 
 									</div>
@@ -1699,6 +1707,49 @@ class GFFormDetail {
 							<?php
 							do_action( 'gform_field_standard_settings', 1360, $form_id );
 							?>
+
+							<li class="display_choices_columns_setting field_setting">
+								<fieldset>
+									<legend class="section_label">
+										<?php esc_html_e( 'Choice Layout', 'gravityforms' ); gform_tooltip( 'form_field_choice_layout' )  ?>
+									</legend>
+									<div>
+										<input type="radio" name="choice_alignment" id="choice_alignment_vertical" value="vertical" onclick="SetFieldProperty( 'choiceAlignment', this.value ); ToggleDisplayInColumns(); RefreshSelectedFieldPreview();" onkeypress="SetFieldProperty( 'choiceAlignment', this.value ); ToggleDisplayInColumns(); RefreshSelectedFieldPreview();"/>
+										<label for="choice_alignment_vertical" class="inline"><?php esc_html_e( 'Vertical', 'gravityforms' ); ?></label>
+
+										<input type="radio" name="choice_alignment" id="choice_alignment_horizontal" value="horizontal" onclick="SetFieldProperty( 'choiceAlignment', this.value ); ToggleDisplayInColumns(); RefreshSelectedFieldPreview();" onkeypress="SetFieldProperty( 'choiceAlignment', this.value ); ToggleDisplayInColumns(); RefreshSelectedFieldPreview();"/>
+										<label for="choice_alignment_horizontal" class="inline"><?php esc_html_e( 'Horizontal', 'gravityforms' ); ?></label>
+
+										<input type="radio" name="choice_alignment" id="choice_alignment_columns" value="columns" onclick="SetFieldProperty( 'choiceAlignment', this.value ); ToggleDisplayInColumns(); RefreshSelectedFieldPreview();" onkeypress="SetFieldProperty( 'choiceAlignment', this.value ); ToggleDisplayInColumns(); RefreshSelectedFieldPreview();"/>
+										<label for="choice_alignment_columns" class="inline"><?php esc_html_e( 'Columns', 'gravityforms' ); ?></label>
+									</div>
+								</fieldset>
+								<div id="display_in_columns_container" style="margin-top:0.9375rem;">
+									<label for="field_display_columns" class="section_label">
+										<?php esc_html_e( 'Number of Columns', 'gravityforms' ); ?>
+									</label>
+									<select id="field_display_columns" onchange="SetFieldProperty( 'displayColumns', jQuery(this).val() ); RefreshSelectedFieldPreview();" onkeypress="SetFieldProperty( 'displayColumns', jQuery(this).val() ); RefreshSelectedFieldPreview();">
+										<option value="1"><?php esc_html_e( '1 Column', 'gravityforms' ); ?></option>
+										<option value="2"><?php esc_html_e( '2 Columns', 'gravityforms' ); ?></option>
+										<option value="3"><?php esc_html_e( '3 Columns', 'gravityforms' ); ?></option>
+										<option value="4"><?php esc_html_e( '4 Columns', 'gravityforms' ); ?></option>
+										<option value="5"><?php esc_html_e( '5 Columns', 'gravityforms' ); ?></option>
+									</select>
+									<fieldset style="margin-top:0.9375rem;">
+										<legend class="section_label">
+											<?php esc_html_e( 'Column Flow', 'gravityforms' ); ?>
+											<?php gform_tooltip( 'form_field_column_flow' ); ?>
+										</legend>
+										<div>
+											<input type="radio" name="display_choice_alignment" id="display_choice_alignment_horizontal" value="horizontal" onclick="SetFieldProperty( 'displayAlignment' , jQuery(this).val() ); RefreshSelectedFieldPreview();" onkeypress="SetFieldProperty( 'alignment', jQuery(this).val() ); RefreshSelectedFieldPreview();"/>
+											<label for="display_choice_alignment_horizontal" class="inline"><?php esc_html_e( 'Across', 'gravityforms' ); ?></label>
+
+											<input type="radio" name="display_choice_alignment" id="display_choice_alignment_vertical" value="vertical" onclick="SetFieldProperty( 'displayAlignment' , jQuery(this).val() ); RefreshSelectedFieldPreview();" onkeypress="SetFieldProperty( 'alignment', jQuery(this).val() ); RefreshSelectedFieldPreview();"/>
+											<label for="display_choice_alignment_vertical" class="inline"><?php esc_html_e( 'Down', 'gravityforms' ); ?></label>
+										</div>
+									</fieldset>
+								</div>
+							</li>
 
 							<li class="choice_min_max_setting field_setting">
 								<fieldset>
@@ -1864,6 +1915,32 @@ class GFFormDetail {
 								</fieldset>
 							</li>
 
+
+							<li class="phone_sub_labels_setting field_setting">
+								<fieldset>
+									<legend class="section_label">
+										<?php esc_html_e( 'Sub-Labels', 'gravityforms' ); ?>
+										<?php gform_tooltip( 'form_field_sub_labels' ); ?>
+									</legend>
+
+									<div id="field_sub_labels_container">
+										<div class="field_custom_inputs_ui gform-sidebar-setting-grid-wrapper gform-sidebar-setting-grid-wrapper__two-column">
+											<div class="gform-sidebar-setting-grid-header">
+												<span><?php esc_html_e( 'Field', 'gravityforms' ); ?></span><span><?php esc_html_e( 'Custom Sub-Label', 'gravityforms' ); ?></span>
+											</div>
+											<div data-input_id="countrySublabel" class="field_custom_input_row field_custom_input_row_countrySublabel">
+												<label id="field_custom_input_default_label_countrySublabel" for="field_custom_input_label_countrySublabel"><?php esc_html_e( 'Country', 'gravityforms' ); ?></label>
+												<input class="phone_field_custom_input_default_label" type="text" placeholder="<?php esc_attr_e( 'Country', 'gravityforms' ); ?>" value="" id="field_custom_input_label_countrySublabel" onchange="SetFieldProperty('countrySublabel', jQuery(this).val()); RefreshSelectedFieldPreview();">
+											</div>
+											<div data-input_id="phoneSublabel" class="field_custom_input_row field_custom_input_row_phoneSublabel">
+												<label id="field_custom_input_default_label_phoneSublabel" for="field_custom_input_label_phoneSublabel"><?php esc_html_e( 'Phone Number', 'gravityforms' ); ?></label>
+												<input class="phone_field_custom_input_default_label" type="text" placeholder="<?php esc_attr_e( 'Phone Number', 'gravityforms' ); ?>" value="" id="field_custom_input_label_phoneSublabel" onchange="SetFieldProperty('phoneSublabel', jQuery(this).val()); RefreshSelectedFieldPreview();">
+											</div>
+										</div>
+									</div>
+								</fieldset>
+							</li>
+
 							<?php do_action( 'gform_field_standard_settings', 1425, $form_id ); ?>
 
 							<?php do_action( 'gform_field_standard_settings', 1430, $form_id ); ?>
@@ -1920,7 +1997,7 @@ class GFFormDetail {
 
 									<p class="mask_text_description" style="margin:5px 0 0;">
 										<?php esc_html_e( 'Enter a custom mask', 'gravityforms' ) ?>.
-										<a href="javascript:void(0);" onclick="tb_show('<?php echo esc_js( __( 'Custom Mask Instructions', 'gravityforms' ) ); ?>', '#TB_inline?width=350&amp;inlineId=custom_mask_instructions', '');" onkeypress="tb_show('<?php echo esc_js( __( 'Custom Mask Instructions', 'gravityforms' ) ); ?>', '#TB_inline?width=350&amp;inlineId=custom_mask_instructions', '');"><?php esc_html_e( 'Help', 'gravityforms' ) ?></a>
+										<a href="javascript:void(0);" onclick="tb_show('<?php echo esc_attr( esc_js( esc_html__( 'Custom Mask Instructions', 'gravityforms' ) ) ); ?>', '#TB_inline?width=350&amp;inlineId=custom_mask_instructions', '');" onkeypress="tb_show('<?php echo esc_attr( esc_js( esc_html__( 'Custom Mask Instructions', 'gravityforms' ) ) ); ?>', '#TB_inline?width=350&amp;inlineId=custom_mask_instructions', '');"><?php esc_html_e( 'Help', 'gravityforms' ) ?></a>
 									</p>
 
 									<div id="custom_mask_instructions" style="display:none;">
@@ -2048,7 +2125,7 @@ class GFFormDetail {
 									<div>
 										<div class="gf_calculation_buttons">
 											<?php foreach ( array( '+', '-', '/', '*', '(', ')', '.' ) as $button ) { ?>
-											<input type="button" value="<?php echo in_array( $button, array( '.' ) ) ? $button : " $button "; ?>" onclick="InsertVariable('field_calculation_formula', 'FormulaContentCallback', this.value);" onkeypress="InsertVariable('field_calculation_formula', 'FormulaContentCallback', this.value);"/>
+											<input type="button" value="<?php echo esc_attr( in_array( $button, array( '.' ) ) ? $button : " $button " ); ?>" onclick="InsertVariable('field_calculation_formula', 'FormulaContentCallback', this.value);" onkeypress="InsertVariable('field_calculation_formula', 'FormulaContentCallback', this.value);"/>
 											<?php } ?>
 										</div>
 									</div>
@@ -2112,6 +2189,28 @@ class GFFormDetail {
 
 							</li>
 
+							<li class="max_items_setting field_setting">
+								<label for="max_items_setting" class="section_label">
+									<?php esc_html_e( 'Maximum Number of Repeats', 'gravityforms' ); ?>
+									<?php gform_tooltip( 'form_field_max_items' ); ?>
+								</label>
+								<input type="number" id="max_items_setting" min="1" onchange="SetFieldProperty('maxItems', jQuery(this).val());  RefreshSelectedFieldPreview();"/>
+							</li>
+
+							<li class="add_button_text_setting field_setting">
+								<label for="add_button_text" class="section_label">
+									<?php esc_html_e( 'Add Button Text', 'gravityforms' ); ?>
+								</label>
+								<input type="text" id="add_button_text" onchange="SetFieldProperty('addButtonText', jQuery(this).val()); RefreshSelectedFieldPreview();" />
+							</li>
+
+							<li class="remove_button_text_setting field_setting">
+								<label for="remove_button_text" class="section_label">
+									<?php esc_html_e( 'Remove Button Text', 'gravityforms' ); ?>
+								</label>
+								<input type="text" id="remove_button_text" onchange="SetFieldProperty('removeButtonText', jQuery(this).val()); RefreshSelectedFieldPreview();" />
+							</li>
+
 							<?php
 							do_action( 'gform_field_standard_settings', - 1, $form_id );
 							?>
@@ -2147,7 +2246,7 @@ class GFFormDetail {
 									<?php gform_tooltip( 'form_field_placeholder' ); ?>
 								</label>
 								<input type="text" id="field_placeholder" class="field_placeholder  merge-tag-support mt-position-right mt-prepopulate" autocomplete="off"/>
-								<span id="placeholder_warning" style="display:none"><?php _e( 'Placeholder text is not supported when using the Rich Text Editor.', 'gravityforms' ); ?></span>
+								<span id="placeholder_warning" style="display:none"><?php esc_html_e( 'Placeholder text is not supported when using the Rich Text Editor.', 'gravityforms' ); ?></span>
 							</li>
 							<?php
 							do_action( 'gform_field_appearance_settings', 20, $form_id );
@@ -2158,7 +2257,7 @@ class GFFormDetail {
 									<?php gform_tooltip( 'form_field_placeholder' ); ?>
 								</label>
 								<textarea id="field_placeholder_textarea" class="field_placeholder_textarea merge-tag-support mt-position-right mt-prepopulate"></textarea>
-								<span id="placeholder_warning" style="display:none"><?php _e( 'Placeholder text is not supported when using the Rich Text Editor.', 'gravityforms' ); ?></span>
+								<span id="placeholder_warning" style="display:none"><?php esc_html_e( 'Placeholder text is not supported when using the Rich Text Editor.', 'gravityforms' ); ?></span>
 							</li>
 							<?php
 							do_action( 'gform_field_appearance_settings', 50, $form_id );
@@ -2193,8 +2292,8 @@ class GFFormDetail {
 									$label_placement_form_setting_label = __( 'Top aligned', 'gravityforms' );
 							}
 
-							$description_placement_form_setting = rgar( $form, 'descriptionPlacement' );
-							$description_placement_form_setting_label = $description_placement_form_setting == 'above' ? $description_placement_form_setting_label = __( 'Above inputs', 'gravityforms' ) : $description_placement_form_setting_label = __( 'Below inputs', 'gravityforms' );
+							$description_placement_form_setting       = rgar( $form, 'descriptionPlacement' );
+							$description_placement_form_setting_label = $description_placement_form_setting === 'above' ? esc_html__( 'Above inputs', 'gravityforms' ) : esc_html__( 'Below inputs', 'gravityforms' );
 							?>
 							<li class="label_placement_setting field_setting">
 								<label for="field_label_placement" class="section_label">
@@ -2202,7 +2301,7 @@ class GFFormDetail {
 									<?php gform_tooltip( 'form_field_label_placement' ); ?>
 								</label>
 								<select id="field_label_placement" onchange="SetFieldLabelPlacement(jQuery(this).val());">
-									<option value=""><?php printf( __( 'Visible (%s)', 'gravityforms' ), esc_html( $label_placement_form_setting_label ) ); ?></option>
+									<option value=""><?php printf( esc_html__( 'Visible (%s)', 'gravityforms' ), esc_html( $label_placement_form_setting_label ) ); ?></option>
 									<option value="hidden_label"><?php esc_html_e( 'Hidden', 'gravityforms' ); ?></option>
 								</select>
 								<div id="field_description_placement_container" style="display:none;">
@@ -2213,25 +2312,11 @@ class GFFormDetail {
 									<select id="field_description_placement"
 											onchange="SetFieldDescriptionPlacement(jQuery(this).val());">
 										<option
-												value=""><?php printf( __( 'Use Form Setting (%s)', 'gravityforms' ), esc_html( $description_placement_form_setting_label ) ); ?></option>
+												value=""><?php printf( esc_html__( 'Use Form Setting (%s)', 'gravityforms' ), esc_html( $description_placement_form_setting_label ) ); ?></option>
 										<option value="below"><?php esc_html_e( 'Below inputs', 'gravityforms' ); ?></option>
 										<option value="above"><?php esc_html_e( 'Above inputs', 'gravityforms' ); ?></option>
 									</select>
 								</div>
-							</li>
-							<li class="horizontal_vertical_setting field_setting">
-								<fieldset>
-									<legend class="section_label">
-										<?php esc_html_e( 'Choice Alignment', 'gravityforms' ); ?>
-									</legend>
-									<div>
-										<input type="radio" name="choice_alignment" id="choice_alignment_vertical" value="vertical" onclick="SetFieldProperty( 'choiceAlignment', this.value ); RefreshSelectedFieldPreview();" onkeypress="SetFieldProperty( 'alignment', this.value ); RefreshSelectedFieldPreview();"/>
-										<label for="choice_alignment_vertical" class="inline"><?php esc_html_e( 'Vertical', 'gravityforms' ); ?></label>
-
-										<input type="radio" name="choice_alignment" id="choice_alignment_horizontal" value="horizontal" onclick="SetFieldProperty( 'choiceAlignment', this.value ); RefreshSelectedFieldPreview();" onkeypress="SetFieldProperty( 'alignment', this.value ); RefreshSelectedFieldPreview();"/>
-										<label for="choice_alignment_horizontal" class="inline"><?php esc_html_e( 'Horizontal', 'gravityforms' ); ?></label>
-									</div>
-								</fieldset>
 							</li>
 							<li class="image_choice_ui_show_label_setting field_setting">
 								<label for="image_choice_ui_show_label" class="section_label">
@@ -2246,8 +2331,8 @@ class GFFormDetail {
 
 							do_action( 'gform_field_appearance_settings', 150, $form_id );
 
-							$sub_label_placement_form_setting = rgar( $form, 'subLabelPlacement' );
-							$sub_label_placement_form_setting_label = $sub_label_placement_form_setting == 'above' ? $sub_label_placement_form_setting_label = __( 'Above inputs', 'gravityforms' ) : $sub_label_placement_form_setting_label = __( 'Below inputs', 'gravityforms' );
+							$sub_label_placement_form_setting       = rgar( $form, 'subLabelPlacement' );
+							$sub_label_placement_form_setting_label = $sub_label_placement_form_setting === 'above' ? esc_html__( 'Above inputs', 'gravityforms' ) : esc_html__( 'Below inputs', 'gravityforms' );
 							?>
 							<li class="sub_label_placement_setting field_setting">
 								<label for="field_sub_label_placement" class="section_label">
@@ -2257,7 +2342,7 @@ class GFFormDetail {
 								<select id="field_sub_label_placement"
 										onchange="SetFieldSubLabelPlacement(jQuery(this).val());">
 									<option
-											value=""><?php printf( __( 'Use Form Setting (%s)', 'gravityforms' ), esc_html( $sub_label_placement_form_setting_label ) ); ?></option>
+											value=""><?php printf( esc_html__( 'Use Form Setting (%s)', 'gravityforms' ), esc_html( $sub_label_placement_form_setting_label ) ); ?></option>
 									<option value="below"><?php esc_html_e( 'Below inputs', 'gravityforms' ); ?></option>
 									<option value="above"><?php esc_html_e( 'Above inputs', 'gravityforms' ); ?></option>
 									<option value="hidden_label"><?php esc_html_e( 'Hidden', 'gravityforms' ); ?></option>
@@ -2312,7 +2397,7 @@ class GFFormDetail {
 										<input type="radio" name="submit_location" id="submit_location_bottom" value="bottom" onclick="return SetSubmitLocation( this.value );" onkeypress="return SetSubmitLocation( this.value );"/>
 										<label for="submit_location_bottom" class="inline"><?php esc_html_e( 'End of the form', 'gravityforms' ); ?></label>
 
-										<input type="radio" name="submit_location" id="submit_location_inline" value="inline" <?php echo $disable_location ?> onclick="return SetSubmitLocation( this.value );" onkeypress="return SetSubmitLocation( this.value );"/>
+										<input type="radio" name="submit_location" id="submit_location_inline" value="inline" <?php echo $disable_location; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> onclick="return SetSubmitLocation( this.value );" onkeypress="return SetSubmitLocation( this.value );"/>
 										<label for="submit_location_inline" class="inline"><?php esc_html_e( 'End of the last row', 'gravityforms' ); ?></label>
 									</div>
 								</fieldset>
@@ -2330,7 +2415,6 @@ class GFFormDetail {
 							<?php
 							do_action( 'gform_field_appearance_settings', 300, $form_id );
 							?>
-
 							<li class="enable_enhanced_ui_setting field_setting">
 								<input type="checkbox" id="gfield_enable_enhanced_ui" onclick="SetFieldEnhancedUI(jQuery(this).is(':checked'));" onkeypress="SetFieldEnhancedUI(jQuery(this).is(':checked'));"/>
 								<label for="gfield_enable_enhanced_ui" class="inline">
@@ -2338,7 +2422,6 @@ class GFFormDetail {
 									<?php gform_tooltip( 'form_field_enable_enhanced_ui' ); ?>
 								</label>
 							</li>
-
 							<?php
 							do_action( 'gform_field_appearance_settings', 400, $form_id );
 
@@ -2350,6 +2433,12 @@ class GFFormDetail {
 									<?php esc_html_e( 'Field Size', 'gravityforms' ); ?>
 									<?php gform_tooltip( 'form_field_size' ); ?>
 								</label>
+								<div id="gfield-warning-deprecated-field-size" class="gform-alert gform-alert--notice gform-alert--inline gform-visible-notice" role="alert">
+									<span class="gform-alert__icon gform-icon gform-icon--circle-notice-fine" aria-hidden="true"></span>
+									<div class="gform-alert__message-wrap">
+										<p class="gform-alert__message"><?php esc_html_e( "Use the drag handle to change the field's size. This setting is not supported in the default Orbital Theme.", 'gravityforms' ); ?>&nbsp;<a href="https://docs.gravityforms.com/working-with-columns/#h-resize-columns-using-column-handles" target="_blank" title="<?php esc_attr_e( 'Field Size setting replaced by column resizing', 'gravityforms' ); ?>"><?php esc_html_e( 'Learn more', 'gravityforms' ); ?><span class="screen-reader-text"><?php esc_html_e( '(opens in a new tab)', 'gravityforms' ); ?></span>&nbsp;<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span></a></p>
+									</div>
+								</div>
 								<select id="field_size" onchange="SetFieldSize(jQuery(this).val());"><?php
 								foreach ( $size_choices as $size_choice ) {
 									if ( empty( $size_choice['value'] ) || empty( $size_choice['text'] ) ) {
@@ -2359,10 +2448,25 @@ class GFFormDetail {
 								}
 								?></select>
 							</li>
+
+							<li class="textarea_height_setting field_setting">
+								<label for="field_textarea_height" class="section_label">
+									<?php esc_html_e( 'Field Height', 'gravityforms' ); ?>
+									<?php gform_tooltip( 'form_field_textarea_height' ); ?>
+								</label>
+								<select id="field_textarea_height" onchange="SetFieldSize(jQuery(this).val());"><?php
+								foreach ( $size_choices as $size_choice ) {
+									if ( empty( $size_choice['value'] ) || empty( $size_choice['text'] ) ) {
+										continue;
+									}
+									printf( '<option value="%s">%s</option>', esc_attr( $size_choice['value'] ), esc_html( $size_choice['text'] ) );
+								}
+								?></select>
+							</li>
+
 							<?php
 							do_action( 'gform_field_appearance_settings', 500, $form_id );
 							?>
-
 						</ul>
 
 						<button tabindex="0" id="advanced_tab_toggle" class="panel-block-tabs__toggle">
@@ -2624,8 +2728,8 @@ class GFFormDetail {
 										<?php foreach ( GFCommon::get_visibility_options() as $visibility_option ):
 										$slug = sanitize_title_with_dashes( $visibility_option['value'] );
 										?>
-											<input type="radio" name="field_visibility" id="field_visibility_<?php echo $slug; ?>" value="<?php echo $visibility_option['value']; ?>" onclick="return SetFieldVisibility( this.value );" onkeypress="return SetFieldVisibility( this.value );"/>
-											<label for="field_visibility_<?php echo $slug; ?>" class="inline"><?php echo esc_html( $visibility_option['label'] ); ?></label>
+											<input type="radio" name="field_visibility" id="field_visibility_<?php echo esc_attr( $slug ); ?>" value="<?php echo esc_attr( $visibility_option['value'] ); ?>" onclick="return SetFieldVisibility( this.value );" onkeypress="return SetFieldVisibility( this.value );"/>
+											<label for="field_visibility_<?php echo esc_attr( $slug ); ?>" class="inline"><?php echo esc_html( $visibility_option['label'] ); ?></label>
 										<?php endforeach; ?>
 									</div>
 									<br class="clear"/>
@@ -2638,7 +2742,7 @@ class GFFormDetail {
 							?>
 							<li class="rich_text_editor_setting field_setting">
 								<input type="checkbox" id="field_rich_text_editor" onclick="ToggleRichTextEditor( this.checked );"/>
-								<label for="field_rich_text_editor" class="inline"><?php _e( 'Use the Rich Text Editor', 'gravityforms' ) ?><?php gform_tooltip( 'form_field_rich_text_editor' ); ?></label>
+								<label for="field_rich_text_editor" class="inline"><?php esc_html_e( 'Use the Rich Text Editor', 'gravityforms' ) ?><?php gform_tooltip( 'form_field_rich_text_editor' ); ?></label>
 							</li>
 							<?php
 							do_action( 'gform_field_advanced_settings', 450, $form_id );
@@ -2673,10 +2777,10 @@ class GFFormDetail {
 						$tab_toggle_classes = empty( $tab['toggle_classes'] ) ? array() : $tab['toggle_classes'];
 						$tab_body_classes = empty( $tab['body_classes'] ) ? array() : $tab['body_classes'];
 						?>
-						<button tabindex="0" id="<?php echo $tab_id ?>_tab_toggle" class="panel-block-tabs__toggle <?php echo implode( ' ', $tab_toggle_classes ); ?>">
-							<?php echo $tab_title; ?>
+						<button tabindex="0" id="<?php echo esc_attr( $tab_id ) ?>_tab_toggle" class="panel-block-tabs__toggle <?php echo esc_attr( implode( ' ', $tab_toggle_classes ) ); ?>">
+							<?php echo $tab_title; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						</button>
-						<ul id="<?php echo $tab_id; ?>_tab" class="panel-block-tabs__body panel-block-tabs__body--settings <?php echo implode( ' ', $tab_body_classes ); ?>">
+						<ul id="<?php echo esc_attr( $tab_id ); ?>_tab" class="panel-block-tabs__body panel-block-tabs__body--settings <?php echo esc_attr( implode( ' ', $tab_body_classes ) ); ?>">
 							<?php
 							/**
 							 * Insert field settings for custom settings panel.
@@ -2751,7 +2855,7 @@ class GFFormDetail {
 
 				$panel_body_classes = ! empty( $panel['body_classes'] ) ? $panel['body_classes'] : array();
 				?>
-				<div class="sidebar__panel <?php echo is_array( $panel_body_classes ) ? implode( ' ', $panel_body_classes ) : $panel_body_classes ?>" id="<?php echo $panel['id']; ?>">
+				<div class="sidebar__panel <?php echo esc_attr( is_array( $panel_body_classes ) ? implode( ' ', $panel_body_classes ) : $panel_body_classes ); ?>" id="<?php echo esc_attr( $panel['id'] ); ?>">
 					<?php
 					/**
 					 * Insert content into the custom sidebar panel.
@@ -2835,16 +2939,16 @@ class GFFormDetail {
 				'name'   => 'advanced_fields',
 				'label'  => __( 'Advanced Fields', 'gravityforms' ),
 				'fields' => array(
-					array( 'data-type' => 'name',       'value' => GFCommon::get_field_type_title( 'name' ) ),
-					array( 'data-type' => 'date',       'value' => GFCommon::get_field_type_title( 'date' ) ),
-					array( 'data-type' => 'time',       'value' => GFCommon::get_field_type_title( 'time' ) ),
-					array( 'data-type' => 'phone',      'value' => GFCommon::get_field_type_title( 'phone' ) ),
-					array( 'data-type' => 'address',    'value' => GFCommon::get_field_type_title( 'address' ) ),
-					array( 'data-type' => 'website',    'value' => GFCommon::get_field_type_title( 'website' ) ),
-					array( 'data-type' => 'email',      'value' => GFCommon::get_field_type_title( 'email' ) ),
-					array( 'data-type' => 'fileupload', 'value' => GFCommon::get_field_type_title( 'fileupload' ) ),
-					array( 'data-type' => 'captcha',    'value' => GFCommon::get_field_type_title( 'captcha' ) ),
-					array( 'data-type' => 'list',       'value' => GFCommon::get_field_type_title( 'list' ) ),
+					array( 'data-type' => 'name',        'value' => GFCommon::get_field_type_title( 'name' ) ),
+					array( 'data-type' => 'date',        'value' => GFCommon::get_field_type_title( 'date' ) ),
+					array( 'data-type' => 'time',        'value' => GFCommon::get_field_type_title( 'time' ) ),
+					array( 'data-type' => 'phone',       'value' => GFCommon::get_field_type_title( 'phone' ) ),
+					array( 'data-type' => 'address',     'value' => GFCommon::get_field_type_title( 'address' ) ),
+					array( 'data-type' => 'website',     'value' => GFCommon::get_field_type_title( 'website' ) ),
+					array( 'data-type' => 'email',       'value' => GFCommon::get_field_type_title( 'email' ) ),
+					array( 'data-type' => 'fileupload',  'value' => GFCommon::get_field_type_title( 'fileupload' ) ),
+					array( 'data-type' => 'captcha',     'value' => GFCommon::get_field_type_title( 'captcha' ) ),
+					array( 'data-type' => 'list',        'value' => GFCommon::get_field_type_title( 'list' ) ),
 					array( 'data-type' => 'multiselect', 'value' => GFCommon::get_field_type_title( 'multiselect' ) ),
 				),
 			),
@@ -2892,6 +2996,14 @@ class GFFormDetail {
 			);
 		}
 
+		// Add repeater field, if enabled.
+		if ( apply_filters( 'gform_enable_repeater_field_button', false ) ) {
+			$field_groups['advanced_fields']['fields'][] = array(
+				'data-type' => 'repeater',
+				'value'     => GFCommon::get_field_type_title( 'repeater' )
+			);
+		}
+
 		/**
 		 * Modify the field groups before fields are added.
 		 *
@@ -2922,20 +3034,20 @@ class GFFormDetail {
 		?>
 
 		<div class="gf-color-picker-wrapper">
-			<input type='text' class="iColorPicker" autocomplete="off" name='<?php echo esc_attr( $field_name ); ?>' onchange='SetColorPickerColor(this.name, this.value, "<?php echo $callback ?>");' id='<?php echo esc_attr( $field_name ) ?>' />
-			<img style="top:3px; cursor:pointer; border:1px solid #dfdfdf;" id="chip_<?php echo esc_attr( $field_name ); ?>" valign="bottom" height="22" width="22" src="<?php echo GFCommon::get_base_url() ?>/images/blankspace.png" />
-			<img style="cursor:pointer;" valign="bottom" id="chooser_<?php echo esc_attr( $field_name ); ?>" src="<?php echo GFCommon::get_base_url() ?>/images/color.png" />
+			<input type='text' class="iColorPicker" autocomplete="off" name='<?php echo esc_attr( $field_name ); ?>' onchange='SetColorPickerColor(this.name, this.value, "<?php echo esc_attr( esc_js( $callback ) ); ?>");' id='<?php echo esc_attr( $field_name ) ?>' />
+			<img style="top:3px; cursor:pointer; border:1px solid #dfdfdf;" id="chip_<?php echo esc_attr( $field_name ); ?>" valign="bottom" height="22" width="22" src="<?php echo esc_url( GFCommon::get_base_url() ); ?>/images/blankspace.png" />
+			<img style="cursor:pointer;" valign="bottom" id="chooser_<?php echo esc_attr( $field_name ); ?>" src="<?php echo esc_url( GFCommon::get_base_url() ); ?>/images/color.png" />
 		</div>
 
 		<script type="text/javascript">
-			jQuery( "#chooser_<?php echo esc_js( $field_name ); ?>" ).click( function ( e ) {
+			jQuery( "#chooser_<?php echo esc_attr( $field_name ); ?>" ).click( function ( e ) {
 				var rect = e.currentTarget.getBoundingClientRect();
 				var top  = rect.top + 176;
 				var side = rect.left - 260;
 
 				iColorShow( side, top, '<?php echo esc_js( $field_name ); ?>', "<?php echo esc_js( $callback ); ?>" ) ;
 			});
-			jQuery("#chip_<?php echo esc_js( $field_name ); ?>").click(function (e) {
+			jQuery("#chip_<?php echo esc_attr( $field_name ); ?>").click(function (e) {
 				var rect = e.currentTarget.getBoundingClientRect();
 				var top  = rect.top + 176;
 				var side = rect.left - 260;
@@ -2958,16 +3070,19 @@ class GFFormDetail {
 		foreach ( $buttons as $button ) {
 			$button['data-icon']        = empty( $button['data-icon'] ) ? 'gform-icon--cog' : $button['data-icon'];
 			$button['data-description'] = empty( $button['data-description'] ) ? sprintf( esc_attr__( 'Add a %s field to your form.', 'gravityforms' ), $button['value'] ) : $button['data-description'];
-			?>
+			$button['data-repeatable']   = isset( $button['data-repeatable'] ) ? ( $button['data-repeatable'] ? 1 : 0 ) : 1;
+			$button['data-duplicatable'] = isset( $button['data-duplicatable'] ) ? ( $button['data-duplicatable'] ? 1 : 0 ) : 1;
+			$button['class']            = empty( $button['class'] ) ? 'gfield-add' : $button['class'] . ' gfield-add';
+            ?>
 			<li>
 				<button title="<?php echo esc_attr( $button['data-description'] ); ?>"
 					<?php
 					foreach ( array_keys( $button ) as $attr ) {
-						echo $attr . '="' . esc_attr( $button[ $attr ] ) . '" ';
+						echo esc_attr( $attr ) . '="' . esc_attr( $button[ $attr ] ) . '" ';
 					}
 					?>
 				>
-				<div class="button-icon"><?php echo GFCommon::get_icon_markup( array( 'icon' => rgar( $button, 'data-icon' ) ) ); ?></div>
+				<div class="button-icon"><?php echo GFCommon::get_icon_markup( array( 'icon' => rgar( $button, 'data-icon' ) ), null, array( 'aria-hidden' => 'true' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
 				<div class="button-text"><?php echo esc_html( $button['value'] ); ?></div>
 				</button>
 			</li>
@@ -2979,8 +3094,8 @@ class GFFormDetail {
 	private static function _cat_rows( $categories, &$count, &$output, $parent = 0, $level = 0, $page = 1, $per_page = 9999999 ) {
 		if ( empty( $categories ) ) {
 			$args = array( 'hide_empty' => 0 );
-			if ( ! empty( $_POST['search'] ) )
-				$args['search'] = $_POST['search'];
+			if ( ! empty( rgpost( 'search' ) ) )
+				$args['search'] = rgpost( 'search' );
 			$categories = get_categories( $args );
 		}
 
@@ -3064,7 +3179,7 @@ class GFFormDetail {
 
 	private static function insert_variable_prepopulate( $element_id, $callback = '' ) {
 		?>
-	<select id="<?php echo esc_attr( $element_id ); ?>_variable_select" onchange="InsertVariable('<?php echo esc_js( $element_id ) ?>', '<?php echo esc_js( $callback ); ?>'); ">
+	<select id="<?php echo esc_attr( $element_id ); ?>_variable_select" onchange="InsertVariable('<?php echo esc_attr( esc_js( $element_id ) ); ?>', '<?php echo esc_attr( esc_js( $callback ) ); ?>'); ">
 		<option value=''><?php esc_html_e( 'Insert Merge Tag', 'gravityforms' ); ?></option>
 		<option value='{ip}'><?php esc_html_e( 'User IP Address', 'gravityforms' ); ?></option>
 		<option value='{date_mdy}'><?php esc_html_e( 'Date', 'gravityforms' ); ?> (mm/dd/yyyy)</option>
@@ -3088,7 +3203,7 @@ class GFFormDetail {
 			wp_die( -1, 403 );
 		}
 
-		$field_json = stripslashes_deep( $_POST['field'] );
+		$field_json = stripslashes_deep( $_POST['field'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 
 		$field_properties = GFCommon::json_decode( $field_json, true );
 
@@ -3097,7 +3212,7 @@ class GFFormDetail {
 
 		$index = rgpost( 'index' );
 
-		if ( $index != 'undefined' ) {
+		if ( ! empty( $index ) && $index != 'undefined' ) {
 			$index = absint( $index );
 		}
 
@@ -3111,13 +3226,13 @@ class GFFormDetail {
 
 		$field_json = json_encode( $field );
 
-		die( "EndAddField($field_json, " . $field_html_json . ", $index);" );
+		die( "EndAddField($field_json, " . $field_html_json . ", $index);" ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- nosemgrep scanner.php.lang.security.xss.direct-reflected
 	}
 
 	public static function duplicate_field() {
 		check_ajax_referer( 'rg_duplicate_field', 'rg_duplicate_field' );
 		$source_field_id  = absint( rgpost( 'source_field_id' ) );
-		$field_json       = stripslashes_deep( $_POST['field'] );
+		$field_json       = stripslashes_deep( $_POST['field'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 		$field_properties = GFCommon::json_decode( $field_json, true );
 		$field            = GF_Fields::create( $field_properties );
 		$form_id          = absint( rgpost( 'form_id' ) );
@@ -3129,7 +3244,41 @@ class GFFormDetail {
 		$args['sourceFieldId'] = $source_field_id;
 		$args['fieldString']   = $field_html;
 		$args_json             = json_encode( $args );
-		die( $args_json );
+		die( $args_json ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	/*
+	 * AJAX function to retrieve a form.
+	 *
+	 * Used by HasConditionalLogicDependencyLegwork in form_editor.js to check
+	 * conditional logic dependencies for fields, confirmations, notifications,
+	 * notification routing, and feeds.
+	 *
+	 * @since 2.9.9
+	 */
+	public static function ajax_get_form() {
+		check_ajax_referer( 'rg_ajax_get_form', 'rg_ajax_get_form' );
+
+		$form_id = absint( rgpost( 'form_id' ) );
+		$form    = GFFormsModel::get_form_meta( $form_id );
+
+		if ( empty( $form ) ) {
+			wp_send_json_error( esc_html__( 'No form found.', 'gravityforms' ) );
+		}
+
+		$feeds            = GFAPI::get_feeds( null, $form_id );
+		$feeds_conditions = array();
+		if( $feeds ) {
+			foreach( $feeds as $feed ) {
+				if( rgars( $feed, 'meta/feed_condition_conditional_logic_object' ) ) {
+					$feeds_conditions[] = $feed['meta']['feed_condition_conditional_logic_object'];
+				}
+			}
+		}
+
+		$form['feeds_conditions'] = $feeds_conditions;
+
+		wp_send_json_success( $form );
 	}
 
 	public static function change_input_type() {
@@ -3139,7 +3288,7 @@ class GFFormDetail {
 			wp_die( -1, 403 );
 		}
 
-		$field_json       = stripslashes_deep( $_POST['field'] );
+		$field_json       = stripslashes_deep( $_POST['field'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 		$field_properties = GFCommon::json_decode( $field_json, true );
 		$field            = GF_Fields::create( $field_properties );
 		$id               = absint( $field->id );
@@ -3153,16 +3302,16 @@ class GFFormDetail {
 		$args['type']        = $type;
 		$args['fieldString'] = $field_content;
 		$args_json           = json_encode( $args );
-		die( "EndChangeInputType($args_json);" );
+		die( "EndChangeInputType($args_json);" ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	public static function refresh_field_preview() {
 		check_ajax_referer( 'rg_refresh_field_preview', 'rg_refresh_field_preview' );
-		$field_json       = stripslashes_deep( $_POST['field'] );
+		$field_json       = stripslashes_deep( $_POST['field'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 		$field_properties = GFCommon::json_decode( $field_json, true );
 		$field            = GF_Fields::create( $field_properties );
 		$field->sanitize_settings();
-		$form_id          = absint( $_POST['formId'] );
+		$form_id          = absint( $_POST['formId'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 		$form             = GFFormsModel::get_form_meta( $form_id );
 		$form             = GFFormsModel::maybe_sanitize_form_settings( $form );
 
@@ -3171,7 +3320,7 @@ class GFFormDetail {
 		$args['fieldString'] = $field_content;
 		$args['fieldId']     = absint( $field->id );
 		$args_json           = json_encode( $args );
-		die( $args_json );
+		die( $args_json ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	public static function delete_custom_choice() {
@@ -3215,7 +3364,7 @@ class GFFormDetail {
 
 			foreach ( $result['actions_markup'] as $action_name => $action_markup ) {
 				if  ( ! empty ( $action_markup ) ) {
-					echo $action_markup;
+					echo $action_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				}
 			}
 
@@ -3229,8 +3378,8 @@ class GFFormDetail {
 	public static function save_form() {
 
 		check_ajax_referer( 'rg_save_form', 'rg_save_form' );
-		$id        = absint( $_POST['id'] );
-		$form_json = absint( $_POST['form'] );
+		$id        = absint( $_POST['id'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
+		$form_json = absint( $_POST['form'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 
 		$result = self::save_form_info( $id, $form_json );
 
@@ -3246,9 +3395,9 @@ class GFFormDetail {
 			default :
 				$form_id = absint( $result['status'] );
 				if ( $form_id < 0 ) {
-					die( 'EndInsertForm(' . $form_id . ');' );
+					die( 'EndInsertForm(' . $form_id . ');' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				} else {
-					die( "EndUpdateForm({$form_id});" );
+					die( "EndUpdateForm({$form_id});" ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				}
 
 				break;
@@ -3263,7 +3412,7 @@ class GFFormDetail {
 		$selected = rgempty( 'selectedValue' ) ? 0 : rgpost( 'selectedValue' );
 
 		$dropdown = wp_dropdown_categories( array( 'class' => 'gfield_rule_select gfield_rule_value_dropdown gfield_category_dropdown', 'orderby' => 'name', 'id' => $id, 'name' => $id, 'selected' => $selected, 'hierarchical' => true, 'hide_empty' => 0, 'echo' => false ) );
-		die( $dropdown );
+		die( $dropdown ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	public static function inline_scripts( $echo = true ) {
@@ -3296,9 +3445,9 @@ class GFFormDetail {
 
 
 		if ( ! empty( $script_str ) ) {
-			$script_str = sprintf( '<script data-js-reload="gforms-fields-inline-scripts" type="text/javascript">%s</script>', $script_str );
+			$script_str = sprintf( '<script type="text/javascript">%s</script>', $script_str );
 			if ( $echo ) {
-				echo $script_str;
+				echo $script_str; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 		}
 
@@ -3336,7 +3485,7 @@ class GFFormDetail {
 	 * @param array $form
 	 */
 	public static function editor_notice_for_ajax_save_failure( $form ) {
-		if ( ! rgar( $_POST, 'gform_export', false ) ) {
+		if ( ! rgar( $_POST, 'gform_export', false ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			return '';
 		}
 
@@ -3349,10 +3498,10 @@ class GFFormDetail {
 						echo sprintf(
 							// Translators: 1. Opening <a> tag with link to the form export page, 2. closing <a> tag, 3. Opening <a> tag for documentation link, 4. Closing <a> tag.
 							esc_html__( 'If you continue to encounter this error, you can %1$sexport your form%2$s to include in your support request. You can also disable AJAX saving for this form. %3$sLearn more%4$s.', 'gravityforms' ),
-							'<a target="_blank" href="' . admin_url( 'admin.php?page=gf_export&subview=export_form&export_form_ids=' . rgget( 'id' ) ) . '" rel="noopener noreferrer" class="gform-export-form">',
-							'</a>',
+							'<a target="_blank" href="' . esc_url( admin_url( 'admin.php?page=gf_export&subview=export_form&export_form_ids=' . rgget( 'id' ) ) ) . '" rel="noopener noreferrer" class="gform-export-form">',
+							'<span class="screen-reader-text">' . esc_html__('(opens in a new tab)', 'gravityforms') . '</span>&nbsp;<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span></a>',
 							'<a target="_blank" href="https://docs.gravityforms.com/gform_disable_ajax_save/" rel="noopener noreferrer">',
-							'</a>'
+							'<span class="screen-reader-text">' . esc_html__('(opens in a new tab)', 'gravityforms') . '</span>&nbsp;<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span></a>'
 						);
 					?>
 				</p>
@@ -3389,14 +3538,16 @@ class GFFormDetail {
 			></span>
 			<div class="gform-alert__message-wrap">
 				<p class="gform-alert__message"><?php echo esc_html_e( 'This form has legacy markup enabled, which may prevent some new features from functioning.', 'gravityforms' ); ?></p>
-				<p class="gform-alert__message"><?php echo esc_html_e( 'Legacy markup will be removed from Gravity Forms in version 3.1.0, and then all forms will use modern markup.  We recommend updating this form\'s settings to use modern markup.', 'gravityforms' ); ?></p>
+				<p class="gform-alert__message"><?php echo esc_html_e( 'Legacy markup will be removed from Gravity Forms in version 4.0, and then all forms will use modern markup.  We recommend updating this form\'s settings to use modern markup.', 'gravityforms' ); ?></p>
 				<a
 					class="gform-alert__cta gform-button gform-button--white gform-button--size-xs"
 					href="https://docs.gravityforms.com/about-legacy-markup"
 					target="_blank"
-					aria-label="<?php echo esc_html_e( 'Learn more about form legacy markup', 'gravityforms' ); ?>"
 				>
 					<?php echo esc_html_e( 'Learn More', 'gravityforms' ); ?>
+					<span class="screen-reader-text"><?php echo esc_html__('about form legacy markup', 'gravityforms'); ?></span>
+					<span class="screen-reader-text"><?php echo esc_html__('(opens in a new tab)', 'gravityforms'); ?></span>&nbsp;
+					<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
 				</a>
 			</div>
 		</div>
@@ -3415,15 +3566,8 @@ class GFFormDetail {
 			return false;
 		}
 
-		// If user has dismissed the notice, don't show it.
-		if ( rgar( $_COOKIE, 'gform-alert-editor-deprecated-classes' ) ) {
-			$forms = explode( ',', $_COOKIE['gform-alert-editor-deprecated-classes'] );
-			if ( in_array( $form['id'], $forms ) ) {
-				return false;
-			}
-		}
-
 		$deprecated_classes = array(
+			'gf_inline',
 			'gf_left_half',
 			'gf_right_half',
 			'gf_left_third',
@@ -3433,6 +3577,30 @@ class GFFormDetail {
 			'gf_second_quarter',
 			'gf_third_quarter',
 			'gf_fourth_quarter',
+			'gf_scroll_text',
+			'gf_hide_ampm',
+			'gf_hide_charleft',
+			'gf_alert_green',
+			'gf_alert_red',
+			'gf_alert_yellow',
+			'gf_alert_gray',
+			'gf_alert_blue',
+			'gf_simple_horizontal',
+			'gf_invisible',
+			'gf_list_2col',
+			'gf_list_3col',
+			'gf_list_4col',
+			'gf_list_5col',
+			'gf_list_2col_vertical',
+			'gf_list_3col_vertical',
+			'gf_list_4col_vertical',
+			'gf_list_5col_vertical',
+			'gf_list_height_25',
+			'gf_list_height_50',
+			'gf_list_height_75',
+			'gf_list_height_100',
+			'gf_list_height_125',
+			'gf_list_height_150',
 		);
 
 		foreach ( $form['fields'] as $field ) {
@@ -3461,29 +3629,23 @@ class GFFormDetail {
 		}
 
 		?>
-		<div class="gform-alert" data-js="gform-alert" data-gform-alert-cookie="gform-alert-editor-deprecated-classes">
+		<div class="gform-alert" data-js="gform-alert">
 			<span class="gform-alert__icon gform-icon gform-icon--campaign" aria-hidden="true"></span>
 			<div class="gform-alert__message-wrap">
 				<p class="gform-alert__message" tabindex="0">
-					<?php echo esc_html_e( 'This form uses deprecated Ready Classes. Adding columns is easier than ever with the new Drag and Drop Layout Editor.', 'gravityforms' ); ?>
+					<?php echo esc_html_e( 'This form uses Ready Classes, which will be removed in Gravity Forms 4.0. You can now use settings or code snippets to achieve the same results.', 'gravityforms' ); ?>
 				</p>
 				<a
 					class="gform-alert__cta gform-button gform-button--white gform-button--size-xs"
-					href="https://docs.gravityforms.com/working-with-columns/"
+					href="https://docs.gravityforms.com/migrating-your-forms-from-ready-classes/"
 					target="_blank"
-					title="<?php esc_attr_e( 'Working with Columns in the Form Editor in Gravity Forms 2.5', 'gravityforms' ); ?>"
+					title="<?php esc_attr_e( 'Deprecation of Ready Classes in Gravity Forms 4.0', 'gravityforms' ); ?>"
 				>
 					<?php esc_html_e( 'Learn More', 'gravityforms' ); ?>
+					<span class="screen-reader-text"><?php echo esc_html__('(opens in a new tab)', 'gravityforms'); ?></span>&nbsp;
+					<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span>
 				</a>
 			</div>
-			<button
-				class="gform-alert__dismiss"
-				aria-label="<?php esc_html_e( 'Dismiss notification', 'gravityforms' ); ?>"
-				title="<?php esc_html_e( 'Dismiss notification', 'gravityforms' ); ?>"
-				data-js="gform-alert-dismiss-trigger"
-			>
-				<span class="gform-icon gform-icon--delete"></span>
-			</button>
 		</div>
 		<?php
 	}

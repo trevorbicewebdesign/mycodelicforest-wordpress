@@ -8,32 +8,43 @@
 
 if(!defined('ABSPATH')) exit();
 
+/**
+ * License activation against the ThemePunch servers. The result is stored in the options as
+ * system.valid ('true'/'false') and system.license (the key); everything else in the plugin reads the
+ * premium state from there.
+ */
 class RevSliderLicense extends RevSliderFunctions {
 	/**
 	 * Activate the Plugin through the ThemePunch Servers
-	 * @before 6.0.0: RevSliderOperations::checkPurchaseVerification();
-	 * @before 6.2.0: RevSliderAdmin::activate_plugin();
+	 * @param string $code the license key
+	 * @return true|string|false true when activated, 'exist' when the key is already in use elsewhere,
+	 *                           'banned' when it was revoked, false on any error
 	 **/
 	public function activate_plugin($code){
-		$rstrack = new RevSliderTracking();
-		$rstrack->_run(true);
+		//only build the tracker when tracking is actually switched on - its constructor loads the global
+		//settings and registers filters, all of which _run() would immediately discard again
+		$this->run_tracking(true);
 
 		$rslb = RevSliderGlobals::instance()->get('RevSliderLoadBalancer');
-		$data = array(
+		$data = [
 			'code'		=> urlencode($code),
 			'version'	=> urlencode(RS_REVISION),
 			'product'	=> urlencode(RS_PLUGIN_SLUG),
-			'addition'	=> apply_filters('revslider_activate_plugin_info_addition', array())
-		);
+			'addition'	=> apply_filters('revslider_activate_plugin_info_addition', [])
+		];
 		
-		$response	  = $rslb->call_url('activate.php', $data, 'updates');
+		$response = $rslb->call_url('activate.php', $data, 'updates');
+
+		//check the response, not its body: wp_remote_retrieve_body() always hands back a string, so the
+		//is_wp_error() that used to sit on $version_info was dead code
+		if(is_wp_error($response)) return false;
+
 		$version_info = wp_remote_retrieve_body($response);
-		
-		if(is_wp_error($version_info)) return false;
+
 		if($version_info == 'valid'){
-			update_option('revslider-valid', 'true');
-			update_option('revslider-code', $code);
-			update_option('revslider-deregister-popup', 'false');
+			$this->update_option(['system', 'valid'], 'true');
+			$this->update_option(['system', 'license'], $code);
+			$this->update_option(['system', 'deregister'], 'false');
 
 			return true;
 		}
@@ -46,34 +57,50 @@ class RevSliderLicense extends RevSliderFunctions {
 	
 	/**
 	 * Deactivate the Plugin through the ThemePunch Servers
-	 * @before 6.0.0: RevSliderOperations::doPurchaseDeactivation();
-	 * @before 6.2.0: RevSliderAdmin::deactivate_plugin();
+	 * clears the stored key on success, so the site drops back to the free feature set
+	 * @return bool false when the server refuses or cannot be reached
 	 **/
 	public function deactivate_plugin(){
-		$rstrack = new RevSliderTracking();
-		$rstrack->_run(false);
+		$this->run_tracking(false);
 
 		$rslb = RevSliderGlobals::instance()->get('RevSliderLoadBalancer');
-		$code = get_option('revslider-code', '');
-		$data = array(
-			'code' => urlencode($code),
-			'product' => urlencode(RS_PLUGIN_SLUG),
-			'addition' => apply_filters('revslider_deactivate_plugin_info_addition', array())
-		);
-		
+		$code = $this->get_options(['system', 'license'], '');
+		$data = [
+			'code'		=> urlencode($code),
+			'product'	=> urlencode(RS_PLUGIN_SLUG),
+			'addition'	=> apply_filters('revslider_deactivate_plugin_info_addition', [])
+		];
+
 		$res = $rslb->call_url('deactivate.php', $data, 'updates');
-		$vi	 = wp_remote_retrieve_body($res);
-		
-		if(is_wp_error($vi)) return false;
 
-		if($vi == 'valid'){
-			update_option('revslider-valid', 'false');
-			update_option('revslider-code', '');
-			update_option('revslider-deregister-popup', 'true');
+		//the WP_Error lives on the *response*, not on its body - wp_remote_retrieve_body() always returns a
+		//string, so the is_wp_error() check that used to sit on $vi could never be true. Returning false for
+		//both cases is intentional: the caller (RevSliderApi::deactivate_plugin) asks the load balancer for
+		//the last request and reports the connection error from there, so the distinction is not lost.
+		if(is_wp_error($res)) return false;
 
-			return true;
-		}
-		
-		return false;
+		$vi = wp_remote_retrieve_body($res);
+		if($vi != 'valid') return false;
+
+		$this->update_option(['system', 'valid'], 'false');
+		$this->update_option(['system', 'license'], '');
+		//$this->update_option(['system', 'deregister'], 'true');
+
+		return true;
+	}
+
+
+	/**
+	 * run the tracking payload, but only build the tracker when tracking is enabled at all.
+	 *
+	 * @param bool $licensed passed through to RevSliderTracking::_run()
+	 * @return void
+	 */
+	private function run_tracking($licensed){
+		$gs = $this->get_global_settings();
+		if($this->get_val($gs, 'tracking', '') !== 'enabled') return;
+
+		$rstrack = new RevSliderTracking();
+		$rstrack->_run($licensed);
 	}
 }

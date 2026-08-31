@@ -14,6 +14,15 @@ class_exists( 'GFForms' ) || die();
 class GF_Personal_Data {
 
 	/**
+	 * Maximum number of forms per GF_Query to stay within MariaDB's join limit.
+	 *
+	 * @since 2.10.5
+	 *
+	 * @var int
+	 */
+	const MAX_FORMS_PER_QUERY = 59;
+
+	/**
 	 * The cached form array.
 	 *
 	 * @since 2.4
@@ -132,7 +141,7 @@ class GF_Personal_Data {
 						'validation_callback' => function( $field, $value ) {
 
 							// If value is not numeric or less than one day, set error.
-							if ( ! is_numeric( $value ) || ( is_numeric( $value ) && floatval( $value ) < 1 ) ) {
+							if ( ! is_numeric( $value ) || ( is_numeric( $value ) && floatval( $value ) < 1 ) ) { // nosemgrep audit.php.lang.misc.flawed-logic-numeric
 								$field->set_error( esc_html__( 'Form entries must be retained for at least one day.', 'gravityforms' ) );
 							}
 
@@ -150,10 +159,19 @@ class GF_Personal_Data {
 						'label'       => esc_html__( 'Enable integration with the WordPress tools for exporting and erasing personal data.', 'gravityforms' ),
 						'tooltip'     => gform_tooltip( 'personal_data_enable', null, true ),
 						'disabled'    => empty( $identification_field_choices ),
-						'after_input' => ! empty( $identification_field_choices ) ? '' : sprintf(
-							'<div class="notice-error gf-notice alert error">%s</div>',
-							esc_html__( 'You must add an email address field to the form in order to enable this setting.', 'gravityforms' )
-						),
+						'description' => empty( $identification_field_choices )
+        				? sprintf(
+    						'<div class="alert-container">
+        						<div class="gform-alert gform-alert--notice gform-alert--theme-primary">
+            					<span class="gravity-component-icon gravity-component-icon--circle-notice-fine gform-alert__icon" aria-hidden="true"></span>
+            						<div class="gform-alert__message-wrap">
+                						<p class="gform-text gform-text--color-port gform-typography--size-text-md gform-typography--weight-regular gform-alert__message">%s</p>
+            						</div>
+        						</div>
+    						</div>',
+    						esc_html__( 'You must add an email address field to the form in order to enable this setting.', 'gravityforms' )
+						)
+						: '',
 					),
 					array(
 						'name'       => 'exportingAndErasing[identificationField]',
@@ -782,16 +800,18 @@ class GF_Personal_Data {
 	 * @return array
 	 */
 	public static function get_entries( $email_address, $page = 1, $limit = 50 ) {
-
+	
+		self::log_debug( __METHOD__ . "(): Getting entries for {$email_address}" );
+	
 		$user = get_user_by( 'email', $email_address );
 
 		$forms = self::get_forms();
 
-		$form_ids = array();
-
-		$query = new GF_Query();
-
-		$conditions = array();
+		$batches = array();
+		$batch   = array(
+			'form_ids'   => array(),
+			'conditions' => array(),
+		);
 
 		foreach ( $forms as $form ) {
 
@@ -799,7 +819,7 @@ class GF_Personal_Data {
 				continue;
 			}
 
-			$form_ids[] = $form['id'];
+			$batch['form_ids'][] = $form['id'];
 
 			$identification_field = rgars( $form, 'personalData/exportingAndErasing/identificationField' );
 
@@ -807,7 +827,7 @@ class GF_Personal_Data {
 
 			if ( $field && $field->get_input_type() == 'email' ) {
 
-				$conditions[] = new GF_Query_Condition(
+				$batch['conditions'][] = new GF_Query_Condition(
 					new GF_Query_Column( $identification_field, intval( $form['id'] ) ),
 					GF_Query_Condition::EQ,
 					new GF_Query_Literal( $email_address )
@@ -823,23 +843,58 @@ class GF_Personal_Data {
 					continue;
 				}
 
-				$conditions[] = new GF_Query_Condition(
+				$batch['conditions'][] = new GF_Query_Condition(
 					new GF_Query_Column( $identification_field, intval( $form['id'] ) ),
 					GF_Query_Condition::EQ,
 					new GF_Query_Literal( $user->ID )
 				);
 			}
+
+			if ( count( $batch['form_ids'] ) >= self::MAX_FORMS_PER_QUERY ) {
+				$batches[] = $batch;
+				$batch     = array(
+					'form_ids'   => array(),
+					'conditions' => array(),
+				);
+			}
 		}
 
-		if ( empty( $conditions ) ) {
+		if ( ! empty( $batch['form_ids'] ) ) {
+			$batches[] = $batch;
+		}
+
+		$entries = array();
+
+		foreach ( $batches as $query_batch ) {
+			if ( empty( $query_batch['conditions'] ) ) {
+				continue;
+			}
+
+			$all_conditions = call_user_func_array( array( 'GF_Query_Condition', '_or' ), $query_batch['conditions'] );
+
+			$query = new GF_Query();
+
+			$batch_entries = $query->from( $query_batch['form_ids'] )->where( $all_conditions )->get();
+
+			if ( ! empty( $batch_entries ) ) {
+				$entries = array_merge( $entries, $batch_entries );
+			}
+		}
+
+		if ( empty( $entries ) ) {
 			return array();
 		}
 
-		$all_conditions = call_user_func_array( array( 'GF_Query_Condition', '_or' ), $conditions );
+		usort(
+			$entries,
+			function ( $a, $b ) {
+				return (int) rgar( $a, 'id' ) - (int) rgar( $b, 'id' );
+			}
+		);
 
-		$entries = $query->from( $form_ids )->where( $all_conditions )->limit( $limit )->page( $page )->get();
+		$offset = max( 0, ( $page - 1 ) * $limit );
 
-		return $entries;
+		return array_slice( $entries, $offset, $limit );
 	}
 
 	/**
@@ -853,6 +908,8 @@ class GF_Personal_Data {
 	 * @return array
 	 */
 	public static function data_exporter( $email_address, $page = 1 ) {
+
+		self::log_debug( __METHOD__ . "(): Running data exporter for {$email_address}" );
 
 		$export_items = array(
 			'done' => true,
@@ -875,6 +932,8 @@ class GF_Personal_Data {
 		$entries = self::get_entries( $email_address, $page, $limit );
 
 		if ( empty( $entries ) ) {
+			self::log_debug( __METHOD__ . "(): No entries found for {$email_address}" );
+
 			return $export_items;
 		}
 
@@ -911,7 +970,7 @@ class GF_Personal_Data {
 					$value  = GFFormsModel::get_lead_field_value( $entry, $field );
 					$data[] = array(
 						'name'  => $field->get_field_label( false, $value ),
-						'value' => $field->get_value_entry_detail( $value, rgar( $entry, 'currency' ), true, 'text' ),
+						'value' => $field->get_value_entry_detail( $value, $entry, true, 'text' ),
 					);
 				}
 			}
@@ -1004,7 +1063,7 @@ class GF_Personal_Data {
 					$value  = GFFormsModel::get_lead_field_value( $entry, $field );
 					$data[] = array(
 						'name'  => $field->get_field_label( false, $value ),
-						'value' => $field->get_value_entry_detail( $value, rgar( $entry, 'currency' ), true, 'text' ),
+						'value' => $field->get_value_entry_detail( $value, $entry, true, 'text' ),
 					);
 				}
 			}
@@ -1034,13 +1093,16 @@ class GF_Personal_Data {
 	 */
 	public static function data_eraser( $email_address, $page = 1 ) {
 
+		self::log_debug( __METHOD__ . "(): Running data eraser for {$email_address}" );
+
 		$limit = 50;
 
 		$items_removed = $page == 1 ? self::erase_draft_submissions_data( $email_address ) : false;
 
 		$forms = self::get_forms();
 
-		$entries = self::get_entries( $email_address, $page, $limit );
+		// Always use page 1 because entries are erased at every page and won't be returned from the query. Page 1 will always have a new set of entries.
+		$entries = self::get_entries( $email_address, 1, $limit );
 
 		foreach ( $entries as $entry ) {
 
@@ -1070,6 +1132,9 @@ class GF_Personal_Data {
 
 					if ( $input_type == 'fileupload' ) {
 						GFFormsModel::delete_files( $entry['id'] );
+
+						self::log_debug( __METHOD__ . "(): Deleted files for entry #{$entry['id']}" );
+
 						GFAPI::update_entry_field( $entry['id'], $field->id, '' );
 						continue;
 					}
@@ -1082,6 +1147,9 @@ class GF_Personal_Data {
 
 					if ( is_array( $value ) ) {
 						self::erase_field_values( $value, $entry['id'], $field->id );
+
+						self::log_debug( __METHOD__ . "(): Erased field value for entry #{$entry['id']}, field id {$field->id}" );
+
 						$items_removed = true;
 					} else {
 						switch ( $input_type ) {
@@ -1103,6 +1171,9 @@ class GF_Personal_Data {
 								$anonymous = '';
 						}
 						GFAPI::update_entry_field( $entry['id'], $field->id, $anonymous );
+
+						self::log_debug( __METHOD__ . "(): Anonymized field value for entry #{$entry['id']}, field id {$field->id}" );
+
 						$items_removed = true;
 					}
 				}
@@ -1167,9 +1238,13 @@ class GF_Personal_Data {
 	 */
 	public static function get_draft_submissions( $email_address ) {
 
+		self::log_debug( __METHOD__ . '(): Getting Save and Continue forms' );
+
 		$draft_submissions = GFFormsModel::get_draft_submissions();
 
 		if ( empty( $draft_submissions ) ) {
+			self::log_debug( __METHOD__ . '(): No Save and Continue forms found' );
+
 			return array();
 		}
 
@@ -1219,6 +1294,9 @@ class GF_Personal_Data {
 	 * @return bool
 	 */
 	public static function erase_draft_submissions_data( $email_address ) {
+
+		self::log_debug( __METHOD__ . "(): Erasing Save and Continue data for {$email_address}" );
+
 		$items_removed = false;
 
 		$forms = self::get_forms();
@@ -1313,6 +1391,8 @@ class GF_Personal_Data {
 					if ( rgars( $custom_settings, 'erase' ) && isset( $custom_item_details['eraser_callback'] ) && is_callable( $custom_item_details['eraser_callback'] ) ) {
 						call_user_func( $custom_item_details['eraser_callback'], $form, $entry );
 						$items_removed = true;
+
+						self::log_debug( __METHOD__ . "(): Erased data for custom item {$custom_item_key}" );
 					}
 				}
 			}
@@ -1323,6 +1403,8 @@ class GF_Personal_Data {
 				$submission_json                = json_encode( $submission );
 				GFFormsModel::update_draft_submission( $resume_token, $form, $date_created, $draft_entry['ip'], $draft_entry['source_url'], $submission_json );
 				$items_removed = true;
+
+				self::log_debug( __METHOD__ . '(): Erased data for Save and Continue token ending with ' . substr( $resume_token, -8 ) );
 			}
 		}
 
@@ -1337,7 +1419,7 @@ class GF_Personal_Data {
 	 */
 	public static function cron_task() {
 
-		self::log_debug( __METHOD__ . '(): starting personal data cron task' );
+		self::log_debug( __METHOD__ . '(): Starting personal data cron task' );
 
 		$forms = self::get_forms();
 
@@ -1410,10 +1492,12 @@ class GF_Personal_Data {
 
 			$entry_ids = $query->from( $trash_form_ids )->where( $all_trash_conditions )->get_ids();
 
-			self::log_debug( __METHOD__ . '(): trashing entries: ' . join( ', ', $entry_ids ) );
+			self::log_debug( __METHOD__ . '(): Trashing entries: ' . join( ', ', $entry_ids ) );
 
 			foreach ( $entry_ids as $entry_id ) {
 				GFAPI::update_entry_property( $entry_id, 'status', 'trash' );
+
+				self::log_debug( __METHOD__ . "(): Moved entry #{$entry_id} to Trash" );
 			}
 		}
 
@@ -1425,7 +1509,7 @@ class GF_Personal_Data {
 
 			$entry_ids = $query->from( $delete_form_ids )->where( $all_delete_conditions )->get_ids();
 
-			self::log_debug( __METHOD__ . '(): deleting entries: ' . join( ', ', $entry_ids ) );
+			self::log_debug( __METHOD__ . '(): Deleting entries: ' . join( ', ', $entry_ids ) );
 
 			/**
 			 * Allows the array of entry IDs to be modified before automatically deleting according to the
@@ -1439,10 +1523,12 @@ class GF_Personal_Data {
 
 			foreach ( $entry_ids as $entry_id ) {
 				GFAPI::delete_entry( $entry_id );
+
+				self::log_debug( __METHOD__ . "(): Deleted entry #{$entry_id}" );
 			}
 		}
 
-		self::log_debug( __METHOD__ . '(): done' );
+		self::log_debug( __METHOD__ . '(): Done' );
 
 	}
 

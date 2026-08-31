@@ -11,6 +11,8 @@
 
 namespace Civi\Schema;
 
+use Civi\Core\Resolver;
+
 abstract class EntityMetadataBase implements EntityMetadataInterface {
 
   /**
@@ -27,6 +29,174 @@ abstract class EntityMetadataBase implements EntityMetadataInterface {
    */
   protected function getEntity(): array {
     return EntityRepository::getEntity($this->entityName);
+  }
+
+  public function getOptions(string $fieldName, array $values = [], bool $includeDisabled = FALSE, bool $checkPermissions = FALSE, ?int $userId = NULL, bool $isView = FALSE): ?array {
+    $field = \Civi::entity($this->entityName)->getField($fieldName);
+    $options = NULL;
+    $hookParams = [
+      'entity' => $this->entityName,
+      'context' => 'full',
+      'values' => $values,
+      'include_disabled' => $includeDisabled,
+      'check_permissions' => $checkPermissions,
+      'user_id' => $userId,
+      'is_view' => $isView,
+    ];
+    $field['pseudoconstant']['condition'] = (array) ($field['pseudoconstant']['condition'] ?? []);
+    if (!empty($field['pseudoconstant']['condition_provider'])) {
+      $this->addOptionConditionsFromProvider($fieldName, $field, $hookParams);
+    }
+    if ($checkPermissions && !empty($field['pseudoconstant']['table'])) {
+      $this->addOptionConditionsFromACL($field, $userId);
+    }
+    if (!empty($field['pseudoconstant']['option_group_name'])) {
+      $this->addOptionGroupParams($field);
+    }
+    if (!empty($field['pseudoconstant']['callback'])) {
+      $callbackValues = call_user_func(Resolver::singleton()->get($field['pseudoconstant']['callback']), $fieldName, $hookParams);
+      $options = self::formatOptionValues($callbackValues);
+    }
+    elseif (!empty($field['pseudoconstant']['table'])) {
+      $options = self::getSqlOptions($field, $includeDisabled);
+    }
+    elseif (\CRM_Utils_Schema::getDataType($field) === 'Boolean') {
+      $options = self::formatOptionValues(\CRM_Core_SelectValues::boolean());
+    }
+    $preHookOptions = $options;
+    // Allow hooks to alter or overwrite the option list
+    \CRM_Utils_Hook::fieldOptions($this->entityName, $fieldName, $options, $hookParams);
+    // If options were altered via hook, re-normalize the format
+    if ($preHookOptions !== $options && is_array($options)) {
+      $options = self::formatOptionValues($options);
+    }
+    return isset($options) ? array_values($options) : NULL;
+  }
+
+  private function addOptionConditionsFromACL(array &$field, ?int $userId): void {
+    $entity = \Civi::table($field['pseudoconstant']['table']);
+    $dao = $entity->getMeta('class');
+    if ($dao) {
+      $bao = \CRM_Core_DAO_AllCoreTables::getBAOClassName($dao);
+      $conditions = $bao::getSelectWhereClause($field['pseudoconstant']['table'], $entity->getMeta('name'), [], $userId);
+      foreach ($conditions as $condition) {
+        if ($condition) {
+          $field['pseudoconstant']['condition'][] = $condition;
+        }
+      }
+    }
+  }
+
+  private function addOptionConditionsFromProvider(string $fieldName, array &$field, array $hookParams) {
+    $fragment = \CRM_Utils_SQL_Select::fragment();
+    $callback = Resolver::singleton()->get($field['pseudoconstant']['condition_provider']);
+    $callback($fieldName, $fragment, $hookParams);
+    foreach ($fragment->getWhere() as $condition) {
+      $field['pseudoconstant']['condition'][] = $condition;
+    }
+    unset($field['pseudoconstant']['condition_provider']);
+  }
+
+  private function addOptionGroupParams(array &$field) {
+    $groupName = $field['pseudoconstant']['option_group_name'];
+    $groupId = (int) \CRM_Core_DAO::getFieldValue('CRM_Core_DAO_OptionGroup', $groupName, 'id', 'name');
+
+    $field['pseudoconstant']['table'] = 'civicrm_option_value';
+    $field['pseudoconstant']['condition'][] = "option_group_id = $groupId";
+
+    // Set default selectors (allowing for overrides)
+    $field['pseudoconstant'] += ['key_column' => 'value'];
+
+    $optionValueFields = \CRM_Core_BAO_OptionGroup::getOptionValueFields($groupName);
+    foreach ($optionValueFields as $optionValueField) {
+      $field['pseudoconstant'] += ["{$optionValueField}_column" => $optionValueField];
+    }
+  }
+
+  private function formatOptionValues(array $optionValues): array {
+    foreach ($optionValues as $id => $optionValue) {
+      if (!is_array($optionValue)) {
+        // Convert scalar values to array format
+        $optionValues[$id] = [
+          'id' => $id,
+          'name' => $id,
+          'label' => $optionValue,
+        ];
+      }
+      else {
+        // Ensure each option has a name and label
+        $optionValues[$id]['name'] ??= $optionValue['id'];
+        $optionValues[$id]['label'] ??= $optionValue['name'];
+      }
+    }
+    return $optionValues;
+  }
+
+  private function getSqlOptions(array $field, bool $includeDisabled = FALSE): array {
+    $pseudoconstant = $field['pseudoconstant'];
+    $cacheKey = 'EntityMetadataGetSqlOptions' . \CRM_Core_Config::domainID() . '_' . \CRM_Core_I18n::getLocale() . md5(json_encode($pseudoconstant));
+    $entity = \Civi::table($pseudoconstant['table']);
+    $cache = \Civi::cache('metadata');
+    $options = $cache->get($cacheKey);
+    if (!isset($options)) {
+      $options = [];
+      $fields = $entity->getSupportedFields();
+      $select = \CRM_Utils_SQL_Select::from($pseudoconstant['table']);
+      // Ensure key_column, name_column and label_column are set
+      $idCol = $pseudoconstant['key_column'] ?? $entity->getMeta('primary_key');
+      $pseudoconstant['name_column'] ??= (isset($fields['name']) ? 'name' : $idCol);
+      $pseudoconstant['label_column'] ??= $pseudoconstant['name_column'];
+      $select->select(["$idCol AS id"]);
+      foreach (array_keys(\CRM_Core_SelectValues::optionAttributes()) as $prop) {
+        if (isset($pseudoconstant["{$prop}_column"], $fields[$pseudoconstant["{$prop}_column"]])) {
+          $propColumn = $pseudoconstant["{$prop}_column"];
+          $select->select("`$propColumn` AS `$prop`");
+        }
+      }
+      // Select is_active for filtering
+      if (isset($fields['is_active'])) {
+        $select->select('`is_active`');
+      }
+      if (isset($fields['is_reserved'])) {
+        $select->select('`is_reserved`');
+      }
+      // Also component_id for filtering (this is legacy, the new way for extensions to add options is via hook)
+      if (isset($fields['component_id'])) {
+        $select->select('`component_id`');
+      }
+      // Order by: prefer order_column; or else 'weight' column; or else label_column; or as a last resort, $idCol
+      $orderColumns = array_filter([$pseudoconstant['order_column'] ?? NULL, 'weight', $pseudoconstant['label_column'] ?? NULL, $idCol]);
+      foreach ($orderColumns as $orderColumn) {
+        if (isset($fields[$orderColumn])) {
+          $select->orderBy($orderColumn);
+          break;
+        }
+      }
+      // Filter on domain, but only if field is required
+      if (!empty($fields['domain_id']['required'])) {
+        $select->where('`domain_id` = #dom', ['#dom' => \CRM_Core_Config::domainID()]);
+      }
+      if (!empty($pseudoconstant['condition'])) {
+        $select->where($pseudoconstant['condition']);
+      }
+      $result = $select->execute()->fetchAll();
+      foreach ($result as $option) {
+        if (\CRM_Utils_Schema::getDataType($fields[$idCol]) === 'Integer' || \CRM_Utils_Schema::getDataType($field) === 'Integer') {
+          $option['id'] = (int) $option['id'];
+        }
+        $options[$option['id']] = $option;
+      }
+      $cache->set($cacheKey, $options);
+    }
+    // Filter out disabled options
+    if (!$includeDisabled) {
+      foreach ($options as $id => $option) {
+        if ((isset($option['is_active']) && !$option['is_active']) || (!empty($option['component_id']) && !\CRM_Core_Component::isIdEnabled($option['component_id']))) {
+          unset($options[$id]);
+        }
+      }
+    }
+    return $options;
   }
 
   /**
@@ -49,7 +219,7 @@ abstract class EntityMetadataBase implements EntityMetadataInterface {
         $fieldName = $customGroup['name'] . '.' . $customField['name'];
         $field = [
           'title' => $customField['label'],
-          'sql_type' => \CRM_Core_BAO_CustomValueTable::fieldToSQLType($customField['data_type'], $customField['text_length']),
+          'sql_type' => \CRM_Core_BAO_CustomValueTable::fieldToSQLType($customField['data_type'], $customField['text_length'], !empty($customField['serialize']), $customField['fk_entity'] ?? NULL),
           'data_type' => \CRM_Core_BAO_CustomField::getDataTypeString($customField),
           'input_type' => $inputTypeMap[$customField['html_type']] ?? $customField['html_type'],
           'input_attrs' => [
@@ -66,6 +236,9 @@ abstract class EntityMetadataBase implements EntityMetadataInterface {
           'table_name' => $customGroup['table_name'],
           'column_name' => $customField['column_name'],
         ];
+        if ($customField['data_type'] === 'File') {
+          $field['input_attrs']['file_is_public'] = $customField['file_is_public'];
+        }
         if (empty($customField['is_view'])) {
           $field['usage'][] = 'import';
         }
@@ -113,15 +286,20 @@ abstract class EntityMetadataBase implements EntityMetadataInterface {
           $field['pseudoconstant'] = $addressField['pseudoconstant'];
         }
         // Set FK for EntityRef, ContactRef & File fields
-        if ($customField['fk_entity'] || $customField['data_type'] === 'ContactReference' || $customField['data_type'] === 'File') {
+        $fkEntity = \CRM_Core_BAO_CustomField::getFkEntity($customField);
+        if ($fkEntity) {
           $onDelete = empty($customField['fk_entity_on_delete']) ? 'SET NULL' : strtoupper(str_replace('_', ' ', $customField['fk_entity_on_delete']));
           $field['entity_reference'] = [
-            'entity' => $customField['fk_entity'] ?? str_replace('Reference', '', $customField['data_type']),
+            'entity' => $fkEntity,
             'key' => 'id',
             'on_delete' => $onDelete,
           ];
         }
         if ($customField['option_group_id']) {
+          // Options for Select, Radio, Checkbox
+          $field['pseudoconstant'] = [
+            'option_group_name' => \CRM_Core_DAO::getFieldValue('CRM_Core_DAO_OptionGroup', $customField['option_group_id']),
+          ];
           // Autocomplete-select
           if ($field['input_type'] === 'EntityRef') {
             $field['entity_reference'] = [
@@ -129,12 +307,8 @@ abstract class EntityMetadataBase implements EntityMetadataInterface {
               'key' => 'value',
             ];
             $field['input_attrs']['filter']['option_group_id'] = $customField['option_group_id'];
-          }
-          // Options for Select, Radio, Checkbox
-          else {
-            $field['pseudoconstant'] = [
-              'option_group_id' => $customField['option_group_id'],
-            ];
+            // Retain option list but don't prefetch since the widget is autocomplete
+            $field['pseudoconstant']['prefetch'] = 'disabled';
           }
         }
         $customFields[$fieldName] = $field;

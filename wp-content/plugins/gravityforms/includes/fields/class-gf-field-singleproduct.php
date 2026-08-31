@@ -93,12 +93,12 @@ class GF_Field_SingleProduct extends GF_Field {
 		$is_form_editor   = $this->is_form_editor();
 		$is_legacy_markup = GFCommon::is_legacy_markup_enabled( $form );
 
-		$id          = (int) $this->id;
-		$field_id    = $is_entry_detail || $is_form_editor || $form_id == 0 ? "input_$id" : 'input_' . $form_id . "_$id";
+		$id       = $this->id;
+		$field_id = $is_entry_detail || $is_form_editor || $form_id == 0 ? "input_$id" : 'input_' . $form_id . "_$id";
 
-		$product_name = ! is_array( $value ) || empty( $value[ $this->id . '.1' ] ) ? esc_attr( $this->label ) : esc_attr( $value[ $this->id . '.1' ] );
-		$price        = ! is_array( $value ) || empty( $value[ $this->id . '.2' ] ) ? $this->basePrice : esc_attr( $value[ $this->id . '.2' ] );
-		$quantity     = is_array( $value ) ? esc_attr( $value[ $this->id . '.3' ] ) : '';
+		$product_name = esc_attr( rgar( $value, $this->id . '.1' ) ?: $this->label );
+		$price        = rgar( $value, $this->id . '.2' ) ?: $this->basePrice;
+		$quantity     = esc_attr( rgar( $value, $this->id . '.3', '' ) );
 
 		if ( empty( $price ) ) {
 			$price = 0;
@@ -161,7 +161,7 @@ class GF_Field_SingleProduct extends GF_Field {
 					<input type='hidden' name='input_{$id}.1' value='{$product_name}' class='gform_hidden' />
 					$wrapper_open
 						<label for='ginput_base_price_{$form_id}_{$this->id}' class='gform-field-label gform-field-label--type-sub-large ginput_product_price_label'>" . gf_apply_filters( array( 'gform_product_price', $form_id, $this->id ), esc_html__( 'Price', 'gravityforms' ), $form_id ) . ":</label>
-						<input type='text' readonly class='ginput_product_price gform-text-input-reset' name='input_{$id}.2' id='ginput_base_price_{$form_id}_{$this->id}' class='gform_hidden' value='" . esc_attr( $price ) . "' aria-label='{$product_name} " . esc_html__( 'Price', 'gravityforms' ) . "' {$product_aria_describedby} />
+						<input type='text' readonly class='ginput_product_price gform-text-input-reset' name='input_{$id}.2' id='ginput_base_price_{$form_id}_{$this->id}' value='" . esc_attr( $price ) . "' aria-label='{$product_name} " . esc_html__( 'Price', 'gravityforms' ) . "' {$product_aria_describedby} />
 					$wrapper_close
 					{$quantity_field}
 				</div>";
@@ -182,13 +182,14 @@ class GF_Field_SingleProduct extends GF_Field {
 	 * Retrieve the field label.
 	 *
 	 * @since 2.5
+	 * @since 3.0 Made the params optional.
 	 *
 	 * @param bool   $force_frontend_label Should the frontend label be displayed in the admin even if an admin label is configured.
 	 * @param string $value                The field value. From default/dynamic population, $_POST, or a resumed incomplete submission.
 	 *
 	 * @return string
 	 */
-	public function get_field_label( $force_frontend_label, $value ) {
+	public function get_field_label( $force_frontend_label = true, $value = '' ) {
 		$field_label = parent::get_field_label( $force_frontend_label, $value );
 
 		// Checking the defined product name.
@@ -200,16 +201,30 @@ class GF_Field_SingleProduct extends GF_Field {
 			$label = esc_html( $field_label );
 		} else {
 			$product_quantity_sub_label = $this->get_product_quantity_label( $this->formId );
-			$label                      = '<span class="gform-field-label gfield_label_product">' . esc_html( $field_label ) . '</span>' . ' <span class="screen-reader-text">' . $product_quantity_sub_label . '</span>';
+			$label                      = '<span class="gfield_label_product">' . esc_html( $field_label ) . '</span>' . ' <span class="screen-reader-text">' . $product_quantity_sub_label . '</span>';
 		}
 		return $label;
 	}
 
-	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
+	/**
+	 * Format the entry value for display on the entry detail page and for the {all_fields} merge tag.
+	 *
+	 * @since 1.9
+	 * @since 2.9.29 Changed the second parameter $currency (string) to $entry (array).
+	 *
+	 * @param string|array $value    The field value.
+	 * @param array        $entry    The entry.
+	 * @param bool|false   $use_text When processing choice based fields should the choice text be returned instead of the value.
+	 * @param string       $format   The format requested for the location the merge is being used. Possible values: html, text or url.
+	 * @param string       $media    The location where the value will be displayed. Possible values: screen or email.
+	 *
+	 * @return string
+	 */
+	public function get_value_entry_detail( $value, $entry = array(), $use_text = false, $format = 'html', $media = 'screen' ) {
 		if ( is_array( $value ) && ! empty( $value ) ) {
-			$product_name = trim( $value[ $this->id . '.1' ] );
-			$price        = trim( $value[ $this->id . '.2' ] );
-			$quantity     = trim( $value[ $this->id . '.3' ] );
+			$product_name = trim( $value[ $this->id . '.1' ] ?? '' );
+			$price        = trim( $value[ $this->id . '.2' ] ?? '' );
+			$quantity     = trim( $value[ $this->id . '.3' ] ?? '' );
 
 			$product_details = $product_name;
 
@@ -218,10 +233,10 @@ class GF_Field_SingleProduct extends GF_Field {
 			}
 
 			if ( ! rgblank( $price ) ) {
-				$product_details .= ', ' . esc_html__( 'Price: ', 'gravityforms' ) . GFCommon::format_number( $price, 'currency', $currency );
+				$product_details .= ', ' . esc_html__( 'Price: ', 'gravityforms' ) . GFCommon::format_number( $price, 'currency', rgar( $entry, 'currency' ) );
 			}
 
-			return $product_details;
+			return wp_kses( $product_details, wp_kses_allowed_html( 'data' ) );
 		} else {
 			return '';
 		}
@@ -237,6 +252,48 @@ class GF_Field_SingleProduct extends GF_Field {
 
 		// Ensure the choices property is not an array to prevent issues with some features such as the conditional logic reset to default.
 		$this->choices = null;
+	}
+
+	/**
+	 * Prepares the value that will be hashed on form display as part of the state.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|array $value The default value.
+	 *
+	 * @return null|array
+	 */
+	public function get_values_for_state_hash( $value ) {
+		$id         = $this->id;
+		$input_1_id = "{$id}.1";
+		$input_2_id = "{$id}.2";
+		$price      = rgar( $value, $input_2_id, $this->basePrice );
+		if ( empty( $price ) ) {
+			$price = 0;
+		}
+
+		return array(
+			$input_1_id => rgar( $value, $input_1_id, $this->label ),
+			$input_2_id => GFCommon::to_number( $price ),
+		);
+	}
+
+	/**
+	 * Returns the value to use when the state is validated.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|array $value The submitted value.
+	 *
+	 * @return array
+	 */
+	public function get_value_for_state_validation( $value ) {
+		$key = $this->id . '.2';
+		if ( ! empty( $value[ $key ] ) ) {
+			$value[ $key ] = GFCommon::to_number( $value[ $key ] );
+		}
+
+		return $value;
 	}
 
 }

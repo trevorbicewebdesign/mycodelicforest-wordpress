@@ -64,6 +64,7 @@ return [
       'required' => TRUE,
       'description' => E::ts('Which Domain is this match entry for'),
       'add' => '3.0',
+      'default_callback' => ['CRM_Core_BAO_Domain', 'getDomainID'],
       'input_attrs' => [
         'label' => E::ts('Domain'),
       ],
@@ -104,7 +105,7 @@ return [
       'input_attrs' => [
         'label' => E::ts('Contact'),
         'filter' => [
-          'contact_type=Individual',
+          'contact_type' => 'Individual',
         ],
       ],
       'entity_reference' => [
@@ -175,7 +176,7 @@ return [
         'maxlength' => 32,
       ],
       'pseudoconstant' => [
-        'callback' => 'CRM_Standaloneusers_BAO_User::getTimeZones',
+        'callback' => ['CRM_Standaloneusers_BAO_User', 'getTimeZones'],
       ],
     ],
     'language' => [
@@ -188,7 +189,7 @@ return [
         'maxlength' => 5,
       ],
       'pseudoconstant' => [
-        'callback' => 'CRM_Standaloneusers_BAO_User::getPreferredLanguages',
+        'callback' => ['CRM_Standaloneusers_BAO_User', 'getPreferredLanguages'],
       ],
     ],
     'password_reset_token' => [

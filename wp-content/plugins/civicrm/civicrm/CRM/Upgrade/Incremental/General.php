@@ -28,26 +28,29 @@ class CRM_Upgrade_Incremental_General {
    * The point release will be dropped in recommendations unless it's .1 or
    * higher.
    */
-  const RECOMMENDED_PHP_VER = '8.3.0';
+  const RECOMMENDED_PHP_VER = '8.4.0';
 
   /**
    * The minimum recommended PHP version.
    *
    * A site running an earlier version will be told to upgrade.
    */
-  const MIN_RECOMMENDED_PHP_VER = '8.1.0';
+  const MIN_RECOMMENDED_PHP_VER = '8.2.0';
 
   /**
    * The minimum PHP version required to install Civi.
    */
-  const MIN_INSTALL_PHP_VER = '7.4.0';
+  const MIN_INSTALL_PHP_VER = '8.1.2';
 
   /**
    * The minimum recommended MySQL version.
    *
    * A site running an earlier version will be encouraged to upgrade.
+   *
+   * NOTE: When changing this, also update the target CiviCRM version in self::setPreUpgradeMessage
+   * (parm 4 of the 2nd message in that function).
    */
-  const MIN_RECOMMENDED_MYSQL_VER = '5.7';
+  const MIN_RECOMMENDED_MYSQL_VER = '8.0';
 
   /**
    * The minimum MySQL version required to install Civi.
@@ -58,6 +61,9 @@ class CRM_Upgrade_Incremental_General {
    * The minimum recommended MariaDB version.
    *
    * A site running an earlier version will be encouraged to upgrade.
+   *
+   * NOTE: When changing this, also update the target CiviCRM version in self::setPreUpgradeMessage
+   * (parm 4 of the 2nd message in that function).
    */
   const MIN_RECOMMENDED_MARIADB_VER = '10.4';
 
@@ -93,7 +99,7 @@ class CRM_Upgrade_Incremental_General {
         1 => $latestVer,
         2 => self::MIN_RECOMMENDED_MYSQL_VER . '+',
         3 => self::MIN_RECOMMENDED_MARIADB_VER . '+',
-        4 => '5.34' . '+',
+        4 => '6.23' . '+',
         5 => CRM_Utils_SQL::getDatabaseVersion(),
       ]);
       $preUpgradeMessage .= '</p>';
@@ -152,14 +158,12 @@ class CRM_Upgrade_Incremental_General {
   /**
    * Perform any message template updates. 5.0+.
    * @param $message
-   * @param $version
+   * @param $version version we are upgrading to
+   * @param $fromVer version we are upgrading from
    */
-  public static function updateMessageTemplate(&$message, $version) {
-    if (version_compare($version, 5.0, '<')) {
-      return;
-    }
+  public static function updateMessageTemplate(&$message, $version, $fromVer) {
     $messageObj = new CRM_Upgrade_Incremental_MessageTemplates($version);
-    $messages = $messageObj->getUpgradeMessages();
+    $messages = $messageObj->getUpgradeMessages($fromVer);
     if (empty($messages)) {
       return;
     }

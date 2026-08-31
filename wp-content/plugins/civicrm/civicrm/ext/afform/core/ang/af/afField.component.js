@@ -1,9 +1,10 @@
 (function(angular, $, _) {
-  var id = 0;
+  let afFieldId = 0;
   // Example usage: <div af-fieldset="myModel"><af-field name="do_not_email" /></div>
   angular.module('af').component('afField', {
     require: {
-      afFieldset: '^^afFieldset',
+      afForm: '?^^afForm',
+      afFieldset: '?^^afFieldset',
       afJoin: '?^^afJoin',
       afRepeatItem: '?^^afRepeatItem'
     },
@@ -13,24 +14,43 @@
       defn: '='
     },
     controller: function($scope, $element, crmApi4, $timeout) {
-      var ts = $scope.ts = CRM.ts('org.civicrm.afform'),
-        ctrl = this,
-        // Prefix used for SearchKit explicit joins
-        namePrefix = '',
-        // Either defn.options or chain select options loaded on-the-fly
-        fieldOptions = null;
+      const ts = $scope.ts = CRM.ts('org.civicrm.afform');
+      const ctrl = this;
+      // Prefix used for SearchKit explicit joins
+      let namePrefix = '';
+      // Either defn.options or chain select options loaded on-the-fly
+      let fieldOptions = null;
+      // "extra" fields do not belong to any entity.
+      let isExtra = false;
 
       // Attributes for each of the low & high date fields when using search_range
       this.inputAttrs = [];
 
-      this.$onInit = function() {
-        var closestController = $($element).closest('[af-fieldset],[af-join],[af-repeat-item]');
-        $scope.dataProvider = closestController.is('[af-repeat-item]') ? ctrl.afRepeatItem : ctrl.afJoin || ctrl.afFieldset;
-        $scope.fieldId = _.kebabCase(ctrl.fieldName) + '-' + id++;
+      this.$onInit = () => {
+        // "extra" fields initially have no fieldName
+        if (!this.fieldName) {
+          isExtra = true;
+          $scope.dataProvider = this.afForm;
+          this.fieldName = this.defn.name;
+        } else {
+          const closestController = $($element).closest('[af-fieldset],[af-join],[af-repeat-item]');
+          $scope.dataProvider = closestController.is('[af-repeat-item]') ? this.afRepeatItem : this.afJoin || this.afFieldset;
+        }
+        $scope.fieldId = _.kebabCase(this.fieldName) + '-' + afFieldId++;
 
-        $element.addClass('af-field-type-' + _.kebabCase(ctrl.defn.input_type));
+        $element.addClass('af-field-type-' + _.kebabCase(this.defn.input_type));
+
+        if (this.defn.input_attrs && this.defn.input_attrs.multiple) {
+          $element.addClass('af-field-type-multiple');
+        }
+
+        this.fkEntity = this.defn.fk_entity || null;
 
         if (this.defn.name !== this.fieldName) {
+          if (!this.defn.name) {
+            console.error('Missing field definition for: ' + this.fieldName);
+            return;
+          }
           namePrefix = this.fieldName.substr(0, this.fieldName.length - this.defn.name.length);
         }
 
@@ -42,7 +62,7 @@
 
         // Ensure boolean options are truly boolean
         if (this.defn.data_type === 'Boolean') {
-          if (fieldOptions) {
+          if (Array.isArray(fieldOptions)) {
             fieldOptions.forEach((option) => option.id = !!option.id);
           } else {
             fieldOptions = [{id: true, label: ts('Yes')}, {id: false, label: ts('No')}];
@@ -50,48 +70,51 @@
         }
 
         // is_primary field - watch others in this afRepeat block to ensure only one is selected
-        if (ctrl.fieldName === 'is_primary' && 'repeatIndex' in $scope.dataProvider) {
+        if (this.fieldName === 'is_primary' && 'repeatIndex' in $scope.dataProvider) {
           fieldOptions = [{id: true, label: ''}];
           $scope.$watch('dataProvider.afRepeat.getEntityController().getData()', function (items, prev) {
-            var index = $scope.dataProvider.repeatIndex;
+            const index = $scope.dataProvider.repeatIndex;
+
             // Set first item to primary if there isn't a primary
-            if (items && !index && !_.find(items, 'is_primary')) {
+            if (items && !index && !items.some((item) => item.is_primary)) {
               $scope.dataProvider.getFieldData().is_primary = true;
             }
+
             // Set this item to not primary if another has been selected
-            if (items && prev && items.length === prev.length && items[index].is_primary && prev[index].is_primary &&
-              _.filter(items, 'is_primary').length > 1
+            if (items && prev &&
+              items.length === prev.length &&
+              items[index].is_primary &&
+              prev[index].is_primary &&
+              items.filter((item) => item.is_primary).length > 1
             ) {
               $scope.dataProvider.getFieldData().is_primary = false;
             }
           }, true);
         }
 
-        // ChainSelect - watch control field & reload options as needed
-        if (ctrl.defn.input_type === 'ChainSelect') {
-          var controlField = namePrefix + ctrl.defn.input_attrs.control_field;
-          $scope.$watch('dataProvider.getFieldData()["' + controlField + '"]', function(val) {
-            // After switching option list, remove invalid options
-            function validateValue() {
-              var options = $scope.getOptions(),
-                value = $scope.dataProvider.getFieldData()[ctrl.fieldName];
-              if (_.isArray(value)) {
-                _.remove(value, function(item) {
-                  return !_.find(options, (option) => option.id == item);
-                });
-              } else {
-                if (value && !_.find(options, (option) => option.id == value)) {
-                  value = '';
-                }
-                // Hack: Because the option list changed, Select2 sometimes fails to update the value.
-                // Manual updates like this shouldn't be necessary with ngModel binding, but can't find a better fix yet:
-                // See https://lab.civicrm.org/dev/core/-/issues/5415
-                $('input[crm-ui-select]', $element).val(value).change();
-              }
+        // check for tokens in the default value
+        const tokens = this.afForm?.identifyTokens(this.defn.afform_default);
+        if (tokens && tokens.length) {
+          const calculateValueWatcher = $scope.$watchCollection(() => Object.values(this.afForm.getTokenValues(tokens)), () => {
+            if ($element[0].querySelector('.ng-touched')) {
+              // user has touched this input, stop calculating
+              calculateValueWatcher();
+              return;
             }
+            const calculatedValue = this.afForm.replaceTokens(this.defn.afform_default);
+            setValue(calculatedValue);
+          });
+        }
+
+
+        // ChainSelect - watch control field & reload options as needed
+        if (this.defn.input_type === 'ChainSelect' && this.defn.input_attrs.control_field) {
+          const controlField = namePrefix + this.defn.input_attrs.control_field;
+          $scope.$watch('dataProvider.getFieldData()["' + controlField + '"]', function(val) {
             if (val && (typeof val === 'number' || val.length)) {
               $('input[crm-ui-select]', $element).addClass('loading').prop('disabled', true);
-              var params = {
+              // Keep this list of params in-sync with `PageTokenCredential::getAllowedApi4Calls`
+              const params = {
                 name: ctrl.afFieldset.getFormName(),
                 modelName: ctrl.afFieldset.getName(),
                 fieldName: ctrl.fieldName,
@@ -99,49 +122,93 @@
                 values: $scope.dataProvider.getFieldData()
               };
               crmApi4('Afform', 'getOptions', params)
-                .then(function(data) {
+                .then((data) => {
                   $('input[crm-ui-select]', $element).removeClass('loading').prop('disabled', !data.length);
                   fieldOptions = data;
-                  validateValue();
                 });
             } else {
               fieldOptions = null;
-              validateValue();
             }
           }, true);
         }
 
+        // If the options are dynamic (chainselect, or conditional) then we need to watch them
+        // and validate the selected value(s) in case of any option changes
+        // Note: select2 sometimes fails to update when options are removed
+        // from underneath it, so we manually update that too
+        // @see https://lab.civicrm.org/dev/core/-/issues/5415
+        if (this.defn.input_type === 'ChainSelect' || (Array.isArray(fieldOptions) && fieldOptions.some((o) => o && o.if && o.if.length))) {
+          $scope.$watchCollection(() => $scope.getOptions().map((o) => o.id), () => this.validateValue());
+        }
+
+        // Dynamic foreign key
+        if (this.defn.input_type === 'EntityRef' && this.defn.dfk_entities && this.defn.input_attrs.control_field) {
+          const controlField = namePrefix + this.defn.input_attrs.control_field;
+          $scope.$watch('dataProvider.getFieldData()["' + controlField + '"]', (val) => {
+            if (val && val.length) {
+              if (Array.isArray(val)) {
+                this.fkEntity = this.defn.dfk_entities[val[0]];
+              } else {
+                this.fkEntity = this.defn.dfk_entities[val];
+              }
+            } else {
+              this.fkEntity = null;
+            }
+          });
+        }
+
         // Wait for parent controllers to initialize
-        $timeout(function() {
+        $timeout(() => {
+          initializeValue(true);
+          $scope.$watch('$parent.routeParams', setValueFromRouteParams);
+        });
+
+        // Sets field value dynamically based on route parameters
+        // Note: routeParams might come from the url, or they could be passed via a modal popup
+        function setValueFromRouteParams(routeParams) {
+          if (!routeParams) {
+            return;
+          }
           // Unique field name = entity_name index . join . field_name
-          var entityName = ctrl.afFieldset.getName(),
-            joinEntity = ctrl.afJoin ? ctrl.afJoin.entity : null,
-            uniquePrefix = '',
-            urlArgs = $scope.$parent.routeParams;
-          if (entityName) {
-            var index = ctrl.getEntityIndex();
+          const entityName = ctrl.afFieldset?.getName();
+          const joinEntity = ctrl.afJoin?.entity;
+          let uniquePrefix = '';
+          if (!isExtra && entityName) {
+            const index = ctrl.getEntityIndex();
             uniquePrefix = entityName + (index ? index + 1 : '') + (joinEntity ? '.' + joinEntity : '') + '.';
           }
           // Set default value from url with uniquePrefix + fieldName
-          if (urlArgs && ((uniquePrefix + ctrl.fieldName) in urlArgs)) {
-            setValue(urlArgs[uniquePrefix + ctrl.fieldName]);
+          if ((uniquePrefix + ctrl.fieldName) in routeParams) {
+            setValue(routeParams[uniquePrefix + ctrl.fieldName]);
           }
           // Set default value from url with fieldName only
-          else if (urlArgs && (ctrl.fieldName in urlArgs)) {
-            setValue(urlArgs[ctrl.fieldName]);
+          else if (ctrl.fieldName in routeParams) {
+            setValue(routeParams[ctrl.fieldName]);
           }
-          else if (ctrl.afFieldset.getStoredValue(ctrl.fieldName) !== undefined) {
+          else if (!isExtra && routeParams._s) {
+            setValue(ctrl.afFieldset.getSearchParamSetFieldValue(ctrl.fieldName));
+          }
+        }
+
+        function initializeValue(firstLoad) {
+          // Set default value if specified. Note that setValueFromUrl() will override this.
+          if (firstLoad && ctrl.afFieldset?.getStoredValue(ctrl.fieldName) !== undefined) {
             setValue(ctrl.afFieldset.getStoredValue(ctrl.fieldName));
           }
           // Set default value based on field defn
           else if ('afform_default' in ctrl.defn) {
-            setValue(ctrl.defn.afform_default);
+            if (ctrl.afForm?.identifyTokens(ctrl.defn.afform_default)) {
+              setValue(ctrl.afForm.replaceTokens(ctrl.defn.afform_default));
+            }
+            else {
+              setValue(ctrl.defn.afform_default);
+            }
           }
 
           if (ctrl.defn.search_range) {
             // Initialize value as object unless using relative date select
-            var initialVal = $scope.dataProvider.getFieldData()[ctrl.fieldName];
-            if (!_.isArray($scope.dataProvider.getFieldData()[ctrl.fieldName]) &&
+            const initialVal = $scope.dataProvider.getFieldData()[ctrl.fieldName];
+            if (!Array.isArray($scope.dataProvider.getFieldData()[ctrl.fieldName]) &&
               (ctrl.defn.input_type !== 'Select' || !ctrl.defn.is_date || initialVal === '{}')
             ) {
               $scope.dataProvider.getFieldData()[ctrl.fieldName] = {};
@@ -149,14 +216,20 @@
             // Initialize inputAttrs (only used for datePickers at the moment)
             if (ctrl.defn.is_date) {
               ctrl.inputAttrs.push(ctrl.defn.input_attrs || {});
-              for (var i = 1; i <= 2; ++i) {
-                var attrs = _.cloneDeep(ctrl.defn.input_attrs || {});
+              for (let i = 1; i <= 2; ++i) {
+                const attrs = _.cloneDeep(ctrl.defn.input_attrs || {});
                 attrs.placeholder = attrs['placeholder' + i];
                 attrs.timePlaceholder = attrs['timePlaceholder' + i];
                 ctrl.inputAttrs.push(attrs);
               }
             }
           }
+        }
+
+        // Reinitialize value when resetting form
+        $scope.$on('afFormReset', function() {
+          delete $scope.dataProvider.getFieldData()[ctrl.fieldName];
+          initializeValue(false);
         });
       };
 
@@ -176,13 +249,9 @@
 
         // if value is a number than change it to number
         if (Array.isArray(value)) {
-          var newValue = [];
-          value.forEach((v, index) => {
-            newValue[index] = correctValueType(v);
-          });
-          return newValue;
-        } else if (dataType === 'Integer') {
-          return +value;
+          return value.map((val) => correctValueType(val, dataType));
+        } else if (dataType === 'Integer' || dataType === 'Float') {
+          return Number(value);
         } else if (dataType === 'Boolean') {
           return (value == 1);
         }
@@ -192,7 +261,8 @@
       this.isMultiple = function() {
         return (
           (['Select', 'EntityRef', 'ChainSelect'].includes(ctrl.defn.input_type) && ctrl.defn.input_attrs.multiple) ||
-          (ctrl.defn.input_type === 'CheckBox' && ctrl.defn.data_type !== 'Boolean')
+          ((ctrl.defn.input_type === 'CheckBox' || ctrl.defn.input_type === 'Toggle') && ctrl.defn.data_type !== 'Boolean') ||
+          ((ctrl.defn.input_type === 'Hidden' || ctrl.defn.input_type === 'DisplayOnly') && (ctrl.defn.serialize || ctrl.defn.data_type === 'Array'))
         );
       };
 
@@ -202,13 +272,26 @@
         if (typeof value === 'string' && ctrl.isMultiple()) {
           value = value.split(',');
         }
+        // When reloading values for fields with operators, the stored value is an object "operator"
+        if (typeof value === 'object' && value !== null && ctrl.search_operator) {
+          // if the operator is a user select, load from the passed value
+          // (we expect the value to be an Object with a single key)
+          if (ctrl.defn.expose_operator) {
+            ctrl.search_operator = Object.keys(value)[0];
+          }
+          value = value[ctrl.search_operator] ? value[ctrl.search_operator] : null;
+        }
+        // Support "Select Current User" default
+        if (ctrl.defn.input_type === 'EntityRef' && ['Contact', 'Individual'].includes(ctrl.fkEntity) && value === 'user_contact_id') {
+          value = CRM.config.cid;
+        }
         // correct the value type
         if (ctrl.defn.input_type !== 'DisplayOnly') {
           value = correctValueType(value, ctrl.defn.data_type);
         }
 
         if (ctrl.defn.input_type === 'Date' && typeof value === 'string' && value.startsWith('now')) {
-          value = getRelativeDate(value);
+          value = getRelativeDate(value, ctrl.defn.input_attrs.time);
         }
         if (ctrl.defn.input_type === 'Number' && ctrl.defn.search_range) {
           if (!_.isPlainObject(value)) {
@@ -218,12 +301,12 @@
             };
           }
         } else if (ctrl.defn.input_type === 'Number') {
-          value = +value;
+          value = Number(value);
         }
         // Initialze search range unless the field also has options (as in a date search) and
         // the default value is a valid option.
         else if (ctrl.defn.search_range && !_.isPlainObject(value) &&
-          !(ctrl.defn.options && _.findWhere(ctrl.defn.options, {id: value}))
+          !(ctrl.defn.options && ctrl.defn.options.some((option) => option.id === value))
         ) {
           value = {
             '>=': ('' + value).split('-')[0],
@@ -244,8 +327,8 @@
       };
 
       ctrl.isReadonly = function() {
-        if (ctrl.defn.input_attrs && ctrl.defn.input_attrs.autofill) {
-          return ctrl.afFieldset.getEntity().actions[ctrl.defn.input_attrs.autofill] === false;
+        if (!isExtra && ctrl.defn.input_attrs && ctrl.defn.input_attrs.autofill && !ctrl.afJoin) {
+          return ctrl.afFieldset.getEntity()?.actions?.[ctrl.defn.input_attrs.autofill] === false;
         }
         // TODO: Not actually used, but could be used if we wanted to render displayOnly
         // fields as more than just raw data. I think we probably ought to do so for entityRef fields
@@ -254,9 +337,55 @@
         return ctrl.defn.input_type === 'DisplayOnly';
       };
 
+      ctrl.isDisabled = function() {
+        if (ctrl.isReadonly()) {
+          return true;
+        }
+        return ctrl.defn.input_type === 'EntityRef' && !ctrl.fkEntity;
+      };
+
+      ctrl.getDisplayValue = function(value) {
+        if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)) {
+          return '';
+        }
+        if (Array.isArray(fieldOptions)) {
+          let keys = Array.isArray(value) ? value : [value];
+          let options = fieldOptions.filter((option) => keys.includes(option.id));
+          return options.map((option) => option.label).join(', ');
+        }
+        if (ctrl.defn.data_type === 'Date' || ctrl.defn.data_type === 'Timestamp') {
+          try {
+            return CRM.utils.formatDate(value, null, ctrl.defn.data_type === 'Timestamp');
+          } catch (e) {
+            return '';
+          }
+        }
+        if (ctrl.fkEntity) {
+          // EntityRef fields: fetch label via API if not already present
+          // This is async, so we return a placeholder and update later
+          const ids = Array.isArray(value) ? value : [value];
+          if (!ctrl._entityLabels) {
+            ctrl._entityLabels = {};
+          }
+          // Call autocomplete api
+          if (!(ids.join() in ctrl._entityLabels)) {
+            ctrl._entityLabels[ids.join()] = null;
+            const params = ctrl.getAutocompleteParams();
+            params.ids = ids;
+            crmApi4(ctrl.fkEntity, 'autocomplete', params)
+              .then((result) => {
+                // Join all labels
+                ctrl._entityLabels[ids.join()] = result.map((item) => item.label).join(', ');
+              });
+          }
+          return ctrl._entityLabels[ids.join()] || ts('Loading...');
+        }
+        return value;
+      };
+
       // ngChange callback from Existing entity field
       ctrl.onSelectEntity = function() {
-        if (ctrl.defn.input_attrs && ctrl.defn.input_attrs.autofill) {
+        if (ctrl.afForm && ctrl.defn.input_attrs && ctrl.defn.input_attrs.autofill) {
           const val = $scope.getSetSelect();
           const entity = ctrl.afFieldset.modelName;
           const entityIndex = ctrl.getEntityIndex();
@@ -278,9 +407,9 @@
       };
 
       ctrl.getAutocompleteParams = function() {
-        let fieldName = ctrl.afFieldset.getName();
+        let fieldName = isExtra ? 'extra' : ctrl.afFieldset.getName();
         // Append join name which will be unpacked by AfformAutocompleteSubscriber::processAfformAutocomplete
-        if (ctrl.afJoin) {
+        if (!isExtra && ctrl.afJoin) {
           fieldName += '+' + ctrl.afJoin.entity;
         }
         fieldName += ':' + ctrl.fieldName;
@@ -291,8 +420,45 @@
         };
       };
 
-      $scope.getOptions = function () {
-        return fieldOptions;
+      $scope.getOptions = () => {
+        // field options is sometimes set to null
+        if (!Array.isArray(fieldOptions)) {
+          return [];
+        }
+
+        // check and evaluate any conditionals if present
+        return fieldOptions.filter((opt) => {
+          if (!opt.if || !opt.if.length) return true;
+          try {
+            return this.afForm.checkConditions(opt.if);
+          } catch (e) {
+            // Permissive: misconfigured rule => visible. Server-side checks
+            // are still authoritative.
+            console.warn('[afField] `if` evaluation failed for option', opt.id, e);
+            return true;
+          }
+        });
+      };
+
+      this.validateValue = () => {
+        const current = $scope.dataProvider.getFieldData()[this.fieldName];
+        const options = $scope.getOptions().map((o) => o.id);
+
+        if (Array.isArray(current)) {
+          // Remove any invalid options from value array
+          const valid = current.filter((v) => options.includes(v));
+          // If any options were removed, update the model and input
+          if (valid.length < current.length) {
+            $scope.dataProvider.getFieldData()[this.fieldName] = valid;
+            $('input[crm-ui-select]', $element).val(valid).change();
+          }
+        } else {
+          // Unset single value if invalid
+          if (!options.includes(current)) {
+            $('input[crm-ui-select]', $element).val('').change();
+            delete $scope.dataProvider.getFieldData()[this.fieldName];
+          }
+        }
       };
 
       $scope.select2Options = function() {
@@ -309,7 +475,7 @@
 
       // Getter/Setter function for most fields (except select & entityRef)
       $scope.getSetValue = function(val) {
-        var currentVal = $scope.dataProvider.getFieldData()[ctrl.fieldName];
+        const currentVal = $scope.dataProvider.getFieldData()[ctrl.fieldName];
         // Setter
         if (arguments.length) {
           if (ctrl.search_operator) {
@@ -329,7 +495,7 @@
 
       // Getter/Setter function for fields of type select or entityRef.
       $scope.getSetSelect = function(val) {
-        var currentVal = $scope.dataProvider.getFieldData()[ctrl.fieldName];
+        const currentVal = $scope.dataProvider.getFieldData()[ctrl.fieldName];
         // Setter - transform raw string/array from Select2 into correct data type
         if (arguments.length) {
           if (ctrl.defn.is_date) {
@@ -351,8 +517,12 @@
           if (ctrl.defn.data_type === 'Boolean') {
             return ($scope.dataProvider.getFieldData()[ctrl.fieldName] = (val === 'true'));
           }
-          if (ctrl.defn.data_type === 'Integer' && typeof val === 'string') {
-            return ($scope.dataProvider.getFieldData()[ctrl.fieldName] = val.length ? +val : null);
+          if (ctrl.defn.data_type === 'Integer' || ctrl.defn.data_type === 'Float') {
+            if (typeof val === 'string') {
+              return ($scope.dataProvider.getFieldData()[ctrl.fieldName] = val.length ? Number(val) : null);
+            } else if (Array.isArray(val)) {
+              return ($scope.dataProvider.getFieldData()[ctrl.fieldName] = val.map(Number));
+            }
           }
           return ($scope.dataProvider.getFieldData()[ctrl.fieldName] = val);
         }
@@ -374,7 +544,7 @@
         return currentVal;
       };
 
-      function getRelativeDate(dateString) {
+      function getRelativeDate(dateString, includeTime) {
         const parts = dateString.split(' ');
         const baseDate = new Date();
         let unit = parts[2] || 'day';
@@ -389,7 +559,15 @@
             offset *= 365;
         }
         let newDate = new Date(baseDate.getTime() + offset * 24 * 60 * 60 * 1000);
-        return newDate.toISOString().split('T')[0];
+        let localYear = newDate.getFullYear();
+        let localMonth = String(newDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+        let localDay = String(newDate.getDate()).padStart(2, '0');
+        let defaultDate = `${localYear}-${localMonth}-${localDay}`; // Format YYYY-MM-DD
+
+        if (includeTime) {
+          defaultDate += ' ' + newDate.toTimeString().slice(0,8);
+        }
+        return defaultDate;
       }
 
     }

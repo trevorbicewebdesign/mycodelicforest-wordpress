@@ -147,14 +147,21 @@ class CRM_Core_BAO_ConfigSetting {
     // Grab session reference.
     $session = CRM_Core_Session::singleton();
 
-    // Set flag for multi-language setup.
-    $multiLang = (bool) $activatedLocales;
-
     // Initialise the default and chosen locales.
     $defaultLocale = $settings->get('lcMessages');
     $chosenLocale = NULL;
 
+    // Parse multi lang locales
+    $multiLangLocales = $activatedLocales ? explode(CRM_Core_DAO::VALUE_SEPARATOR, $activatedLocales) : NULL;
+
+    // On multilang, defaultLocale should be one of the activated locales
+    if ($multiLangLocales && !in_array($defaultLocale, $multiLangLocales)) {
+      $defaultLocale = NULL;
+    }
+
     // When there is a choice of permitted languages.
+    // Why would this be different from the locales?
+    // @see https://github.com/civicrm/civicrm-core/pull/30533#discussion_r1756400531
     $permittedLanguages = CRM_Core_I18n::uiLanguages(TRUE);
     if (count($permittedLanguages) >= 2) {
 
@@ -185,7 +192,7 @@ class CRM_Core_BAO_ConfigSetting {
          * many cases returns nothing if $dbLocale is not set, so set it to the
          * default - even if it's overridden later.
          */
-        $dbLocale = $multiLang && $defaultLocale ? "_{$defaultLocale}" : '';
+        $dbLocale = $multiLangLocales && $defaultLocale ? "_{$defaultLocale}" : '';
 
         // Retrieve locale as reported by CMS.
         $cmsLocale = CRM_Utils_System::getUFLocale();
@@ -194,10 +201,9 @@ class CRM_Core_BAO_ConfigSetting {
         }
 
         // Clear chosen locale if not activated in multi-language CiviCRM.
-        if ($activatedLocales && !in_array($chosenLocale, explode(CRM_Core_DAO::VALUE_SEPARATOR, $activatedLocales))) {
+        if ($multiLangLocales && !in_array($chosenLocale, $multiLangLocales)) {
           $chosenLocale = NULL;
         }
-
       }
 
       // Assign the system default if the chosen locale hasn't been set.
@@ -222,7 +228,7 @@ class CRM_Core_BAO_ConfigSetting {
      * Set suffix for table names in multi-language installs.
      * Use views if more than one language.
      */
-    $dbLocale = $multiLang && $chosenLocale ? "_{$chosenLocale}" : '';
+    $dbLocale = $multiLangLocales && $chosenLocale ? "_{$chosenLocale}" : '';
 
     // FIXME: an ugly hack to fix CRM-4041.
     $tsLocale = $chosenLocale;
@@ -235,67 +241,6 @@ class CRM_Core_BAO_ConfigSetting {
       mb_internal_encoding('UTF-8');
     }
 
-  }
-
-  /**
-   * @param array $defaultValues
-   *
-   * @return string
-   * @throws Exception
-   */
-  public static function doSiteMove($defaultValues = []) {
-    $moveStatus = ts('Beginning site move process...') . '<br />';
-    $settings = Civi::settings();
-
-    foreach (array_merge(self::getPathSettings(), self::getUrlSettings()) as $key) {
-      $value = $settings->get($key);
-      if ($value && $value != $settings->getDefault($key)) {
-        if ($settings->getMandatory($key) === NULL) {
-          $settings->revert($key);
-          $moveStatus .= ts("WARNING: The setting (%1) has been reverted.", [
-            1 => $key,
-          ]);
-          $moveStatus .= '<br />';
-        }
-        else {
-          $moveStatus .= ts("WARNING: The setting (%1) is overridden and could not be reverted.", [
-            1 => $key,
-          ]);
-          $moveStatus .= '<br />';
-        }
-      }
-    }
-
-    $config = CRM_Core_Config::singleton();
-
-    // clear the template_c and upload directory also
-    $config->cleanup(3, TRUE);
-    $moveStatus .= ts('Template cache and upload directory have been cleared.') . '<br />';
-
-    // clear all caches
-    CRM_Core_Config::clearDBCache();
-    Civi::cache('session')->clear();
-    $moveStatus .= ts('Database cache tables cleared.') . '<br />';
-
-    $resetSessionTable = CRM_Utils_Request::retrieve('resetSessionTable',
-      'Boolean',
-      CRM_Core_DAO::$_nullArray,
-      FALSE,
-      FALSE
-    );
-    if ($config->userSystem->is_drupal &&
-      $resetSessionTable
-    ) {
-      db_query("DELETE FROM {sessions} WHERE 1");
-      $moveStatus .= ts('Drupal session table cleared.') . '<br />';
-    }
-    else {
-      $session = CRM_Core_Session::singleton();
-      $session->reset(2);
-      $moveStatus .= ts('Session has been reset.') . '<br />';
-    }
-
-    return $moveStatus;
   }
 
   /**
@@ -394,7 +339,6 @@ class CRM_Core_BAO_ConfigSetting {
       'localeCustomStrings',
       'autocompleteContactSearch',
       'autocompleteContactReference',
-      'checksumTimeout',
       'checksum_timeout',
     ];
   }

@@ -24,6 +24,7 @@ class CRM_Batch_Page_AJAX {
    * Save record.
    */
   public static function batchSave() {
+    CRM_Core_Page_AJAX::validateAjaxRequestMethod();
     // save the entered information in 'data' column
     $batchId = CRM_Utils_Type::escape($_POST['batch_id'], 'Positive');
 
@@ -38,6 +39,7 @@ class CRM_Batch_Page_AJAX {
    * @deprecated
    */
   public static function getBatchList() {
+    CRM_Core_Page_AJAX::validateAjaxRequestMethod();
     $context = CRM_Utils_Request::retrieve('context', 'Alphanumeric');
     if ($context != 'financialBatch') {
       $sortMapper = [
@@ -63,7 +65,7 @@ class CRM_Batch_Page_AJAX {
     $offset = isset($_REQUEST['iDisplayStart']) ? CRM_Utils_Type::escape($_REQUEST['iDisplayStart'], 'Integer') : 0;
     $rowCount = isset($_REQUEST['iDisplayLength']) ? CRM_Utils_Type::escape($_REQUEST['iDisplayLength'], 'Integer') : 25;
     $sort = isset($_REQUEST['iSortCol_0']) ? CRM_Utils_Array::value(CRM_Utils_Type::escape($_REQUEST['iSortCol_0'], 'Integer'), $sortMapper) : NULL;
-    $sortOrder = isset($_REQUEST['sSortDir_0']) ? CRM_Utils_Type::escape($_REQUEST['sSortDir_0'], 'String') : 'asc';
+    $sortOrder = isset($_REQUEST['sSortDir_0']) ? CRM_Utils_Type::escape($_REQUEST['sSortDir_0'], 'MysqlOrderByDirection') : 'asc';
 
     $params = $_REQUEST;
     if ($sort && $sortOrder) {

@@ -20,7 +20,7 @@
 <div class="crm-content-block crm-block">
   {if $action ne 1 and $action ne 2}
     <div class="action-link">
-      <a href="{crmURL q="action=add&reset=1"}" id="newFinancialAccount-top" class="button"><span><i class="crm-i fa-plus-circle" aria-hidden="true"></i> {ts}Add Financial Account{/ts}</span></a>
+      <a href="{crmURL q="action=add&reset=1"}" id="newFinancialAccount-top" class="button"><span><i class="crm-i fa-plus-circle" role="img" aria-hidden="true"></i> {ts}Add Financial Account{/ts}</span></a>
     </div>
   {/if}
 
@@ -46,8 +46,8 @@
         </thead>
         {foreach from=$rows item=row}
         <tr id="financial_account-{$row.id}" class="crm-entity {cycle values="odd-row,even-row"} {if !empty($row.class)}{$row.class}{/if}{if NOT $row.is_active} disabled{/if}">
-          <td class="crm-editable" data-field="name">{$row.name}</td>
-          <td class="crm-editable" data-field="description" data-type="textarea">{if !empty($row.description)}{$row.description}{/if}</td>
+          <td class="crm-editable" data-field="label">{$row.label|escape}</td>
+          <td class="crm-editable" data-field="description" data-type="textarea">{if !empty($row.description)}{$row.description|escape}{/if}</td>
           <td class="crm-editable" data-field="accounting_code">{$row.accounting_code}</td>
           <td>{$row.financial_account_type_id}{if $row.account_type_code} ({$row.account_type_code}){/if}</td>
           <td>{if $row.is_deductible eq 1} {ts}Yes{/ts} {else} {ts}No{/ts} {/if}</td>
@@ -62,7 +62,7 @@
 
       {if $action ne 1 and $action ne 2}
         <div class="action-link">
-          <a href="{crmURL q="action=add&reset=1"}" id="newFinancialAccount-bottom" class="button"><span><i class="crm-i fa-plus-circle" aria-hidden="true"></i> {ts}Add Financial Account{/ts}</span></a>
+          <a href="{crmURL q="action=add&reset=1"}" id="newFinancialAccount-bottom" class="button"><span><i class="crm-i fa-plus-circle" role="img" aria-hidden="true"></i> {ts}Add Financial Account{/ts}</span></a>
         </div>
       {/if}
       </div>

@@ -210,35 +210,15 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
    */
   public function setDefaultValues() {
     $this->_defaults = parent::setDefaultValues();
-    $targetContactValues = [];
-    foreach ($this->_caseId as $key => $val) {
-      //get all clients.
-      $clients = CRM_Case_BAO_Case::getContactNames($val);
-      if (isset($this->_activityId) && empty($_POST)) {
-        if (!CRM_Utils_Array::crmIsEmptyArray($this->_defaults['target_contact'])) {
-          $targetContactValues = array_combine(array_unique($this->_defaults['target_contact']),
-            explode(';', trim($this->_defaults['target_contact_value']))
-          );
-          //exclude all clients.
-          foreach ($clients as $clientId => $vals) {
-            if (array_key_exists($clientId, $targetContactValues)) {
-              unset($targetContactValues[$clientId]);
-            }
-          }
-        }
+    if (empty($this->_defaults['medium_id'])) {
+      // set default encounter medium CRM-4816
+      $medium = CRM_Core_OptionGroup::values('encounter_medium', FALSE, FALSE, FALSE, 'AND is_default = 1');
+      if (count($medium) == 1) {
+        $this->_defaults['medium_id'] = key($medium);
       }
-      $this->assign('targetContactValues', empty($targetContactValues) ? FALSE : $targetContactValues);
-
-      if (empty($this->_defaults['medium_id'])) {
-        // set default encounter medium CRM-4816
-        $medium = CRM_Core_OptionGroup::values('encounter_medium', FALSE, FALSE, FALSE, 'AND is_default = 1');
-        if (count($medium) == 1) {
-          $this->_defaults['medium_id'] = key($medium);
-        }
-      }
-
-      return $this->_defaults;
     }
+
+    return $this->_defaults;
   }
 
   public function buildQuickForm() {
@@ -384,12 +364,6 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
         $statusMsg = ts("Selected Activity cannot be deleted.");
       }
 
-      $tagParams = [
-        'entity_table' => 'civicrm_activity',
-        'entity_id' => $this->_activityId,
-      ];
-      CRM_Core_BAO_EntityTag::del($tagParams);
-
       CRM_Core_Session::setStatus('', $statusMsg, 'info');
       return;
     }
@@ -419,7 +393,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     $params['activity_type_id'] = $this->_activityTypeId;
 
     // format with contact (target contact) values
-    if (isset($params['target_contact_id'])) {
+    if (!empty($params['target_contact_id'])) {
       $params['target_contact_id'] = explode(',', $params['target_contact_id']);
     }
     else {
@@ -428,27 +402,8 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
 
     // format activity custom data
     if ($this->_activityId) {
-      // retrieve and include the custom data of old Activity
-      $oldActivity = civicrm_api3('Activity', 'getsingle', ['id' => $this->_activityId]);
-      $params = array_merge($oldActivity, $params);
-
-      // unset custom fields-id from params since we want custom
-      // fields to be saved for new activity.
-      foreach ($params as $key => $value) {
-        $match = [];
-        if (preg_match('/^(custom_\d+_)(\d+)$/', $key, $match)) {
-          $params[$match[1] . '-1'] = $params[$key];
-
-          // for autocomplete transfer hidden value instead of label
-          if ($params[$key] && isset($params[$key . '_id'])) {
-            $params[$match[1] . '-1_id'] = $params[$key . '_id'];
-            unset($params[$key . '_id']);
-          }
-          unset($params[$key]);
-        }
-      }
+      $params['id'] = $this->_activityId;
     }
-
     $params['custom'] = CRM_Core_BAO_CustomField::postProcess($params,
       $this->_activityId,
       'Activity'
@@ -491,6 +446,10 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
         $params['case_id'] = $val;
         // activity create/update
         $activity = CRM_Activity_BAO_Activity::create($params);
+
+        // check and attach and files as needed
+        CRM_Core_BAO_File::processAttachment($params, 'civicrm_activity', $activity->id);
+
         $vvalue[] = ['case_id' => $val, 'actId' => $activity->id];
         // call end post process, after the activity has been created/updated.
         $this->endPostProcess($params, $activity);
@@ -519,6 +478,10 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
       foreach ($this->_caseId as $key => $val) {
         $newActParams['case_id'] = $val;
         $activity = CRM_Activity_BAO_Activity::create($newActParams);
+
+        // check and attach and files as needed
+        CRM_Core_BAO_File::processAttachment($newActParams, 'civicrm_activity', $activity->id);
+
         $vvalue[] = ['case_id' => $val, 'actId' => $activity->id];
         // call end post process, after the activity has been created/updated.
         $this->endPostProcess($newActParams, $activity);
@@ -551,8 +514,8 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
         CRM_Core_BAO_EntityTag::create($tagParams, 'civicrm_activity', $vval['actId']);
 
         //save free tags
-        if (isset($params['taglist']) && !empty($params['taglist'])) {
-          CRM_Core_Form_Tag::postProcess($params['taglist'], $vval['actId'], 'civicrm_activity', $this);
+        if (isset($params['activity_taglist']) && !empty($params['activity_taglist'])) {
+          CRM_Core_Form_Tag::postProcess($params['activity_taglist'], $vval['actId'], 'civicrm_activity', $this);
         }
       }
 

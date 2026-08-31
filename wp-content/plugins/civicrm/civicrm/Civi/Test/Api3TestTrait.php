@@ -22,7 +22,7 @@ trait Api3TestTrait {
    *
    * @return array
    */
-  public function versionThreeAndFour() {
+  public static function versionThreeAndFour() {
     return [
       'APIv3' => [3],
       'APIv4' => [4],
@@ -99,7 +99,7 @@ trait Api3TestTrait {
    * @param string $prefix
    *   Extra test to add to message.
    */
-  public function assertAPISuccess($apiResult, $prefix = '') {
+  public function assertAPISuccess($apiResult, $prefix = ''): void {
     if (!empty($prefix)) {
       $prefix .= ': ';
     }
@@ -122,10 +122,9 @@ trait Api3TestTrait {
    * @param array $params
    * @param string $expectedErrorMessage
    *   Error.
-   * @param null $extraOutput
-   * @return array|int
+   * @return array
    */
-  public function callAPIFailure($entity, $action, $params = [], $expectedErrorMessage = NULL, $extraOutput = NULL) {
+  public function callAPIFailure($entity, $action, $params = [], $expectedErrorMessage = NULL): array {
     if (is_array($params)) {
       $params += [
         'version' => $this->_apiversion,
@@ -188,6 +187,26 @@ trait Api3TestTrait {
     $result = $this->civicrm_api($entity, $action, $params);
     $this->assertAPISuccess($result, "Failure in api call for $entity $action");
     return $result;
+  }
+
+  /**
+   * Wrapper for call api success with version 3.
+   *
+   * The intent here is to make the intention that the api call targets apiV3 explicit (ie
+   * when testing apiV3 functions). This will allow us to start setting the default api version
+   * at the class level to 4, even for classes in the api test suite but explicitly marking those
+   * that should remain at v3.
+   *
+   * @param string $entity
+   * @param string $action
+   * @param array $params
+   * @param int|array|null $checkAgainst
+   *
+   * @return array|int
+   */
+  public function callApiV3Success(string $entity, string $action, array $params = [], int|array|null $checkAgainst = NULL): array|int {
+    $params['version'] = 3;
+    return $this->callAPISuccess($entity, $action, $params, $checkAgainst);
   }
 
   /**
@@ -261,18 +280,12 @@ trait Api3TestTrait {
    *
    * @param string $entity
    * @param array $params
-   * @param string $type
-   *   Per http://php.net/manual/en/function.gettype.php possible types.
-   *   - boolean
-   *   - integer
-   *   - double
-   *   - string
-   *   - array
-   *   - object
+   * @param string|null $type
+   *   Only 'integer' is supported
    *
-   * @return array|int
+   * @return mixed
    */
-  public function callAPISuccessGetValue($entity, $params, $type = NULL) {
+  public function callAPISuccessGetValue(string $entity, array $params, ?string $type = NULL): mixed {
     $params += [
       'version' => $this->_apiversion,
     ];
@@ -283,10 +296,10 @@ trait Api3TestTrait {
     if ($type) {
       if ($type === 'integer') {
         // api seems to return integers as strings
-        $this->assertTrue(is_numeric($result), "expected a numeric value but got " . print_r($result, 1));
+        $this->assertIsNumeric($result, "expected a numeric value but got " . print_r($result, 1));
       }
       else {
-        $this->assertType($type, $result, "returned result should have been of type $type but was ");
+        $this->fail("Unsupported type '$type' for callAPISuccessGetValue");
       }
     }
     return $result;
@@ -295,12 +308,13 @@ trait Api3TestTrait {
   /**
    * A stub for the API interface. This can be overriden by subclasses to change how the API is called.
    *
-   * @param $entity
-   * @param $action
+   * @param string $entity
+   * @param string $action
    * @param array $params
-   * @return array|int
+   * @return mixed
+   * @throws \CRM_Core_Exception
    */
-  public function civicrm_api($entity, $action, $params = []) {
+  public function civicrm_api(string $entity, string $action, array $params = []): mixed {
     if (($params['version'] ?? 0) == 4) {
       return $this->runApi4Legacy($entity, $action, $params);
     }
@@ -338,7 +352,7 @@ trait Api3TestTrait {
     $chains = $custom = [];
     foreach ($v3Params as $key => $val) {
       foreach ($toRemove as $remove) {
-        if (strpos($key, $remove) === 0) {
+        if (str_starts_with($key, $remove)) {
           if ($remove == 'api.') {
             $chains[$key] = $val;
           }
@@ -403,11 +417,12 @@ trait Api3TestTrait {
         }
       }
       // Convert custom field names
-      if (strpos($name, 'custom_') === 0 && is_numeric($name[7])) {
-        // Strictly speaking, using titles instead of names is incorrect, but it works for
-        // unit tests where names and titles are identical and saves an extra db lookup.
-        $custom[$field['groupTitle']][$field['title']] = $name;
-        $v4FieldName = $field['groupTitle'] . '.' . $field['title'];
+      if (str_starts_with($name, 'custom_') && is_numeric($name[7])) {
+        $customGroups = \CRM_Core_BAO_CustomGroup::getAll(['extends' => [$field['extends']]]);
+        $customGroupDetail = $customGroups[$field['custom_group_id']];
+        $customFieldDetail = $customGroupDetail['fields'][$field['custom_field_id']];
+        $custom[$customGroupDetail['name']][$customFieldDetail['name']] = $name;
+        $v4FieldName = $customGroupDetail['name'] . '.' . $customFieldDetail['name'];
         if (isset($v3Params[$name])) {
           $v3Params[$v4FieldName] = $v3Params[$name];
           unset($v3Params[$name]);
@@ -546,13 +561,19 @@ trait Api3TestTrait {
     // Build where clause for 'getcount', 'getsingle', 'getvalue', 'get' & 'replace'
     if ($v4Action == 'get' || $v3Action == 'replace') {
       foreach ($v3Params as $key => $val) {
-        $op = '=';
-        if (is_array($val) && count($val) == 1 && array_intersect_key($val, array_flip(\CRM_Core_DAO::acceptedSQLOperators()))) {
-          foreach ($val as $op => $newVal) {
-            $val = $newVal;
-          }
+        if ($key === 'orderBy') {
+          $v4Params[$key] = $val;
+          $indexBy = NULL;
         }
-        $v4Params['where'][] = [$key, $op, $val];
+        else {
+          $op = '=';
+          if (is_array($val) && count($val) == 1 && array_intersect_key($val, array_flip(\CRM_Core_DAO::acceptedSQLOperators()))) {
+            foreach ($val as $op => $newVal) {
+              $val = $newVal;
+            }
+          }
+          $v4Params['where'][] = [$key, $op, $val];
+        }
       }
     }
 
@@ -679,7 +700,7 @@ trait Api3TestTrait {
 
     // Replace $value.field_name
     foreach ($params as $name => $param) {
-      if (is_string($param) && strpos($param, '$value.') === 0) {
+      if (is_string($param) && str_starts_with($param, '$value.')) {
         $param = substr($param, 7);
         $params[$name] = $result[$param] ?? NULL;
       }

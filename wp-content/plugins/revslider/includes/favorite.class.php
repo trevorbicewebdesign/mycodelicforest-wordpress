@@ -7,6 +7,10 @@
 
 if(!defined('ABSPATH')) exit();
 
+/**
+ * Favorites of the editor UI (modules, templates, objects, …), stored per type in the
+ * ['favorites']['favorites'] option.
+ */
 class RevSliderFavorite extends RevSliderFunctions {
 
 	/**
@@ -17,10 +21,10 @@ class RevSliderFavorite extends RevSliderFunctions {
 	 * @return array
 	 **/
 	public function set_favorite($do, $type, $id){
-		$fav = get_option('rs_favorite', array());
+		$fav = $this->get_options(['favorites', 'favorites'], []);
 		$id	 = esc_attr($id);
 
-		if(!isset($fav[$type])) $fav[$type] = array();
+		if(!isset($fav[$type])) $fav[$type] = [];
 		$key = array_search($id, $fav[$type]);
 		if($key === false){
 			if($do == 'add') $fav[$type][] = $id;
@@ -29,7 +33,7 @@ class RevSliderFavorite extends RevSliderFunctions {
 		}elseif($do == 'replace'){
 			$fav[$type] = $id;
 		}
-		update_option('rs_favorite', $fav);
+		$this->update_option(['favorites', 'favorites'], $fav);
 		
 		return $fav;
 	}
@@ -40,8 +44,8 @@ class RevSliderFavorite extends RevSliderFunctions {
 	 * @return array
 	 **/
 	public function get_favorite($type){
-		$fav = get_option('rs_favorite', array());
-		return $this->get_val($fav, $type, array());
+		$fav = $this->get_options(['favorites', 'favorites'], []);
+		return $this->get_val($fav, $type, []);
 	}
 	
 	/**
@@ -52,6 +56,7 @@ class RevSliderFavorite extends RevSliderFunctions {
 	 **/
 	public function is_favorite($type, $id){
 		$favs = $this->get_favorite($type);
-		return array_search($id, $favs) !== false;
+
+		return array_search(esc_attr($id), $favs, true) !== false; //normalize $id like set_favorite() stores it, then strict-compare
 	}
 }

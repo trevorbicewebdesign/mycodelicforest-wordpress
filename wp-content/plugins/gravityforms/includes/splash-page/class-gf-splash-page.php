@@ -47,11 +47,11 @@ class GF_Splash_Page {
 	 * @param Splash_Page_Template_Tags\GF_Splash_Page_Template_Tags $tags
 	 */
 	public function __construct( $tags ) {
-		$this->about_version = '2.9';
+		$this->about_version = '3.0';
 
 		$this->tags = $tags;
 
-		$this->img_dir = 'https://cdn.gravity.com/gravityforms/about-page/2.9/';
+		$this->img_dir = 'https://cdn.gravity.com/gravityforms/about-page/3.0/';
 	}
 
 	/**
@@ -64,7 +64,9 @@ class GF_Splash_Page {
 	public function is_splash_page() {
 		$screen = get_current_screen();
 
-		return ( 'forms_page_gf_system_status' === $screen->base ) && ( 'about' === rgget( 'subview' ) );
+		$is_system_status = ( 'forms_page_gf_system_status' === $screen->base ) || ( 'gf_system_status' === rgget( 'page' ) );
+
+		return ( $is_system_status ) && ( 'about' === rgget( 'subview' ) );
 	}
 
 	/**
@@ -163,8 +165,11 @@ class GF_Splash_Page {
 	 */
 	public function system_status_link( $subviews ) {
 		$subviews[19] = array(
-			'name'  => 'about',
-			'label' => sprintf( __( 'About %s', 'gravityforms' ), $this->about_version ),
+			'name'        => 'about',
+			'label'       => esc_html__( 'About', 'gravityforms' ),
+			'url'         => 'https://www.gravityforms.com/tag/security-release/?utm_campaign=43447468-releases&utm_source=gravity-forms-plugin&utm_medium=wp-admin',
+			'target'      => '_blank',
+			'is_external' => true,
 		);
 
 		return $subviews;
@@ -182,7 +187,7 @@ class GF_Splash_Page {
 
 		ob_start();
 		include __DIR__ . '/gf_splash.php';
-		echo ob_get_clean();
+		echo ob_get_clean(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**

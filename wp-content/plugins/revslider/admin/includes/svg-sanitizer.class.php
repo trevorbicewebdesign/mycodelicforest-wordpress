@@ -7,6 +7,14 @@
 
 if(!defined('ABSPATH')) exit();
 
+/**
+ * SVG sanitizer for uploaded files.
+ *
+ * An SVG is XML and can carry scripts, event handlers and external references, so an unfiltered upload is
+ * a stored XSS vector. This parses the document with DOMDocument and strips everything not on the allow
+ * list: unknown elements and attributes, javascript:/data: and remote hrefs, plus <use> chains that
+ * reference each other in a circle.
+ */
 class RevSliderSvgSanitizer
 {
 
@@ -493,6 +501,7 @@ class RevSliderSvgSanitizer
 
 	/**
 	 * Reset DOMDocument and update libXML settings before sanitize
+	 * @return void
 	 */
 	protected function beforeSanitize()
 	{
@@ -509,6 +518,7 @@ class RevSliderSvgSanitizer
 
 	/**
 	 * Restore libXML settings after sanitize
+	 * @return void
 	 */
 	protected function afterSanitize()
 	{
@@ -558,6 +568,7 @@ class RevSliderSvgSanitizer
 	 *
 	 * @param DOMNodeList $elements
 	 * @param array $toRemove
+	 * @return void
 	 */
 	protected function doSanitize(DOMNodeList $elements, array $toRemove)
 	{
@@ -631,6 +642,7 @@ class RevSliderSvgSanitizer
 	 * Check attributes against whitelist
 	 *
 	 * @param DOMElement $element
+	 * @return void drops every attribute that is not on the allow list
 	 */
 	protected function checkAttributes($element)
 	{
@@ -663,6 +675,7 @@ class RevSliderSvgSanitizer
 	 * Clean the xlink:hrefs of script and data embeds
 	 *
 	 * @param DOMElement $element
+	 * @return void
 	 */
 	protected function cleanXlinkHrefs($element)
 	{
@@ -676,6 +689,7 @@ class RevSliderSvgSanitizer
 	 * Clean the hrefs of script and data embeds
 	 *
 	 * @param DOMElement $element
+	 * @return void
 	 */
 	protected function cleanHrefs($element)
 	{
@@ -709,6 +723,7 @@ class RevSliderSvgSanitizer
 	 * Remove nodes that are invalid
 	 *
 	 * @param DOMNode $currentElement
+	 * @return void
 	 */
 	protected function cleanNodes($currentElement)
 	{
@@ -777,29 +792,29 @@ class RevSliderSvgSanitizer
 		}
 
 		// Allow relative URIs.
-		if ('/' === $value[0] && '/' !== $value[1]) {
+		if (strlen($value) > 1 && '/' === $value[0] && '/' !== $value[1]) {
 			return true;
 		}
 
 		// Allow known data URIs.
-		if (in_array(substr($value, 0, 14), array(
+		if (in_array(substr($value, 0, 14), [
 			'data:image/png', // PNG
 			'data:image/gif', // GIF
 			'data:image/jpg', // JPG
 			'data:image/jpe', // JPEG
 			'data:image/pjp', // PJPEG
-		))) {
+		])) {
 			return true;
 		}
 
 		// Allow known short data URIs.
-		if (in_array(substr($value, 0, 12), array(
+		if (in_array(substr($value, 0, 12), [
 			'data:img/png', // PNG
 			'data:img/gif', // GIF
 			'data:img/jpg', // JPG
 			'data:img/jpe', // JPEG
 			'data:img/pjp', // PJPEG
-		))) {
+		])) {
 			return true;
 		}
 
@@ -832,7 +847,11 @@ class RevSliderSvgSanitizer
 			}
 			$root = $element;
 		}
-		
+
+		if (!is_object($root)) {
+			throw new LogicException('No SVG root element found');
+		}
+
 		$this->defaultNSURI = (string)$root->namespaceURI;
 		if ($this->defaultNSURI !== '') {
 			$this->xPath->registerNamespace('svg', $this->defaultNSURI);
@@ -868,6 +887,7 @@ class RevSliderSvgSanitizer
 	/**
 	 * Collects elements having `id` attribute
 	 * Processes references from and to elements having `id` attribute
+	 * @return void
 	 */
 	protected function processRefs()
 	{
@@ -921,6 +941,7 @@ class RevSliderSvgSanitizer
 	 * add element ( + children ) to be removed to array
 	 *
 	 * @param RevSliderSvgSubject $subject
+	 * @return void
 	 */
 	protected function addToRemove($subject) {
 		$this->toRemove = array_merge(

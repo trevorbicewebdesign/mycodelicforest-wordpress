@@ -24,6 +24,7 @@ class GF_Config_Multifile extends GF_Config {
 		return array(
 			'strings' => array(
 				'invalid_file_extension' => wp_strip_all_tags( __( 'This type of file is not allowed. Must be one of the following: ', 'gravityforms' ) ),
+				'file_uploaded'          => wp_strip_all_tags( __( 'File uploaded', 'gravityforms' ) ),
 				'delete_file'            => wp_strip_all_tags( __( 'Delete this file', 'gravityforms' ) ),
 				'in_progress'            => wp_strip_all_tags( __( 'in progress', 'gravityforms' ) ),
 				'file_exceeds_limit'     => wp_strip_all_tags( __( 'File exceeds size limit', 'gravityforms' ) ),
@@ -33,11 +34,13 @@ class GF_Config_Multifile extends GF_Config {
 				'currently_uploading'    => wp_strip_all_tags( __( 'Please wait for the uploading to complete', 'gravityforms' ) ),
 				'cancel'                 => wp_strip_all_tags( __( 'Cancel', 'gravityforms' ) ),
 				'cancel_upload'          => wp_strip_all_tags( __( 'Cancel this upload', 'gravityforms' ) ),
-				'cancelled'              => wp_strip_all_tags( __( 'Cancelled', 'gravityforms' ) )
+				'cancelled'              => wp_strip_all_tags( __( 'Cancelled', 'gravityforms' ) ),
+				'error'                  => wp_strip_all_tags( __( 'Error', 'gravityforms' ) ),
+				'message'                => wp_strip_all_tags( __( 'Message', 'gravityforms' ) ),
 			),
 			'vars'    => array(
-				'images_url' => \GFCommon::get_base_url() . '/images'
-			)
+				'images_url' => \GFCommon::get_base_url() . '/images',
+			),
 		);
 	}
 

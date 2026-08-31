@@ -317,8 +317,8 @@ abstract class CRM_Utils_Hook {
       if (!file_exists($civiModule['filePath'] ?? '')) {
         CRM_Core_Session::setStatus(
           ts('Error loading module file (%1). Please restore the file or disable the module.',
-            [1 => $civiModule['filePath']]),
-          ts('Warning'), 'error');
+            [1 => htmlentities($civiModule['filePath'] ?? '')]),
+          ts('Warning'), 'error', purify: FALSE);
         continue;
       }
       include_once $civiModule['filePath'];
@@ -353,21 +353,21 @@ abstract class CRM_Utils_Hook {
    *
    * @param string $op
    *   The type of operation being performed.
-   * @param string $objectName
+   * @param string|null $objectName
    *   The name of the object.
-   * @param int $objectId
+   * @param int|null $objectId
    *   The unique identifier for the object.
-   * @param object $objectRef
+   * @param object|null $objectRef
    *   The reference to the object if available.
-   * @param array $params
+   * @param array|null $params
    *   Original params used, if available
    *
    * @return mixed
    *   based on op. pre-hooks return a boolean or
    *                           an error message which aborts the operation
    */
-  public static function post($op, $objectName, $objectId, &$objectRef = NULL, $params = NULL) {
-    $event = new \Civi\Core\Event\PostEvent($op, $objectName, $objectId, $objectRef, $params);
+  public static function post(string $op, ?string $objectName, ?int $objectId, &$objectRef = NULL, ?array $params = NULL) {
+    $event = new \Civi\Core\Event\PostEvent($op, (string) $objectName, (int) $objectId, $objectRef, $params);
     Civi::dispatcher()->dispatch('hook_civicrm_post', $event);
     return $event->getReturnValues();
   }
@@ -391,13 +391,15 @@ abstract class CRM_Utils_Hook {
    *   The unique identifier for the object.
    * @param object $objectRef
    *   The reference to the object if available.
+   * @param array $params
+   *   Original params used, if available
    *
    * @return mixed
    *   based on op. pre-hooks return a boolean or
    *                           an error message which aborts the operation
    */
-  public static function postCommit($op, $objectName, $objectId, $objectRef = NULL) {
-    $event = new \Civi\Core\Event\PostEvent($op, $objectName, $objectId, $objectRef);
+  public static function postCommit($op, $objectName, $objectId, $objectRef = NULL, $params = NULL) {
+    $event = new \Civi\Core\Event\PostEvent($op, $objectName, $objectId, $objectRef, $params);
     Civi::dispatcher()->dispatch('hook_civicrm_postCommit', $event);
     return $event->getReturnValues();
   }
@@ -625,17 +627,6 @@ abstract class CRM_Utils_Hook {
    */
   public static function aclGroup($type, $contactID, $tableName, &$allGroups, &$currentGroups) {
     $null = NULL;
-    // Legacy support for hooks that still expect 'civicrm_group' to be 'civicrm_saved_search'
-    // This was changed in 5.64
-    if ($tableName === 'civicrm_group') {
-      $initialValue = $currentGroups;
-      $legacyTableName = 'civicrm_saved_search';
-      self::singleton()
-        ->invoke(['type', 'contactID', 'tableName', 'allGroups', 'currentGroups'], $type, $contactID, $legacyTableName, $allGroups, $currentGroups, $null, 'civicrm_aclGroup');
-      if ($initialValue != $currentGroups) {
-        CRM_Core_Error::deprecatedWarning('Since 5.64 hook_civicrm_aclGroup passes "civicrm_group" instead of "civicrm_saved_search" for the $tableName when referring to Groups. Hook listeners should be updated.');
-      }
-    }
     return self::singleton()
       ->invoke(['type', 'contactID', 'tableName', 'allGroups', 'currentGroups'], $type, $contactID, $tableName, $allGroups, $currentGroups, $null, 'civicrm_aclGroup');
   }
@@ -782,6 +773,7 @@ abstract class CRM_Utils_Hook {
    *     - 'always' (default): always delete orphaned records
    *     - 'never': never delete orphaned records
    *     - 'unused': only delete orphaned records if there are no other references to it in the DB. (This is determined by calling the API's "getrefcount" action.)
+   *   + 'source' (optional): string, the file which defined this entity
    * @param array|NULL $modules
    *   (Added circa v5.50) If given, only report entities related to $modules. NULL is a wildcard ("all modules").
    *
@@ -1570,23 +1562,6 @@ abstract class CRM_Utils_Hook {
   }
 
   /**
-   * Deprecated: use hook_civicrm_selectWhereClause instead.
-   * @deprecated since 5.67 will be removed around 5.85
-   * .
-   * @param array &$noteValues
-   */
-  public static function notePrivacy(&$noteValues) {
-    $null = NULL;
-    self::singleton()->invoke(['noteValues'], $noteValues,
-      $null, $null, $null, $null, $null,
-      'civicrm_notePrivacy'
-    );
-    if (isset($noteValues['notePrivacy_hidden'])) {
-      CRM_Core_Error::deprecatedFunctionWarning('hook_civicrm_selectWhereClause', 'hook_civicrm_notePrivacy');
-    }
-  }
-
-  /**
    * This hook is called before record is exported as CSV.
    *
    * @param string $exportTempTable
@@ -1661,6 +1636,34 @@ abstract class CRM_Utils_Hook {
   }
 
   /**
+   * Check for existing duplicates in the database.
+   *
+   * This hook is called when
+   *
+   * @param array $duplicates
+   *   Array of duplicate pairs found using the rule, with the weight.
+   *   ['entity_id_1' => 5, 'entity_id_2' => 6, 'weight' => 7] where 5 & 6 are contact IDs and 7 is the weight of the match.
+   * @param int[] $ruleGroupIDs
+   *   Array of rule group IDs.
+   * @param string|null $tableName
+   *   Name of a table holding ids to restrict the query to. If there is no ID restriction
+   *   The table will be NULL.
+   * @param bool $checkPermissions
+   * @todo the existing implementation looks for situations where ONE of the contacts
+   *   is consistent with the where clause criteria. Potentially we might
+   *   implement a mode where both/all contacts must be consistent with the clause criteria.
+   *   There is a use case for both scenarios - although core code currently only implements
+   *   one.
+   *
+   * @return mixed
+   */
+  public static function findExistingDuplicates(array &$duplicates, array $ruleGroupIDs, ?string $tableName, bool $checkPermissions) {
+    $null = NULL;
+    return self::singleton()
+      ->invoke(['duplicates', 'ruleGroupIDs', 'tableName', 'checkPermissions'], $duplicates, $ruleGroupIDs, $tableName, $checkPermissions, $null, $null, 'civicrm_findExistingDuplicates');
+  }
+
+  /**
    * This hook is called AFTER EACH email has been processed by the script bin/EmailProcessor.php
    *
    * @param string $type
@@ -1689,10 +1692,9 @@ abstract class CRM_Utils_Hook {
    * @deprecated
    *
    * @param string $object
-   *   Object being imported (for now Contact only, later Contribution, Activity,.
-   *                               Participant and Member)
+   *   Object being imported (Contact only)
    * @param string $usage
-   *   Hook usage/location (for now process only, later mapping and others).
+   *   Hook usage/location (for now process only).
    * @param string $objectRef
    *   Import record object.
    * @param array $params
@@ -2336,7 +2338,7 @@ abstract class CRM_Utils_Hook {
    *     - description: string (ex: "Register for events online")
    *     - is_synthetic: bool (TRUE for synthetic permissions with a bespoke evaluation. FALSE for concrete permissions that registered+granted in the UF user-management layer.
    *        Default TRUE iff name begins with '@')
-   *     - is_active: bool (TRUE if this permission is defined by. Default: TRUE)
+   *     - is_active: bool (FALSE for permissions belonging to disabled components, TRUE otherwise)
    *
    * @return null
    *   The return value is ignored
@@ -2415,7 +2417,7 @@ abstract class CRM_Utils_Hook {
   }
 
   /**
-   * @param CRM_Core_Exception $exception
+   * @param Throwable $exception
    */
   public static function unhandledException($exception) {
     $null = NULL;
@@ -2424,18 +2426,21 @@ abstract class CRM_Utils_Hook {
   }
 
   /**
-   * This hook is called for declaring managed entities via API.
+   * This hook is called for declaring entities.
    *
    * Note: This is a pre-boot hook. It will dispatch via the extension/module
    * subsystem but *not* the Symfony EventDispatcher.
    *
    * @param array[] $entityTypes
-   *   List of entity types; each entity-type is an array with keys:
-   *   - name: string, a unique short name (e.g. "ReportInstance")
-   *   - class: string, a PHP DAO class (e.g. "CRM_Report_DAO_Instance")
-   *   - table: string, a SQL table name (e.g. "civicrm_report_instance")
-   *   - fields_callback: array, list of callables which manipulates field list
-   *   - links_callback: array, list of callables which manipulates fk list
+   *   List of entity definitions; each item is keyed by entity name.
+   *   Each entity-type is an array with values:
+   *   - `name`: string, a unique short name (e.g. "ReportInstance")
+   *   - `module`: string, full_name of extension declaring the entity (e.g. "search_kit")
+   *   - `class`: string|null, a PHP DAO class (e.g. "CRM_Report_DAO_Instance")
+   *   - `table`: string|null, a SQL table name (e.g. "civicrm_report_instance")
+   *
+   * Other possible values in the entity definition array are documented here:
+   * @see https://docs.civicrm.org/dev/en/latest/framework/entities/
    *
    * @return null
    *   The return value is ignored
@@ -2882,7 +2887,7 @@ abstract class CRM_Utils_Hook {
    * inserted in civicrm_financial_trxn table
    *
    * @param array $deferredRevenues
-   * @param CRM_Contribute_BAO_Contribution $contributionDetails
+   * @param CRM_Contribute_BAO_Contribution|CRM_Contribute_DAO_Contribution $contributionDetails
    * @param bool $update
    * @param string $context
    *
@@ -3250,6 +3255,16 @@ abstract class CRM_Utils_Hook {
       $null, $null, $null,
       'civicrm_invalidateChecksum'
     );
+  }
+
+  /**
+   * Extensions can define new formats for relative date filter "tokens".
+   * @param string $filter - the filter token, stored in civicrm_option_value
+   * @return array|false
+   *   An array with two elements: $dates['from'] and $dates['to'], or FALSE if the hook isn't in use.
+   */
+  public static function relativeDate($filter) {
+    return self::singleton()->invoke(array('filter'), $filter, self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject, 'civicrm_relativeDate');
   }
 
 }

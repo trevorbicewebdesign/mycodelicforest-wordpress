@@ -20,11 +20,6 @@ class Submit extends AbstractProcessor {
   use ArrayQueryActionTrait;
 
   /**
-   * @deprecated - You may simply use the event name directly. dev/core#1744
-   */
-  const EVENT_NAME = 'civi.afform.submit';
-
-  /**
    * Submitted values
    * @var array
    * @required
@@ -33,7 +28,7 @@ class Submit extends AbstractProcessor {
 
   protected function processForm() {
     // preprocess submitted values
-    $entityValues = $this->preprocessSubmittedValues($this->values);
+    $this->_entityValues = $this->preprocessSubmittedValues($this->values);
 
     // get the submission information if we have submission id.
     // currently we don't support processing of already processed forms
@@ -46,86 +41,118 @@ class Submit extends AbstractProcessor {
         ->execute()->count();
 
       if ($afformSubmissionData > 0) {
-        throw new \CRM_Core_Exception(ts('Submission is already processed.'));
+        throw new \CRM_Core_Exception(ts('Submission Processed'), 0, ['validation' => ts('Submission is already processed.')]);
       }
     }
 
     // Call validation handlers
-    $event = new AfformValidateEvent($this->_afform, $this->_formDataModel, $this, $entityValues);
+    $event = new AfformValidateEvent($this->_afform, $this->_formDataModel, $this);
     \Civi::dispatcher()->dispatch('civi.afform.validate', $event);
     $errors = $event->getErrors();
     if ($errors) {
       \Civi::log('afform')->error('Afform Validation errors: ' . print_r($errors, TRUE));
-      throw new \CRM_Core_Exception(ts('Validation Error', ['plural' => '%1 Validation Errors', 'count' => count($errors)]), 0, ['validation' => $errors]);
+      throw new \CRM_Core_Exception(implode("\n", $errors), 0, ['show_detailed_error' => TRUE]);
     }
 
     // Save submission record
-    $status = 'Processed';
     if (!empty($this->_afform['create_submission']) && empty($this->args['sid'])) {
-      if (!empty($this->_afform['manual_processing'])) {
-        $status = 'Pending';
+      $userId = \CRM_Core_Session::getLoggedInContactID();
+
+      $submissionRecord = [
+        'contact_id' => $userId,
+        'afform_name' => $this->name,
+        'data' => $this->getValues(),
+        'status_id:name' => 'Pending',
+      ];
+      // Update draft if it exists
+      if ($userId) {
+        $draft = AfformSubmission::get(FALSE)
+          ->addWhere('contact_id', '=', $userId)
+          ->addWhere('status_id:name', '=', 'Draft')
+          ->addWhere('afform_name', '=', $this->name)
+          ->addSelect('id')
+          ->execute()->first();
+        if ($draft) {
+          $submissionRecord['id'] = $draft['id'];
+        }
       }
 
-      $submission = AfformSubmission::create(FALSE)
-        ->addValue('contact_id', \CRM_Core_Session::getLoggedInContactID())
-        ->addValue('afform_name', $this->name)
-        ->addValue('data', $this->getValues())
-        ->addValue('status_id:name', $status)
+      $submission = AfformSubmission::save(FALSE)
+        ->addRecord($submissionRecord)
         ->execute()->first();
     }
 
     // let's not save the data in other CiviCRM table if manual verification is needed.
     if (!empty($this->_afform['manual_processing']) && empty($this->args['sid'])) {
       // check for verification email
-      $this->processVerficationEmail($submission['id']);
-      return [];
+      $this->processVerificationEmail($submission['id']);
     }
+    else {
+      // process and save various entities
+      $this->processFormData($this->_entityValues);
 
-    // process and save various enities
-    $this->processFormData($entityValues);
+      $submissionData = $this->combineValuesAndIds($this->getValues(), $this->_entityIds);
+      // Update submission record with entity IDs.
+      if (!empty($this->_afform['create_submission'])) {
+        $submissionId = $submission['id'];
+        if (!empty($this->args['sid'])) {
+          $submissionId = $this->args['sid'];
+        }
 
-    $submissionData = $this->combineValuesAndIds($this->getValues(), $this->_entityIds);
-    // Update submission record with entity IDs.
-    if (!empty($this->_afform['create_submission'])) {
-      $submissionId = $submission['id'];
-      if (!empty($this->args['sid'])) {
-        $submissionId = $this->args['sid'];
+        AfformSubmission::update(FALSE)
+          ->addWhere('id', '=', $submissionId)
+          ->addValue('data', $submissionData)
+          ->addValue('status_id:name', 'Processed')
+          ->execute();
       }
 
-      AfformSubmission::update(FALSE)
-        ->addWhere('id', '=', $submissionId)
-        ->addValue('data', $submissionData)
-        ->addValue('status_id:name', $status)
-        ->execute();
+      // Return ids plus token for uploading files
+      foreach ($this->_entityIds as $key => $value) {
+        $this->setResponseItem($key, $value);
+      }
     }
 
-    // Return ids and a token for uploading files
-    return [
-      ['token' => $this->generatePostSubmitToken()] + $this->_entityIds,
-    ];
+    // todo - add only if needed?
+    $this->setResponseItem('token', $this->generatePostSubmitToken());
+
+    if (isset($this->_response['redirect']) || isset($this->_response['message'])) {
+      // redirect / message is already set, ignore defaults
+    }
+    elseif ($this->_afform['confirmation_type'] === 'show_confirmation_message') {
+      $message = $this->replaceTokens($this->_afform['confirmation_message']);
+      $this->setResponseItem('message', $message);
+    }
+    elseif ($this->_afform['redirect']) {
+      $redirect = $this->replaceTokens($this->_afform['redirect']);
+      $this->setResponseItem('redirect', $redirect);
+    }
+
+    return [$this->_response];
   }
 
   /**
-   * Validate required field values
+   * Validate field values checking required & maxlength
    *
    * @param \Civi\Afform\Event\AfformValidateEvent $event
    */
-  public static function validateRequiredFields(AfformValidateEvent $event): void {
+  public static function validateFieldInput(AfformValidateEvent $event): void {
     foreach ($event->getFormDataModel()->getEntities() as $afEntityName => $afEntity) {
-      $entityValues = $event->getEntityValues()[$afEntityName] ?? [];
+      $entityValues = $event->getSubmittedValues()[$afEntityName] ?? [];
       foreach ($entityValues as $values) {
         foreach ($afEntity['fields'] as $fieldName => $attributes) {
-          $error = self::getRequiredFieldError($event, $afEntity['type'], $fieldName, $attributes, $values['fields'][$fieldName] ?? NULL);
+          $fieldDefn = $event->getEntityFieldDefn($afEntityName, $fieldName);
+          $error = self::getFieldInputError($event, $fieldName, $fieldDefn, $attributes, $values['fields'][$fieldName] ?? NULL);
           if ($error) {
-            $event->setError($error);
+            $event->addError($error);
           }
         }
-        foreach ($afEntity['joins'] as $joinEntity => $join) {
+        foreach ($afEntity['joins'] ?? [] as $joinEntity => $join) {
           foreach ($values['joins'][$joinEntity] ?? [] as $joinIndex => $joinValues) {
             foreach ($join['fields'] ?? [] as $fieldName => $attributes) {
-              $error = self::getRequiredFieldError($event, $joinEntity, $fieldName, $attributes, $joinValues[$fieldName] ?? NULL, $joinEntity);
+              $fieldDefn = $event->getEntityFieldDefn($afEntityName, $fieldName, $joinEntity);
+              $error = self::getFieldInputError($event, $fieldName, $fieldDefn, $attributes, $joinValues[$fieldName] ?? NULL);
               if ($error) {
-                $event->setError($error);
+                $event->addError($error);
               }
             }
           }
@@ -197,20 +224,20 @@ class Submit extends AbstractProcessor {
   public static function validateEntityRefFields(AfformValidateEvent $event): void {
     $formName = $event->getAfform()['name'];
     foreach ($event->getFormDataModel()->getEntities() as $entityName => $entity) {
-      $entityValues = $event->getEntityValues()[$entityName] ?? [];
+      $entityValues = $event->getSubmittedValues()[$entityName] ?? [];
       foreach ($entityValues as $values) {
         foreach ($entity['fields'] as $fieldName => $attributes) {
           $error = self::getEntityRefError($formName, $entityName, $entity['type'], $fieldName, $attributes, $values['fields'][$fieldName] ?? NULL);
           if ($error) {
-            $event->setError($error);
+            $event->addError($error);
           }
         }
-        foreach ($entity['joins'] as $joinEntity => $join) {
+        foreach ($entity['joins'] ?? [] as $joinEntity => $join) {
           foreach ($values['joins'][$joinEntity] ?? [] as $joinIndex => $joinValues) {
             foreach ($join['fields'] ?? [] as $fieldName => $attributes) {
               $error = self::getEntityRefError($formName, $entityName . '+' . $joinEntity, $joinEntity, $fieldName, $attributes, $joinValues[$fieldName] ?? NULL);
               if ($error) {
-                $event->setError($error);
+                $event->addError($error);
               }
             }
           }
@@ -220,47 +247,111 @@ class Submit extends AbstractProcessor {
   }
 
   /**
-   * If a required field is missing a value, return an error message
-   *
-   * @param \Civi\Afform\Event\AfformValidateEvent $event
-   * @param string $apiEntity
-   * @param string $fieldName
-   * @param array $attributes
-   * @param mixed $value
-   * @return string|null
+   * If a required field is missing a value or exceeds the maxlength, return an error message
    */
-  private static function getRequiredFieldError(AfformValidateEvent $event, string $apiEntity, string $fieldName, $attributes, $value) {
-    // If we have a value, no need to check if required
-    if ($value || is_numeric($value) || is_bool($value)) {
-      return NULL;
-    }
-    // Required set to false, no need to validate
-    if (isset($attributes['defn']['required']) && !$attributes['defn']['required']) {
-      return NULL;
-    }
-    $fullDefn = FormDataModel::getField($apiEntity, $fieldName, 'create');
+  private static function getFieldInputError(AfformValidateEvent $event, string $fieldName, array $fieldDefn, array $attributes, $value) {
+    return self::getRequiredFieldError($event, $fieldName, $fieldDefn, $attributes, $value) ??
+      self::getMaxlengthError($fieldName, $fieldDefn, $value) ??
+      self::getMinMaxError($fieldName, $fieldDefn, $value);
+  }
 
+  /**
+   * If a required field is missing a value, return an error message
+   */
+  private static function getRequiredFieldError(AfformValidateEvent $event, string $fieldName, array $fieldDefn, array $attributes, $value) {
+    // If we have a value or field is not required, skip
+    if ($value || is_numeric($value) || is_bool($value) || empty($fieldDefn['required'])) {
+      return NULL;
+    }
+    // InputType set to 'DisplayOnly' which skips validation
+    if (($fieldDefn['input_type'] ?? NULL) === 'DisplayOnly') {
+      return NULL;
+    }
     // we don't need to validate the file fields as it's handled separately
-    if ($fullDefn['input_type'] === 'File') {
+    if ($fieldDefn['input_type'] === 'File') {
       return NULL;
     }
 
-    $isRequired = $attributes['defn']['required'] ?? $fullDefn['required'] ?? FALSE;
+    // Check if element is visible
     $isVisible = TRUE;
-    if ($isRequired) {
-      $conditionals = $attributes['af-if'] ?? [];
-      foreach ($conditionals as $conditional) {
-        $isVisible = self::checkAfformConditional($conditional, $event->getEntityValues());
-        if (!$isVisible) {
-          break;
-        }
+    $conditionals = $attributes['af-if'] ?? [];
+    foreach ($conditionals as $conditional) {
+      $isVisible = self::checkAfformConditional($conditional, $event->getSubmittedValues());
+      if (!$isVisible) {
+        break;
       }
     }
-    if ($isRequired && $isVisible) {
-      $label = $attributes['defn']['label'] ?? $fullDefn['label'] ?? $fieldName;
+    if ($isVisible) {
+      $label = $fieldDefn['label'] ?? $fieldDefn['title'] ?? $fieldName;
       return E::ts('%1 is a required field.', [1 => $label]);
     }
     return NULL;
+  }
+
+  /**
+   * If a string value exceeds the maxlength, return an error message.
+   */
+  private static function getMaxlengthError(string $fieldName, array $fieldDefn, $value) {
+    // If we have no value, no need to check maxlength (`required` has already been checked)
+    if (!$value || !is_string($value) || ($fieldDefn['data_type'] ?? '') !== 'String') {
+      return NULL;
+    }
+
+    $maxlength = $fieldDefn['input_attrs']['maxlength'] ?? NULL;
+
+    // Use mb_strlen() which better matches the behavior of javascript's String.length
+    if ($maxlength && mb_strlen($value) > $maxlength) {
+      $label = $fieldDefn['label'] ?? $fieldDefn['title'] ?? $fieldName;
+      return E::ts('%1 has a max length of %2.', [1 => $label, 2 => $maxlength]);
+    }
+  }
+
+  /**
+   * If value is outside of min/max constraints, return an error message.
+   */
+  private static function getMinMaxError(string $fieldName, array $fieldDefn, $value) {
+    // If we have no value, no need to check maxlength (`required` has already been checked)
+    if (!$value) {
+      return NULL;
+    }
+
+    $min = $fieldDefn['input_attrs']['min'] ?? NULL;
+    $max = $fieldDefn['input_attrs']['max'] ?? NULL;
+
+    if (!isset($min) && !isset($max)) {
+      return NULL;
+    }
+
+    $label = $fieldDefn['label'] ?? $fieldDefn['title'] ?? $fieldName;
+    $inputType = $fieldDefn['input_type'] ?? '';
+    $dataType = $fieldDefn['data_type'] ?? '';
+
+    if (is_array($value)) {
+      $count = count($value);
+      if (($inputType === 'CheckBox' || ($inputType === 'Select' && !empty($fieldDefn['input_attrs']['multiple'])))) {
+        if (isset($min, $max) && $min === $max && $count !== $min) {
+          return E::ts('%1 must have exactly %2 selected.', [1 => $label, 2 => $min]);
+        }
+        elseif (isset($min) && $count < $min) {
+          return E::ts('%1 must have at least %2 selected.', [1 => $label, 2 => $min]);
+        }
+        elseif (isset($max) && $count > $max) {
+          return E::ts('%1 must have at most %2 selected.', [1 => $label, 2 => $max]);
+        }
+      }
+    }
+    elseif ($inputType === 'Number' || in_array($dataType, ['Integer', 'Float', 'Money'], TRUE)) {
+      if (isset($min, $max) && $min === $max && $value != $min) {
+        return E::ts('%1 must be equal to %2.', [1 => $label, 2 => $min]);
+      }
+      elseif (isset($min) && $value < $min) {
+        return E::ts('%1 must be greater than or equal to %2.', [1 => $label, 2 => $min]);
+      }
+      elseif (isset($max) && $value > $max) {
+        return E::ts('%1 must be less than or equal to %2.', [1 => $label, 2 => $max]);
+      }
+    }
+
   }
 
   /**
@@ -268,13 +359,13 @@ class Submit extends AbstractProcessor {
    *
    * @param string $formName
    * @param string $entityName
-   * @param string $apiEntity
+   * @param string|null $apiEntity
    * @param string $fieldName
    * @param array $attributes
    * @param mixed $value
    * @return string|null
    */
-  private static function getEntityRefError(string $formName, string $entityName, string $apiEntity, string $fieldName, $attributes, $value) {
+  private static function getEntityRefError(string $formName, string $entityName, ?string $apiEntity, string $fieldName, $attributes, $value) {
     $values = array_filter((array) $value);
     // If we have no values, continue
     if (!$values) {
@@ -298,6 +389,41 @@ class Submit extends AbstractProcessor {
   }
 
   /**
+   * When using a "quick-add" form, this ensures the predetermined "data" values from the parent form's entity
+   * will be copied to the newly-created entity in the popup form.
+   *
+   * @param \Civi\Afform\Event\AfformSubmitEvent $event
+   */
+  public static function preprocessParentFormValues(AfformSubmitEvent $event): void {
+    $entityType = $event->getEntityType();
+    $apiRequest = $event->getApiRequest();
+    $args = $apiRequest->getArgs();
+    if (str_starts_with($args['parentFormName'] ?? '', 'afform:') && str_contains($args['parentFormFieldName'] ?? '', ':')) {
+      [, $parentFormName] = explode(':', $args['parentFormName']);
+      [$parentFormEntityName, $parentFormFieldName] = explode(':', $args['parentFormFieldName']);
+      $parentForm = civicrm_api4('Afform', 'get', [
+        'select' => ['layout'],
+        'where' => [
+          ['name', '=', $parentFormName],
+          ['submit_currently_open', '=', TRUE],
+        ],
+      ])->first();
+      if ($parentForm) {
+        $parentFormDataModel = new FormDataModel($parentForm['layout']);
+        $entity = $parentFormDataModel->getEntity($parentFormEntityName);
+        if (!$entity || $entity['type'] !== $entityType || empty($entity['data'])) {
+          return;
+        }
+        $records = $event->getRecords();
+        foreach ($records as &$record) {
+          $record['fields'] = $entity['data'] + $record['fields'];
+        }
+        $event->setRecords($records);
+      }
+    }
+  }
+
+  /**
    * Check if contact(s) meet the minimum requirements to be created (name and/or email).
    *
    * This requires a function because simple required fields validation won't work
@@ -309,7 +435,7 @@ class Submit extends AbstractProcessor {
    */
   public static function preprocessContact(AfformSubmitEvent $event): void {
     $entityType = $event->getEntityType();
-    if (!CoreUtil::isContact($entityType)) {
+    if (!$entityType || !CoreUtil::isContact($entityType)) {
       return;
     }
     // When creating a contact, verify they have a name or email address
@@ -319,7 +445,7 @@ class Submit extends AbstractProcessor {
       if (!empty($contact['fields']['id'])) {
         continue;
       }
-      if (empty($contact['fields']) || \CRM_Contact_BAO_Contact::hasName($contact['fields'] + ['contact_type' => $entityType])) {
+      if (!empty($contact['fields']) && \CRM_Contact_BAO_Contact::hasName($contact['fields'] + ['contact_type' => $entityType])) {
         continue;
       }
       foreach ($contact['joins']['Email'] ?? [] as $email) {
@@ -343,16 +469,22 @@ class Submit extends AbstractProcessor {
       if (empty($record['fields'])) {
         continue;
       }
+      if ($event->getEntityType() === 'Contribution') {
+        // "Contribution" requires more specialised processing using Order API and is handled by extensions like Afform Payments.
+        // We add a specific check here to ensure that it is not processed by the generic entity save.
+        continue;
+      }
       try {
         $idField = CoreUtil::getIdFieldName($event->getEntityType());
         $saved = $api4($event->getEntityType(), 'save', ['records' => [$record['fields']]])->first();
         $event->setEntityId($index, $saved[$idField]);
+        $event->setSaved($index, $saved);
         self::saveJoins($event, $index, $saved[$idField], $record['joins'] ?? []);
       }
       catch (\CRM_Core_Exception $e) {
         // What to do here? Sometimes we should silently ignore errors, e.g. an optional entity
         // intentionally left blank. Other times it's a real error the user should know about.
-        \Civi::log('afform')->debug('Silently ignoring exception in Afform processGenericEntity call for "' . $event->getEntityName() . '". Message: ' . $e->getMessage());
+        \Civi::log('afform')->debug('Afform: ' . $event->getAfform()['name'] . ': Silently ignoring exception on submit in processGenericEntity call for "' . $event->getEntityName() . '". Message: ' . $e->getMessage());
       }
     }
   }
@@ -451,17 +583,18 @@ class Submit extends AbstractProcessor {
    */
   protected static function saveJoins(AfformSubmitEvent $event, $index, $entityId, $joins) {
     $mainEntity = $event->getFormDataModel()->getEntity($event->getEntityName());
-    foreach ($joins as $joinEntityName => $join) {
-      $values = self::filterEmptyJoins($mainEntity, $joinEntityName, $join);
+    foreach ($joins as $joinEntityName => $joinValues) {
+      $values = self::filterEmptyJoins($mainEntity, $joinEntityName, $joinValues);
       $whereClause = self::getJoinWhereClause($event->getFormDataModel(), $event->getEntityName(), $joinEntityName, $entityId);
       $mainIdField = CoreUtil::getIdFieldName($mainEntity['type']);
       $joinIdField = CoreUtil::getIdFieldName($joinEntityName);
+      $joinAllowedAction = self::getJoinAllowedAction($mainEntity, $joinEntityName);
 
       // Forward FK e.g. Event.loc_block_id => LocBlock
       $forwardFkField = self::getFkField($mainEntity['type'], $joinEntityName);
       if ($forwardFkField && $values) {
-        // Add id to values for update op
-        if ($whereClause) {
+        // Add id to values for update op, but only if id is not already on the form
+        if ($whereClause && $joinAllowedAction['update'] && empty($mainEntity['joins'][$joinEntityName]['fields'][$joinIdField])) {
           $values[0][$joinIdField] = $whereClause[0][2];
         }
         $result = civicrm_api4($joinEntityName, 'save', [
@@ -479,21 +612,44 @@ class Submit extends AbstractProcessor {
       }
 
       // Reverse FK e.g. Contact <= Email.contact_id
-      // TODO: REPLACE works for creating or updating contacts, but different logic would be needed if
-      // the contact was being auto-updated via a dedupe rule; in that case we would not want to
-      // delete any existing records.
       elseif ($values) {
-        $result = civicrm_api4($joinEntityName, 'replace', [
-          // Disable permission checks because the main entity has already been vetted
-          'checkPermissions' => FALSE,
-          'where' => $whereClause,
-          'records' => $values,
-        ]);
+        // In update mode, set ids of existing values
+        if ($joinAllowedAction['update']) {
+          $existingJoinValues = $event->getApiRequest()->loadJoins($joinEntityName, $mainEntity, $entityId, $index);
+          foreach ($existingJoinValues as $joinIndex => $existingJoin) {
+            if (!empty($existingJoin[$joinIdField]) && !empty($values[$joinIndex])) {
+              $values[$joinIndex][$joinIdField] = $existingJoin[$joinIdField];
+            }
+          }
+        }
+        else {
+          foreach ($values as $key => $value) {
+            unset($values[$key][$joinIdField]);
+          }
+        }
+        // Use REPLACE action if update+delete are both allowed (only need to check for 'delete' as it implies 'update')
+        if ($joinAllowedAction['delete']) {
+          $result = civicrm_api4($joinEntityName, 'replace', [
+            // Disable permission checks because the main entity has already been vetted
+            'checkPermissions' => FALSE,
+            'where' => $whereClause,
+            'records' => $values,
+          ]);
+        }
+        else {
+          $fkField = self::getFkField($joinEntityName, $mainEntity['type']);
+          $result = civicrm_api4($joinEntityName, 'save', [
+            // Disable permission checks because the main entity has already been vetted
+            'checkPermissions' => FALSE,
+            'defaults' => [$fkField['name'] => $entityId],
+            'records' => $values,
+          ]);
+        }
         $indexedResult = array_combine(array_keys($values), (array) $result);
         $event->setJoinIds($index, $joinEntityName, $indexedResult);
       }
       // REPLACE doesn't work if there are no records, have to use DELETE
-      else {
+      elseif ($joinAllowedAction['delete']) {
         try {
           civicrm_api4($joinEntityName, 'delete', [
             // Disable permission checks because the main entity has already been vetted
@@ -591,7 +747,7 @@ class Submit extends AbstractProcessor {
    *
    * @return void
    */
-  private function processVerficationEmail(int $submissionId):void {
+  private function processVerificationEmail(int $submissionId):void {
     // check if email verification configured and message template is set
     if (empty($this->_afform['allow_verification_by_email']) || empty($this->_afform['email_confirmation_template_id'])) {
       return;
@@ -601,7 +757,7 @@ class Submit extends AbstractProcessor {
     $submittedValues = $this->getValues();
     foreach ($this->_formDataModel->getEntities() as $entityName => $entity) {
       foreach ($submittedValues[$entityName] ?? [] as $values) {
-        $values['joins'] = array_intersect_key($values['joins'] ?? [], $entity['joins']);
+        $values['joins'] = array_intersect_key($values['joins'] ?? [], $entity['joins'] ?? []);
         foreach ($values['joins'] as $joinEntity => &$joinValues) {
           if ($joinEntity === 'Email') {
             foreach ($joinValues as $fld => $val) {

@@ -47,7 +47,11 @@ class DefaultSender extends AutoService {
         continue;
       }
 
-      $message = \Civi\FlexMailer\MailParams::convertMailParamsToMime($task->getMailParams());
+      $params = $task->getMailParams();
+      if (isset($params['abortMailSend']) && $params['abortMailSend']) {
+        continue;
+      }
+      $message = \Civi\FlexMailer\MailParams::convertMailParamsToMime($params);
 
       if (empty($message)) {
         // lets keep the message in the queue
@@ -62,7 +66,7 @@ class DefaultSender extends AutoService {
       }
 
       $headers = $message->headers();
-      $result = $mailer->send($headers['To'], $message->headers(), $message->get());
+      $result = $mailer->send($headers['To'], $headers, $message->get());
 
       if ($job_date) {
         unset($errorScope);
@@ -83,6 +87,8 @@ class DefaultSender extends AutoService {
           if ($smtpConnectionErrors <= 5) {
             $mailer->disconnect();
             $retryBatch = TRUE;
+            unset($result, $message, $params, $headers);
+            $task->setMailParams([]);
             continue;
           }
 
@@ -125,7 +131,8 @@ class DefaultSender extends AutoService {
         }
       }
 
-      unset($result);
+      unset($result, $message, $params, $headers);
+      $task->setMailParams([]);
 
       // seems like a successful delivery or bounce, lets decrement error count
       // only if we have smtp connection errors
@@ -165,13 +172,21 @@ class DefaultSender extends AutoService {
     // SMTP response code is buried in the message.
     $code = preg_match('/ \(code: (.+), response: /', $message, $matches) ? $matches[1] : '';
 
-    if (strpos($message, 'Failed to write to socket') !== FALSE) {
+    if (str_contains($message, 'Failed to write to socket')) {
       return TRUE;
     }
 
     // Register 5xx SMTP response code (permanent failure) as bounce.
     if (isset($code[0]) && $code[0] === '5') {
       return FALSE;
+    }
+
+    // Consider SMTP Erorr 450, class 4.1.2 "Domain not found", as permanent failures if the corresponding setting is enabled
+    if ($code === '450' && \Civi::settings()->get('smtp_450_is_permanent')) {
+      $class = preg_match('/ \(code: (.+), response: ([0-9\.]+) /', $message, $matches) ? $matches[2] : '';
+      if ($class === '4.1.2') {
+        return FALSE;
+      }
     }
 
     if (str_contains($message, 'Failed to set sender')) {

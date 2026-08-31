@@ -11,41 +11,75 @@
 
 namespace Civi\Authx;
 
-use Civi\Standalone\Security;
-
 class Standalone implements AuthxInterface {
 
   /**
    * @inheritDoc
    */
   public function checkPassword(string $username, string $password) {
-    $security = Security::singleton();
-    $user = $security->loadUserByName($username);
-    return $security->checkPassword($password, $user['hashed_password'] ?? '') ? $user['id'] : NULL;
+    $security = \Civi::service('standaloneusers.security');
+    $cred = [
+      'username' => $username,
+      'password' => $password,
+    ];
+    $user = $security->loadUser($cred);
+    return $user && $security->checkPassword($cred, $user) ? $user['id'] : NULL;
   }
 
   /**
    * @inheritDoc
    */
   public function loginSession($userId) {
-    $user = Security::singleton()->loadUserByID($userId);
-    Security::singleton()->loginAuthenticatedUserRecord($user, TRUE);
+    \session_regenerate_id(FALSE);
+
+    $this->loginStateless($userId);
+
+    $session = \CRM_Core_Session::singleton();
+    $session->set('ufID', $userId);
+
+    // Identify the contact
+    $user = \Civi\Api4\User::get(FALSE)
+      ->addWhere('id', '=', $userId)
+      ->execute()
+      ->single();
+
+    // Confusingly, Civi stores it's *Contact* ID as *userID* on the session.
+    $session->set('userID', $user['contact_id'] ?? NULL);
+
+    if (!empty($user['language'])) {
+      $session->set('lcMessages', $user['language']);
+    }
   }
 
   /**
    * @inheritDoc
    */
   public function logoutSession() {
+    global $loggedInUserId;
+    $loggedInUserId = NULL;
+
+    session_regenerate_id(TRUE);
     \CRM_Core_Session::singleton()->reset();
-    session_destroy();
+    $_SESSION = [];
   }
 
   /**
    * @inheritDoc
    */
   public function loginStateless($userId) {
-    $user = Security::singleton()->loadUserByID($userId);
-    Security::singleton()->loginAuthenticatedUserRecord($user, FALSE);
+    global $loggedInUserId;
+    $loggedInUserId = $userId;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function logoutStateless() {
+    global $loggedInUserId;
+    $loggedInUserId = NULL;
+
+    \CRM_Core_Session::singleton()->reset();
+    $_SESSION = [];
   }
 
   /**
@@ -57,6 +91,14 @@ class Standalone implements AuthxInterface {
       $loggedInUserId = \CRM_Core_Session::singleton()->get('ufID');
     }
     return $loggedInUserId;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getUserIsBlocked($userId) {
+    // ToDo
+    return FALSE;
   }
 
 }

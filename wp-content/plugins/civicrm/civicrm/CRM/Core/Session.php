@@ -122,7 +122,7 @@ class CRM_Core_Session {
    */
   public function initialize($isRead = FALSE) {
     // reset $this->_session in case if it is no longer a reference to $_SESSION;
-    if (isset($_SESSION) && isset($this->_session) && $_SESSION !== $this->_session) {
+    if (isset($_SESSION, $this->_session) && $_SESSION !== $this->_session) {
       unset($this->_session);
     }
     // lets initialize the _session variable just before we need it
@@ -152,10 +152,21 @@ class CRM_Core_Session {
   /**
    * Resets the session store.
    *
-   * @param int $all
+   * @param int|string $mode
+   *   1: Default mode. Deletes the `CiviCRM` data from $_SESSION.
+   *   2: More invasive version of that. (somehow)
+   *   'keep_login': Less invasive. Preserve basic data (current user ID) from this session. Reset everything else.
    */
-  public function reset($all = 1) {
-    if ($all != 1) {
+  public function reset($mode = 1) {
+    if ($mode === 'keep_login') {
+      if (!empty($this->_session[$this->_key])) {
+        $this->_session[$this->_key] = CRM_Utils_Array::subset(
+          $this->_session[$this->_key],
+          ['ufID', 'userID', 'authx']
+        );
+      }
+    }
+    elseif ($mode != 1) {
       $this->initialize();
 
       // to make certain we clear it, first initialize it to empty
@@ -452,10 +463,11 @@ class CRM_Core_Session {
    * Stores an alert to be displayed to the user via crm-messages.
    *
    * @param string $text
-   *   The status message
+   *   The status message.
    *
    * @param string $title
-   *   The optional title of this message
+   *   The optional title of this message. For accessibility reasons,
+   *   please terminate with a full stop/period.
    *
    * @param string $type
    *   The type of this message (printed as a css class). Possible options:
@@ -473,15 +485,22 @@ class CRM_Core_Session {
    *                 set to 0 for no expiration
    *                 defaults to 10 seconds for most messages, 5 if it has a title but no body,
    *                 or 0 for errors or messages containing links
+   *
+   * @param bool $purify
+   *   TRUE to enable HTML filtering. This is generally a safe default.
+   *   FALSE to disable HTML filtering. This is appropriate when displaying pre-boot issues (when there is no
+   *   content-filtering service). When using this, double-check the escaping on any message data.
    */
-  public static function setStatus($text, $title = '', $type = 'alert', $options = []) {
+  public static function setStatus($text, $title = '', $type = 'alert', $options = [], bool $purify = TRUE) {
     // make sure session is initialized, CRM-8120
     $session = self::singleton();
     $session->initialize();
 
     // Sanitize any HTML we're displaying. This helps prevent reflected XSS in error messages.
-    $text = CRM_Utils_String::purifyHTML($text);
-    $title = CRM_Utils_String::purifyHTML($title);
+    if ($purify) {
+      $text = CRM_Utils_String::purifyHTML($text);
+      $title = CRM_Utils_String::purifyHTML($title);
+    }
 
     // default options
     $options += ['unique' => TRUE];

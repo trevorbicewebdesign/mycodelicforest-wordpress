@@ -244,7 +244,7 @@ class GFAPI {
 
 		$meta_table_name = GFFormsModel::get_meta_table_name();
 
-		if ( intval( $wpdb->get_var( $wpdb->prepare( "SELECT count(0) FROM {$meta_table_name} WHERE form_id=%d", $form_id ) ) ) == 0 ) {
+		if ( intval( $wpdb->get_var( $wpdb->prepare( "SELECT count(0) FROM {$meta_table_name} WHERE form_id=%d", $form_id ) ) ) == 0 ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			return new WP_Error( 'not_found', __( 'Form not found', 'gravityforms' ) );
 		}
 
@@ -276,7 +276,7 @@ class GFAPI {
 
 		// Updating form title and is_active flag.
 		$is_active = rgar( $form, 'is_active' ) ? '1' : '0';
-		$result    = $wpdb->query( $wpdb->prepare( "UPDATE {$form_table_name} SET title=%s, is_active=%s WHERE id=%d", $form['title'], $is_active, $form['id'] ) );
+		$result    = $wpdb->query( $wpdb->prepare( "UPDATE {$form_table_name} SET title=%s, is_active=%s WHERE id=%d", $form['title'], $is_active, $form['id'] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		GFFormsModel::flush_current_form( GFFormsModel::get_form_cache_key( $form_id ) );
 
@@ -357,7 +357,8 @@ class GFAPI {
 		}
 		$in_str_arr = array_fill( 0, count( $form_ids ), '%d' );
 		$in_str     = implode( ',', $in_str_arr );
-		$result     = $wpdb->query(
+		$result     = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 			$wpdb->prepare(
 				"
                 UPDATE $table
@@ -365,6 +366,7 @@ class GFAPI {
                 WHERE id IN ($in_str)
                 ", $form_ids
 			)
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 		);
 
 		GFFormsModel::flush_current_forms();
@@ -400,11 +402,13 @@ class GFAPI {
 	 *
 	 * @uses GFAPI::add_form()
 	 *
-	 * @param array $forms The Form Objects.
+	 * @param array $forms             The Form Objects.
+	 * @param bool  $continue_on_error Controls whether the function will continue adding forms even if it encounters an error with a form. If true, the function will attempt to add all forms and will return an array of successfully added form IDs and an array of failed forms with their corresponding errors. If false, the function will return a WP_Error instance as soon as it encounters an error with a form and will not attempt to add any remaining forms.
+	 * @param bool  $accessible        Controls whether forms are accessible by default. If true, properties that are not set in the specified $forms parameter will be set to an accessible value (i.e. top label). If false, defaults are not guaranteed to be accessible.
 	 *
 	 * @return array|WP_Error Either an array of new form IDs or a WP_Error instance.
 	 */
-	public static function add_forms( $forms ) {
+	public static function add_forms( $forms, $continue_on_error = false, $accessible = false ) {
 
 		if ( gf_upgrade()->get_submissions_block() ) {
 			return new WP_Error( 'submissions_blocked', __( 'Submissions are currently blocked due to an upgrade in progress', 'gravityforms' ) );
@@ -414,15 +418,35 @@ class GFAPI {
 			return new WP_Error( 'invalid', __( 'Invalid form objects', 'gravityforms' ) );
 		}
 		$form_ids = array();
+		$failed_forms = array();
+
 		foreach ( $forms as $form ) {
-			$result = self::add_form( $form );
+			$result = self::add_form( $form, $accessible );
 			if ( is_wp_error( $result ) ) {
-				return $result;
+				// If continue_on_error is true on the call, add the failed form details to the failed_forms array and return it else it will return the WP_Error.
+				if ( $continue_on_error ) {
+					$failed_forms[] = array(
+						'form_id' => $form['id'] ?? null,
+						'error'   => $result
+					);
+				} else {
+					return $result;
+				}
+
+			} else {
+				$form_ids[] = $result;
 			}
-			$form_ids[] = $result;
+
+		}
+		if ( $continue_on_error ) {
+			return array(
+				'form_ids'     => $form_ids,
+				'failed_forms' => $failed_forms
+			);
 		}
 
 		return $form_ids;
+
 	}
 
 	/**
@@ -432,11 +456,12 @@ class GFAPI {
 	 * @access public
 	 * @global $wpdb
 	 *
-	 * @param array $form_meta The Form object.
+	 * @param array $form_meta  The Form object.
+	 * @param bool  $accessible Controls whether forms are accessible by default. If true, properties that are not set in the specified $forms parameter will be set to an accessible value (i.e. top label). If false, defaults are not guaranteed to be accessible.
 	 *
 	 * @return int|WP_Error Either the new Form ID or a WP_Error instance.
 	 */
-	public static function add_form( $form_meta ) {
+	public static function add_form( $form_meta, $accessible = true ) {
 		global $wpdb;
 
 		if ( gf_upgrade()->get_submissions_block() ) {
@@ -498,6 +523,10 @@ class GFAPI {
 		$next_field_id = GFFormsModel::get_next_field_id( $form_meta['fields'] );
 
 		$form_meta['fields'] = self::add_missing_ids( $form_meta['fields'], $next_field_id );
+
+		if ( $accessible ) {
+			$form_meta = GFFormsModel::get_accessible_properties( $form_meta ) ;
+		}
 
 		// Updating form meta.
 		$result = GFFormsModel::update_form_meta( $form_id, $form_meta );
@@ -865,7 +894,7 @@ class GFAPI {
 		}
 		$post_id = ! empty( $entry['post_id'] ) ? intval( $entry['post_id'] ) : 'NULL';
 
-		$current_time = $wpdb->get_var( 'SELECT utc_timestamp()' );
+		$current_time = $wpdb->get_var( 'SELECT utc_timestamp()' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 
 		if ( empty( $entry['date_created'] ) ) {
 			$entry['date_created'] = $current_time;
@@ -966,6 +995,7 @@ class GFAPI {
 		$source_id = ! empty( $entry['source_id'] ) ? absint( $entry['source_id'] ) : 'NULL';
 
 		$entry_table = GFFormsModel::get_entry_table_name();
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$sql = $wpdb->prepare(
 			"
                 UPDATE $entry_table
@@ -994,7 +1024,8 @@ class GFAPI {
                 id = %d
                 ", $form_id, $is_starred, $is_read, $ip, $source_url, $user_agent, $currency, $status, $payment_method, $entry_id
 		);
-		$result     = $wpdb->query( $sql );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$result     = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 		if ( false === $result ) {
 			return new WP_Error( 'update_entry_properties_failed', __( 'There was a problem while updating the entry properties', 'gravityforms' ), $wpdb->last_error );
 		}
@@ -1002,7 +1033,7 @@ class GFAPI {
 		// Only save field values for fields that currently exist in the form. The rest in $entry will be ignored. The rest in $current_entry will get deleted.
 
 		$entry_meta_table = GFFormsModel::get_entry_meta_table_name();
-		$current_fields    = $wpdb->get_results( $wpdb->prepare( "SELECT id, meta_key, item_index FROM $entry_meta_table WHERE entry_id=%d", $entry_id ) );
+		$current_fields    = $wpdb->get_results( $wpdb->prepare( "SELECT id, meta_key, item_index FROM %i WHERE entry_id=%d", $entry_meta_table, $entry_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 
 		$form = gf_apply_filters( array( 'gform_form_pre_update_entry', $form_id ), $form, $entry, $entry_id );
 
@@ -1253,7 +1284,8 @@ class GFAPI {
 		$transaction_type = isset( $entry['transaction_type'] ) ? intval( $entry['transaction_type'] ) : 'NULL';
 
 		$entry_table = GFFormsModel::get_entry_table_name();
-		$result     = $wpdb->query(
+		$result      = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"
                 INSERT INTO $entry_table
@@ -1262,6 +1294,7 @@ class GFAPI {
                 (%d, {$post_id}, {$date_created}, {$date_updated}, %d,  %d, %s, %s, %s, %s, {$payment_status}, {$payment_date}, {$payment_amount}, {$transaction_id}, {$is_fulfilled}, {$user_id}, {$transaction_type}, %s, %s, {$source_id})
                 ", $form_id, $is_starred, $is_read, $ip, $source_url, $user_agent, $currency, $status, $payment_method
 			)
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		);
 		if ( false === $result ) {
 			return new WP_Error( 'insert_entry_properties_failed', __( 'There was a problem while inserting the entry properties', 'gravityforms' ), $wpdb->last_error );
@@ -1349,7 +1382,7 @@ class GFAPI {
 	 * @param string $property The property of the Entry object to be updated.
 	 * @param mixed  $value    The value to which the property should be set.
 	 *
-	 * @return bool Whether the entry property was updated successfully.
+	 * @return int|false The number of rows updated, or false on error or if there is a submissions block.
 	 */
 	public static function update_entry_property( $entry_id, $property, $value ) {
 		if ( gf_upgrade()->get_submissions_block() ) {
@@ -1423,12 +1456,12 @@ class GFAPI {
 				}
 			}
 		} else {
-			$sql = $wpdb->prepare( "SELECT id FROM {$entry_meta_table_name} WHERE entry_id=%d AND meta_key=%s", $entry_id, $input_id );
+			$sql = $wpdb->prepare( "SELECT id FROM %i WHERE entry_id=%d AND meta_key=%s", $entry_meta_table_name, $entry_id, $input_id );
 			if ( $item_index ) {
 				$sql .= $wpdb->prepare( ' AND item_index=%s', $item_index );
 			}
 
-			$lead_detail_id = $wpdb->get_var( $sql );
+			$lead_detail_id = $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 			if ( ! isset( $entry[ $input_id ] ) || ( $value === 0 && $entry[ $input_id ] !== '0' ) || $entry[ $input_id ] != $value ) {
 				$result = GFFormsModel::update_entry_field_value( $form, $entry, $field, $lead_detail_id, $input_id, $value, $item_index );
@@ -1644,22 +1677,18 @@ class GFAPI {
 	 * 'resume_token' => string '045f941cc4c04d479556bab1db6d3495'
 	 *
 	 * @since  Unknown
-	 * @access public
+	 * @since  2.9.9 Added the optional $initiated_by param.
 	 *
-	 * @uses GFAPI::get_form()
-	 * @uses GFCommon::get_base_path()
-	 * @uses GFFormDisplay::process_form()
-	 * @uses GFFormDisplay::replace_save_variables()
-	 *
-	 * @param int $form_id The Form ID
-	 * @param array $input_values An array of values. Not $_POST, that will be automatically merged with the $input_values.
-	 * @param array $field_values Optional.
-	 * @param int $target_page Optional.
-	 * @param int $source_page Optional.
+	 * @param int      $form_id      The Form ID
+	 * @param array    $input_values An array of values. Not $_POST, that will be automatically merged with the $input_values.
+	 * @param array    $field_values Optional. An array of dynamic population parameter keys with their corresponding values used to populate the fields.
+	 * @param int      $target_page  Optional. For multi-page forms to indicate which page is to be loaded if the current page passes validation. Default is 0, indicating the last or only page is being submitted.
+	 * @param int      $source_page  Optional. For multi-page forms to indicate which page of the form was just submitted. Default is 1.
+	 * @param null|int $initiated_by Optional. The process that initiated the submission. Supported integers are 1 (aka GFFormDisplay::SUBMISSION_INITIATED_BY_WEBFORM) or 2 (aka GFFormDisplay::SUBMISSION_INITIATED_BY_API). Defaults to GFFormDisplay::SUBMISSION_INITIATED_BY_API.
 	 *
 	 * @return array|WP_Error An array containing the result of the submission.
 	 */
-	public static function submit_form( $form_id, $input_values, $field_values = array(), $target_page = 0, $source_page = 1 ) {
+	public static function submit_form( $form_id, $input_values, $field_values = array(), $target_page = 0, $source_page = 1, $initiated_by = null ) {
 
 		if ( gf_upgrade()->get_submissions_block() ) {
 			return new WP_Error( 'submissions_blocked', __( 'Submissions are currently blocked due to an upgrade in progress', 'gravityforms' ) );
@@ -1679,7 +1708,8 @@ class GFAPI {
 
 		try {
 			require_once GFCommon::get_base_path() . '/form_display.php';
-			GFFormDisplay::process_form( $form_id, GFFormDisplay::SUBMISSION_INITIATED_BY_API );
+			$initiated_by = GFCommon::whitelist( $initiated_by, array( GFFormDisplay::SUBMISSION_INITIATED_BY_API, GFFormDisplay::SUBMISSION_INITIATED_BY_WEBFORM ) );
+			GFFormDisplay::process_form( $form_id, $initiated_by );
 		} catch ( Exception $ex ) {
 			remove_filter( 'gform_suppress_confirmation_redirect', '__return_true' );
 			remove_filter( 'gform_pre_validation', array( 'GFAPI', 'submit_form_filter_gform_pre_validation' ), 50 );
@@ -1690,45 +1720,55 @@ class GFAPI {
 
 		remove_filter( 'gform_pre_validation', array( 'GFAPI', 'submit_form_filter_gform_pre_validation' ), 50 );
 
-
-		if ( empty( GFFormDisplay::$submission ) ) {
-			return new WP_Error( 'error_processing_form', __( 'There was an error while processing the form:', 'gravityforms' ) );
+		$submission_details = rgar( GFFormDisplay::$submission, $form_id );
+		if ( empty( $submission_details ) ) {
+			return new WP_Error( 'error_processing_form', __( 'There was an error while processing the form.', 'gravityforms' ) );
 		}
 
-		$submissions_array = GFFormDisplay::$submission;
+		$form_restriction_error = rgar( $submission_details, 'form_restriction_error' );
+		if ( $form_restriction_error ) {
+			return new WP_Error( 'form_restriction_error', $form_restriction_error );
+		}
 
-		$submission_details = $submissions_array[ $form_id ];
+		$button_logic_error = rgar( $submission_details, 'button_logic_error' );
+		if ( $button_logic_error ) {
+			return new WP_Error( 'button_logic_error', $button_logic_error );
+		}
 
 		$result = array();
 
-		$result['is_valid'] = $submission_details['is_valid'];
-
-		if ( $result['is_valid'] == false ) {
-			$result['validation_messages'] = self::get_field_validation_errors( $submission_details['form'] );
-		}
-
+		$result['is_valid']           = $submission_details['is_valid'];
 		$result['form']               = $submission_details['form'];
 		$result['page_number']        = $submission_details['page_number'];
 		$result['source_page_number'] = $submission_details['source_page_number'];
 
-		if ( $submission_details['is_valid'] ) {
+		if ( $result['page_number'] !== 0 ) {
+			$files = rgar( GFFormsModel::$uploaded_files, $form_id );
+			if ( ! empty( $files ) && is_array( $files ) ) {
+				$result['uploaded_files'] = $files;
+			}
+		}
+
+		if ( $result['is_valid'] || rgar( $submission_details, 'abort_with_confirmation' ) ) {
 			$confirmation_message = $submission_details['confirmation_message'];
 
 			if ( is_array( $confirmation_message ) ) {
 				if ( isset( $confirmation_message['redirect'] ) ) {
-					$result['confirmation_message'] = '';
+					$result['confirmation_message']  = '';
 					$result['confirmation_redirect'] = $confirmation_message['redirect'];
-					$result['confirmation_type'] = 'redirect';
+					$result['confirmation_type']     = 'redirect';
 				} else {
 					$result['confirmation_message'] = $confirmation_message;
 				}
 			} else {
 				$result['confirmation_message'] = $confirmation_message;
-				$result['confirmation_type'] = 'message';
+				$result['confirmation_type']    = 'message';
 			}
 
 			$result['entry_id'] = rgars( $submission_details, 'lead/id' );
-			$result['is_spam']  = rgars( $submission_details, 'is_spam' );
+			$result['is_spam']  = rgar( $submission_details, 'is_spam' );
+		} else {
+			$result['validation_messages'] = self::get_field_validation_errors( $submission_details['form'] );
 		}
 
 		if ( isset( $submission_details['resume_token'] ) ) {
@@ -1786,7 +1826,6 @@ class GFAPI {
 			'validation_messages' => array(),
 			'page_number'         => $is_valid ? $target_page : $failed_validation_page,
 			'source_page_number'  => $source_page,
-			'form'                => $form,
 		);
 
 		if ( $is_valid ) {
@@ -1800,6 +1839,11 @@ class GFAPI {
 		$form_restriction_error = rgars( GFFormDisplay::$submission, $form_id . '/form_restriction_error' );
 		if ( $form_restriction_error ) {
 			return new WP_Error( 'form_restriction_error', $form_restriction_error );
+		}
+
+		$button_logic_error = rgars( GFFormDisplay::$submission, $form_id . '/button_logic_error' );
+		if ( $button_logic_error ) {
+			return new WP_Error( 'button_logic_error', $button_logic_error );
 		}
 
 		$result['validation_messages'] = self::get_field_validation_errors( $form );
@@ -1894,17 +1938,17 @@ class GFAPI {
 	 * @param int   $source_page  Indicates which page was active when the values were submitted.
 	 */
 	private static function hydrate_post( $form_id, $input_values, $field_values, $target_page, $source_page ) {
-		if ( ! isset( $_POST ) ) {
+		if ( ! isset( $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$_POST = array();
 		}
 
 		if ( ! empty( $input_values ) ) {
-			$_POST = array_merge_recursive( $_POST, $input_values );
+			$_POST = array_merge_recursive( $_POST, $input_values ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 
 		self::normalize_post_keys();
 
-		$_POST[ 'is_submit_' . $form_id ]                = true;
+		$_POST[ 'is_submit_' . $form_id ]                = '1';
 		$_POST['gform_submit']                           = $form_id;
 		$_POST[ 'gform_target_page_number_' . $form_id ] = absint( $target_page );
 		$_POST[ 'gform_source_page_number_' . $form_id ] = absint( $source_page );
@@ -1922,7 +1966,7 @@ class GFAPI {
 	private static function normalize_post_keys() {
 		$_POST = array_combine( array_map( function ( $key ) {
 			return str_replace( '.', '_', $key );
-		}, array_keys( $_POST ) ), array_values( $_POST ) );
+		}, array_keys( $_POST ) ), array_values( $_POST ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
@@ -1958,7 +2002,7 @@ class GFAPI {
 	 */
 	public static function submit_form_filter_gform_pre_validation( $form ) {
 		$name = 'state_' . absint( $form['id'] );
-		if ( ! isset( $_POST[ $name ] ) ) {
+		if ( ! isset( $_POST[ $name ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$field_values   = rgpost( 'gform_field_values' );
 			$_POST[ $name ] = GFFormDisplay::get_state( $form, $field_values );
 		}
@@ -2002,7 +2046,7 @@ class GFAPI {
 			} else {
 				$in_str_arr  = array_fill( 0, count( $form_ids ), '%d' );
 				$in_str      = join( ',', $in_str_arr );
-				$where_arr[] = $wpdb->prepare( "form_id IN ($in_str)", $form_ids );
+				$where_arr[] = $wpdb->prepare( "form_id IN ($in_str)", $form_ids ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 			}
 		}
 		if ( false === empty( $addon_slug ) ) {
@@ -2014,7 +2058,7 @@ class GFAPI {
 			} else {
 				$in_str_arr  = array_fill( 0, count( $feed_ids ), '%d' );
 				$in_str      = join( ',', $in_str_arr );
-				$where_arr[] = $wpdb->prepare( "id IN ($in_str)", $feed_ids );
+				$where_arr[] = $wpdb->prepare( "id IN ($in_str)", $feed_ids ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 			}
 		}
 
@@ -2024,8 +2068,7 @@ class GFAPI {
 			$sql .= ' WHERE ' . join( ' AND ', $where_arr );
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$results = $wpdb->get_results( $sql, ARRAY_A );
+		$results = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( empty( $results ) ) {
 			return new WP_Error( 'not_found', __( 'Feed not found', 'gravityforms' ) );
 		}
@@ -2138,9 +2181,9 @@ class GFAPI {
 			return self::get_missing_table_wp_error( $table );
 		}
 
-		$sql = $wpdb->prepare( "DELETE FROM {$table} WHERE id=%d", $feed_id );
+		$sql = $wpdb->prepare( "DELETE FROM {$table} WHERE id=%d", $feed_id ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-		$results = $wpdb->query( $sql );
+		$results = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( false === $results ) {
 			return new WP_Error( 'error_deleting', sprintf( __( 'There was an error while deleting feed id %s', 'gravityforms' ), $feed_id ), $wpdb->last_error );
 		}
@@ -2182,12 +2225,12 @@ class GFAPI {
 		$feed_meta_json = json_encode( $feed_meta );
 		$table          = $wpdb->prefix . 'gf_addon_feed';
 		if ( empty( $form_id ) ) {
-			$sql = $wpdb->prepare( "UPDATE {$table} SET meta= %s WHERE id=%d", $feed_meta_json, $feed_id );
+			$sql = $wpdb->prepare( "UPDATE {$table} SET meta= %s WHERE id=%d", $feed_meta_json, $feed_id ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		} else {
-			$sql = $wpdb->prepare( "UPDATE {$table} SET form_id = %d, meta= %s WHERE id=%d", $form_id, $feed_meta_json, $feed_id );
+			$sql = $wpdb->prepare( "UPDATE {$table} SET form_id = %d, meta= %s WHERE id=%d", $form_id, $feed_meta_json, $feed_id ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		}
 
-		$results = $wpdb->query( $sql );
+		$results = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		if ( false === $results ) {
 			return new WP_Error( 'error_updating', sprintf( __( 'There was an error while updating feed id %s', 'gravityforms' ), $feed_id ), $wpdb->last_error );
@@ -2231,13 +2274,25 @@ class GFAPI {
 		$feed_meta = self::encrypt_feed_meta( $feed_meta, $addon_slug );
 
 		$feed_meta_json = json_encode( $feed_meta );
-		$sql            = $wpdb->prepare( "INSERT INTO {$table} (form_id, meta, addon_slug) VALUES (%d, %s, %s)", $form_id, $feed_meta_json, $addon_slug );
+		$sql            = $wpdb->prepare( "INSERT INTO {$table} (form_id, meta, addon_slug) VALUES (%d, %s, %s)", $form_id, $feed_meta_json, $addon_slug ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-		$results = $wpdb->query( $sql );
+		$results = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		if ( false === $results ) {
 			return new WP_Error( 'error_inserting', __( 'There was an error while inserting a feed', 'gravityforms' ), $wpdb->last_error );
 		}
+
+		/*
+		 * Action triggered after a feed is added.
+		 *
+		 * @since 2.9.20
+		 *
+		 * @param int    $feed_id    The ID of the newly created feed.
+		 * @param int    $form_id    The ID of the form to which the feed belongs.
+		 * @param array  $feed_meta  The feed meta.
+		 * @param string $addon_slug The slug of the add-on to which the feed belongs
+		 */
+		do_action( 'gform_post_add_feed', $wpdb->insert_id, $form_id, $feed_meta, $addon_slug );
 
 		return $wpdb->insert_id;
 	}
@@ -2282,7 +2337,7 @@ class GFAPI {
 	 *
 	 * @return false|array
 	 */
-	public static function maybe_process_feeds( $entry, $form, $addon_slug = '', $reset_meta = false ) {
+	public static function maybe_process_feeds( $entry, $form, $addon_slug = '', $reset_meta = false, $bypass_feed_delay = false ) {
 		if ( ! class_exists( 'GFFeedAddOn' ) || empty( $entry['id'] ) ) {
 			return false;
 		}
@@ -2299,6 +2354,7 @@ class GFAPI {
 				self::update_processed_feeds_meta( $entry['id'], $addon_slug, null );
 			}
 
+			$addon->set_bypass_feed_delay( $bypass_feed_delay );
 			$entry = $addon->maybe_process_feed( $entry, $form );
 		} else {
 			foreach ( $addons as $slug => $addon ) {
@@ -2310,11 +2366,12 @@ class GFAPI {
 					self::update_processed_feeds_meta( $entry['id'], $slug, null );
 				}
 
+				$addon->set_bypass_feed_delay( $bypass_feed_delay );
 				$entry = $addon->maybe_process_feed( $entry, $form );
 			}
 		}
 
-		gf_feed_processor()->save()->dispatch();
+		gf_feed_processor()->save()->dispatch_on_shutdown();
 
 		return $entry;
 	}
@@ -2380,6 +2437,98 @@ class GFAPI {
 		gform_update_meta( $entry_id, 'processed_feeds', $meta, $form_id );
 	}
 
+	/**
+	 * Returns the key used when saving/retrieving the feed status entry meta.
+	 *
+	 * @since 2.9.4
+	 *
+	 * @param int $feed_id The feed ID.
+	 *
+	 * @return string
+	 */
+	public static function get_entry_feed_status_key( $feed_id ) {
+		return sprintf( 'feed_%d_status', $feed_id );
+	}
+
+	/**
+	 * Retrieves the feed processing status for the specified entry from the "feed_{$feed_id}_status" meta.
+	 *
+	 * @since 2.9.4
+	 *
+	 * @param int  $entry_id              The entry ID.
+	 * @param int  $feed_id               The feed ID.
+	 * @param bool $return_latest         Indicates if only the latest attempt should be returned. Default is to return all attempts.
+	 * @param bool $return_latest_details Indicates if the details array of the latest attempt should be returned instead of just the status string.
+	 *
+	 * @return array|string
+	 */
+	public static function get_entry_feed_status( $entry_id, $feed_id, $return_latest = false, $return_latest_details = false ) {
+		$meta = gform_get_meta( $entry_id, self::get_entry_feed_status_key( $feed_id ) );
+		if ( empty( $meta ) ) {
+			return $return_latest && ! $return_latest_details ? '' : array();
+		}
+
+		if ( $return_latest ) {
+			$latest = end( $meta );
+
+			return $return_latest_details ? $latest : rgar( $latest, 'status', '' );
+		}
+
+		return $meta;
+	}
+
+	/**
+	 * Updates or deletes the "feed_{$feed_id}_status" meta for the specified entry.
+	 *
+	 * @since 2.9.4
+	 *
+	 * @param int        $entry_id The entry ID.
+	 * @param int        $feed_id  The feed ID.
+	 * @param array|null $status   {
+	 *     The status array to be appended to the metadata or null to delete the metadata.
+	 *
+	 *     @type int        $timestamp The timestamp for the feed processing attempt.
+	 *     @type string     $status    The status: success or failed.
+	 *     @type int|string $code      The error code.
+	 *     @type string     $message   The error message.
+	 *     @type mixed      $data      Additional data relating to the error.
+	 * }
+	 * @param null|int   $form_id  The form ID of the entry (optional, saves extra query if passed when creating the metadata).
+	 *
+	 * @return void
+	 */
+	public static function update_entry_feed_status( $entry_id, $feed_id, $status, $form_id = null ) {
+		$key = self::get_entry_feed_status_key( $feed_id );
+		if ( is_null( $status ) ) {
+			gform_delete_meta( $entry_id, $key );
+
+			return;
+		}
+
+		$meta   = self::get_entry_feed_status( $entry_id, $feed_id );
+		$meta[] = $status;
+
+		gform_update_meta( $entry_id, $key, $meta, $form_id );
+	}
+
+	/**
+	 * Retrieves the name of the given feed.
+	 *
+	 * @since 2.9.9
+	 *
+	 * @param array  $feed The feed.
+	 * @param string $key  Optional. The key used to store the name.
+	 *
+	 * @return string
+	 */
+	public static function get_feed_name( $feed, $key = '' ) {
+		if ( empty( $key ) ) {
+			$key = ! empty( $feed['meta']['feedName'] ) ? 'feedName' : 'feed_name';
+		}
+
+		return rgars( $feed, 'meta/' . $key, '' );
+	}
+
 	// NOTIFICATIONS ----------------------------------------------
 
 	/**
@@ -2411,36 +2560,6 @@ class GFAPI {
 		foreach ( $form['notifications'] as $notification ) {
 			if ( rgar( $notification, 'event' ) != $event ) {
 				continue;
-			}
-
-			if ( $event == 'form_submission' ) {
-				/**
-				 * Disables user notifications.
-				 *
-				 * @since Unknown
-				 *
-				 * @param bool  false  Determines if the notification will be disabled. Set to true to disable the notification.
-				 * @param array $form  The Form Object that triggered the notification event.
-				 * @param array $entry The Entry Object that triggered the notification event.
-				 */
-				if ( rgar( $notification, 'type' ) == 'user' && gf_apply_filters( array( 'gform_disable_user_notification', $form_id ), false, $form, $entry ) ) {
-					GFCommon::log_debug( __METHOD__ . "(): Notification is disabled by gform_disable_user_notification hook, not including notification (#{$notification['id']} - {$notification['name']})." );
-					// Skip user notification if it has been disabled by a hook.
-					continue;
-					/**
-					 * Disables admin notifications.
-					 *
-					 * @since Unknown
-					 *
-					 * @param bool  false  Determines if the notification will be disabled. Set to true to disable the notification.
-					 * @param array $form  The Form Object that triggered the notification event.
-					 * @param array $entry The Entry Object that triggered the notification event.
-					 */
-				} elseif ( rgar( $notification, 'type' ) == 'admin' && gf_apply_filters( array( 'gform_disable_admin_notification', $form_id ), false, $form, $entry ) ) {
-					GFCommon::log_debug( __METHOD__ . "(): Notification is disabled by gform_disable_admin_notification hook, not including notification (#{$notification['id']} - {$notification['name']})." );
-					// Skip admin notification if it has been disabled by a hook.
-					continue;
-				}
 			}
 
 			/**
@@ -2485,12 +2604,64 @@ class GFAPI {
 				'event'         => $event,
 				'data'          => $data,
 			) );
-			$processor->save()->dispatch();
+			$processor->save()->dispatch_on_shutdown();
 		} else {
 			GFCommon::send_notifications( $notifications_to_send, $form, $entry, true, $event, $data );
 		}
 
 		return $notifications_to_send;
+	}
+
+	/**
+	 * Triggers sending of the given notification.
+	 *
+	 * @since 2.10.0
+	 *
+	 * @param array $notification The notification to be sent.
+	 * @param array $form         The form the notification belongs to.
+	 * @param array $entry        The entry the notification is being sent for.
+	 * @param array $data         Optional. Array of data which can be used in the notifications via the generic {object:property} merge tag. Defaults to empty array.
+	 *
+	 * @return void
+	 */
+	public static function send_notification( $notification, $form, $entry, $data = array() ) {
+		if ( empty( $notification ) || empty( $form ) || empty( $entry ) ) {
+			return;
+		}
+
+		$notification_id = rgar( $notification, 'id', 'custom' );
+		$event           = rgar( $notification, 'event', 'custom' );
+
+		/**
+		 * @var Async\GF_Notifications_Processor $processor
+		 */
+		$processor       = GFForms::get_service_container()->get( Async\GF_Background_Process_Service_Provider::NOTIFICATIONS );
+		$is_asynchronous = $processor->is_enabled( array( $notification_id ), $form, $entry, $event, $data );
+
+		if ( $is_asynchronous ) {
+			$task = array(
+				'notification' => $notification,
+				'form_id'      => absint( rgar( $form, 'id' ) ),
+				'event'        => $event,
+				'data'         => $data,
+			);
+
+			$entry_id = absint( rgar( $entry, 'id' ) );
+			if ( $entry_id ) {
+				// Entry with an integer ID, so we only store the ID in the task. The task processor will retrieve the latest version of the entry from the db.
+				$for_entry        = ' for entry #' . $entry_id;
+				$task['entry_id'] = $entry_id;
+			} else {
+				// The entry for a draft submission doesn't have an ID, so we need to pass the draft entry to the task processor.
+				$for_entry     = '';
+				$task['entry'] = $entry;
+			}
+
+			GFCommon::log_debug( __METHOD__ . sprintf( '(): Adding notification (#%s - %s) to the async processing queue%s.', $notification_id, rgar( $notification, 'name', 'custom' ), $for_entry ) );
+			$processor->push_to_queue( $task )->save()->dispatch_on_shutdown();
+		} else {
+			GFCommon::send_notification( $notification, $form, $entry, $data );
+		}
 	}
 
 

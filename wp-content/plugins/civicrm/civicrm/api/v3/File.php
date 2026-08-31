@@ -33,6 +33,11 @@ function civicrm_api3_file_create($params) {
 
   civicrm_api3_verify_mandatory($params, 'CRM_Core_DAO_File', ['uri']);
 
+  // Security: Validate URI to prevent path traversal attacks
+  if (isset($params['uri']) && $params['uri'] !== basename($params['uri'])) {
+    throw new CRM_Core_Exception('Invalid URI: must not contain directory separators or path traversal sequences');
+  }
+
   if (!isset($params['upload_date'])) {
     $params['upload_date'] = date("Ymd");
   }
@@ -89,6 +94,11 @@ function civicrm_api3_file_update($params) {
     return civicrm_api3_create_error('Required parameter missing');
   }
 
+  // Security: Validate URI to prevent path traversal attacks
+  if (isset($params['uri']) && $params['uri'] !== basename($params['uri'])) {
+    throw new CRM_Core_Exception('Invalid URI: must not contain directory separators or path traversal sequences');
+  }
+
   $fileDAO = new CRM_Core_DAO_File();
   $fileDAO->id = $params['id'];
   if ($fileDAO->find(TRUE)) {
@@ -115,7 +125,14 @@ function civicrm_api3_file_update($params) {
 function civicrm_api3_file_delete($params) {
 
   civicrm_api3_verify_mandatory($params, NULL, ['id']);
+  $uri = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_File', $params['id'], 'uri');
+  $path = \CRM_Core_Config::singleton()->customFileUploadDir . $uri;
   if (CRM_Core_BAO_File::deleteEntityFile('*', $params['id'])) {
+    return civicrm_api3_create_success();
+  }
+  // Not all files are attachments
+  elseif (file_exists($path) && unlink($path)) {
+    CRM_Core_BAO_File::deleteRecord(['id' => $params['id']]);
     return civicrm_api3_create_success();
   }
   else {

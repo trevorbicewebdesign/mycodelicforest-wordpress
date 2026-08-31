@@ -291,7 +291,8 @@ SELECT  id, html_type
     $this->assign('partiallyPaid', array_search('Partially paid', $statuses));
     $this->assign('pendingRefund', array_search('Pending refund', $statuses));
     $this->assign('participantStatus', $this->getParticipantValue('status_id'));
-
+    // @todo - this is for calculate.tpl but may not work here
+    // the main form needs it - see Contribution_Form->assignCurrencySymbol()
     $this->assign('currencySymbol', CRM_Core_BAO_Country::defaultCurrencySymbol());
 
     // line items block
@@ -329,7 +330,8 @@ SELECT  id, html_type
       ['onclick' => "showHideByValue('send_receipt','','notice','table-row','radio',false); showHideByValue('send_receipt','','from-email','table-row','radio',false);"]
     );
 
-    $this->add('select', 'from_email_address', ts('Receipt From'), $this->_fromEmails['from_email_id']);
+    $fromEmailSelect = $this->add('select', 'from_email_address', ts('Receipt From'), $this->_fromEmails['from_email_id']);
+    $fromEmailSelect->setOptionTextEscaped();
 
     $this->add('textarea', 'receipt_text', ts('Confirmation Message'));
 
@@ -423,7 +425,7 @@ SELECT  id, html_type
         continue;
       }
 
-      $optionFullIds = CRM_Utils_Array::value('option_full_ids', $field, []);
+      $optionFullIds = $field['option_full_ids'] ?? [];
 
       //soft suppress required rule when option is full.
       if (!empty($optionFullIds) && (count($options) == count($optionFullIds))) {
@@ -495,11 +497,6 @@ SELECT  id, html_type
               $optionFullTotalAmount += $option['amount'] ?? 0;
             }
           }
-          else {
-            if (!empty($defaultPricefieldIds) && in_array($optId, $defaultPricefieldIds)) {
-              unset($optionFullIds[$optId]);
-            }
-          }
         }
         $option['is_full'] = $isFull;
         $option['total_option_count'] = $dbTotalCount + $currentTotalCount;
@@ -547,24 +544,24 @@ SELECT  id, html_type
    */
   public function postProcess() {
     $params = $this->controller->exportValues($this->_name);
-    CRM_Price_BAO_LineItem::changeFeeSelections($params, $this->_participantId, 'participant', $this->getContributionID(), $this);
+    CRM_Price_BAO_LineItem::changeFeeSelections($params, $this->getParticipantID(), 'participant', $this->getContributionID(), $this);
     $this->contributionAmt = CRM_Core_DAO::getFieldValue('CRM_Contribute_BAO_Contribution', $this->getContributionID(), 'total_amount');
     // email sending
     if (!empty($params['send_receipt'])) {
-      $fetchParticipantVals = ['id' => $this->_participantId];
+      $fetchParticipantVals = ['id' => $this->getParticipantID()];
       CRM_Event_BAO_Participant::getValues($fetchParticipantVals, $participantDetails);
-      $participantParams = array_merge($params, $participantDetails[$this->_participantId]);
+      $participantParams = array_merge($params, $participantDetails[$this->getParticipantID()]);
       $this->emailReceipt($participantParams);
     }
 
     // update participant
-    CRM_Core_DAO::setFieldValue('CRM_Event_DAO_Participant', $this->_participantId, 'status_id', $params['status_id']);
+    CRM_Core_DAO::setFieldValue('CRM_Event_DAO_Participant', $this->getParticipantID(), 'status_id', $params['status_id']);
     if (!empty($params['note'])) {
       $noteParams = [
         'entity_table' => 'civicrm_participant',
         'note' => $params['note'],
-        'entity_id' => $this->_participantId,
-        'contact_id' => $this->_contactId,
+        'entity_id' => $this->getParticipantID(),
+        'contact_id' => $this->getContactID(),
       ];
       CRM_Core_BAO_Note::add($noteParams);
     }
@@ -574,7 +571,7 @@ SELECT  id, html_type
     if ($buttonName == $this->getButtonName('upload', 'new')) {
       $session = CRM_Core_Session::singleton();
       $session->pushUserContext(CRM_Utils_System::url('civicrm/payment/add',
-        "reset=1&action=add&component=event&id={$this->_participantId}&cid={$this->_contactId}"
+        "reset=1&action=add&component=event&id={$this->getParticipantID()}&cid={$this->getContactID()}"
       ));
     }
   }
@@ -625,28 +622,7 @@ SELECT  id, html_type
 
     $this->assign('event', $event);
 
-    $this->assign('isShowLocation', $event['is_show_location']);
-    if (($event['is_show_location'] ?? NULL) == 1) {
-      $locationParams = [
-        'entity_id' => $params['event_id'],
-        'entity_table' => 'civicrm_event',
-      ];
-      $location = CRM_Core_BAO_Location::getValues($locationParams, TRUE);
-      $this->assign('location', $location);
-    }
-
     if ($this->_isPaidEvent) {
-      $paymentInstrument = CRM_Contribute_PseudoConstant::paymentInstrument();
-      if (!$this->_mode) {
-        if (isset($params['payment_instrument_id'])) {
-          $this->assign('paidBy',
-            CRM_Utils_Array::value($params['payment_instrument_id'],
-              $paymentInstrument
-            )
-          );
-        }
-      }
-
       $this->assign('totalAmount', $this->contributionAmt);
       $this->assign('checkNumber', $params['check_number'] ?? NULL);
     }
@@ -846,7 +822,7 @@ SELECT  id, html_type
       }
 
       foreach ($values as $valKey => $value) {
-        if (strpos($valKey, 'price_') === FALSE) {
+        if (!str_contains($valKey, 'price_')) {
           continue;
         }
 
@@ -866,7 +842,7 @@ SELECT  id, html_type
             $currentCount = 1;
           }
 
-          if (isset($priceSetFields[$priceFieldId]) && isset($priceSetFields[$priceFieldId]['options'][$optId])) {
+          if (isset($priceSetFields[$priceFieldId], $priceSetFields[$priceFieldId]['options'][$optId])) {
             $currentCount = $priceSetFields[$priceFieldId]['options'][$optId] * $optVal;
           }
 

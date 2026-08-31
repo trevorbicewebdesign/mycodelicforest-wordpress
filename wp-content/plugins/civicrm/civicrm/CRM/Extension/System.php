@@ -85,21 +85,15 @@ class CRM_Extension_System {
    */
   public function __construct($parameters = []) {
     $config = CRM_Core_Config::singleton();
-    $parameters['maxDepth'] = CRM_Utils_Array::value('maxDepth', $parameters, \Civi::settings()->get('ext_max_depth'));
-    $parameters['extensionsDir'] = CRM_Utils_Array::value('extensionsDir', $parameters, $config->extensionsDir);
-    $parameters['extensionsURL'] = CRM_Utils_Array::value('extensionsURL', $parameters, $config->extensionsURL);
-    $parameters['resourceBase'] = CRM_Utils_Array::value('resourceBase', $parameters, $config->resourceBase);
-    $parameters['uploadDir'] = CRM_Utils_Array::value('uploadDir', $parameters, $config->uploadDir);
-    $parameters['userFrameworkBaseURL'] = CRM_Utils_Array::value('userFrameworkBaseURL', $parameters, $config->userFrameworkBaseURL);
-    if (!array_key_exists('civicrm_root', $parameters)) {
-      $parameters['civicrm_root'] = $GLOBALS['civicrm_root'];
-    }
-    if (!array_key_exists('cmsRootPath', $parameters)) {
-      $parameters['cmsRootPath'] = $config->userSystem->cmsRootPath();
-    }
-    if (!array_key_exists('domain_id', $parameters)) {
-      $parameters['domain_id'] = CRM_Core_Config::domainID();
-    }
+    $parameters['maxDepth'] ??= \Civi::settings()->get('ext_max_depth');
+    $parameters['extensionsDir'] ??= $config->extensionsDir;
+    $parameters['extensionsURL'] ??= $config->extensionsURL;
+    $parameters['resourceBase'] ??= $config->resourceBase;
+    $parameters['uploadDir'] ??= $config->uploadDir;
+    $parameters['userFrameworkBaseURL'] ??= $config->userFrameworkBaseURL;
+    $parameters['civicrm_root'] ??= $GLOBALS['civicrm_root'];
+    $parameters['cmsRootPath'] ??= $config->userSystem->cmsRootPath();
+    $parameters['domain_id'] ??= CRM_Core_Config::domainID();
     // guaranteed ordering - useful for md5(serialize($parameters))
     ksort($parameters);
 
@@ -119,15 +113,13 @@ class CRM_Extension_System {
         $containers['default'] = $this->getDefaultContainer();
       }
 
-      $civiSubDirs = defined('CIVICRM_TEST')
-        ? ['ext', 'tools', 'tests']
-        : ['ext', 'tools'];
+      $civiSubDirs = ['ext', 'tools', 'tests/extensions'];
       foreach ($civiSubDirs as $civiSubDir) {
         $containers["civicrm_$civiSubDir"] = new CRM_Extension_Container_Basic(
           CRM_Utils_File::addTrailingSlash($this->parameters['civicrm_root']) . $civiSubDir,
           CRM_Utils_File::addTrailingSlash($this->parameters['resourceBase'], '/') . $civiSubDir,
           $this->getCache(),
-          "civicrm_$civiSubDir",
+          "civicrm_" . CRM_Utils_String::munge($civiSubDir),
           $this->parameters['maxDepth']
         );
       }
@@ -269,10 +261,11 @@ class CRM_Extension_System {
    */
   public function getCache() {
     if ($this->cache === NULL) {
-      $cacheGroup = md5(serialize(['ext', $this->parameters, CRM_Utils_System::version()]));
+      $cacheGroup = 'ext_' . CRM_Utils_String::base64UrlEncode(md5(serialize($this->parameters), TRUE));
       // Extension system starts before container. Manage our own cache.
       $this->cache = CRM_Utils_Cache::create([
         'name' => $cacheGroup,
+        'scope' => 'version',
         'service' => 'extension_system',
         'type' => ['*memory*', 'SqlGroup', 'ArrayCache'],
         'prefetch' => TRUE,
@@ -285,6 +278,9 @@ class CRM_Extension_System {
   /**
    * Determine the URL which provides a feed of available extensions.
    *
+   * NOTE: this will be filtered according to CIVICRM_EXTENSION_DOWNLOAD_TRUSTED_HOSTS
+   * as we implicitly trust download urls provided in the repository feed
+   *
    * @return string|FALSE
    */
   public function getRepositoryUrl() {
@@ -294,6 +290,10 @@ class CRM_Extension_System {
       // boolean false means don't try to check extensions
       // CRM-10575
       if ($url === FALSE) {
+        $this->_repoUrl = FALSE;
+      }
+      elseif (!$this->checkTrustedUrl($url)) {
+        \CRM_Core_Session::setStatus(ts('Untrusted URL for extension directory'));
         $this->_repoUrl = FALSE;
       }
       else {
@@ -341,7 +341,6 @@ class CRM_Extension_System {
       $extensionRow['path'] = '';
     }
     $extensionRow['status'] = $manager->getStatus($obj->key);
-    $requiredExtensions = $mapper->getKeysByTag('mgmt:required');
 
     switch ($extensionRow['status']) {
       case CRM_Extension_Manager::STATUS_UNINSTALLED:
@@ -373,10 +372,21 @@ class CRM_Extension_System {
     if ($manager->isIncompatible($obj->key)) {
       $extensionRow['statusLabel'] = ts('Obsolete') . ($extensionRow['statusLabel'] ? (' - ' . $extensionRow['statusLabel']) : '');
     }
-    elseif (in_array($obj->key, $requiredExtensions)) {
+    elseif (in_array('mgmt:required', $obj->tags)) {
       $extensionRow['statusLabel'] = ts('Required');
     }
     return $extensionRow;
+  }
+
+  /**
+   * Validate that a url matches trusted hosts
+   * @param string $url - url for extension directory or download
+   *
+   * @return bool
+   */
+  public function checkTrustedUrl(string $url): bool {
+    $url_host = parse_url($url, PHP_URL_HOST);
+    return in_array($url_host, CRM_Utils_Constant::value("CIVICRM_EXTENSION_DOWNLOAD_TRUSTED_HOSTS", ['civicrm.org']));
   }
 
 }

@@ -28,13 +28,6 @@ class CRM_Contact_Form_Inline_CustomData extends CRM_Contact_Form_Inline {
   public $_groupID;
 
   /**
-   * Entity type of the table id.
-   *
-   * @var string
-   */
-  protected $_entityType;
-
-  /**
    * Build the form object elements for custom data.
    *
    * @throws \CRM_Core_Exception
@@ -95,6 +88,11 @@ class CRM_Contact_Form_Inline_CustomData extends CRM_Contact_Form_Inline {
     $this->addElement('hidden', 'hidden_custom', 1);
     $this->addElement('hidden', "hidden_custom_group_count[{$this->_groupID}]", CRM_Utils_Request::retrieve('cgcount', 'Positive', $this, FALSE, 1));
     CRM_Core_BAO_CustomGroup::buildQuickForm($this, $this->_groupTree);
+    // This form only applies to a single group so this loop always runs once
+    foreach ($this->_groupTree as $group_id => $cd_edit) {
+      $this->assign('group_id', $group_id);
+      $this->assign('cd_edit', $cd_edit);
+    }
   }
 
   /**
@@ -115,11 +113,16 @@ class CRM_Contact_Form_Inline_CustomData extends CRM_Contact_Form_Inline {
     // Process / save custom data
     // Get the form values and groupTree
     $params = $this->getSubmittedValues();
+    CRM_Utils_Hook::pre('edit', $this->_contactType, $this->getContactID(), $params);
     CRM_Core_BAO_CustomValueTable::postProcess($params,
       'civicrm_contact',
       $this->getContactID(),
-      $this->_entityType
+      $this->_contactType
     );
+
+    $contact = new CRM_Contact_BAO_Contact();
+    $contact->id = $this->getContactID();
+    CRM_Utils_Hook::post('edit', $this->_contactType, $this->getContactID(), $contact, $params);
 
     $this->log();
 

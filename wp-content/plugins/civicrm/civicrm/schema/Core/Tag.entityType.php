@@ -71,6 +71,8 @@ return [
         'key_column' => 'id',
         'name_column' => 'name',
         'label_column' => 'label',
+        'description_column' => 'description',
+        'color_column' => 'color',
       ],
       'entity_reference' => [
         'entity' => 'Tag',
@@ -104,7 +106,7 @@ return [
     ],
     'used_for' => [
       'title' => ts('Used For'),
-      'sql_type' => 'varchar(64)',
+      'sql_type' => 'varchar(512)',
       'input_type' => 'Select',
       'add' => '3.2',
       'default' => NULL,
@@ -119,6 +121,7 @@ return [
       'input_type' => 'EntityRef',
       'description' => ts('FK to civicrm_contact, who created this tag'),
       'add' => '3.4',
+      'default_callback' => ['CRM_Core_Session', 'getLoggedInContactID'],
       'input_attrs' => [
         'label' => ts('Created By'),
       ],

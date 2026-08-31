@@ -341,7 +341,7 @@ civicrm_activity_assignment.record_type_id = $assigneeID ) ";
     $form->add('select', 'contact_type', ts('Contact Type(s)'), $contactTypes, FALSE,
       ['id' => 'contact_type', 'multiple' => 'multiple', 'class' => 'crm-select2']
     );
-    $groups = CRM_Core_PseudoConstant::nestedGroup();
+    $groups = CRM_Core_PseudoConstant::nestedGroup(textFormat: 'plain');
     $form->add('select', 'group', ts('Groups'), $groups, FALSE,
       ['multiple' => 'multiple', 'class' => 'crm-select2']
     );
@@ -372,27 +372,6 @@ civicrm_activity_assignment.record_type_id = $assigneeID ) ";
         $form->setDefaults($defaults);
       }
     }
-
-    //build ward and precinct custom fields.
-    $query = '
-    SELECT  fld.id, fld.label
-      FROM  civicrm_custom_field fld
-INNER JOIN  civicrm_custom_group grp on fld.custom_group_id = grp.id
-     WHERE  grp.name = %1';
-    $dao = CRM_Core_DAO::executeQuery($query, [1 => ['Voter_Info', 'String']]);
-    $customSearchFields = [];
-    while ($dao->fetch()) {
-      foreach (['ward', 'precinct'] as $name) {
-        if (stripos($name, $dao->label) !== FALSE) {
-          $fieldId = $dao->id;
-          $fieldName = 'custom_' . $dao->id;
-          $customSearchFields[$name] = $fieldName;
-          CRM_Core_BAO_CustomField::addQuickFormElement($form, $fieldName, $fieldId, FALSE);
-          break;
-        }
-      }
-    }
-    $form->assign('customSearchFields', $customSearchFields);
 
     $surveys = CRM_Campaign_BAO_Survey::getSurveys();
 

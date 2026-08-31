@@ -7,6 +7,10 @@
 
 if (!defined('ABSPATH')) exit();
 
+/**
+ * One element while sanitizing an SVG, together with its <use> references in both directions - that
+ * bookkeeping is what lets the sanitizer detect circular references.
+ */
 class RevSliderSvgSubject
 {
 	/**
@@ -81,6 +85,7 @@ class RevSliderSvgSubject
 	/**
 	 * @param RevSliderSvgSubject $subject
 	 * @param string $arrName
+	 * @return void
 	 */
 	protected function doAdd($subject, $arrName)
 	{
@@ -89,12 +94,13 @@ class RevSliderSvgSubject
 		}
 
 		$id = $subject->getElementId();
-		if (isset($this->$arrName[$id])) {
-			$this->$arrName[$id]['count']++;
+		$arr = &$this->{$arrName};
+		if (isset($arr[$id])) {
+			$arr[$id]['count']++;
 			return;
 		}
 
-		$this->$arrName[$id] = [
+		$arr[$id] = [
 			'subject' => $subject,
 			'count' => 1,
 		];
@@ -102,6 +108,7 @@ class RevSliderSvgSubject
 
 	/**
 	 * @param RevSliderSvgSubject $subject
+	 * @return void
 	 */
 	public function addUse($subject)
 	{
@@ -110,6 +117,7 @@ class RevSliderSvgSubject
 
 	/**
 	 * @param RevSliderSvgSubject $subject
+	 * @return void
 	 */
 	public function addUsedIn($subject)
 	{
@@ -124,8 +132,8 @@ class RevSliderSvgSubject
 	protected function doCount($arrName, $countFunc)
 	{
 		$count = 0;
-		foreach ($this->$arrName as $subject) {
-			$count += $subject['count'] * max(1, $subject['subject']->$countFunc());
+		foreach ($this->{$arrName} as $subject) {
+			$count += $subject['count'] * max(1, $subject['subject']->{$countFunc}());
 		}
 		return $count;
 	}

@@ -18,7 +18,7 @@
         {ts}Please verify your information.{/ts} <strong>{ts}If space becomes available you will receive an email with a link to complete your registration.{/ts}</strong>
         {ts 1=$register}Click <strong>%1</strong> to be added to the WAIT LIST for this event.{/ts}
     {elseif $isRequireApproval}
-        {ts}Please verify your information.{/ts} <strong>{ts}Once approved, you will receive an email with a link to complete the registration process.{/ts}</strong>
+        {ts}Please verify your information.{/ts}
         {ts 1=$register}Click <strong>%1</strong> to submit your registration for approval.{/ts}
     {else}
         {ts}Please verify your information.{/ts}
@@ -39,7 +39,7 @@
         </div>
     {/if}
 
-    {if $paidEvent && !$isRequireApproval && !$isOnWaitlist}
+    {if $paidEvent && (!$isRequireApproval || ({$event.is_pay_later} == 1 && $lineItem)) && !$isOnWaitlist}
         <div class="crm-group event_fees-group">
             <div class="header-dark">
                 {$event.fee_label}
@@ -93,7 +93,7 @@
       </fieldset>
     {/if}
     {if $totalAmount > 0}
-      {include file='CRM/Core/BillingBlockWrapper.tpl'}
+      {include file='CRM/Core/BillingBlockWrapper.tpl' showPaymentOnConfirm=$showPaymentOnConfirm}
     {/if}
     {literal}<script>function calculateTotalFee() { return {/literal}{$totalAmount}{literal} }</script>{/literal}
     </div>

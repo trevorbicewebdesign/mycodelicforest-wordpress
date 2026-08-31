@@ -256,10 +256,9 @@ class GF_Field_Time extends GF_Field {
 		$id       = intval( $this->id );
 		$field_id = $is_entry_detail || $is_form_editor || $form_id == 0 ? "input_$id" : 'input_' . $form_id . "_$id";
 
-		$form_sub_label_placement  = rgar( $form, 'subLabelPlacement' );
 		$field_sub_label_placement = $this->subLabelPlacement;
-		$colon_pmam_placement      = empty( $field_sub_label_placement ) || $field_sub_label_placement == 'hidden_label' ? 'below' : $field_sub_label_placement;
-		$is_sub_label_above        = $field_sub_label_placement == 'above' || ( empty( $field_sub_label_placement ) && $form_sub_label_placement == 'above' );
+		$colon_pmam_placement      = empty( $field_sub_label_placement ) || $field_sub_label_placement === 'hidden_label' ? 'above' : $field_sub_label_placement;
+		$is_sub_label_above        = $this->is_sub_label_above( $form );
 
 		$disabled_text = $is_form_editor ? "disabled='disabled'" : '';
 
@@ -310,8 +309,8 @@ class GF_Field_Time extends GF_Field {
                                 <select name='input_{$id}[]' id='{$field_id}_3' $ampm_tabindex {$disabled_text}>
                                     <option value='am' {$am_selected}>{$am_text}</option>
                                     <option value='pm' {$pm_selected}>{$pm_text}</option>
-                                </select> 
-                                <label class='gform-field-label gform-field-label--type-sub am_pm_label screen-reader-text' for='{$field_id}_3'>" . esc_html__( 'AM/PM', 'gravityforms' ) . "</label>                                
+                                </select>
+                                <label class='gform-field-label gform-field-label--type-sub am_pm_label screen-reader-text' for='{$field_id}_3'>" . esc_html__( 'AM/PM', 'gravityforms' ) . "</label>
                            </div>";
 		} else {
 			$ampm_field = '';
@@ -358,24 +357,24 @@ class GF_Field_Time extends GF_Field {
 			$markup = "{$clear_multi_div_open}
                         <div class='gfield_time_hour ginput_container ginput_container_time gform-grid-col' id='{$field_id}'>
                             <label class='gform-field-label gform-field-label--type-sub hour_label{$hour_label_class}' for='{$field_id}_1'>{$hour_label}</label>
-                            <input type='{$input_type}' maxlength='2' name='input_{$id}[]' id='{$field_id}_1' value='{$hour}' {$hour_tabindex} {$hour_html5_attributes} {$disabled_text} {$hour_placeholder_attribute} {$hour_aria_attributes} {$aria_describedby}/> {$legacy_markup_colon}
+                            <input type='{$input_type}' name='input_{$id}[]' id='{$field_id}_1' value='{$hour}' {$hour_tabindex} {$hour_html5_attributes} {$disabled_text} {$hour_placeholder_attribute} {$hour_aria_attributes} {$aria_describedby}/> {$legacy_markup_colon}
                         </div>
                         {$new_markup_colon}
                         <div class='gfield_time_minute ginput_container ginput_container_time gform-grid-col'>
                             <label class='gform-field-label gform-field-label--type-sub minute_label{$minute_label_class}' for='{$field_id}_2'>{$minute_label}</label>
-                            <input type='{$input_type}' maxlength='2' name='input_{$id}[]' id='{$field_id}_2' value='{$minute}' {$minute_tabindex} {$minute_html5_attributes} {$disabled_text} {$minute_placeholder_attribute} {$minute_aria_attributes}/>
+                            <input type='{$input_type}' name='input_{$id}[]' id='{$field_id}_2' value='{$minute}' {$minute_tabindex} {$minute_html5_attributes} {$disabled_text} {$minute_placeholder_attribute} {$minute_aria_attributes}/>
                         </div>
                         {$ampm_field}
                     {$clear_multi_div_close}";
 		} else {
 			$markup = "{$clear_multi_div_open}
                         <div class='gfield_time_hour ginput_container ginput_container_time gform-grid-col' id='{$field_id}'>
-                            <input type='{$input_type}' maxlength='2' name='input_{$id}[]' id='{$field_id}_1' value='{$hour}' {$hour_tabindex} {$hour_html5_attributes} {$disabled_text} {$hour_placeholder_attribute} {$hour_aria_attributes} {$aria_describedby}/> {$legacy_markup_colon}
+                            <input type='{$input_type}' name='input_{$id}[]' id='{$field_id}_1' value='{$hour}' {$hour_tabindex} {$hour_html5_attributes} {$disabled_text} {$hour_placeholder_attribute} {$hour_aria_attributes} {$aria_describedby}/> {$legacy_markup_colon}
                             <label class='gform-field-label gform-field-label--type-sub hour_label{$hour_label_class}' for='{$field_id}_1'>{$hour_label}</label>
                         </div>
                         {$new_markup_colon}
                         <div class='gfield_time_minute ginput_container ginput_container_time gform-grid-col'>
-                            <input type='{$input_type}' maxlength='2' name='input_{$id}[]' id='{$field_id}_2' value='{$minute}' {$minute_tabindex} {$minute_html5_attributes} {$disabled_text} {$minute_placeholder_attribute} {$minute_aria_attributes}/>
+                            <input type='{$input_type}' name='input_{$id}[]' id='{$field_id}_2' value='{$minute}' {$minute_tabindex} {$minute_html5_attributes} {$disabled_text} {$minute_placeholder_attribute} {$minute_aria_attributes}/>
                             <label class='gform-field-label gform-field-label--type-sub minute_label{$minute_label_class}' for='{$field_id}_2'>{$minute_label}</label>
                         </div>
                         {$ampm_field}
@@ -446,22 +445,20 @@ class GF_Field_Time extends GF_Field {
 	}
 
 	/**
-	 * Prepares the field value to be saved after an entry is submitted.
+	 * Sanitize and format the value before it is saved to the Entry Object.
 	 *
-	 * @since  Unknown
-	 * @access public
+	 * @since 3.0.0
 	 *
-	 * @used-by GFFormsModel::prepare_value()
+	 * @param string $value          The value to be saved.
+	 * @param array  $form           The Form object currently being processed.
+	 * @param string $input_name     The input name used when accessing the $_POST.
+	 * @param int    $entry_id        The ID of the entry currently being processed.
+	 * @param array  $entry           The entry currently being processed.
+	 * @param string $repeater_index The repeater index if the field is inside a repeater.
 	 *
-	 * @param string $value      The value to prepare.
-	 * @param array  $form       The Form Object. Not used.
-	 * @param string $input_name The name of the input. Not used.
-	 * @param int    $lead_id    The entry ID. Not used.
-	 * @param array  $lead       The Entry Object. Not used.
-	 *
-	 * @return array|string      The field value, prepared and stripped of tags.
+	 * @return array|string The sanitized and formatted input value to be saved.
 	 */
-	public function get_value_save_entry( $value, $form, $input_name, $lead_id, $lead ) {
+	public function get_value_save_input( $value, $form, $input_name, $entry_id, $entry, $repeater_index = '' ) {
 
 		if ( empty( $value ) && ! is_array( $value ) ) {
 			return '';
@@ -473,15 +470,22 @@ class GF_Field_Time extends GF_Field {
 		}
 
 		if ( ! is_array( $value ) && ! empty( $value ) ) {
-			preg_match( '/^(\d*):(\d*) ?(.*)$/', $value, $matches );
-			$value    = array();
-			$value[0] = $matches[1];
-			$value[1] = $matches[2];
-			$value[2] = rgar( $matches, 3 );
+			if ( $this->is_administrative() && str_starts_with( $value, '{' ) ) {
+				$value = json_decode( $value, true );
+				if ( empty( $value ) ) {
+					return '';
+				}
+				$value = array_values( $value );
+			} else {
+				preg_match( '/^(\d*):(\d*) ?(.*)$/', $value, $matches );
+				$value    = array();
+				$value[0] = rgar( $matches, 1 );
+				$value[1] = rgar( $matches, 2 );
+				$value[2] = rgar( $matches, 3 );
+			}
 		}
-
-		$hour   = wp_strip_all_tags( $value[0] );
-		$minute = wp_strip_all_tags( $value[1] );
+		$hour   = wp_strip_all_tags( rgar( $value, 0 ) );
+		$minute = wp_strip_all_tags( rgar( $value, 1 ) );
 		$ampm   = wp_strip_all_tags( rgar( $value, 2 ) );
 		if ( ! empty( $ampm ) ) {
 			$ampm = " $ampm";

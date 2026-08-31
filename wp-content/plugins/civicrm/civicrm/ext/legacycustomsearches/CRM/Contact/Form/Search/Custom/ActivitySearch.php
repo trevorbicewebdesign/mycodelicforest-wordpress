@@ -96,7 +96,7 @@ class CRM_Contact_Form_Search_Custom_ActivitySearch extends CRM_Contact_Form_Sea
     );
 
     // Select box for Activity Type
-    $activityType = ['' => ts(' - select activity - ')] + CRM_Activity_BAO_Activity::buildOptions('activity_type_id', 'search');
+    $activityType = ['' => ts('- select activity -')] + CRM_Activity_BAO_Activity::buildOptions('activity_type_id', 'search');
 
     $form->add('select', 'activity_type_id', ts('Activity Type'),
       $activityType,
@@ -104,7 +104,7 @@ class CRM_Contact_Form_Search_Custom_ActivitySearch extends CRM_Contact_Form_Sea
     );
 
     // textbox for Activity Status
-    $activityStatus = ['' => ts(' - select status - ')] + CRM_Activity_BAO_Activity::buildOptions('status_id', 'search');
+    $activityStatus = ['' => ts('- select status -')] + CRM_Activity_BAO_Activity::buildOptions('status_id', 'search');
 
     $form->add('select', 'activity_status_id', ts('Activity Status'),
       $activityStatus,
@@ -217,7 +217,7 @@ class CRM_Contact_Form_Search_Custom_ActivitySearch extends CRM_Contact_Form_Sea
       // Define ORDER BY for query in $sort, with default value
       if (!empty($sort)) {
         if (is_string($sort)) {
-          $sort = CRM_Utils_Type::escape($sort, 'String');
+          $sort = CRM_Utils_Type::escape($sort, 'MysqlOrderBy');
           $sql .= " ORDER BY $sort ";
         }
         else {

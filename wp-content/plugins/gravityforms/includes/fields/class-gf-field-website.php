@@ -53,6 +53,7 @@ class GF_Field_Website extends GF_Field {
 			'placeholder_setting',
 			'description_setting',
 			'css_class_setting',
+			'autocomplete_setting',
 		);
 	}
 
@@ -94,22 +95,51 @@ class GF_Field_Website extends GF_Field {
 		$required_attribute    = $this->isRequired ? 'aria-required="true"' : '';
 		$invalid_attribute     = $this->failed_validation ? 'aria-invalid="true"' : 'aria-invalid="false"';
 		$aria_describedby      = $this->get_aria_describedby();
+		$autocomplete          = $this->enableAutocomplete ? $this->get_field_autocomplete_attribute() : '';
 
 		$tabindex = $this->get_tabindex();
 		$value    = esc_attr( $value );
 		$class    = esc_attr( $class );
 
 		return "<div class='ginput_container ginput_container_website'>
-                    <input name='input_{$id}' id='{$field_id}' type='$html_input_type' value='{$value}' class='{$class}' {$tabindex} {$aria_describedby} {$disabled_text} {$placeholder_attribute} {$required_attribute} {$invalid_attribute}/>
+                    <input name='input_{$id}' id='{$field_id}' type='$html_input_type' value='{$value}' class='{$class}' {$tabindex} {$aria_describedby} {$disabled_text} {$placeholder_attribute} {$required_attribute} {$invalid_attribute} {$autocomplete}/>
                 </div>";
 	}
 
-	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
-		$safe_value = esc_url( $value );
+	/**
+	 * Format the entry value for display on the entry detail page and for the {all_fields} merge tag.
+	 *
+	 * @since 1.9
+	 * @since 2.9.29 Changed the second parameter $currency (string) to $entry (array).
+	 *
+	 * @param string|array $value    The field value.
+	 * @param array        $entry    The entry.
+	 * @param bool|false   $use_text When processing choice based fields should the choice text be returned instead of the value.
+	 * @param string       $format   The format requested for the location the merge is being used. Possible values: html, text or url.
+	 * @param string       $media    The location where the value will be displayed. Possible values: screen or email.
+	 *
+	 * @return string
+	 */
+	public function get_value_entry_detail( $value, $entry = array(), $use_text = false, $format = 'html', $media = 'screen' ) {
+		$safe_value = esc_url( (string) $value );
 		return GFCommon::is_valid_url( $value ) && $format == 'html' ? "<a href='$safe_value' target='_blank'>$safe_value</a>" : $safe_value;
 	}
 
-	public function get_value_save_entry( $value, $form, $input_name, $lead_id, $lead ) {
+	/**
+	 * Sanitize and format the value before it is saved to the Entry Object.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $value          The value to be saved.
+	 * @param array  $form           The Form object currently being processed.
+	 * @param string $input_name     The input name used when accessing the $_POST.
+	 * @param int    $entry_id        The ID of the entry currently being processed.
+	 * @param array  $entry           The entry currently being processed.
+	 * @param string $repeater_index The repeater index if the field is inside a repeater.
+	 *
+	 * @return array|string The sanitized and formatted input value to be saved.
+	 */
+	public function get_value_save_input( $value, $form, $input_name, $entry_id, $entry, $repeater_index = '' ) {
 
 		if ( empty( $value ) || in_array( $value, array( 'http://', 'https://' ) ) ) {
 			return '';
@@ -134,6 +164,23 @@ class GF_Field_Website extends GF_Field {
 		$operators[] = 'contains';
 
 		return $operators;
+	}
+
+	/**
+	 * Performs actions after the field has been converted to an object.
+	 *
+	 * Ensures the `autocompleteAttribute` property is set to 'url' if it is not already defined.
+	 *
+	 * @since 2.9.8
+	 *
+	 */
+	public function post_convert_field() {
+		parent::post_convert_field();
+
+		if ( $this->is_form_editor() && empty( $this->autocompleteAttribute ) ) {
+			$this->autocompleteAttribute = 'url';
+		}
+
 	}
 
 }

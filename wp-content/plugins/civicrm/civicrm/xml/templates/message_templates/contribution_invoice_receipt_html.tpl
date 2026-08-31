@@ -16,7 +16,7 @@
     <table style="font-family: Arial, Verdana, sans-serif;" width="100%" height="100" border="0" cellpadding="5" cellspacing="0">
       {if $userText}
         <tr>
-          <td><font size="1" colspan="3">{$userText}</font></td>
+          <td colspan="3"><font size="1">{$userText}</font></td>
         </tr>
       {/if}
       <tr>
@@ -25,7 +25,7 @@
         <td valign="bottom" style="white-space: nowrap"><b><font size="1" align="right">{domain.name}</font></b></td>
       </tr>
       <tr>
-        <td><font size="1" align="center">{contact.display_name}{if '{contact.current_employer}'} ({contact.current_employer}){/if}</font></td>
+        <td><font size="1" align="center">{contact.display_name}{if {contact.current_employer|boolean}} ({contact.current_employer}){/if}</font></td>
         <td><font size="1" align="right">{contribution.receive_date|crmDate:"Full"}</font></td>
         <td style="white-space: nowrap"><font size="1" align="right">
           {domain.street_address}
@@ -210,7 +210,7 @@
         <td><font size="1" align="right">{domain.name}</font></td>
       </tr>
       <tr>
-        <td style="padding-left:17px;"><font size="1" align="center">{contact.display_name}{if '{contact.current_employer}'} ({contact.current_employer}){/if}</font></td>
+        <td style="padding-left:17px;"><font size="1" align="center">{contact.display_name}{if {contact.current_employer|boolean}} ({contact.current_employer}){/if}</font></td>
         <td style="padding-left:30px;"><font size="1" align="right">{contribution.receive_date|crmDate:"Full"}</font></td>
         <td><font size="1" align="right">
           {domain.street_address}

@@ -23,15 +23,24 @@ function gf_apply_rules(formId, fields, isInit){
 		gf_apply_field_rule(formId, fields[i], isInit, function(){
 			var is_last_field = ( i >= fields.length - 1 );
 			if( is_last_field ) {
+
+				// Gather the fields that are dependents of the processed fields (inside pages/sections).
+				var dependentFields = [];
+				var dependents = window["gf_form_conditional_logic"][formId]["dependents"][fields[i]];
+				if ( dependents ) {
+					dependents.forEach( function ( dependentFieldId ) {
+						if ( dependentFields.indexOf( dependentFieldId ) === -1 ) {
+							dependentFields.push( dependentFieldId );
+						}
+					});
+				}
+
 				jQuery(document).trigger('gform_post_conditional_logic', [formId, fields, isInit]);
 				gform.utils.trigger( {
 					event: 'gform/conditionalLogic/applyRules/end',
 					native: false,
-					data: { formId: formId, fields: fields, isInit: isInit },
+					data: { formId: formId, fields: fields, dependentFields: dependentFields, isInit: isInit },
 				} );
-				if( window.gformCalculateTotalPrice ) {
-					window.gformCalculateTotalPrice( formId );
-				}
 			}
 		});
 	}
@@ -167,7 +176,7 @@ function gf_is_match_checkable( $inputs, rule, formId, fieldId ) {
 	$inputs.each( function() {
 
 		var $input           = jQuery( this ),
-			fieldValue       = gf_get_value( $input.val() ),
+			fieldValue       = gf_get_value( $input.val(), $input ),
 			isRangeOperator  = jQuery.inArray( rule.operator, [ '<', '>' ] ) !== -1,
 			isStringOperator = jQuery.inArray( rule.operator, [ 'contains', 'starts_with', 'ends_with' ] ) !== -1;
 
@@ -224,9 +233,9 @@ function gf_is_match_default( $input, rule, formId, fieldId ) {
 
 	for( var i = 0; i < valuesLength; i++ ) {
 
-		// fields with pipes in the value will use the label for conditional logic comparison
-		var hasLabel   = values[i] ? values[i].indexOf( '|' ) >= 0 : true,
-			fieldValue = gf_get_value( values[i] );
+		var isPriceField = $input.closest( '.gfield_price' ).length > 0,
+			hasLabel       = ! values[i] || ( isPriceField && values[i].indexOf( '|' ) >= 0 ),
+			fieldValue     = gf_get_value( values[i], $input );
 
 		var fieldNumberFormat = gf_get_field_number_format( rule.fieldId, formId, 'value' );
 		if( fieldNumberFormat && ! hasLabel ) {
@@ -345,12 +354,18 @@ function gf_matches_operation(val1, val2, operation){
 	return false;
 }
 
-function gf_get_value(val){
-	if(!val)
-		return "";
+function gf_get_value( val, $input ) {
+	if ( ! val ) {
+		return '';
+	}
 
-	val = val.split("|");
-	return val[0];
+	// Selection pricing fields are formatted as value|price. Split on the | to get the field label or value that is in the first position. 
+	// For all other pricing fields, splitting on the | won't have any effect.
+	if ( $input && $input.closest( '.gfield_price' ).length ) {
+		val = gformParseChoiceValue( val )['name'];
+	}
+
+	return val;
 }
 
 function gf_do_field_action(formId, action, fieldId, isInit, callback){
@@ -559,6 +574,12 @@ function gf_hide_button( $target ) {
 
 function gf_reset_to_default(targetId, defaultValue){
 
+	var $target = jQuery( targetId );
+    if( $target.hasClass('gfield_shipping') || $target.hasClass('gfield_total') ||
+        $target.hasClass('gfield--type-shipping') || $target.hasClass('gfield--type-total') ) {
+        return;
+    }
+
 	var dateFields = jQuery( targetId ).find( '.gfield_date_month input, .gfield_date_day input, .gfield_date_year input, .gfield_date_dropdown_month select, .gfield_date_dropdown_day select, .gfield_date_dropdown_year select' );
 	if( dateFields.length > 0 ) {
 
@@ -639,7 +660,7 @@ function gf_reset_to_default(targetId, defaultValue){
 				var inputId = element.attr( 'id' ).split( '_' ).slice( 2 ).join( '.' );
 				val = defaultValue[ inputId ];
 			}
-			if( ! val && element.attr( 'name' ) ) {
+			if( ! val && element.attr( 'name' ) && element.attr( 'type' ) != 'email' ) {
 				var inputId = element.attr( 'name' ).split( '_' )[1];
 				val = defaultValue[ inputId ];
 			}

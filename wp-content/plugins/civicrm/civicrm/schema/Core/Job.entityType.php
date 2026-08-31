@@ -35,6 +35,7 @@ return [
       'required' => TRUE,
       'description' => ts('Which Domain is this scheduled job for'),
       'add' => '4.1',
+      'default_callback' => ['CRM_Core_BAO_Domain', 'getDomainID'],
       'input_attrs' => [
         'label' => ts('Domain'),
       ],
@@ -56,7 +57,7 @@ return [
       'add' => '4.1',
       'default' => 'Daily',
       'pseudoconstant' => [
-        'callback' => 'CRM_Core_SelectValues::getJobFrequency',
+        'callback' => ['CRM_Core_SelectValues', 'getJobFrequency'],
       ],
     ],
     'last_run' => [

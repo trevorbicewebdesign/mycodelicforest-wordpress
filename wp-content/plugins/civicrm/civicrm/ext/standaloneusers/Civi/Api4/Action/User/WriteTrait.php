@@ -24,9 +24,11 @@ trait WriteTrait {
    * Do most of our complex permissions checks here.
    *
    * @param array $record
+   * @param string|null $entityName
+   * @param string|null $actionName
    * @throws \CRM_Core_Exception
    */
-  protected function formatWriteValues(&$record) {
+  protected function formatWriteValues(&$record, $entityName = NULL, $actionName = NULL) {
 
     if ($this->getCheckPermissions()) {
       // We must have a logged in user if we're checking permissions.
@@ -53,10 +55,10 @@ trait WriteTrait {
     }
     if (array_key_exists('password', $record)) {
       if (!empty($record['hashed_password'])) {
-        throw new \API_Exception("Ambiguous password parameters: Cannot pass password AND hashed_password.");
+        throw new \CRM_Core_Exception("Ambiguous password parameters: Cannot pass password AND hashed_password.");
       }
       if (empty($record['password'])) {
-        throw new \API_Exception("Disallowing empty password.");
+        throw new \CRM_Core_Exception("Disallowing empty password.");
       }
     }
     parent::formatWriteValues($record);
@@ -75,15 +77,10 @@ trait WriteTrait {
     $loggedInUserID = \CRM_Utils_System::getLoggedInUfID() ?? FALSE;
     $hasAdminPermission = \CRM_Core_Permission::check(['cms:administer users']);
     $authenticatedAsLoggedInUser = FALSE;
-    $security = Security::singleton();
     // Check that we have the logged-in-user's password.
     if ($this->actorPassword && $loggedInUserID) {
-      $storedHashedPassword = \Civi\Api4\User::get(FALSE)
-        ->addWhere('id', '=', $loggedInUserID)
-        ->addSelect('hashed_password')
-        ->execute()
-        ->single()['hashed_password'];
-      if (!$security->checkPassword($this->actorPassword, $storedHashedPassword)) {
+      $user = \CRM_Core_Config::singleton()->userSystem->getUserById($loggedInUserID);
+      if (!_authx_uf()->checkPassword($user['username'], $this->actorPassword)) {
         throw new UnauthorizedException("Incorrect password");
       }
       $authenticatedAsLoggedInUser = TRUE;
@@ -143,6 +140,17 @@ trait WriteTrait {
       }
     }
     return $saved;
+  }
+
+  /**
+   * Get fields the logged in user is not permitted to act on.
+   *
+   * Override parent to implement custom handling.
+   *
+   * @return array
+   */
+  public function getUnpermittedFields(): array {
+    return [];
   }
 
 }

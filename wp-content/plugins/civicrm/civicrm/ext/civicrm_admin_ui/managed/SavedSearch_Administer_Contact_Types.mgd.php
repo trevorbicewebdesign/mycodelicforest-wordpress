@@ -20,7 +20,6 @@ return [
           'version' => 4,
           'select' => [
             'label',
-            'parent_id:label',
             'description',
           ],
           'orderBy' => [],
@@ -55,6 +54,7 @@ return [
           'classes' => [
             'table',
             'table-striped',
+            'crm-sticky-header',
           ],
           'pager' => [
             'show_count' => TRUE,
@@ -64,10 +64,6 @@ return [
           'placeholder' => 5,
           'sort' => [
             [
-              'parent_id:label',
-              'ASC',
-            ],
-            [
               'label',
               'ASC',
             ],
@@ -76,8 +72,7 @@ return [
             [
               'type' => 'field',
               'key' => 'label',
-              'dataType' => 'String',
-              'label' => E::ts('Label'),
+              'label' => 'Label',
               'sortable' => TRUE,
               'icons' => [
                 [
@@ -89,26 +84,8 @@ return [
             ],
             [
               'type' => 'field',
-              'key' => 'parent_id:label',
-              'dataType' => 'Integer',
-              'label' => E::ts('Parent'),
-              'sortable' => TRUE,
-              'icons' => [
-                [
-                  'icon' => 'fa-lock',
-                  'side' => 'left',
-                  'if' => [
-                    'parent_id:label',
-                    'IS EMPTY',
-                  ],
-                ],
-              ],
-            ],
-            [
-              'type' => 'field',
               'key' => 'description',
-              'dataType' => 'Text',
-              'label' => E::ts('Description'),
+              'label' => 'Description',
               'sortable' => TRUE,
               'editable' => TRUE,
             ],
@@ -124,7 +101,7 @@ return [
                   'join' => '',
                   'target' => 'crm-popup',
                   'icon' => 'fa-pencil',
-                  'text' => E::ts('Edit'),
+                  'text' => 'Edit',
                   'style' => 'default',
                   'path' => '',
                   'condition' => [],
@@ -135,7 +112,7 @@ return [
                   'join' => '',
                   'target' => 'crm-popup',
                   'icon' => 'fa-trash',
-                  'text' => E::ts('Delete'),
+                  'text' => 'Delete',
                   'style' => 'danger',
                   'path' => '',
                   'condition' => [
@@ -154,10 +131,11 @@ return [
               'action' => 'add',
               'target' => 'crm-popup',
               'style' => 'primary',
-              'text' => E::ts('Add Contact Type'),
+              'text' => 'Add Contact Type',
               'icon' => 'fa-plus',
             ],
           ],
+          'hierarchical' => TRUE,
         ],
         'acl_bypass' => FALSE,
       ],

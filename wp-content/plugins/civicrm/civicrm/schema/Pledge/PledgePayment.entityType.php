@@ -11,6 +11,10 @@ return [
     'log' => TRUE,
     'add' => '2.1',
   ],
+  'getPaths' => fn() => [
+    'view' => 'civicrm/contact/view/contribution?reset=1&id=[contribution_id]&action=view&context=pledge',
+    'update' => 'civicrm/pledge/payment?reset=1&action=update&ppId=[id]',
+  ],
   'getIndices' => fn() => [
     'index_contribution_pledge' => [
       'fields' => [
@@ -113,6 +117,7 @@ return [
         'label_column' => 'full_name',
         'name_column' => 'name',
         'abbr_column' => 'symbol',
+        'description_column' => 'IFNULL(CONCAT(name, " (", symbol, ")"), name)',
       ],
     ],
     'scheduled_date' => [
@@ -171,7 +176,8 @@ return [
         'duplicate_matching',
       ],
       'pseudoconstant' => [
-        'option_group_name' => 'contribution_status',
+        'option_group_name' => 'pledge_status',
+        'condition_provider' => ['CRM_Pledge_BAO_PledgePayment', 'alterStatus'],
       ],
     ],
   ],

@@ -9,6 +9,7 @@ class GF_Field_Total extends GF_Field {
 
 	public $type         = 'total';
 	public $numberFormat = 'currency'; // This is used to property format the total during conditional logic evaluation.
+	public $repeatable   = false;
 
 	function get_form_editor_field_settings() {
 		return array(
@@ -55,7 +56,6 @@ class GF_Field_Total extends GF_Field {
 		$atts['aria-live']   = 'polite';
 
 		return parent::get_field_container( $atts, $form );
-
 	}
 
 	public function get_field_input( $form, $value = '', $entry = null ) {
@@ -63,8 +63,8 @@ class GF_Field_Total extends GF_Field {
 		$is_entry_detail = $this->is_entry_detail();
 		$is_form_editor  = $this->is_form_editor();
 
-		$id          = (int) $this->id;
-		$field_id    = $is_entry_detail || $is_form_editor || $form_id == 0 ? "input_$id" : 'input_' . $form_id . "_$id";
+		$id       = (int) $this->id;
+		$field_id = $is_entry_detail || $is_form_editor || $form_id == 0 ? "input_$id" : 'input_' . $form_id . "_$id";
 
 		if ( $is_entry_detail ) {
 			return "<div class='ginput_container ginput_container_total'>
@@ -84,13 +84,47 @@ class GF_Field_Total extends GF_Field {
 		}
 	}
 
-	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
-		return GFCommon::to_money( $value, $currency );
+	/**
+	 * Format the entry value for display on the entry detail page and for the {all_fields} merge tag.
+	 *
+	 * @since 1.9
+	 * @since 2.9.29 Changed the second parameter $currency (string) to $entry (array).
+	 *
+	 * @param string|array $value    The field value.
+	 * @param array        $entry    The entry.
+	 * @param bool|false   $use_text When processing choice based fields should the choice text be returned instead of the value.
+	 * @param string       $format   The format requested for the location the merge is being used. Possible values: html, text or url.
+	 * @param string       $media    The location where the value will be displayed. Possible values: screen or email.
+	 *
+	 * @return string
+	 */
+	public function get_value_entry_detail( $value, $entry = array(), $use_text = false, $format = 'html', $media = 'screen' ) {
+		return GFCommon::to_money( $value, rgar( $entry, 'currency' ) );
 	}
 
-	public function get_value_save_entry( $value, $form, $input_name, $lead_id, $lead ) {
-		$lead  = empty( $lead ) ? RGFormsModel::get_lead( $lead_id ) : $lead;
-		$value = GFCommon::get_order_total( $form, $lead );
+	/**
+	 * Sanitize and format the value before it is saved to the Entry Object.
+	 *
+	 * For total fields inside a repeater, the value is scoped to only the products
+	 * within that repeater level (and nested repeaters), excluding shipping.
+	 *
+	 * For top-level total fields, the value includes all products in the form
+	 * (including those inside repeaters) plus shipping.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $value          The value to be saved.
+	 * @param array  $form           The Form object currently being processed.
+	 * @param string $input_name     The input name used when accessing the $_POST.
+	 * @param int    $entry_id        The ID of the entry currently being processed.
+	 * @param array  $entry           The entry currently being processed.
+	 * @param string $repeater_index The repeater index if the field is inside a repeater.
+	 *
+	 * @return array|string The sanitized and formatted input value to be saved.
+	 */
+	public function get_value_save_input( $value, $form, $input_name, $entry_id, $entry, $repeater_index = '' ) {
+		$entry = empty( $entry ) ? RGFormsModel::get_lead( $entry_id ) : $entry;
+		$value = GFCommon::get_order_total( $form, $entry );
 
 		return $value;
 	}
@@ -172,10 +206,24 @@ class GF_Field_Total extends GF_Field {
 			return;
 		}
 
-		GFCommon::log_debug( __METHOD__ . sprintf( '(): Amount mismatch (%s - #%d). Submitted: %s. Clean (int): %s. Expected (int): %s.', $this->label, $this->id, var_export( $value, true ), var_export( $clean_value_int, true ), var_export( $expected_value_int, true ) ) );
+		GFCommon::log_debug( __METHOD__ . sprintf( '(): Amount mismatch (%s - #%d). Submitted: %s. Clean (int): %s. Expected (int): %s.', $this->label, $this->id, var_export( $value, true ), var_export( $clean_value_int, true ), var_export( $expected_value_int, true ) ) ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound
 
 		$this->failed_validation  = true;
 		$this->validation_message = sprintf( esc_html__( 'Submitted value (%s) does not match expected value (%s).', 'gravityforms' ), $clean_value ? GFCommon::to_money( $clean_value, $currency_code ) : esc_html( $value ), GFCommon::to_money( $expected_value, $currency_code ) );
+	}
+
+	/**
+	 * Actions to be performed after the field has been converted to an object.
+	 *
+	 * @since 3.0 Enabled total validation for existing fields.
+	 *
+	 * @return void
+	 */
+	public function post_convert_field() {
+		parent::post_convert_field();
+		if ( ! isset( $this->validateTotal ) ) {
+			$this->validateTotal = true;
+		}
 	}
 
 	/**
@@ -191,7 +239,6 @@ class GF_Field_Total extends GF_Field {
 			$this->validateTotal = (bool) $this->validateTotal;
 		}
 	}
-
 }
 
 GF_Fields::register( new GF_Field_Total() );

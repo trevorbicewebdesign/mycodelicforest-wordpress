@@ -16,8 +16,11 @@
   font-style: normal;
   font-display: swap;
 }
-
-sr7-module i[class^="fa-"], sr7-module i[class*=" fa-"], 
+sr-modal sr-drops i[class^="fa-"], sr-modal sr-drops i[class*="fa-"],
+sr-drop-view .sr--drop--value i[class^="fa-"], sr-drop-view .sr--drop--value i[class*="fa-"],
+sr-stage i[class^="fa-"], sr-stage i[class*=" fa-"], 
+sr7-module i[class^="fa-"], sr7-module i[class*=" fa-"],
+lib-item.sr--element--item--icon i[class^="fa-"], lib-item.sr--element--item--icon i[class*=" fa-"], 
 .rb-modal-wrapper i[class^="fa-"], .rb-modal-wrapper i[class*=" fa-"]{
   display: inline-block;
   font: normal normal normal 14px/1 FontAwesome;
@@ -2325,4 +2328,3 @@ sr7-module i[class^="fa-"], sr7-module i[class*=" fa-"],
 .fa-meetup:before {
   content: "\f2e0";
 }
-

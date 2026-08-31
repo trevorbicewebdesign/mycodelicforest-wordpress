@@ -11,33 +11,24 @@
 
 namespace League\Csv;
 
+use Deprecated;
+
 /**
  * Defines constants for common BOM sequences.
+ *
+ * @deprecated since version 9.16.0
+ * @see Bom
  */
 interface ByteSequence
 {
-    /**
-     *  UTF-8 BOM sequence.
-     */
-    const BOM_UTF8 = "\xEF\xBB\xBF";
-
-    /**
-     * UTF-16 BE BOM sequence.
-     */
-    const BOM_UTF16_BE = "\xFE\xFF";
-
-    /**
-     * UTF-16 LE BOM sequence.
-     */
-    const BOM_UTF16_LE = "\xFF\xFE";
-
-    /**
-     * UTF-32 BE BOM sequence.
-     */
-    const BOM_UTF32_BE = "\x00\x00\xFE\xFF";
-
-    /**
-     * UTF-32 LE BOM sequence.
-     */
-    const BOM_UTF32_LE = "\xFF\xFE\x00\x00";
+    #[Deprecated(message: 'use League\Csv\Bom:Utf8 instead', since: 'league/csv:9.16.0')]
+    public const BOM_UTF8 = "\xEF\xBB\xBF";
+    #[Deprecated(message: 'use League\Csv\Bom:Utf16be instead', since: 'league/csv:9.16.0')]
+    public const BOM_UTF16_BE = "\xFE\xFF";
+    #[Deprecated(message: 'use League\Csv\Bom:Utf16Le instead', since: 'league/csv:9.16.0')]
+    public const BOM_UTF16_LE = "\xFF\xFE";
+    #[Deprecated(message: 'use League\Csv\Bom:Utf32Be instead', since: 'league/csv:9.16.0')]
+    public const BOM_UTF32_BE = "\x00\x00\xFE\xFF";
+    #[Deprecated(message: 'use League\Csv\Bom:Utf32Le instead', since: 'league/csv:9.16.0')]
+    public const BOM_UTF32_LE = "\xFF\xFE\x00\x00";
 }

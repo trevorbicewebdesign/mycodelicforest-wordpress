@@ -1,0 +1,87 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "themepunch/revslider",
+  "title": "Slider Revolution",
+  "category": "design",
+  "description": "Add your Slider Revolution Module!",
+  "keywords": [
+    "Banner",
+    "CTA",
+    "Slider"
+  ],
+  "example": {
+    "attributes": {
+      "previewMode": true
+    }
+  },
+  "attributes": {
+    "alias": {
+      "type": "string",
+      "default": ""
+    },
+    "zindex": {
+      "type": "string",
+      "default": ""
+    },
+    "content": {
+      "selector": ".revslider",
+      "type": "string",
+      "source": "text"
+    },
+    "text": {
+      "selector": ".revslider",
+      "type": "string",
+      "source": "text"
+    },
+    "wrapperid": {
+      "type": "string",
+      "default": ""
+    },
+    "moduleId": {
+      "type": "string",
+      "default": ""
+    },
+    "offset": {
+      "type": "object",
+      "default": {}
+    },
+    "hasContent": {
+      "type": "boolean",
+      "default": false
+    },
+    "slidertitle": {
+      "selector": ".revslider",
+      "type": "string",
+      "source": "attribute",
+      "attribute": "data-slidertitle"
+    },
+    "type": {
+      "type": "string",
+      "default": ""
+    },
+    "slides": {
+      "type": "number",
+      "default": 0
+    },
+    "image": {
+      "type": "string",
+      "default": ""
+    },
+    "color": {
+      "type": "string",
+      "default": "transparent"
+    },
+    "previewMode": {
+      "type": "boolean",
+      "default": false
+    },
+    "owner_post_id": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./index.css"
+}

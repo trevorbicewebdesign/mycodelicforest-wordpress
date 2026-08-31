@@ -41,6 +41,13 @@ class CRM_Contact_Task extends CRM_Core_Task {
    */
   public static $objectType = 'contact';
 
+  /**
+   * Tasks for this class – overridden from parent to avoid cross-contamination with sibling classes.
+   *
+   * @var array
+   */
+  public static $_tasks = [];
+
   public static function tasks() {
     if (!self::$_tasks) {
       self::$_tasks = [
@@ -128,8 +135,6 @@ class CRM_Contact_Task extends CRM_Core_Task {
             'CRM_Contact_Form_Task_Batch',
           ],
           'result' => TRUE,
-          'url' => 'civicrm/task/pick-profile',
-          'icon' => 'fa-pencil',
         ],
         self::PDF_LETTER => [
           'title' => ts('Print/merge document'),
@@ -241,6 +246,8 @@ class CRM_Contact_Task extends CRM_Core_Task {
         self::$_tasks[self::ADD_EVENT] = [
           'title' => ts('Register participants for event'),
           'class' => 'CRM_Event_Form_Task_Register',
+          'url' => 'civicrm/task/register-participants',
+          'icon' => 'fa-calendar-plus-o',
         ];
       }
 
@@ -296,7 +303,7 @@ class CRM_Contact_Task extends CRM_Core_Task {
     elseif ($permission == CRM_Core_Permission::EDIT) {
       $tasks = self::taskTitles();
     }
-    else {
+    elseif ($permission == CRM_Core_Permission::VIEW) {
       $tasks = [
         self::TASK_EXPORT => self::$_tasks[self::TASK_EXPORT]['title'],
         self::TASK_EMAIL => self::$_tasks[self::TASK_EMAIL]['title'],
@@ -324,7 +331,7 @@ class CRM_Contact_Task extends CRM_Core_Task {
   public static function getTask($value) {
     self::tasks();
 
-    if (empty(self::$_tasks[$value])) {
+    if (!$value || empty(self::$_tasks[$value])) {
       // make it the print task by default
       $value = self::TASK_PRINT;
     }

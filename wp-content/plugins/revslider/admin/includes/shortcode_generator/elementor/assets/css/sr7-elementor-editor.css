@@ -1,0 +1,93 @@
+.sr--elementor--module--logo {
+    height: 36px;
+    background-image: url("../../../../../assets/images/SR7-Logo-Light.svg");
+    background-repeat: no-repeat;
+}
+@media (prefers-color-scheme: dark) {
+    .sr--elementor--module--logo {
+        background-image: url("../../../../../assets/images/SR7-Logo-Dark.svg");
+    }
+}
+
+.sr--module--info {
+    font-size: 12px;
+    line-height: 1.4;
+}
+.sr--module--info--title {
+    font-size: 14px;
+    margin: 16px 0;    
+}
+.sr--module--info--title strong {
+    font-weight: 500;
+}
+.sr--module--info--row {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 16px;
+}
+.sr--module--info--row strong {
+    font-weight: 500;
+    padding-right: 16px;
+}
+.sr--offset--panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sr--elementor--buttons button.elementor-button[data-event^="sr7."] {
+    display: block;
+    float: right;
+    font-weight: 500;
+    height: 30px;
+    line-height: 16px;
+    margin: 0;
+    font-size: 13px;
+    padding: 6px 12px;
+    border: 0;
+}
+.sr--elementor--buttons button.elementor-button[data-event="sr7.selectModule"] {
+    margin-left: 8px;
+}
+.sr--elementor--buttons button.elementor-button svg {
+    height: 14px;
+    margin-right: 8px;
+    vertical-align: middle;
+    fill: var(--e-a-btn-color-invert);
+    display: inline-block;
+}
+
+.sr--offset--row {
+    display: grid;
+    grid-template-columns: 32px 1fr 32px;
+    align-items: center;
+    gap: 6px;
+}
+.sr--offset--icon {
+    text-align: center;
+}
+.sr--offset--inputs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+}
+.sr--offset--inputs input {
+    width: 100%;
+    padding: 4px;
+    font-size: 11px;
+}
+.sr--offset--toggle {
+    text-align: center;
+}
+:root {
+    --sr--offset--color: #F3BAFD;
+    --sr--offset--color--focus: #D004D4;
+}
+.sr--offset--input[data-side="top"] { border-top-color: var(--sr--offset--color) }
+.sr--offset--input[data-side="right"] { border-right-color: var(--sr--offset--color) }
+.sr--offset--input[data-side="bottom"] { border-bottom-color: var(--sr--offset--color) }
+.sr--offset--input[data-side="left"] { border-left-color: var(--sr--offset--color) }
+.sr--offset--input[data-side="top"]:focus { border-top-color: 2px solid var(--sr-offset--color--focus) }
+.sr--offset--input[data-side="right"]:focus { border-right-color: 2px solid var(--sr-offset--color--focus) }
+.sr--offset--input[data-side="bottom"]:focus { border-bottom-color: 2px solid var(--sr-offset--color--focus) }
+.sr--offset--input[data-side="left"]:focus { border-left-color: 2px solid var(--sr-offset--color--focus) }

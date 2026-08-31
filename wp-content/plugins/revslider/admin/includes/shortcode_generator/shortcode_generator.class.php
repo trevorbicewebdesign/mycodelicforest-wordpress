@@ -2,13 +2,21 @@
 /**
  * @author    ThemePunch <info@themepunch.com>
  * @link      https://www.themepunch.com/
- * @copyright 2024 ThemePunch
+ * @copyright 2026 ThemePunch
  */
 
 if(!defined('ABSPATH')) exit();
 
+/**
+ * Shared foundation for the page builder integrations.
+ *
+ * Provides the slider picker dialog, the classic editor button and the JavaScript that inserts a
+ * [rev_slider] shortcode - reused by the builder specific classes (Elementor, Avada, BeBuilder, WPBakery,
+ * Divi, Gutenberg) instead of each implementing its own.
+ */
 class RevSliderShortcodeWizard extends RevSliderFunctions {
 
+	/** @return void */
 	public static function enqueue_scripts(){
 		global $pagenow;
 
@@ -19,33 +27,16 @@ class RevSliderShortcodeWizard extends RevSliderFunctions {
 		// only add scripts if native WordPress editor, Gutenberg or Visual Composer
 		// Elementor has its own hooks for adding scripts
 		
-		if($action === 'edit' || $pagenow === 'post-new.php' || $pagenow === 'site-editor.php' || $pagenow === 'widgets.php' || $f->get_val($_GET, 'vc_action', '') === 'vc_inline'){
+		if($action === 'edit' || in_array($pagenow, ['post-new.php', 'site-editor.php', 'widgets.php']) || $f->get_val($_GET, 'vc_action', '') === 'vc_inline'){
 			self::add_scripts();
 		}
 	}
 
-	/**
-	 * add the styles through the block editor filter
-	 */
-	public static function sr_theme_block_editor_assets(){
-		self::add_styles();
-	}
+	/** @return void */
+	public static function add_styles(){}
 
-	public static function add_styles(){
-		wp_enqueue_style('revslider-material-icons', RS_PLUGIN_URL_CLEAN . 'sr6/assets/fonts/material/material-icons.css', array(), RS_REVISION);
-		//wp_enqueue_style('revslider-material-icons', RS_PLUGIN_URL_CLEAN . 'admin/assets/icons/material-icons.css', array(), RS_REVISION);
-		wp_enqueue_style('revslider-basics-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/basics.css', array(), RS_REVISION);
-		wp_enqueue_style('rs-new-plugin-settings', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/builder.css', array(), RS_REVISION);
-		wp_enqueue_style('rs-color-picker-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/tp-color-picker.css', array(), RS_REVISION);
-		wp_enqueue_style('revbuilder-ddTP', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/ddTP.css', array(), RS_REVISION);
-		$f	 			= new RevSliderFunctions();
-		$url_css		= $f->modify_fonts_url('https://fonts.googleapis.com/css2?family=', false);
-		$url_material	= str_replace('css2?', 'icon?', $url_css);
-		wp_enqueue_style('rs-roboto', $url_css.'Roboto');
-		wp_enqueue_style('tp-material-icons', $url_material.'Material+Icons', array('revslider-material-icons'), RS_REVISION);
-	}
-
-	public static function add_scripts($elementor = false, $divi = false){
+	/** @return void */
+	public static function add_scripts($elementor = false, $divi = false) {
 		global $SR_GLOBALS;
 		$f = RevSliderGlobals::instance()->get('RevSliderFunctions');
 		$action = $f->get_val($_GET, 'action');
@@ -54,267 +45,153 @@ class RevSliderShortcodeWizard extends RevSliderFunctions {
 		require_once(RS_PLUGIN_PATH . 'admin/includes/functions-admin.class.php');
 		require_once(RS_PLUGIN_PATH . 'admin/includes/template.class.php');
 		require_once(RS_PLUGIN_PATH . 'admin/includes/folder.class.php');
-		if($SR_GLOBALS['front_version'] === 6){
-			require_once(RS_PLUGIN_PATH . 'sr6/revslider-front.class.php');
-		}else{
-			require_once(RS_PLUGIN_PATH . 'public/revslider-front.class.php');
-		}
+		require_once(RS_PLUGIN_PATH . 'public/revslider-front.class.php');
 
 		//check user permissions
 		if(!current_user_can('edit_posts') && !current_user_can('edit_pages')) return;
+
+		// checks for built-in gutenberg version
+		$current_screen = function_exists('get_current_screen') ? get_current_screen() : '';
+		$is_gutenberg = !empty($current_screen) && method_exists($current_screen, 'is_block_editor') && $current_screen->is_block_editor();
+
 		if(!$elementor && !$divi){
 			//verify the post type
 			global $typenow, $pagenow;
 
 			if($pagenow !== 'site-editor.php'){
 				$post_types = get_post_types();
-				if(empty($post_types) || !is_array($post_types)) $post_types = array('post', 'page');
+				if(empty($post_types) || !is_array($post_types)) $post_types = ['post', 'page'];
 				if(!in_array($typenow, $post_types) && $pagenow !== 'widgets.php') return;
 			}
 			
-			$current_screen = get_current_screen();
-
-			// checks for built-in gutenberg version
-			$is_gutenberg = !empty($current_screen) && method_exists($current_screen, 'is_block_editor') && $current_screen->is_block_editor();
-
 			// checks for old plugin version
 			if(!$is_gutenberg) $is_gutenberg = function_exists('is_gutenberg_page') && is_gutenberg_page();
 
 			// gutenberg
 			if(!$is_gutenberg){
-				add_filter('mce_external_plugins', array('RevSliderShortcodeWizard', 'add_tinymce_shortcode_editor_plugin'));
-				add_filter('mce_buttons', array('RevSliderShortcodeWizard', 'add_tinymce_shortcode_editor_button'));
+				add_filter('mce_external_plugins', ['RevSliderShortcodeWizard', 'add_tinymce_shortcode_editor_plugin']);
+				add_filter('mce_buttons', ['RevSliderShortcodeWizard', 'add_tinymce_shortcode_editor_button']);
 			}
 
 			if($pagenow !== 'site-editor.php') self::add_styles(); //the styles need to be added through the block editor filter in site editor
 		}
-
-		if($SR_GLOBALS['front_version'] === 6){
-			if($elementor) $SR_GLOBALS['preview_mode'] = true;
-			$output_class = new RevSliderOutput();
-			$output_class->add_inline_double_jquery_error(true);
-			echo RevSliderFunctions::js_set_start_size();
-		}
 		
-		$dev_mode = (!file_exists(RS_PLUGIN_PATH.'admin/assets/js/plugins/utils.min.js') && !file_exists(RS_PLUGIN_PATH.'admin/assets/js/modules/editor.min.js')) ? true : false;
+		//add v7 scripts/css
+		$rs_front	= RevSliderGlobals::instance()->get('RevSliderFront');
+		$rs_fonts	= RevSliderGlobals::instance()->get('RevSliderFonts');
+		$rs_output	= RevSliderGlobals::instance()->get('RevSlider7Output');
+		wp_enqueue_script('sr7', RS_PLUGIN_URL_CLEAN . 'public/js/sr7.js', [], self::asset_time('public/js/sr7.js'), ['strategy' => 'async']);	
+		wp_enqueue_script('sr7page', RS_PLUGIN_URL_CLEAN . 'public/js/page.js', [], self::asset_time('public/js/page.js'), ['strategy' => 'async']);
 
-		if($dev_mode === true){
-			wp_enqueue_script('revbuilder-basics', RS_PLUGIN_URL_CLEAN . 'admin/assets/js/modules/basics.js', array('jquery'), RS_REVISION, false);
-			wp_enqueue_script('revbuilder-ddTP', RS_PLUGIN_URL_CLEAN . 'admin/assets/js/plugins/ddTP.js', array('jquery'), RS_REVISION, false);
-			wp_enqueue_script('revbuilder-color-picker-js', RS_PLUGIN_URL_CLEAN . 'admin/assets/js/plugins/tp-color-picker.min.js', array('jquery', 'revbuilder-ddTP', 'wp-i18n', 'wp-color-picker'), RS_REVISION);
-			wp_enqueue_script('revbuilder-clipboard', RS_PLUGIN_URL_CLEAN . 'admin/assets/js/plugins/clipboard.min.js', array('jquery'), RS_REVISION, false);
-			wp_enqueue_script('revbuilder-utils', RS_PLUGIN_URL_CLEAN . 'admin/assets/js/modules/objectlibrary.js', array('jquery'), RS_REVISION, false);
-			wp_enqueue_script('revbuilder-optimizer', RS_PLUGIN_URL_CLEAN . 'admin/assets/js/modules/optimizer.js', array('jquery'), RS_REVISION, false);					
-		}else{
-			wp_enqueue_script('revbuilder-utils', RS_PLUGIN_URL_CLEAN . 'admin/assets/js/plugins/utils.min.js', array('jquery', 'wp-i18n', 'wp-color-picker'), RS_REVISION, false);
-		}
-		
-		wp_enqueue_script('tp-tools', RS_PLUGIN_URL_CLEAN . 'sr6/assets/js/rbtools.min.js', array('jquery'), RS_TP_TOOLS, true);
+		if (!$is_gutenberg) wp_enqueue_style('sr7css', RS_PLUGIN_URL_CLEAN . 'public/css/sr7.css', [], self::asset_time('public/css/sr7.css'));
 
-		
-		if($SR_GLOBALS['front_version'] === 7){ //add v7 scripts/css
-			$rs_front = RevSliderGlobals::instance()->get('RevSliderFront');
-			$rs_output = RevSliderGlobals::instance()->get('RevSlider7Output');
-			wp_enqueue_script('_tpt', RS_PLUGIN_URL_CLEAN . 'public/js/libs/tptools.js', '', RS_REVISION, ['strategy' => 'async']);
-			wp_enqueue_script('sr7', RS_PLUGIN_URL_CLEAN . 'public/js/sr7.js', '', RS_REVISION, ['strategy' => 'async']);			
-			wp_enqueue_style('sr7css', RS_PLUGIN_URL_CLEAN . 'public/css/sr7.css', '', RS_REVISION);
-			wp_enqueue_script('sr7migration', RS_PLUGIN_URL_CLEAN . 'public/js/migration.js', '', RS_REVISION, ['strategy' => 'async']);
-			add_action('wp_footer', array($rs_front, 'load_google_fonts'));
-			add_action('wp_footer', array($rs_output, 'add_js'), 100);
-			//wp_enqueue_script('sr7page', RS_PLUGIN_URL_CLEAN . 'public/js/page.js', '', RS_REVISION, ['strategy' => 'async']);
-		}
 
-		// object library translations
-		wp_localize_script('revbuilder-utils', 'RVS_LANG', array(			
-			'insetrequirements' => __('Move Layer into a Group and set Position to Absolute before selecting Full Inset', 'revslider'),
-			'notduringinsetmode' => __('Resize and Drag is not available if Layer Size set to Inset', 'revslider'),
-			'sliderasmodal' => __('Use as Modal', 'revslider'),
-			'noadminthumbs' => __('No Admin Thumb set', 'revslider'),
-			'corejs' => __('Core JavaScript', 'revslider'),
-			'corecss' => __('Core CSS', 'revslider'),
-			'coretools' => __('Core Tools (GreenSock & Co)', 'revslider'),
-			'enablecompression' => __('Enable Server Compression', 'revslider'),
-			'noservercompression' => __('Not Available, read FAQ', 'revslider'),
-			'servercompression' => __('Serverside Compression', 'revslider'),
-			'sizeafteroptim' => __('Size after Optimization', 'revslider'),
-			'chgimgsizesrc' => __('Change Image Size or Src', 'revslider'),
-			'pickandim' => __('Pick another Dimension', 'revslider'),
-			'optimize' => __('Optimize', 'revslider'),
-			'applychanges' => __('Apply Changes', 'revslider'),
-			'savechanges' => __('Save Changes', 'revslider'),
-			'suggestion' => __('Suggestion', 'revslider'),
-			'toosmall' => __('Too Small', 'revslider'),
-			'standard1x' => __('Standard (1x)', 'revslider'),
-			'retina2x' => __('Retina (2x)', 'revslider'),
-			'oversized' => __('Oversized', 'revslider'),
-			'quality' => __('Quality', 'revslider'),
-			'file' => __('File', 'revslider'),
-			'resize' => __('Resize', 'revslider'),
-			'lowquality' => __('Optimized (Low Quality)', 'revslider'),
-			'notretinaready' => __('Not Retina Ready', 'revslider'),
-			'element' => __('Element', 'revslider'),
-			'calculating' => __('Calculating...', 'revslider'),
-			'filesize' => __('File Size', 'revslider'),
-			'dimension' => __('Dimension', 'revslider'),
-			'dimensions' => __('Dimensions', 'revslider'),
-			'optimization' => __('Optimization', 'revslider'),
-			'optimized' => __('Optimized', 'revslider'),
-			'smartresize' => __('Smart Resize', 'revslider'),
-			'optimal' => __('Optimal', 'revslider'),
-			'recommended' => __('Recommended', 'revslider'),
-			'hrecommended' => __('Highly Recommended', 'revslider'),
-			'optimizertitel' => __('File Size Optimizer', 'revslider'),
-			'loadedmediafiles' => __('Loaded Media Files', 'revslider'),
-			'loadedmediainfo' => __('Optimize to save up to ', 'revslider'),
-			'optselection' => __('Optimize Selection', 'revslider'),
-			'copyrightandlicenseinfo' => __('&copy; Copyright & License Info', 'revslider'),
-			'ol_images' => __('Images', 'revslider'),
-			'ol_layers' => __('Layer Objects', 'revslider'),
-			'ol_objects' => __('Objects', 'revslider'),
-			'ol_modules' => __('Own Modules', 'revslider'),
-			'ol_fonticons' => __('Font Icons', 'revslider'),
-			'ol_moduletemplates' => __('Module Templates', 'revslider'),
-			'ol_videos' => __('Videos', 'revslider'),
-			'ol_svgs' => __('SVG\'s', 'revslider'),
-			'ol_favorite' => __('Favorites', 'revslider'),
-			'simproot' => __('Root', 'revslider'),
-			'loading' => __('Loading', 'revslider'),
-			'elements' => __('Elements', 'revslider'),
-			'loadingthumbs' => __('Loading Thumbnails...', 'revslider'),
-			'moduleBIG' => __('MODULE', 'revslider'),
-			'packageBIG' => __('PACKAGE', 'revslider'),
-			'installed' => __('Installed', 'revslider'),
-			'notinstalled' => __('Not Installed', 'revslider'),
-			'setupnotes' => __('Setup Notes', 'revslider'),
-			'requirements' => __('Requirements', 'revslider'),
-			'installedversion' => __('Installed Version', 'revslider'),
-			'availableversion' => __('Available Version', 'revslider'),			
-			'installpackage' => __('Installing Template Package', 'revslider'),			
-			'doinstallpackage' => __('Install Template Package', 'revslider'),
-			'installtemplate' => __('Install Template', 'revslider'),
-			'installingaddon' => __('Installing Add-on', 'revslider'),
-			'checkversion' => __('Update To Latest Version', 'revslider'),
-			'installpackageandaddons' => __('Install Template Package & Addon(s)', 'revslider'),
-			'installtemplateandaddons' => __('Install Template & Addon(s)', 'revslider'),
-			'licencerequired' => __('Activate License', 'revslider'),
-			'redownloadTemplate' => __('Re-Download Online', 'revslider'),
-			'createBlankPage' => __('Create Blank Page', 'revslider'),
-			'pluginsmustbeupdated' => __('Plugin Outdated. Please Update', 'revslider'),
-			'please_wait_a_moment' => __('Please Wait a Moment', 'revslider'),
-			'search' => __('Search', 'revslider'),
-			'folderBIG' => __('FOLDER', 'revslider'),
-			'objectBIG' => __('OBJECT', 'revslider'),
-			'imageBIG' => __('IMAGE', 'revslider'),
-			'videoBIG' => __('VIDEO', 'revslider'),
-			'iconBIG' => __('ICON', 'revslider'),
-			'svgBIG' => __('SVG', 'revslider'),
-			'fontBIG' => __('FONT', 'revslider'),
-			'show' => __('Show', 'revslider'),
-			'perpage' => __('Per Page', 'revslider'),
-			'updatefromserver' => __('Update List', 'revslider'),
-			'imageisloading' => __('Image is Loading...', 'revslider'),
-			'importinglayers' => __('Importing Layers...', 'revslider'),
-			'layerwithaction' => __('Layer with Action', 'revslider'),
-			'triggeredby' => __('Behavior', 'revslider'),
-			'nrlayersimporting' => __('Layers Importing', 'revslider'),
-			'nothingselected' => __('Nothing Selected', 'revslider'),
-			'sortbycreation' => __('Sort by Creation', 'revslider'),
-			'creationascending' => __('Creation Ascending', 'revslider'),
-			'sortbytitle' => __('Sort by Title', 'revslider'),
-			'titledescending' => __('Title Descending', 'revslider'),
-			'active_sr_to_access' => __('Register Slider Revolution<br>to Unlock Premium Features', 'revslider'),				
-			'addons' => __('Add-Ons', 'revslider'),
-			'active_sr_tmp_obl' => __('Template & Object Library', 'revslider'),
-			'active_sr_inst_upd' => __('Instant Updates', 'revslider'),
-			'active_sr_one_on_one' => __('1on1 Support', 'revslider'),			
-			'membersarea' => __('Members Area', 'revslider'),
-			'onelicensekey' => __('1 License Key per Website!', 'revslider'),
-			'onelicensekey_info' => __('If you want to use your license key on another domain, please<br> deregister it in the members area or use a different key.', 'revslider'),
-			'registeredlicensekey' => __('Registered License Key', 'revslider'),
-			'registeredpurchasecode' => __('Registered Purchase Code', 'revslider'),
-			'registerlicensekey' => __('Register License Key', 'revslider'),
-			'registerpurchasecode' => __('Register Purchase Code', 'revslider'),
-			'registerCode' => __('Register this Code', 'revslider'),
-			'registerKey' => __('Register this License Key', 'revslider'),
-			'deregisterCode' => __('Deregister this Code', 'revslider'),
-			'deregisterKey' => __('Deregister this License Key', 'revslider'),
-			'active_sr_plg_activ_key' => __('Register License Key', 'revslider'),
-			'getlicensekey' => __('Get a License Key', 'revslider'),
-			'ihavelicensekey' => __('I have a License Key', 'revslider'),
-			'enterlicensekey' => __('Enter License Key', 'revslider'),
-			'premium_template' => __('PREMIUM TEMPLATE', 'revslider'),
-			'rs_premium_content' => __('This is a Premium template from the Slider Revolution <a target="_blank" rel="noopener" href="https://www.sliderrevolution.com/examples/">template library</a>. It can only be used on this website with a <a target="_blank" rel="noopener" href="https://www.sliderrevolution.com/manual/quick-setup-register-your-plugin/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=registermanual">registered license key</a>.', 'revslider'),
-			'premium' => __('Premium', 'revslider'),
-			'premiumunlock' => __('REGISTER LICENSE TO UNLOCK', 'revslider')
-
-		));
-
-		wp_enqueue_script('revbuildet-shortcode-generator-js', RS_PLUGIN_URL_CLEAN . 'admin/assets/js/shortcode_generator/shortcode_generator.js', array('jquery'), RS_REVISION, true);		
+		wp_enqueue_script('_tpt', RS_PLUGIN_URL_CLEAN . 'public/js/libs/tptools.js', [], self::asset_time('public/js/libs/tptools.js'), ['strategy' => 'async']);		
+		add_action('wp_footer', [$rs_fonts, 'load_google_fonts']);
+		add_action('wp_footer', [$rs_output, 'add_js'], 100);
 
 		$rsaf = new RevSliderFunctionsAdmin();
 		$rsa = $rsaf->get_short_library();
 		if(!empty($rsa)) $obj = $rsaf->json_encode_client_side($rsa);
 
-		$rs_compression = $rsaf->compression_settings();
-		$favs = get_option('rs_favorite', array());
+		$favs = $rsaf->get_options(['favorites', 'favorites'], []);
 		$favs = !empty($favs) ? $rsaf->json_encode_client_side($favs) : false;
 		
 		$rs_color_picker_presets = RSColorpicker::get_color_presets();
 		
-		if($SR_GLOBALS['front_version'] === 7){
-			$rs_front	= RevSliderGlobals::instance()->get('RevSliderFront');
-			$global = $rs_front->get_global_settings();
-			echo $rs_front->js_add_header_scripts();
-		}
+		$global = $rs_front->get_global_settings();
+		echo $rs_front->js_add_header_scripts();
 
+		echo self::get_shortcode_javascript();
 		?>
 		<script>
-            var ajaxurl = '<?php echo esc_js( admin_url( 'admin-ajax.php', 'relative' ) ); ?>';
-			window.RVS = window.RVS === undefined ? {F:{}, C:{}, ENV:{}, LIB:{}, V:{}, S:{}} : window.RVS;
-			RVS.LIB.OBJ = RVS.LIB.OBJ===undefined ? {} : RVS.LIB.OBJ;
-
-			var RS_DEFALIAS,
-				RS_SHORTCODE_FAV;
-
-			RVS.ENV.plugin_url	= '<?php echo RS_PLUGIN_URL; ?>';
-			RVS.ENV.plugin_dir	= 'revslider';
-			RVS.ENV.ajax_pre	= 'rs';
-			RVS.ENV.ajax_url	= '<?php echo esc_js( admin_url( 'admin-ajax.php') ); ?>';
-			RVS.ENV.admin_url	= '<?php echo admin_url('admin.php?page=revslider'); ?>';
-			RVS.ENV.nonce		= '<?php echo wp_create_nonce('revslider_actions'); ?>';
-			RVS.ENV.activated	= '<?php echo (get_option('revslider-valid', 'false') == 'true' || get_option('revslider-valid', 'false') === true) ? 'true' : 'false'; ?>';
-			RVS.ENV.activated	= RVS.ENV.activated == 'true' || RVS.ENV.activated == true ? true : false;
-			RVS.LIB.COLOR_PRESETS	= <?php echo (!empty($rs_color_picker_presets)) ? 'JSON.parse('. $rsaf->json_encode_client_side($rs_color_picker_presets) .')' : '{}'; ?>;
-			
-			window.addEventListener('load', function(){
-				RVS.ENV.output_compress	= <?php echo (!empty($rs_compression)) ? 'JSON.parse('. $rsaf->json_encode_client_side($rs_compression) .')' : '[]'; ?>;
-				<?php if(!empty($rsa)){ ?>
-				RVS.LIB.OBJ = {shortcode_generator: true, types: JSON.parse(<?php echo $obj; ?>)};
-				<?php }else{ ?>
-				RVS.LIB.OBJ = {};
-				<?php }
-				if(!empty($favs)){ ?>
-				RS_SHORTCODE_FAV = JSON.parse(<?php echo $favs; ?>);
-				<?php } ?>
-			});
-
+			var ajaxurl = '<?php echo esc_js( admin_url( 'admin-ajax.php', 'relative' ) ); ?>';
 		</script>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
 		<?php
 	}
 
-	public static function enqueue_files(){
-		echo '<div id="rb_modal_underlay" style="display:none"></div>';
+	/** @return string the JS the page builders use to insert a slider shortcode */
+	public static function get_shortcode_javascript($from_api = false){
+		//check user permissions
+		if(!current_user_can('edit_posts') && !current_user_can('edit_pages')) return;
 
-		require_once(RS_PLUGIN_PATH . 'admin/views/modals-copyright.php');
+		$upload_dir = wp_upload_dir();
+		$sr_upload_url = !empty($upload_dir['baseurl']) ? rtrim($upload_dir['baseurl'], '/') . '/' : '';
+
+		ob_start();
+		?>
+		<script>
+			window.SR7			??= {};
+			SR7.LIB				??= {};
+			SR7.E				??= {gAddons:{}};
+			SR7.E.registered	= <?php echo (self::is_registered() !== true) ? 'false' : 'true'; ?>;
+			SR7.E.resources		??= {};
+			SR7.E.modules		??= [];
+			SR7.E.wp_upload_url	= "<?php echo esc_js($sr_upload_url); ?>";
+			<?php if (!$from_api) { ?>
+				SR7.E.block_nonce 	= "<?php echo wp_create_nonce('revslider_actions'); ?>";
+			<?php } ?>
+			SR7.LANG ??= {};
+			SR7.LANG = Object.assign(SR7.LANG, <?php echo wp_json_encode([
+				'Please wait...' => __('Please wait...', 'revslider'),   // was __() (no echo) -> shipped empty; fixed
+				'Premium'        => __('Premium', 'revslider'),
+				'Slider'         => __('Slider', 'revslider'),
+				'Hero'           => __('Hero', 'revslider'),
+				'Carousel'       => __('Carousel', 'revslider'),
+				'Per Pages'      => __('Per Page', 'revslider'),
+				'All Items'      => __('All Items', 'revslider'),
+				'Show all items' => __('Show all items', 'revslider'),
+			]); ?>);
+		</script>
+		<?php
+		return ob_get_clean();
 	}
 
+	/** @return bool */
+	public static function is_registered(){
+		require_once(RS_PLUGIN_PATH . 'admin/includes/functions-admin.class.php');
+		$rsaf = new RevSliderFunctionsAdmin();
+		return $rsaf->_truefalse($rsaf->get_options(['system', 'valid'], 'false'));
+	}
+
+	/** @return string the slider picker dialog shared by all builders */
+	public static function get_shortcode_extended_markup(){
+		ob_start();
+		?>
+		<script>
+			window.SrSp = window.SrSp || class SrSp extends HTMLElement {
+				static get observedAttributes() {return ['h', 'w'];}
+				constructor() {super();}
+				connectedCallback() {this.updateDimensions();}
+				attributeChangedCallback(name, oldValue, newValue) {this.updateDimensions();}
+				updateDimensions() {
+					const height = this.getAttribute('h');
+					const width = this.getAttribute('w');
+					if (width !== null) {
+					this.style.display = 'inline-block';
+					this.style.width = `${width}px`;
+					this.style.height = height ? `${height}px` : 'auto';
+					} else {
+					this.style.display = 'block';
+					this.style.height = height ? `${height}px` : 'auto';
+					}
+				}
+			}
+			if (!customElements.get('sr-sp')) customElements.define('sr-sp', SrSp);
+		</script>
+		<?php
+		return ob_get_clean();
+	}	
 
 	/**
 	 * add script tinymce shortcode script
 	 * @since: 5.1.1
+	 * @return array
 	 */
 	public static function add_tinymce_shortcode_editor_plugin($plugin_array){
-		$plugin_array['revslider_sc_button'] = RS_PLUGIN_URL . 'admin/assets/js/shortcode_generator/tinymce.js';
+		//this is an OLD js from sr6. needs to be updated or removed
+		//$plugin_array['revslider_sc_button'] = RS_PLUGIN_URL . 'admin-sr6/assets/js/shortcode_generator/tinymce.js';
 
 		return $plugin_array;
 	}
@@ -322,6 +199,7 @@ class RevSliderShortcodeWizard extends RevSliderFunctions {
 	/**
 	 * Add button to tinymce
 	 * @since: 5.1.1
+	 * @return array
 	 */
 	public static function add_tinymce_shortcode_editor_button($buttons){
 		array_push($buttons, 'revslider_sc_button');
@@ -329,11 +207,77 @@ class RevSliderShortcodeWizard extends RevSliderFunctions {
 		return $buttons;
 	}
 
-}
+	/**
+	 * add wildcards metabox variables to posts
+	 * @var $post_types: null = all, post = only posts
+	 * @return void
+	 */
+	public static function add_slider_meta_box($post_types = null){
+		try {
+			$post_types = [];
+			register_post_meta('', 'rs_blank_template', [
+				'show_in_rest'   => true,
+				'single'         => true,
+				'type'           => 'string'
+			]);
+			register_post_meta('', 'rs_page_bg_color', [
+				'show_in_rest'   => true,
+				'single'         => true,
+				'type'           => 'string'
+			]);
+			register_post_meta( '', 'slide_template_v7', [
+				'show_in_rest'   => true,
+				'single'         => true,
+				'type'           => 'string'
+			]);
+		} catch (Exception $e){}
+	}
 
-/**
- * old classname extends new one (old classnames will be obsolete soon)
- * @since: 5.0
- **/
-class RevSlider_TinyBox extends RevSliderShortcodeWizard {}
-class RevSliderTinyBox extends RevSlider_TinyBox {}
+	/**
+	 * add wildcards metabox variables to posts
+	 * @var $post_types: null = all, post = only posts
+	 * @return void
+	 */
+	public static function add_slider_meta_box_assets($post_types = null){
+		try {
+			wp_enqueue_script('slider_revolution_metabox_js', RS_PLUGIN_URL_CLEAN . 'admin/includes/meta_box/build/index.js', ['wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-core-data', 'wp-data'], self::asset_time('admin/includes/meta_box/build/index.js'));
+			wp_enqueue_style('slider_revolution_metabox_css', RS_PLUGIN_URL_CLEAN . 'admin/includes/meta_box/build/index.css', self::asset_time('admin/includes/meta_box/build/index.css'));
+		} catch (Exception $e){}
+	}
+
+	/**
+	 * on save post meta. Update metaboxes data from post, add it to the post meta 
+	 * @return int|false
+	 */
+	public static function on_updated_post_meta($meta_id, $post_id, $meta_key, $meta_value){
+		if(defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return $post_id;
+		if(empty($post_id)) return false;
+		if(function_exists('is_user_logged_in') && !is_user_logged_in() || !current_user_can('edit_post', $post_id)) return $post_id;
+
+		if ($meta_key === "slide_template_v7") {
+			if (in_array($meta_value, ['', 'default'])) {
+				delete_post_meta($post_id, $meta_key);
+			}
+		} else if ($meta_key === "rs_page_bg_color") {
+			if(strtolower($meta_value) === '#ffffff'){
+				delete_post_meta($post_id, $meta_key);
+			}
+		} else if ($meta_key === "rs_blank_template") {
+			if(empty($meta_value) && get_post_meta($post_id, '_wp_page_template', true) == '../public/views/revslider-page-template.php'){
+				update_post_meta($post_id, '_wp_page_template', '');
+			}
+			if(!empty($meta_value) &&  $meta_value == 'on'){
+				update_post_meta($post_id, '_wp_page_template', '../public/views/revslider-page-template.php');
+			}
+		}
+	}
+
+	/**
+	 * Enqueue styles for WP Bakery
+	 * @return void
+	 */
+	public static function enqueue_wpbakery_styles() {
+		wp_enqueue_style('slider_revolution_wpbakery_css', RS_PLUGIN_URL_CLEAN . 'admin/includes/shortcode_generator/wpbakery/assets/css/sr7-wpbakery.css', [], self::asset_time('admin/includes/shortcode_generator/wpbakery/assets/css/sr7-wpbakery.css'));
+	}	
+
+}

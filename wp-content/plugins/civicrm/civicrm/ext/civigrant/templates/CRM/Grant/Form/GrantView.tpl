@@ -11,8 +11,8 @@
 <div class="crm-block crm-content-block crm-grant-view-block">
     <table class="crm-info-panel">
         <tr class="crm-grant-view-form-block-name"><td class="label">{ts}Name{/ts}</td><td class="bold">{$displayName}</td></tr>
-        <tr class="crm-grant-view-form-block-status_id"><td class="label">{ts}Grant Status{/ts}</td> <td>{$grantStatus}</td></tr>
-        <tr class="crm-grant-view-form-block-grant_type_id"><td class="label">{ts}Grant Type{/ts}</td> <td>{$grantType}</td></tr>
+        <tr class="crm-grant-view-form-block-status_id"><td class="label">{ts}Grant Status{/ts}</td> <td>{$grantStatus|escape}</td></tr>
+        <tr class="crm-grant-view-form-block-grant_type_id"><td class="label">{ts}Grant Type{/ts}</td> <td>{$grantType|escape}</td></tr>
         <tr class="crm-grant-view-form-block-application_received_date"><td class="label">{ts}Application Received{/ts}</td> <td>{$application_received_date|crmDate}</td></tr>
         <tr class="crm-grant-view-form-block-decision_date"><td class="label">{ts}Grant Decision{/ts}</td> <td>{$decision_date|crmDate}</td></tr>
         <tr class="crm-grant-view-form-block-money_transfer_date"><td class="label">{ts}Money Transferred{/ts}</td> <td>{$money_transfer_date|crmDate}</td></tr>
@@ -32,11 +32,11 @@
     <div class="crm-submit-buttons">
         {if call_user_func(array('CRM_Core_Permission','check'), 'edit grants')}
             {assign var='urlParams' value="reset=1&id=$id&action=update"}
-            <a class="button" href="{crmURL p='civicrm/grant/add' q=$urlParams}" accesskey="e"><span><i class="crm-i fa-pencil" aria-hidden="true"></i> {ts}Edit{/ts}</span></a>
+            <a class="button" href="{crmURL p='civicrm/grant/add' q=$urlParams}" accesskey="e"><span><i class="crm-i fa-pencil" role="img" aria-hidden="true"></i> {ts}Edit{/ts}</span></a>
         {/if}
         {if call_user_func(array('CRM_Core_Permission','check'), 'delete in CiviGrant')}
             {assign var='urlParams' value="reset=1&id=$id&action=delete"}
-            <a class="button" href="{crmURL p='civicrm/grant/add' q=$urlParams}"><span><i class="crm-i fa-trash" aria-hidden="true"></i> {ts}Delete{/ts}</span></a>
+            <a class="button" href="{crmURL p='civicrm/grant/add' q=$urlParams}"><span><i class="crm-i fa-trash" role="img" aria-hidden="true"></i> {ts}Delete{/ts}</span></a>
         {/if}
     </div>
 </div>

@@ -7,14 +7,29 @@
  
 if(!defined('ABSPATH')) exit();
 
+/**
+ * Classic WordPress widget that outputs one slider. Still reachable on block-widget sites through the
+ * Legacy Widget block.
+ */
 class RevSliderWidget extends WP_Widget {
 	
     public function __construct(){
         //actual widget process
-        parent::__construct('rev-slider-widget', __('Slider Revolution', 'revslider'), array('classname' => 'widget_revslider', 'description' => __('Displays a Slider Revolution Module on the page', 'revslider')));
+        parent::__construct('rev-slider-widget', __('Slider Revolution', 'revslider'), ['classname' => 'widget_revslider', 'description' => __('Displays a Slider Revolution Module on the page', 'revslider')]);
     }
 	
+	/**
+	 * Register the classic widget.
+	 *
+	 * Deliberately NOT gated on wp_use_widgets_block_editor(): classic widgets stay reachable through the
+	 * Legacy Widget block, so skipping registration on block-widget sites would remove a working feature.
+	 * The filter lets a site drop it without having to unhook 'widgets_init'.
+	 *
+	 * @return void
+	 */
 	public static function register_widget(){
+		if(apply_filters('revslider_register_widget', true) !== true) return;
+
 		register_widget('RevSliderWidget');
 	}
  
@@ -22,7 +37,7 @@ class RevSliderWidget extends WP_Widget {
      * the form
      */
     public function form($instance){
-		$sliders = array();
+		$sliders = [];
 		$_slider = new RevSliderSlider();
 		
 		try {
@@ -31,47 +46,38 @@ class RevSliderWidget extends WP_Widget {
           
 		if(empty($sliders)){
 			echo __('No Sliders found, Please create a Slider first', 'revslider');
-		}else{
-	    	$sliderID	= $_slider->get_val($instance, 'rev_slider');
-	    	$homepage	= $_slider->get_val($instance, 'rev_slider_homepage');
-	    	$pagesValue	= $_slider->get_val($instance, 'rev_slider_pages');
-	    	$title		= $_slider->get_val($instance, 'rev_slider_title');
-			$checked	= ($homepage == 'on') ? "checked='checked'" : '';
-	    	
-			$fieldID_check	 = $this->get_field_id('rev_slider_homepage');
-			$fieldName_check = $this->get_field_name('rev_slider_homepage');
-
-			$fieldPages_ID	 = $this->get_field_id('rev_slider_pages');
-			$fieldPages_Name = $this->get_field_name('rev_slider_pages');
-			
-			$fieldTitle_ID	 = $this->get_field_id('rev_slider_title');
-			$fieldTitle_Name = $this->get_field_name('rev_slider_title');
-			?>
-			<p>
-				<span style="display: inline-block; width: 130px"><label for="<?php echo $fieldTitle_ID; ?>"><?php _e('Title', 'revslider')?>:</label></span>
-				<input type="text" style="display: inline-block; width: auto;" name="<?php echo $fieldTitle_Name; ?>" id="<?php echo $fieldTitle_ID; ?>" value="<?php echo $title; ?>" class="widefat">
-			</p>
-			<p>
-				<span style="display: inline-block; width: 130px"><?php _e('Choose Slider', 'revslider'); ?>:</span>
-				<select name="<?php echo $this->get_field_name('rev_slider'); ?>" id="<?php echo $this->get_field_id('rev_slider'); ?>">
-					<?php
-					foreach($sliders as $key => $item){
-						$selected = (trim($key) == trim($sliderID)) ? ' selected ' : '';
-						echo '<option '.$selected.' value="'.$key.'">'.$item.'</option>';
-					}
-					?>
-				</select>
-			</p>
-			<p>
-				<span style="display: inline-block; width: 130px"><label for="<?php echo $fieldID_check; ?>"><?php _e('Home Page Only', 'revslider'); ?>:</label></span>
-				<input type="checkbox" name="<?php echo $fieldName_check; ?>" id="<?php echo $fieldID_check; ?>" <?php echo $checked; ?>>
-			</p>
-			<p>
-				<span style="display: inline-block; width: 130px"><label for="<?php echo $fieldPages_ID; ?>"><?php _e('Pages (example: 2,10):', 'revslider'); ?></label></span>
-				<input type="text" name="<?php echo $fieldPages_Name; ?>" id="<?php echo $fieldPages_ID; ?>" value="<?php echo $pagesValue; ?>">
-			</p>
-			<?php
-		}	//else
+			return;
+		}
+	
+		$sliderID		 = $_slider->get_val($instance, 'rev_slider');
+		$fieldID_check	 = $this->get_field_id('rev_slider_homepage');
+		$fieldPages_ID	 = $this->get_field_id('rev_slider_pages');
+		$fieldTitle_ID	 = $this->get_field_id('rev_slider_title');
+		?>
+		<p>
+			<span style="display: inline-block; width: 130px"><label for="<?php echo esc_attr($fieldTitle_ID); ?>"><?php _e('Title', 'revslider')?>:</label></span>
+			<input type="text" style="display: inline-block; width: auto;" name="<?php echo esc_attr($this->get_field_name('rev_slider_title')); ?>" id="<?php echo esc_attr($fieldTitle_ID); ?>" value="<?php echo esc_attr($_slider->get_val($instance, 'rev_slider_title')); ?>" class="widefat">
+		</p>
+		<p>
+			<span style="display: inline-block; width: 130px"><?php _e('Choose Slider', 'revslider'); ?>:</span>
+			<select name="<?php echo esc_attr($this->get_field_name('rev_slider')); ?>" id="<?php echo esc_attr($this->get_field_id('rev_slider')); ?>">
+				<?php
+				foreach($sliders ?? [] as $sid => $item){
+					$selected = (trim($sid) == trim($sliderID)) ? ' selected' : '';
+					echo '<option'.$selected.' value="'.esc_attr($sid).'">'.esc_html($item).'</option>';
+				}
+				?>
+			</select>
+		</p>
+		<p>
+			<span style="display: inline-block; width: 130px"><label for="<?php echo esc_attr($fieldID_check); ?>"><?php _e('Home Page Only', 'revslider'); ?>:</label></span>
+			<input type="checkbox" name="<?php echo esc_attr($this->get_field_name('rev_slider_homepage')); ?>" id="<?php echo esc_attr($fieldID_check); ?>" <?php echo ($_slider->get_val($instance, 'rev_slider_homepage') == 'on') ? "checked='checked'" : ''; ?>>
+		</p>
+		<p>
+			<span style="display: inline-block; width: 130px"><label for="<?php echo esc_attr($fieldPages_ID); ?>"><?php _e('Pages (example: 2,10):', 'revslider'); ?></label></span>
+			<input type="text" name="<?php echo esc_attr($this->get_field_name('rev_slider_pages')); ?>" id="<?php echo esc_attr($fieldPages_ID); ?>" value="<?php echo esc_attr($_slider->get_val($instance, 'rev_slider_pages')); ?>">
+		</p>
+		<?php
     }
  
  
@@ -88,20 +94,11 @@ class RevSliderWidget extends WP_Widget {
      */
     public function widget($args, $instance){
 		try {
-			global $SR_GLOBALS;
-			
 			$_slider = new RevSliderSlider();
-			
-			$sid = $_slider->get_val($instance, 'rev_slider');
+			$sid	 = $_slider->get_val($instance, 'rev_slider');
 			
 			if(empty($sid)) return(false);
-			if($SR_GLOBALS['front_version'] === 6){
-				$output = new RevSliderOutput();
-			}else{
-				$output = new RevSlider7Output();
-			}
 			
-			$title		= $_slider->get_val($instance, 'rev_slider_title');
 			$homepage	= ($_slider->get_val($instance, 'rev_slider_homepage') == 'on') ? 'homepage' : '';
 			$pages		= $_slider->get_val($instance, 'rev_slider_pages');
 			
@@ -111,21 +108,22 @@ class RevSliderWidget extends WP_Widget {
 			}
 			
 			$_slider->init_by_id($sid);
-			if($_slider->get_param(array('general', 'disableOnMobile'), false) == true && wp_is_mobile()) return false;
+			if($_slider->_truefalse($_slider->get_param(['general', 'disableOnMobile'], false)) === true && wp_is_mobile()) return false;	//loose == treated the STRING "false" as true
 			
+			$output		= new RevSlider7Output();
+			//run the standard WP widget_title filter (was missing) so themes/plugins can hook it like on any other widget
+			$title		= apply_filters('widget_title', $_slider->get_val($instance, 'rev_slider_title'), $instance, $this->id_base);
+
 			//widget output
 			echo $_slider->get_val($args, 'before_widget');
-			
-			if(!empty($title)){
-				echo $_slider->get_val($args, 'before_title');
-				echo $title;
-				echo $_slider->get_val($args, 'after_title');
-			}
+
+			//esc_html() is stricter than WP core (which echoes the title raw) - a slider widget title is plain text
+			echo (!empty($title)) ? $_slider->get_val($args, 'before_title'). esc_html($title) .$_slider->get_val($args, 'after_title') : '';
 			
 			$output->set_add_to($homepage);
 			$slider = $output->add_slider_to_stage($sid);
 			
-			add_action('wp_head', array($this, 'write_css'));
+			add_action('wp_head', [$this, 'write_css']);
 			
 			echo $_slider->get_val($args, 'after_widget');
 		}catch(Exception $e){
@@ -140,9 +138,3 @@ class RevSliderWidget extends WP_Widget {
 	}
 
 }
-
-/**
- * old classname extends new one (old classnames will be obsolete soon)
- * @since: 5.0
- **/
-class RevSlider_Widget extends RevSliderWidget {}

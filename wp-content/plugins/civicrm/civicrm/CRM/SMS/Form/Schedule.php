@@ -19,6 +19,13 @@ class CRM_SMS_Form_Schedule extends CRM_Core_Form {
   public $submitOnce = TRUE;
 
   /**
+   * The mailing ID being scheduled
+   *
+   * @var int
+   */
+  protected $_mailingID;
+
+  /**
    * Set variables up before form is built.
    */
   public function preProcess() {
@@ -159,7 +166,10 @@ class CRM_SMS_Form_Schedule extends CRM_Core_Form {
     }
 
     // Build the mailing object.
-    CRM_Mailing_BAO_Mailing::create($params);
+    $mailing = CRM_Mailing_BAO_Mailing::create($params);
+
+    // check and attach and files as needed
+    CRM_Core_BAO_File::processAttachment($params, 'civicrm_mailing', $mailing->id);
 
     $session = CRM_Core_Session::singleton();
     $session->pushUserContext(CRM_Utils_System::url('civicrm/mailing/browse/scheduled',

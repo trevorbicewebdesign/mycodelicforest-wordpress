@@ -79,10 +79,14 @@ class Generic_Map extends Base {
 	 *
 	 * @since 2.5
 	 *
-	 * @param array                                $props    Field properties.
-	 * @param \Gravity_Forms\Gravity_Forms\Settings\Settings $settings Settings instance.
+	 * @param array                                          $props    Field properties.
+	 * @param \Gravity_Forms\Gravity_Forms\Settings\Settings $settings Settings framework instance.
 	 */
 	public function __construct( $props, $settings ) {
+
+		// Enqueue React dependencies.
+		wp_enqueue_script( 'wp-element' );
+		wp_enqueue_script( 'wp-i18n' );
 
 		// Set Settings framework instance.
 		$this->settings = $settings;
@@ -208,31 +212,6 @@ class Generic_Map extends Base {
 		return $is_filtered_choice_defined ? $passed_choices[ $key ] : $passed_choices;
 	}
 
-	/**
-	 * Register scripts to enqueue when displaying field.
-	 *
-	 * @since 2.5
-	 *
-	 * @return array
-	 */
-	public function scripts() {
-
-		$min     = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG || isset( $_GET['gform_debug'] ) ? '' : '.min';
-		$dev_min = defined( 'GF_SCRIPT_DEBUG' ) && GF_SCRIPT_DEBUG ? '' : '.min';
-
-		return array(
-			array(
-				'handle'  => 'gform_settings_field_map',
-				'src'     => GFCommon::get_base_url() . "/assets/js/dist/field-map{$dev_min}.js",
-				'version' => defined( 'GF_SCRIPT_DEBUG' ) && GF_SCRIPT_DEBUG ? filemtime( GFCommon::get_base_path() . "/assets/js/dist/field-map{$dev_min}.js" ) : GFForms::$version,
-				'deps'    => array( 'wp-element', 'wp-i18n' ),
-			),
-		);
-
-	}
-
-
-
 
 
 	// # RENDER METHODS ------------------------------------------------------------------------------------------------
@@ -264,7 +243,7 @@ class Generic_Map extends Base {
 		$key_field              = $this->key_field;
 		$key_field['choices']   = rgar( $key_field, 'choices' ) ? $this->get_choices( $key_field['choices'] ) : array();
 		// Populate default choices only if the feed hasn't been saved yet.
-		if ( empty( $_GET['fid'] ) ) {
+		if ( empty( rgget( 'fid' ) ) ) {
 			$key_field['choices'] = $this->populate_default_key_values( $key_field['choices'] );
 		}
 		// Prepare JS params.
@@ -275,7 +254,7 @@ class Generic_Map extends Base {
 			'valueField'      => $value_field,
 			'limit'           => $this->limit,
 			'invalidChoices'  => $this->invalid_choices,
-			'mergeTagSupport' => property_exists( $this, 'merge_tags' ) ? $this->merge_tags : false,
+			'mergeTagSupport' => ! ( $this->merge_tags === false ),
 		);
 
 		// Prepare markup.
@@ -285,7 +264,7 @@ class Generic_Map extends Base {
 		$html .= sprintf(
 			'<span class="%1$s"><input type="hidden" name="%2$s" id="%2$s" value=\'%3$s\' />
 				<div id="%4$s" class="gform-settings-field-map__container"></div>%5$s</span>
-				<script type="text/javascript">initializeFieldMap( \'%4$s\', %6$s );</script></span>',
+				<script type="text/javascript">document.addEventListener( "gform/admin/scripts_loaded", function() { window.gform.initializeFieldMap( \'%4$s\', %6$s ); } );</script></span>',
 			esc_attr( $this->get_container_classes() ),
 			$input_name, // Input name
 			esc_attr( wp_json_encode( $this->get_value() ? $this->get_value() : array() ) ), // Input value
@@ -423,6 +402,12 @@ class Generic_Map extends Base {
 		$input_type = '';
 		$form_id    = isset( $form['id'] ) ? $form['id'] : 0;
 
+		// Add the first choice.
+		$choices[] = array(
+			'label' => esc_html__( 'Select a Value', 'gravityforms' ),
+			'value' => '',
+		);
+
 		// Force required, excluded types to arrays.
 		$required_types = is_array( $required_types ) ? $required_types : array();
 		$excluded_types = is_array( $excluded_types ) ? $excluded_types : array();
@@ -531,28 +516,6 @@ class Generic_Map extends Base {
 		}
 
 		if ( count( $form_field_choices ) ) {
-			// Add first choice.
-			if ( count( $required_types ) === 0 || count( $required_types ) > 1 ) {
-
-				$choices[] = array(
-					'label' => esc_html__( 'Select a Field', 'gravityforms' ),
-					'value' => '',
-					'type'  => $field['type'],
-				);
-
-			} else {
-
-				$choices[] = array(
-					'label' => sprintf(
-						esc_html__( 'Select a %s Field', 'gravityforms' ),
-						GF_Fields::get( $required_types[0] ) ? ucfirst( GF_Fields::get( $required_types[0] )->get_form_editor_field_title() ) : ''
-					),
-					'value' => '',
-					'type'  => $field['type'],
-				);
-
-			}
-
 			// Add Form Fields choice.
 			$choices['fields'] = array(
 				'label'   => esc_html__( 'Form Fields', 'gravityforms' ),
@@ -614,6 +577,20 @@ class Generic_Map extends Base {
 
 		}
 
+		if ( in_array( 'date', $required_types ) ) {
+			$choices[] = array(
+				'label' => esc_html__( 'Entry Date', 'gravityforms' ),
+				'value' => 'date_created',
+			);
+		}
+
+		if ( in_array( 'number', $required_types ) ) {
+			$choices[] = array(
+				'label' => esc_html__( 'Entry ID', 'gravityforms' ),
+				'value' => 'id',
+			);
+		}
+
 		/**
 		 * Filter the choices available in the field map drop down.
 		 *
@@ -623,10 +600,10 @@ class Generic_Map extends Base {
 		 *
 		 * @param array             $fields              The value and label properties for each choice.
 		 * @param int               $form_id             The ID of the form currently being configured.
-		 * @param null|array        $field_type          Null or the field types to be included in the drop down.
+		 * @param null|array        $required_types      Null or the field types to be included in the drop down.
 		 * @param null|array|string $exclude_field_types Null or the field type(s) to be excluded from the drop down.
 		 */
-		$choices = apply_filters( 'gform_addon_field_map_choices', $choices, $form_id, $input_type, $excluded_types );
+		$choices = apply_filters( 'gform_addon_field_map_choices', $choices, $form_id, $required_types, $excluded_types );
 
 		/**
 		 * Filter the choices available in the field map drop down.
@@ -635,10 +612,10 @@ class Generic_Map extends Base {
 		 *
 		 * @param array             $fields              The value and label properties for each choice.
 		 * @param int               $form_id             The ID of the form currently being configured.
-		 * @param null|array        $field_type          Null or the field types to be included in the drop down.
+		 * @param null|array        $required_types      Null or the field types to be included in the drop down.
 		 * @param null|array|string $exclude_field_types Null or the field type(s) to be excluded from the drop down.
 		 */
-		$choices = apply_filters( 'gform_field_map_choices', $choices, $form_id, $input_type, $excluded_types );
+		$choices = apply_filters( 'gform_field_map_choices', $choices, $form_id, $required_types, $excluded_types );
 		return array_values( $choices );
 
 	}

@@ -685,9 +685,7 @@ class GF_Query {
 
 		$entries = array();
 
-		$results = $this->query();
-
-		$this->total_found = (int) $wpdb->get_var( 'SELECT FOUND_ROWS()' );
+		$results = $this->query( true );
 
 		return $this->get_entries( $results );
 	}
@@ -700,9 +698,7 @@ class GF_Query {
 	public function get_ids() {
 		global $wpdb;
 
-		$results = $this->query();
-
-		$this->total_found = (int) $wpdb->get_var( 'SELECT FOUND_ROWS()' );
+		$results = $this->query( true );
 
 		$ids = array();
 
@@ -716,9 +712,13 @@ class GF_Query {
 	/**
 	 * Build the query and return the raw rows.
 	 *
+	 * @since 3.0.0 Added the $calculate_total_found parameter.
+	 * 
+	 * @param boolean $calculate_total_found Determines if the total_found property of the query object should be calculated by running an additional count() query. Defaults to false.
+	 * 
 	 * @return array The rows.
 	 */
-	private function query() {
+	private function query( $calculate_total_found = false ) {
 		if ( count( $this->queries ) ) {
 			GFCommon::log_debug( 'Reusing GF_Query is undefined behavior. Create a new instance instead.' );
 		}
@@ -758,7 +758,7 @@ class GF_Query {
 		/**
 		 * SELECT.
 		 */
-		$select = sprintf( 'SELECT SQL_CALC_FOUND_ROWS DISTINCT %s', implode( ', ', $this->_select_infer( $this->joins ) ) );
+		$select = sprintf( 'SELECT DISTINCT %s', implode( ', ', $this->_select_infer( $this->joins ) ) );
 
 		$form_ids = array();
 		foreach ( $this->from as $f ) {
@@ -811,16 +811,32 @@ class GF_Query {
 		 * @param array $sql An array with all the SQL fragments: select, from, join, where, order, paginate.
 		 */
 		$sql = apply_filters( 'gform_gf_query_sql', compact( 'select', 'from', 'join', 'where', 'order', 'paginate' ) );
-		$sql = implode( ' ', array_filter( $sql, 'strlen' ) );
+		$sql_main = implode( ' ', array_filter( $sql, 'strlen' ) );
 
-		GFCommon::log_debug( __METHOD__ . '(): sql => ' . $sql );
+		//echo $sql_main;
+		GFCommon::log_debug( __METHOD__ . '(): sql => ' . $sql_main );
 
 		$this->timer_start();
-		$results = $wpdb->get_results( $sql, ARRAY_N );
-		$this->queries []= array( $this->timer_stop(), $sql );
+		$results = $wpdb->get_results( $sql_main, ARRAY_N ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$this->queries []= array( $this->timer_stop(), $sql_main );
 
 		if ( is_null( $results ) ) {
 			return array();
+		}
+
+		if ( $calculate_total_found ) {
+			
+			// Updating select to count all rows
+			$sql['select'] = sprintf( 'SELECT COUNT( DISTINCT %s )', implode( ', ', $this->_select_infer( $this->joins, false ) ) );
+			
+			// Removing pagination and order by clauses from count query
+			$sql['paginate'] = ''; 
+			$sql['order']    = '';
+			
+			// Generating sql string
+			$sql_count = implode( ' ', array_filter( $sql, 'strlen' ) );
+
+			$this->total_found = (int) $wpdb->get_var( $sql_count ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		}
 
 		return $results;
@@ -914,9 +930,9 @@ class GF_Query {
 	 *
 	 * @return string[] The individual SELECT columns.
 	 */
-	public function _select_infer( $joins ) {
+	public function _select_infer( $joins, $add_alias = true ) {
 
-		$select[] = sprintf( '`%s`.`id`', $this->_alias( null, reset( $this->from ) ) );
+		$selects[] = sprintf( '`%s`.`id`', $this->_alias( null, reset( $this->from ) ) );
 
 		foreach ( $joins as $join ) {
 			list( $on, $column ) = $join;
@@ -929,10 +945,12 @@ class GF_Query {
 			}
 
 			$alias = $this->_alias( $on->is_entry_column() ? null : $on->field_id, $on->source );
-			$select[] = sprintf( '`%s`.`%s` AS `%s_id`', $alias, $on->is_entry_column() ? 'id' : 'entry_id', $alias );
+			$select = sprintf( '`%s`.`%s`', $alias, $on->is_entry_column() ? 'id' : 'entry_id' );
+
+			$selects[] = $add_alias ? sprintf( "{$select} AS `%s_id`", $alias ) : $select;
 		}
 
-		return $select;
+		return $selects;
 	}
 
 	/**
@@ -980,7 +998,7 @@ class GF_Query {
 				/**
 				 * Make sure a WHERE clause exists on meta fields.
 				 */
-				$conditions[] = $wpdb->prepare( sprintf( '`%s`.`meta_key` = %%s', $alias_on ), $on->field_id );
+				$conditions[] = $wpdb->prepare( sprintf( '`%s`.`meta_key` = %%s', $alias_on ), $on->field_id ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 			}
 
 			$conditions[] = sprintf( '`%s`.`form_id` = %d', $alias_on, $on->source );
@@ -1202,7 +1220,21 @@ class GF_Query {
 						list( $form_id, $field_id ) = explode( '_', $key );
 						if ( isset( $explicit_join_aliases[ $form_id ] ) && strpos( $explicit_join_aliases[ $form_id ], 't' ) !== 0 ) {
 							list( $table, $on ) = explode( ' ON ', $join );
-							$join = implode( ' ON ', array( $table, sprintf( '`%s`.`entry_id` = `%s`.`entry_id`', $matches[1], $explicit_join_aliases[ $form_id ] ) ) );
+							
+							$on_clause = sprintf( '`%s`.`entry_id` = `%s`.`entry_id`', $matches[1], $explicit_join_aliases[ $form_id ] );
+
+							/**
+							 * Re-keying the ON clause onto the join alias must not discard the meta_key
+							 * constraint the inferred join carried. Without it the join matches every meta
+							 * row of the joined entry, so an ORDER BY on that column sorts on an arbitrary
+							 * one of them. A WHERE-side join survives losing it, because its meta_key
+							 * predicate is also emitted into the WHERE clause; an ORDER BY has no second copy.
+							 */
+							if ( preg_match( sprintf( '#AND (`%s`\.`meta_key` (?:=|LIKE) .+?)\)?$#', preg_quote( $matches[1], '#' ) ), $on, $meta_key_condition ) ) {
+								$on_clause = sprintf( '(%s AND %s)', $on_clause, $meta_key_condition[1] );
+							}
+
+							$join = implode( ' ON ', array( $table, $on_clause ) );
 						}
 					}
 					$remaining_inference_joins[] = $join;
@@ -1468,7 +1500,7 @@ class GF_Query {
 
 		$entry_table = GFFormsModel::get_entry_table_name();
 		$sql = sprintf( "SELECT * from $entry_table WHERE id IN(%s)", $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) ) );
-		$entryset = $wpdb->get_results( $wpdb->prepare( $sql, $ids ), ARRAY_A );
+		$entryset = $wpdb->get_results( $wpdb->prepare( $sql, $ids ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		$entry_meta_table = GFFormsModel::get_entry_meta_table_name();
 
@@ -1496,7 +1528,7 @@ class GF_Query {
 				$entry_meta_placeholders = implode( ',', array_fill( 0, count( $entry_meta ), '%s' ) );
 				$sql = sprintf( '( form_id = %d AND meta_key IN (%s) )', $form_id, $entry_meta_placeholders );
 				if ( ! isset( $meta_clauses[ $form_id ] ) ) {
-					$meta_clauses[ $form_id ] = $wpdb->prepare( $sql, array_keys( $entry_meta ) );
+					$meta_clauses[ $form_id ] = $wpdb->prepare( $sql, array_keys( $entry_meta ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 				}
 			}
 		}
@@ -1510,7 +1542,7 @@ WHERE entry_id IN(%s)
 AND ( meta_key REGEXP '^[0-9|.]+$'
 %s )
 ", $placeholders, $meta_clauses_str );
-		$metaset = $wpdb->get_results( $wpdb->prepare( $sql, $ids ), ARRAY_A );
+		$metaset = $wpdb->get_results( $wpdb->prepare( $sql, $ids ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 
 		foreach ( $metaset as $meta ) {
@@ -1582,7 +1614,9 @@ AND ( meta_key REGEXP '^[0-9|.]+$'
 				}
 				$results[] = $joined_entries;
 			} elseif ( count( $entry_id ) == 1 ) {
-				if ( ! isset( $entries[ $entry_id[0] ] ) ) {
+				// Fix for Implicit Conversion from float to Int warning in PHP 8.1+
+				$entry_key = is_numeric( $entry_id[0] ) ? (int) $entry_id[0] : $entry_id[0];
+				if ( ! isset( $entries[ $entry_key ] ) ) {
 					continue;
 				}
 				$results[] = &$entries[ $entry_id[0] ];

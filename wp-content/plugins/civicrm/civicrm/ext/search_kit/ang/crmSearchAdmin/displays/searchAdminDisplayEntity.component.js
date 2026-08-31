@@ -11,12 +11,19 @@
       parent: '^crmSearchAdminDisplay'
     },
     templateUrl: '~/crmSearchAdmin/displays/searchAdminDisplayEntity.html',
-    controller: function($scope, crmApi4, crmUiHelp) {
-      var ts = $scope.ts = CRM.ts('org.civicrm.search_kit'),
+    controller: function($scope, crmApi4, crmUiHelp, searchMeta) {
+      const ts = $scope.ts = CRM.ts('org.civicrm.search_kit'),
         ctrl = this;
       $scope.hs = crmUiHelp({file: 'CRM/Search/Help/DisplayTypeEntity'});
+      this.createSqlName = searchMeta.createSqlName;
 
       this.permissions = CRM.crmSearchAdmin.permissions;
+      this.dataModes = [
+        {id: 'table', text: ts('MySQL Table')},
+        {id: 'view', text: ts('MySQL View')}
+        // {id: 'cte', text: ts('MySQL Table Expression')}
+      ];
+      ctrl.isDataMode = (m) => (m == (ctrl.display.settings.data_mode || 'table'));
 
       this.$onInit = function () {
         ctrl.jobFrequency = CRM.crmSearchAdmin.jobFrequency;
@@ -25,6 +32,8 @@
             sort: ctrl.parent.getDefaultSort()
           };
         }
+        // Entity displays always bypass ACLs
+        ctrl.display.acl_bypass = true;
         if (ctrl.display.id && !ctrl.display._job) {
           crmApi4({
             ref: ['SK_' + ctrl.display.name, 'getRefreshDate', {}, 0],
@@ -41,7 +50,13 @@
         if (!ctrl.display.id && !ctrl.display._job) {
           ctrl.display._job = defaultJobParams();
         }
-        ctrl.parent.initColumns({label: true});
+        this.parent.initColumns({label: true});
+        this.display.settings.columns = this.display.settings.columns.filter((col) => this.isColumnAllowed(col.key));
+      };
+
+      // Do not allow pseudo-fields to be used as columns.
+      this.isColumnAllowed = (key) => {
+        return key && !CRM.crmSearchAdmin.pseudoFields.find((field) => field.name === key);
       };
 
       this.onChangeEntityPermission = function() {

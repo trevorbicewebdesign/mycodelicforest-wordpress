@@ -129,9 +129,9 @@ class FlexMailer {
    *     - mailing: \CRM_Mailing_BAO_Mailing
    *     - job: \CRM_Mailing_BAO_MailingJob
    *     - attachments: array
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $dispatcher
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface|null $dispatcher
    */
-  public function __construct($context = [], EventDispatcherInterface $dispatcher = NULL) {
+  public function __construct($context = [], ?EventDispatcherInterface $dispatcher = NULL) {
     $this->context = $context;
     $this->dispatcher = $dispatcher ?: \Civi::service('dispatcher');
   }
@@ -157,7 +157,14 @@ class FlexMailer {
     $walkBatches = $this->fireWalkBatches(function ($tasks) use ($flexMailer) {
       $flexMailer->fireComposeBatch($tasks);
       $sendBatch = $flexMailer->fireSendBatch($tasks);
-      return $sendBatch->getCompleted();
+      $completed = $sendBatch->getCompleted();
+      // Free batch data to prevent memory growth across large mailings.
+      unset($sendBatch);
+      foreach ($tasks as $key => $task) {
+        $tasks[$key] = NULL;
+      }
+      gc_collect_cycles();
+      return $completed;
     });
 
     return $walkBatches->getCompleted();

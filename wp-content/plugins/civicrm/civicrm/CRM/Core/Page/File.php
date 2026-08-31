@@ -20,6 +20,8 @@ class CRM_Core_Page_File extends CRM_Core_Page {
    * Run page.
    */
   public function run() {
+    CRM_Utils_Hook::pageRun($this);
+
     $action = CRM_Utils_Request::retrieve('action', 'String', $this);
     $download = CRM_Utils_Request::retrieve('download', 'Integer', $this, FALSE, 1);
     $disposition = $download == 0 ? 'inline' : 'download';
@@ -31,17 +33,17 @@ class CRM_Core_Page_File extends CRM_Core_Page {
     // File ID
     $fileId = CRM_Utils_Request::retrieve('id', 'Positive', $this, FALSE);
     $fileName = CRM_Utils_Request::retrieve('filename', 'String', $this, FALSE);
-    if (empty($fileName) && (empty($entityId) || empty($fileId))) {
-      CRM_Core_Error::statusBounce("Cannot access file: Must pass either \"Filename\" or the combination of \"Entity ID\" + \"File ID\"");
+    if (empty($fileName) && empty($fileId)) {
+      CRM_Core_Error::statusBounce('Cannot access file: Must pass either "Filename" or the combination of "File ID" + "Hash"');
     }
 
     if (empty($fileName)) {
-      $hash = CRM_Utils_Request::retrieve('fcs', 'Alphanumeric', $this);
-      if (!CRM_Core_BAO_File::validateFileHash($hash, $entityId, $fileId)) {
+      $hash = CRM_Utils_Request::retrieve('fcs', 'String', $this);
+      if (!CRM_Core_BAO_File::validateFileHash($hash, NULL, $fileId)) {
         CRM_Core_Error::statusBounce(ts('URL for file is not valid'));
       }
 
-      [$path, $mimeType] = CRM_Core_BAO_File::path($fileId, $entityId);
+      [$path, $mimeType] = CRM_Core_BAO_File::path($fileId);
     }
     else {
       if (!CRM_Utils_File::isValidFileName($fileName)) {
@@ -69,20 +71,39 @@ class CRM_Core_Page_File extends CRM_Core_Page {
       $mimeType = $passedInMimeType;
     }
 
+    if (empty($download) && str_ends_with($path, '.unknown')) {
+      // We have an '.unknown' file because the file has been uploaded with an 
+      // extension not on the sites allow list at the time of upload.
+      // We should not trust this content and as such we set mimeType and
+      // add some headers.
+      $mimeType = 'application/octet-stream';
+      CRM_Utils_System::setHttpHeader('Content-Security-Policy', "default-src 'none'");
+      CRM_Utils_System::setHttpHeader('X-Content-Type-Options', 'nosniff');
+    }
+
     $buffer = file_get_contents($path);
     if (!$buffer) {
       CRM_Core_Error::statusBounce(ts('The file is either empty or you do not have permission to retrieve the file'));
     }
 
+    // FIXME: Yikes! Deleting records via GET request??
     if ($action & CRM_Core_Action::DELETE) {
-      if (CRM_Utils_Request::retrieve('confirmed', 'Boolean')) {
+      $confirmed = CRM_Utils_Request::retrieve('confirmed', 'Boolean');
+      // Attachment - need to delete entityFile record
+      if ($entityId && $fileId && $confirmed) {
         CRM_Core_BAO_File::deleteFileReferences($fileId, $entityId, $fieldId);
         CRM_Core_Session::setStatus(ts('The attached file has been deleted.'), ts('Complete'), 'success');
-
-        $session = CRM_Core_Session::singleton();
-        $toUrl = $session->popUserContext();
-        CRM_Utils_System::redirect($toUrl);
       }
+      // Just a file field
+      elseif ($fileId && $confirmed) {
+        \Civi\Api4\File::delete(FALSE)
+          ->addWhere('id', '=', $fileId)
+          ->execute();
+        CRM_Core_Session::setStatus(ts('The file has been deleted.'), ts('Complete'), 'success');
+      }
+      $session = CRM_Core_Session::singleton();
+      $toUrl = $session->popUserContext();
+      CRM_Utils_System::redirect($toUrl);
     }
     else {
       CRM_Utils_System::download(

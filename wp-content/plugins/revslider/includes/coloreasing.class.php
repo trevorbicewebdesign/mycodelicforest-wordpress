@@ -7,19 +7,19 @@
 
 if(!defined('ABSPATH')) exit();
 
-if(!class_exists('RSColorEasing')) {
-
-	class RSColorEasing {
+if(!class_exists('RSColorEasing')){
+	class RSColorEasing{
 		
-		public function __construct() {}
+		public function __construct(){}
 		
 		/**
 		 * get the distance between two r/g/b values
 		 * @since 6.0
+		 * @return float
 		 */
-		public static function distColor($px, $bx, $ex, $bv, $ev) {
+		public static function distColor($px, $bx, $ex, $bv, $ev){
 			
-			$num = abs(((($px - $bx) / ($ex - $bx)) * ($ev - $bv)) + $bv);
+			$num = ($ex == $bx) ? abs($bv) : abs(((($px - $bx) / ($ex - $bx)) * ($ev - $bv)) + $bv);
 			$num = round($num);
 			$num = min($num, 255);
 			return max($num, 0);
@@ -29,11 +29,12 @@ if(!class_exists('RSColorEasing')) {
 		/**
 		 * get the distance between two alpha values
 		 * @since 6.0
+		 * @return float
 		 */
-		public static function distAlpha($px, $bx, $ex, $bv, $ev) {
+		public static function distAlpha($px, $bx, $ex, $bv, $ev){
 			
 			$bv = floatval($bv);
-			$num = floatval((($px - $bx) / ($ex - $bx)) * ($ev - $bv));
+			$num = ($ex == $bx) ? 0.0 : floatval((($px - $bx) / ($ex - $bx)) * ($ev - $bv));
 			$num = number_format($num, 2, '.', '');
 			$num = abs($num + $bv);
 			$num = min($num, 1);
@@ -44,27 +45,26 @@ if(!class_exists('RSColorEasing')) {
 		/**
 		 * insert easing colors to a gradient
 		 * @since 6.0
+		 * @return void inserts the interpolated colour stops for the chosen easing curve
 		 */
-		public static function insertPoints($start, $end, &$ar, $easing, $strength) {
+		public static function insertPoints($start, $end, &$ar, $easing, $strength){
 			
 			$startPos = $start['position'];
 			$endPos = $end['position'];
 				
 			if($startPos > $endPos) return;
 				
-			$positions = array();
+			$positions = [];
 			$point;
 			$val;
 			$px;
 	
-			for($i = 0; $i < $strength; $i++) {
-				
+			for($i = 0; $i < $strength; $i++){
 				$val = RSColorEasing::easing($i, 0, 1, $strength, $easing);
 				$val = floatval($val);
 				$val = number_format($val, 2, '.', '');
 				$val = $val * ($endPos - $startPos) + $startPos;
 				if($val > $startPos && $val < $endPos) $positions[] = $val;
-				
 			}
 
 			$len = count($positions);
@@ -72,8 +72,7 @@ if(!class_exists('RSColorEasing')) {
 			$count = number_format($num, 2, '.', '');
 			$p = $count + $startPos;
 				
-			for($i = 0; $i < $len; $i++) {
-				
+			for($i = 0; $i < $len; $i++){
 				$px = $positions[$i];
 				if($px === $start['position']) continue;
 				
@@ -85,15 +84,13 @@ if(!class_exists('RSColorEasing')) {
 				$startA = RSColorpicker::sanitizeAlpha($start['a']);
 				$endA = RSColorpicker::sanitizeAlpha($end['a']);
 				
-				$point = array(
-					
+				$point = [
 					'position' => $p,
 					'r' => $start['r'] !== $end['r'] ? round($r) : $start['r'],
 					'g' => $start['g'] !== $end['g'] ? round($g) : $start['g'],
 					'b' => $start['b'] !== $end['b'] ? round($b) : $start['b'],
 					'a' => $startA !== $endA ? RSColorpicker::sanitizeAlpha($a) : $startA
-				
-				);
+				];
 				
 				$p += $count;
 				$p = number_format(floatval($p), 2, '.', '');
@@ -106,23 +103,19 @@ if(!class_exists('RSColorEasing')) {
 		/**
 		 * easing equations
 		 * @since 6.0
+		 * @return float the eased value at one point of the curve
 		 */
-		public static function easing($n, $t, $e, $u, $ease = 'sine.easeinout') {
+		public static function easing($n, $t, $e, $u, $ease = 'sine.easeinout'){
 			
-			$easing = array('sine, easeinout');
-			if(is_string($ease) && strpos($ease, '.') !== false) {
-				
+			$easing = ['sine, easeinout'];
+			if(is_string($ease) && strpos($ease, '.') !== false){
 				$ease = explode('.', $ease);
 				if(count($ease) === 2) $easing = [$ease[0], $ease[1]];
-				
 			}
 			
-			switch($easing[0]) {
-				
+			switch($easing[0]){
 				case 'quint':
-					
-					switch($easing[1]) {
-				
+					switch($easing[1]){
 						case 'easein':
 							return $e*(($n=$n/$u-1)*$n*$n*$n*$n+1)+$t;
 						break;
@@ -132,14 +125,10 @@ if(!class_exists('RSColorEasing')) {
 						case 'easeinout':
 							return ($n/=$u/2)<1?$e/2*$n*$n*$n*$n*$n+$t:$e/2*(($n-=2)*$n*$n*$n*$n+2)+$t;
 						break;
-						
 					}
-
 				break;
 				case 'quad':
-					
-					switch($easing[1]) {
-				
+					switch($easing[1]){
 						case 'easein':
 							return $e*($n/=$u)*$n+$t;
 						break;
@@ -149,14 +138,10 @@ if(!class_exists('RSColorEasing')) {
 						case 'easeinout':
 							return ($n/=$u/2)<1?$e/2*$n*$n+$t:-$e/2*(--$n*($n-2)-1)+$t;
 						break;
-						
 					}
-					
 				break;
 				case 'quart':
-					
-					switch($easing[1]) {
-				
+					switch($easing[1]){
 						case 'easein':
 							return $e*($n/=$u)*$n*$n*$n+$t;
 						break;
@@ -166,14 +151,10 @@ if(!class_exists('RSColorEasing')) {
 						case 'easeinout':
 							return ($n/=$u/2)<1?$e/2*$n*$n*$n*$n+$t:-$e/2*(($n-=2)*$n*$n*$n-2)+$t;
 						break;
-
 					}
-					
 				break;
 				case 'cubic':
-					
-					switch($easing[1]) {
-				
+					switch($easing[1]){
 						case 'easein':
 							return $e*($n/=$u)*$n*$n+$t;
 						break;
@@ -183,14 +164,10 @@ if(!class_exists('RSColorEasing')) {
 						case 'easeinout':
 							return ($n/=$u/2)<1?$e/2*$n*$n*$n+$t:$e/2*(($n-=2)*$n*$n+2)+$t;
 						break;
-						
 					}
-
 				break;
 				case 'circ':
-					
-					switch($easing[1]) {
-				
+					switch($easing[1]){
 						case 'easein':
 							return -$e*(sqrt(1-($n/=$u)*$n)-1)+$t;
 						break;
@@ -200,13 +177,10 @@ if(!class_exists('RSColorEasing')) {
 						case 'easeinout':
 							return ($n/=$u/2)<1?-$e/2*(sqrt(1-$n*$n)-1)+$t:$e/2*(sqrt(1-($n-=2)*$n)+1)+$t;
 						break;
-						
 					}
-
 				break;
 				case 'expo':
-					
-					switch($easing[1]) {
+					switch($easing[1]){
 						case 'easein':
 							return 0===$n?$t:$e*pow(2,10*($n/$u-1))+$t;
 						break;
@@ -223,17 +197,12 @@ if(!class_exists('RSColorEasing')) {
 							}else{
 								return $e/2*(2-pow(2,-10*--$n))+$t;
 							}
-							
 							//return 0===$n?$t:$n===$u?$t+$e:($n/=$u/2)<1?$e/2*pow(2,10*($n-1))+$t:$e/2*(2-pow(2,-10*--$n))+$t;
 						break;
-						
 					}
-
 				break;
 				case 'bounce':
-					
-					switch($easing[1]) {
-				
+					switch($easing[1]){
 						case 'easein':
 							return $e-RSColorEasing::easing($u-$n,0,$e,$u,'bounce.easeout')+$t;
 						break;
@@ -247,14 +216,10 @@ if(!class_exists('RSColorEasing')) {
 							if($n<$u/2){return RSColorEasing::easing($n*2,0,$e,$u,'bounce.easein')*0.5+$t;}
 							else{return RSColorEasing::easing($n*2-$u,0,$e,$u,'bounce.easeout')*0.5+$e*0.5+$t;}
 						break;
-						
 					}
-					
 				break;
 				default:
-					
-					switch($easing[1]) {
-				
+					switch($easing[1]){
 						case 'easein':
 							return -$e*cos($n/$u*(M_PI/2))+$e+$t;
 						break;
@@ -264,17 +229,10 @@ if(!class_exists('RSColorEasing')) {
 						default:
 							return -$e/2*(cos(M_PI*$n/$u)-1)+$t;
 						// end default
-						
 					}
-					
 				// end default
-				
 			}
-			
 			return 0;
-			
 		}
-		
 	}
-	
 }

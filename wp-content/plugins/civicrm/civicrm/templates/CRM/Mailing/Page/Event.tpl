@@ -17,7 +17,7 @@
       <tr>
         {foreach from=$columnHeaders item=header}
           <th>
-            {if $header.sort}
+            {if array_key_exists('sort', $header) && $header.sort}
               {assign var='key' value=$header.sort}
               {$sort->_response.$key.link}
             {else}
@@ -46,7 +46,7 @@
 {/if}
 
 <div class="action-link">
-  <a href="{$backUrl}"><i class="crm-i fa-chevron-left" aria-hidden="true"></i> {$backUrlTitle}</a>
+  <a href="{$backUrl}"><i class="crm-i fa-chevron-left" role="img" aria-hidden="true"></i> {$backUrlTitle}</a>
 </div>
 
 {include file="CRM/common/pager.tpl" location="bottom"}

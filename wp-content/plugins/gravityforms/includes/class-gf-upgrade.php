@@ -219,6 +219,7 @@ class GF_Upgrade {
 	 * Performs initial install of Gravity Forms.
 	 *
 	 * @since  2.2
+	 * @since 2.10.0 Enabled background notifications by default for new installs.
 	 */
 	public function install() {
 		$this->flush_versions();
@@ -239,6 +240,8 @@ class GF_Upgrade {
 
 		// Setting the version of Gravity Forms that was installed initially
 		update_option( 'rg_form_original_version', GFForms::$version, false );
+
+		update_option( 'gform_enable_async_notifications', true, false );
 
 		// Auto-setting and auto-validating license key based on value configured via the GF_LICENSE_KEY constant or the gf_license_key variable
 		// Auto-populating reCAPTCHA keys base on constant
@@ -270,7 +273,7 @@ class GF_Upgrade {
 
 		$wpdb->flush();
 
-		$is_upgrading = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name='gf_upgrade_lock'" );
+		$is_upgrading = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name='gf_upgrade_lock'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $is_upgrading ? true : false;
 	}
@@ -308,14 +311,14 @@ class GF_Upgrade {
 			$sql = $wpdb->prepare( "INSERT INTO {$wpdb->options}(option_name, option_value) VALUES('gf_upgrade_lock', %s) ON DUPLICATE KEY UPDATE `option_name` = VALUES(`option_name`), `option_value` = VALUES(`option_value`)", $lock_params_serialized );
 
 			// Lock upgrade
-			$wpdb->query( $sql );
+			$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 			GFCommon::log_debug( __METHOD__ . '(): Upgrade Locked.' );
 		} else {
 
 			$sql = $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value=%s WHERE option_name='gf_upgrade_lock'", $lock_params_serialized );
 
 			// Lock upgrade
-			$wpdb->query( $sql );
+			$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 			GFCommon::log_debug( __METHOD__ . '(): Upgrade Locked.' );
 		}
 
@@ -470,7 +473,8 @@ class GF_Upgrade {
 		// create a string of %s - one for each array value.
 		$placeholders = join( ',', array_fill( 0, count( $table_names ), '%s' ) );
 
-		$table_rows = $wpdb->get_results(
+		$table_rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT table_name as `table`, extra as auto_increment_flag, column_type as column_data_type
 				FROM information_schema.columns
@@ -478,6 +482,7 @@ class GF_Upgrade {
 				AND column_name = 'id'",
 				array_merge( array( $wpdb->dbname ), $table_names )
 			),
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			ARRAY_A
 		);
 
@@ -504,10 +509,11 @@ class GF_Upgrade {
 
 		global $wpdb;
 
-		$max    = $wpdb->query( "select id from {$table_name} order by id desc" );
+		$max    = $wpdb->query( "select id from {$table_name} order by id desc" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$new_id = $max + 1;
 
-		$sql = $wpdb->query(
+		$sql = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
+			// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnquotedComplexPlaceholder, WordPress.DB.PreparedSQLPlaceholders.UnquotedComplexPlaceholder, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->prepare(
 				'ALTER TABLE %1$s
 				AUTO_INCREMENT = %2$d, 
@@ -516,6 +522,7 @@ class GF_Upgrade {
 				$new_id,
 				$column_type
 			)
+			// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnquotedComplexPlaceholder, WordPress.DB.PreparedSQLPlaceholders.UnquotedComplexPlaceholder, WordPress.DB.DirectDatabaseQuery.SchemaChange
 		);
 
 		// Deleting auto increment cache so that new table meta is retrieved.
@@ -893,7 +900,7 @@ WHERE lf.id NOT IN
       	FROM {$new_forms_table}
       	)";
 
-		$wpdb->query( $sql );
+		$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 		// Migrate form meta
 
@@ -912,7 +919,7 @@ WHERE lfm.form_id NOT IN
       	FROM {$new_form_meta_table}
       	)";
 
-		$wpdb->query( $sql );
+		$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 		// Migrate form view data
 
@@ -931,7 +938,7 @@ WHERE lfv.id NOT IN
       	FROM {$new_form_view_table}
       	)";
 
-		$wpdb->query( $sql );
+		$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 		$this->update_upgrade_status( esc_html__( 'Forms migrated.', 'gravityforms' ) );
 		return false;
@@ -991,7 +998,7 @@ WHERE l2.id NOT IN ( SELECT e.id FROM {$entry_table} e )
 LIMIT {$limit}";
 
 		// Find out which columns exist for this installation.
-		$lead_columns   = array_flip( $wpdb->get_col( 'DESC ' . $lead_table ) );
+		$lead_columns   = array_flip( $wpdb->get_col( 'DESC ' . $lead_table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$entry_columns  = GFFormsModel::get_lead_db_columns();
 		$select_columns = array();
 
@@ -1010,7 +1017,7 @@ LIMIT {$limit}";
 
 		do {
 
-			$lead_ids = $wpdb->get_col( $lead_ids_sql );
+			$lead_ids = $wpdb->get_col( $lead_ids_sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 			if ( $wpdb->last_error ) {
 				/* translators: %s: the database error */
@@ -1036,7 +1043,7 @@ FROM
 $lead_table l
 WHERE l.id IN ( {$lead_ids_in} )";
 
-					$wpdb->query( $sql );
+					$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 					if ( $wpdb->last_error ) {
 						/* translators: %s: the database error */
@@ -1051,7 +1058,7 @@ WHERE l.id IN ( {$lead_ids_in} )";
 						$sql_remaining = "SELECT COUNT(l2.id)
 FROM {$lead_table} l2
 WHERE l2.id NOT IN ( SELECT e.id FROM {$entry_table} e )";
-						$remaining     = $wpdb->get_var( $sql_remaining );
+						$remaining     = $wpdb->get_var( $sql_remaining ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 						if ( $remaining > 0 ) {
 							$this->update_upgrade_status( sprintf( esc_html__( 'Migrating leads. Step 1/3 Migrating entry headers. %d rows remaining.', 'gravityforms' ), $remaining ) );
 
@@ -1091,10 +1098,10 @@ WHERE ld.id NOT IN ( SELECT em.id FROM {$entry_meta_table} em )
 LIMIT {$limit}";
 
 		do {
-			$lead_detail_ids = $wpdb->get_col( $lead_detail_ids_sql );
+			$lead_detail_ids = $wpdb->get_col( $lead_detail_ids_sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 			if ( $wpdb->last_error ) {
-				error_log( 'error: ' . $wpdb->last_error );
+				error_log( 'error: ' . $wpdb->last_error ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound
 				/* translators: %s: the database error */
 				$this->update_upgrade_status( sprintf( esc_html__( 'Error Migrating Entry Details: %s', 'gravityforms' ), $wpdb->last_error ) );
 				// wp_die() is not used here because it would trigger another async task
@@ -1116,10 +1123,10 @@ FROM
   {$lead_details_table} ld
 WHERE ld.id IN ( {$lead_detail_ids_in} )";
 
-				$wpdb->query( $sql );
+				$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 				if ( $wpdb->last_error ) {
-					error_log( 'error: ' . $wpdb->last_error );
+					error_log( 'error: ' . $wpdb->last_error ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound
 					/* translators: %s: the database error */
 					$this->update_upgrade_status( sprintf( esc_html__( 'Error Migrating Entry Details: %s', 'gravityforms' ), $wpdb->last_error ) );
 					// wp_die() is not used here because it would trigger another async task
@@ -1133,7 +1140,7 @@ WHERE ld.id IN ( {$lead_detail_ids_in} )";
 SELECT COUNT(ld.id)
 FROM {$lead_details_table} ld
 WHERE ld.id NOT IN ( SELECT em.id FROM {$entry_meta_table} em )";
-					$remaining     = $wpdb->get_var( $sql_remaining );
+					$remaining     = $wpdb->get_var( $sql_remaining ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 					if ( $remaining > 0 ) {
 						$this->update_upgrade_status( sprintf( esc_html__( 'Migrating leads. Step 2/3 Migrating entry details. %d rows remaining.', 'gravityforms' ), $remaining ) );
 
@@ -1177,7 +1184,7 @@ WHERE NOT EXISTS
 LIMIT {$limit}";
 
 		do {
-			$lead_meta_ids = $wpdb->get_col( $lead_meta_ids_sql );
+			$lead_meta_ids = $wpdb->get_col( $lead_meta_ids_sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 			if ( $wpdb->last_error ) {
 				/* translators: %s: the database error */
@@ -1201,7 +1208,7 @@ FROM
   {$lead_meta_table} lm
 WHERE lm.id IN ( {$lead_meta_ids_in} )";
 
-				$wpdb->query( $sql );
+				$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 				if ( $wpdb->last_error ) {
 					/* translators: %s: the database error */
@@ -1219,7 +1226,7 @@ FROM
   {$lead_meta_table} lm
 WHERE NOT EXISTS
       (SELECT * FROM {$entry_meta_table} em WHERE em.entry_id = lm.lead_id AND CONVERT(em.meta_key USING {$charset_db}) = CONVERT(lm.meta_key USING {$charset_db}) {$collate})";
-					$remaining     = $wpdb->get_var( $sql_remaining );
+					$remaining     = $wpdb->get_var( $sql_remaining ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 					if ( $remaining > 0 ) {
 						$this->update_upgrade_status( sprintf( esc_html__( 'Migrating leads. Step 3/3 Migrating entry meta. %d rows remaining.', 'gravityforms' ), $remaining ) );
 
@@ -1263,7 +1270,7 @@ FROM
 WHERE CONVERT(insub.uuid USING {$charset_db}) {$collate} NOT IN
       ( SELECT uuid FROM {$draft_submissions_table} )";
 
-		$wpdb->query( $sql );
+		$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 		if ( $wpdb->last_error ) {
 			/* translators: %s: the database error */
@@ -1299,7 +1306,7 @@ WHERE ln.id NOT IN
       	FROM {$entry_notes_table}
       	)";
 
-		$wpdb->query( $sql );
+		$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		return false;
 	}
 
@@ -1412,7 +1419,7 @@ WHERE ln.id NOT IN
 	 */
 	public function get_wp_option( $option_name ) {
 		global $wpdb;
-		return $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->prefix}options WHERE option_name=%s", $option_name ) );
+		return $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->prefix}options WHERE option_name=%s", $option_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	}
 
 
@@ -1429,7 +1436,7 @@ WHERE ln.id NOT IN
 		$lead_meta_table_name = RGFormsModel::get_lead_meta_table_name();
 
 		// dropping table that was created by mistake in version 1.6.3.2
-		$wpdb->query( 'DROP TABLE IF EXISTS A' . $form_table_name );
+		$wpdb->query( 'DROP TABLE IF EXISTS A' . $form_table_name ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 		// dropping outdated form_id index (if one exists)
 		$this->drop_index( $meta_table_name, 'form_id' );
@@ -1448,7 +1455,7 @@ WHERE ln.id NOT IN
 
 		$long_table_name = GFFormsModel::get_lead_details_long_table_name();
 
-		$result = $wpdb->query( "SHOW TABLES LIKE '{$long_table_name}'" );
+		$result = $wpdb->query( "SHOW TABLES LIKE '{$long_table_name}'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		if ( $wpdb->num_rows !== 1 ) {
 			return;
@@ -1514,9 +1521,9 @@ WHERE ln.id NOT IN
 		$meta_table_name    = GFFormsModel::get_meta_table_name();
 		$lead_details_table = GFFormsModel::get_lead_details_table_name();
 
-		$result = $wpdb->query( "UPDATE {$lead_details_table} SET value = TRIM(value)" );
+		$result = $wpdb->query( "UPDATE {$lead_details_table} SET value = TRIM(value)" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-		$results = $wpdb->get_results( "SELECT form_id, display_meta, confirmations, notifications FROM {$meta_table_name}", ARRAY_A );
+		$results = $wpdb->get_results( "SELECT form_id, display_meta, confirmations, notifications FROM {$meta_table_name}", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		foreach ( $results as &$result ) {
 			$form_id = $result['form_id'];
@@ -1559,13 +1566,13 @@ WHERE ln.id NOT IN
 		$table_name = RGFormsModel::get_lead_details_table_name();
 
 		$sql     = "select * from {$table_name} where value= '!'";
-		$results = $wpdb->get_results( $sql );
-		foreach ( $results as $result ) {
+		$results = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+ 		foreach ( $results as $result ) {
 			$form  = RGFormsModel::get_form_meta( $result->form_id );
 			$field = RGFormsModel::get_field( $form, $result->field_number );
 			if ( $field->type == 'checkbox' ) {
 				$input = GFCommon::get_input( $field, $result->field_number );
-				$wpdb->update( $table_name, array( 'value' => $input['label'] ), array( 'id' => $result->id ) );
+				$wpdb->update( $table_name, array( 'value' => $input['label'] ), array( 'id' => $result->id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			}
 		}
 	}
@@ -1588,7 +1595,7 @@ WHERE ln.id NOT IN
 		$sql = "UPDATE $lead_meta_table_name lm,$lead_table_name l SET lm.form_id = l.form_id
 				WHERE lm.form_id=0 AND lm.lead_id = l.id;
 				";
-		$wpdb->get_results( $sql );
+		$wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 	}
 
@@ -1612,13 +1619,13 @@ WHERE ln.id NOT IN
 		}
 
 		// check first if the table exists to prevent errors on first install
-		$has_table = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+		$has_table = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		if ( $has_table ) {
 
-			$has_index = $wpdb->get_var( $wpdb->prepare( "SHOW INDEX FROM {$table} WHERE Key_name=%s", $index ) );
+			$has_index = $wpdb->get_var( $wpdb->prepare( "SHOW INDEX FROM {$table} WHERE Key_name=%s", $index ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 			if ( $has_index ) {
-				$wpdb->query( "DROP INDEX {$index} ON {$table}" );
+				$wpdb->query( "DROP INDEX {$index} ON {$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			}
 		}
 	}
@@ -1647,11 +1654,13 @@ WHERE ln.id NOT IN
 		}
 
 		// Populate the details value with long table values
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$result = $wpdb->query( "
 UPDATE {$wpdb->prefix}rg_lead_detail d
 INNER JOIN {$wpdb->prefix}rg_lead_detail_long l ON d.id = l.lead_detail_id
 SET d.value = l.value"
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 
 		GFCommon::remove_dismissible_message( 'gform_long_table_upgrade' );
 
@@ -1699,7 +1708,7 @@ SET d.value = l.value"
 		$has_permission = true;
 
 		$sql = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rg_test ( col1 int PRIMARY KEY )";
-		$wpdb->query( $sql );
+		$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		$error = 'Current database user does not have necessary permissions to create tables. Gravity Forms requires that the database user has CREATE and ALTER permissions. If you need assistance in changing database user permissions, contact your hosting provider.';
 		if ( ! empty( $wpdb->last_error ) ) {
 			$has_permission = false;
@@ -1707,14 +1716,14 @@ SET d.value = l.value"
 
 		if ( $has_permission ) {
 			$sql = "ALTER TABLE {$wpdb->prefix}rg_test ADD COLUMN a" . uniqid() . ' int';
-			$wpdb->query( $sql );
+			$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 			$error = 'Current database user does not have necessary permissions to modify (ALTER) tables. Gravity Forms requires that the database user has CREATE and ALTER permissions. If you need assistance in changing database user permissions, contact your hosting provider.';
 			if ( ! empty( $wpdb->last_error ) ) {
 				$has_permission = false;
 			}
 
 			$sql = "DROP TABLE {$wpdb->prefix}rg_test";
-			$wpdb->query( $sql );
+			$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		}
 
 		$wpdb->show_errors();
@@ -1759,7 +1768,7 @@ SET d.value = l.value"
 
 		$is_longtext = $this->check_column( $lead_detail_table_name, 'value', 'longtext' );
 
-		$first_entry_value = $wpdb->get_results( "SELECT value FROM $lead_detail_table_name LIMIT 1" );
+		$first_entry_value = $wpdb->get_results( "SELECT value FROM $lead_detail_table_name LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$col_type = $wpdb->get_col_info( 'type', 0 ); // Get type of column from the last wpdb query.
 
@@ -1769,7 +1778,7 @@ SET d.value = l.value"
 			} else {
 				$lead_detail_table = GFFormsModel::get_lead_details_table_name();
 
-				$result = $wpdb->query( "ALTER TABLE {$lead_detail_table} MODIFY `value` LONGTEXT;" );
+				$result = $wpdb->query( "ALTER TABLE {$lead_detail_table} MODIFY `value` LONGTEXT;" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
 				if ( empty( $wpdb->last_error ) ) {
 					$is_longtext = true;
 				} else {
@@ -1808,12 +1817,13 @@ SET d.value = l.value"
 		) {
 
 			// Check that all IDs in the detail table are unique.
-
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 			$results = $wpdb->get_results( "
 SELECT id
 FROM {$wpdb->prefix}rg_lead_detail
 GROUP BY id
 HAVING count(*) > 1;" );
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 
 			if ( count( $results ) == 0 ) {
 
@@ -1857,7 +1867,7 @@ HAVING count(*) > 1;" );
 	private function check_column( $table_name, $col_name, $col_type, $is_null = null, $key = null, $default = null, $extra = null ) {
 		global $wpdb;
 		$diffs   = 0;
-		$results = $wpdb->get_results( "DESC $table_name" );
+		$results = $wpdb->get_results( "DESC $table_name" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		foreach ( $results as $row ) {
 
@@ -1977,7 +1987,7 @@ HAVING count(*) > 1;" );
 			return false;
 		}
 
-		$pending_installation = get_option( 'gform_pending_installation' ) || isset( $_GET['gform_installation_wizard'] );
+		$pending_installation = get_option( 'gform_pending_installation' ) || isset( $_GET['gform_installation_wizard'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 		//Display install wizard if this is a fresh install or if the installation wizard is in progress ( i.e. pending )
 		$install_wizard_required = $this->requires_install() || $pending_installation;
@@ -2094,7 +2104,7 @@ HAVING count(*) > 1;" );
 	public function get_upgrade_lock() {
 		global $wpdb;
 
-		$lock_params_serialized = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name='gf_upgrade_lock'" );
+		$lock_params_serialized = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name='gf_upgrade_lock'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 		$lock_params = maybe_unserialize( $lock_params_serialized );
 
@@ -2135,7 +2145,7 @@ HAVING count(*) > 1;" );
 	public function get_submissions_block() {
 		global $wpdb;
 
-		$timestamp = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name='gf_submissions_block'" );
+		$timestamp = $wpdb->get_var( "SELECT option_value FROM {$wpdb->options} WHERE option_name='gf_submissions_block'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery
 
 		return $timestamp;
 	}

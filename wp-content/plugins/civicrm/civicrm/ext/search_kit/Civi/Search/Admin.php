@@ -32,7 +32,42 @@ class Admin {
    * @return array
    * @throws \CRM_Core_Exception
    */
-  public static function getAdminSettings():array {
+  public static function getAdminSettings(): array {
+    // Check minimum permission needed to reach this
+    if (!\CRM_Core_Permission::check('manage own search_kit')) {
+      return [];
+    }
+    $cacheKey = \Civi::cache('metadata')->get('search_kit_admin_settings_key');
+    if (!$cacheKey) {
+      $cacheKey = uniqid();
+      \Civi::cache('metadata')->set('search_kit_admin_settings_key', $cacheKey);
+    }
+    $data = [
+      'defaultPagerSize' => (int) \Civi::settings()->get('default_pager_size'),
+      'modules' => \CRM_Core_BAO_Managed::getBaseModules(),
+      'cacheKey' => $cacheKey,
+      'tags' => Tag::get()
+        ->addSelect('id', 'label', 'color', 'is_selectable', 'description')
+        ->addWhere('used_for', 'CONTAINS', 'civicrm_saved_search')
+        ->execute(),
+    ];
+    return $data;
+  }
+
+  /**
+   * Returns system metadata needed for the `crmSearchAdmin` Angular module.
+   *
+   * Note: All dynamic data returned by this function MUST be derived from the `metadata` cache (or Civi::$statics).
+   * Flushing that one cache must be sufficient to make this function return fresh data.
+   *
+   * @return array
+   * @throws \CRM_Core_Exception
+   */
+  public static function getAdminMetadata(): array {
+    // Check minimum permission needed to reach this
+    if (!\CRM_Core_Permission::check('manage own search_kit')) {
+      return [];
+    }
     $schema = self::getSchema();
     $data = [
       'schema' => self::addImplicitFKFields($schema),
@@ -41,22 +76,20 @@ class Admin {
       'operators' => \CRM_Utils_Array::makeNonAssociative(self::getOperators()),
       'permissions' => [],
       'functions' => self::getSqlFunctions(),
-      'displayTypes' => Display::getDisplayTypes(['id', 'name', 'label', 'description', 'icon']),
+      'displayTypes' => Display::getDisplayTypes(['id', 'name', 'label', 'description', 'icon', 'grouping']),
       'styles' => \CRM_Utils_Array::makeNonAssociative(self::getStyles()),
-      'defaultPagerSize' => (int) \Civi::settings()->get('default_pager_size'),
       'defaultDisplay' => SearchDisplay::getDefault(FALSE)->setSavedSearch(['id' => NULL])->execute()->first(),
-      'modules' => \CRM_Core_BAO_Managed::getBaseModules(),
       'defaultDistanceUnit' => \CRM_Utils_Address::getDefaultDistanceUnit(),
+      'optionAttributes' => \CRM_Core_SelectValues::optionAttributes(),
       'jobFrequency' => \Civi\Api4\Job::getFields()
         ->addWhere('name', '=', 'run_frequency')
         ->setLoadOptions(['id', 'label'])
         ->execute()->first()['options'],
-      'tags' => Tag::get()
-        ->addSelect('id', 'label', 'color', 'is_selectable', 'description')
-        ->addWhere('used_for', 'CONTAINS', 'civicrm_saved_search')
-        ->execute(),
-      'myName' => \CRM_Core_Session::singleton()->getLoggedInContactDisplayName(),
       'dateFormats' => self::getDateFormats(),
+      'numberAttributes' => [
+        \NumberFormatter::MAX_FRACTION_DIGITS => E::ts('Max Decimal Places'),
+        \NumberFormatter::MIN_FRACTION_DIGITS => E::ts('Min Decimal Places'),
+      ],
     ];
     $perms = \Civi\Api4\Permission::get()
       ->addWhere('group', 'IN', ['civicrm', 'cms'])
@@ -88,8 +121,10 @@ class Admin {
       '<' => '<',
       '>=' => '≥',
       '<=' => '≤',
-      'CONTAINS' => E::ts('Contains'),
-      'NOT CONTAINS' => E::ts("Doesn't Contain"),
+      'CONTAINS' => E::ts('Contains All'),
+      'NOT CONTAINS' => E::ts("Doesn't Contain All"),
+      'CONTAINS ONE OF' => E::ts('Contains Any'),
+      'NOT CONTAINS ONE OF' => E::ts("Doesn't Contain Any"),
       'IN' => E::ts('Is One Of'),
       'NOT IN' => E::ts('Not One Of'),
       'LIKE' => E::ts('Is Like'),
@@ -102,6 +137,8 @@ class Admin {
       'NOT BETWEEN' => E::ts('Not Between'),
       'IS EMPTY' => E::ts('Is Empty'),
       'IS NOT EMPTY' => E::ts('Not Empty'),
+      'IS NOT NULL' => E::ts('Any Value'),
+      'IS NULL' => E::ts('No Value'),
     ];
   }
 
@@ -131,7 +168,7 @@ class Admin {
   public static function getSchema(): array {
     $schema = [];
     $entities = Entity::get()
-      ->addSelect('name', 'title', 'title_plural', 'bridge_title', 'type', 'primary_key', 'description', 'label_field', 'search_fields', 'icon', 'dao', 'bridge', 'ui_join_filters', 'searchable', 'order_by')
+      ->addSelect('name', 'title', 'title_plural', 'bridge_title', 'type', 'primary_key', 'description', 'label_field', 'parent_field', 'search_fields', 'icon', 'dao', 'bridge', 'ui_join_filters', 'searchable', 'order_by')
       ->addWhere('searchable', '!=', 'none')
       ->addOrderBy('title_plural')
       ->setChain([
@@ -166,6 +203,9 @@ class Admin {
           }
           $entity['fields'][] = $field;
         }
+        if (empty($entity['fields'])) {
+          continue;
+        }
         $entity['default_columns'] = self::getDefaultColumns($entity, $getFields);
         $params = $entity['get'][0];
         // Entity must support at least these params or it is too weird for search kit
@@ -189,7 +229,7 @@ class Admin {
   private static function getDefaultColumns(array $entity, iterable $getFields): array {
     // Start with id & label
     $defaultColumns = array_merge(
-      $entity['primary_key'],
+      $entity['primary_key'] ?? [],
       $entity['search_fields'] ?? []
     );
     $possibleColumns = [];
@@ -198,7 +238,10 @@ class Admin {
       $possibleColumns[$column] = "$column:label";
     }
     // Other possible relevant columns... now we're just guessing
-    $possibleColumns['financial_type_id'] = 'financial_type_id:label';
+    //
+    // TODO: these can be specified using the @searchColumns annotation on
+    // the Api4 entity class so would probably be better to specify sensible
+    // options for core entities explicitly - which allows you to order logically too
     $possibleColumns['description'] = 'description';
     // E.g. "activity_status_id"
     $possibleColumns[strtolower($entity['name']) . 'status_id'] = strtolower($entity['name']) . 'status_id:label';
@@ -247,6 +290,7 @@ class Admin {
               if ($newField) {
                 $newField['name'] = $field['name'] . '.' . $labelField;
                 $newField['label'] = $field['label'] . ' ' . $newField['label'];
+                $newField['implicit_join'] = $field['fk_entity'];
                 array_splice($entity['fields'], $index + 1, 0, [$newField]);
               }
             }
@@ -279,7 +323,7 @@ class Admin {
   public static function getJoins(array $allowedEntities):array {
     $joins = [];
     foreach ($allowedEntities as $entity) {
-      $isVirtualEntity = (bool) array_intersect(['CustomValue', 'SavedSearch'], $entity['type']);
+      $isVirtualEntity = (bool) array_intersect(['CustomValue', 'SavedSearch', 'SqlView'], $entity['type']);
 
       // Normal DAO entities (excludes virtual entities)
       // FIXME: At this point DAO entities have enough metadata that using getReferenceColumns()
@@ -321,12 +365,23 @@ class Admin {
               // Add the straight 1-1 join (but only if it's not a reference to itself, those can be done with implicit joins)
               if (!$isSelf) {
                 $alias = $entity['name'] . '_' . $targetEntityName . '_' . $keyField['name'];
+
+                // For LineItem we have contribution_id and entity_id=contribution_id when entity_table=civicrm_contribution
+                // They are the same and it is confusing to have two joins in the SearchKit UI.
+                // Aliases: LineItem_Contribution_contribution_id and LineItem_Contribution_entity_id
+                if ($alias === 'LineItem_Contribution_entity_id') {
+                  // LineItem.entity_id === LineItem.contribution_id if LineItem.entity_table='civicrm_contribution'
+                  // Don't show the duplicate join - see https://github.com/civicrm/civicrm-core/pull/35495
+                  continue;
+                }
+
                 $joins[$entity['name']][] = [
                   'label' => $entity['title'] . ' ' . ($dynamicCol ? $targetEntity['title'] : $keyField['label']),
                   'description' => '',
                   'entity' => $targetEntityName,
                   'conditions' => self::getJoinConditions($keyField['name'], $alias . '.' . $reference->getTargetKey(), $dynamicValue, $dynamicCol),
-                  'defaults' => self::getJoinDefaults($alias, $targetEntity),
+                  // No default conditions for straight joins as they ought to be direct 1-1
+                  'defaults' => [],
                   'alias' => $alias,
                   'multi' => FALSE,
                 ];
@@ -354,7 +409,8 @@ class Admin {
             $keyField = $fields[$reference->getReferenceKey()] ?? NULL;
             foreach ($reference->getTargetEntities() as $dynamicValue => $targetEntityName) {
               $targetEntity = $allowedEntities[$targetEntityName] ?? NULL;
-              $baseEntity = $allowedEntities[$fields[$baseKey]['fk_entity']] ?? NULL;
+              $fkEntity = $fields[$baseKey]['fk_entity'] ?? '';
+              $baseEntity = $allowedEntities[$fkEntity] ?? NULL;
               if (!$targetEntity || !$baseEntity) {
                 continue;
               }
@@ -505,28 +561,30 @@ class Admin {
    * @throws \CRM_Core_Exception
    * @throws \Civi\API\Exception\NotImplementedException
    */
-  private static function getJoinDefaults(string $alias, ...$entities):array {
+  private static function getJoinDefaults(string $alias, ...$entities): array {
     $conditions = [];
     foreach ($entities as $entity) {
-      foreach ($entity['ui_join_filters'] ?? [] as $fieldName) {
-        $field = civicrm_api4($entity['name'], 'getFields', [
-          'select' => ['options', 'data_type'],
-          'where' => [['name', '=', $fieldName]],
+      if (!empty($entity['ui_join_filters'])) {
+        $filterFields = civicrm_api4($entity['name'], 'getFields', [
+          'select' => ['name', 'options', 'data_type'],
+          'where' => [['name', 'IN', $entity['ui_join_filters']]],
           'loadOptions' => ['name'],
-        ])->first();
-        $value = '';
-        if ($field['data_type'] === 'Boolean') {
-          $value = TRUE;
+        ])->indexBy('name');
+        foreach ($filterFields as $fieldName => $field) {
+          $value = '';
+          if ($field['data_type'] === 'Boolean') {
+            $value = TRUE;
+          }
+          elseif (isset($field['options'][0])) {
+            $fieldName .= ':name';
+            $value = json_encode($field['options'][0]['name']);
+          }
+          $conditions[] = [
+            $alias . '.' . $fieldName,
+            '=',
+            $value,
+          ];
         }
-        elseif (isset($field['options'][0])) {
-          $fieldName .= ':name';
-          $value = json_encode($field['options'][0]['name']);
-        }
-        $conditions[] = [
-          $alias . '.' . $fieldName,
-          '=',
-          $value,
-        ];
       }
     }
     return $conditions;

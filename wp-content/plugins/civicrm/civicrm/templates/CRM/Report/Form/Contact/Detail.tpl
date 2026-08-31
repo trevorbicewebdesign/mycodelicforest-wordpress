@@ -95,7 +95,7 @@
                                         {elseif $header.type eq 1024}
                                             {$row.$field|crmMoney}
                                         {else}
-                                            {$row.$field}
+                                            {$row.$field|escape}
                                         {/if}
 
                                         {if $row.contactID} {/if}
@@ -142,7 +142,7 @@
                                   {elseif $header.type eq 1024}
                                 {$row.$field|crmMoney}
                                   {else}
-                                {$row.$field}
+                                {$row.$field|escape}
                                   {/if}
 
                                   {if $row.$fieldLink}</a>{/if}
@@ -156,8 +156,8 @@
                         {/if}
         {/foreach}
 
-  <div class="report-pager">
-            {include file="CRM/common/pager.tpl"}
+        <div class="report-pager">
+            {include file="CRM/common/pager.tpl" location="bottom"}
         </div>
         <br />
         {if $grandStat}

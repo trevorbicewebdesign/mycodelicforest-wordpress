@@ -14,39 +14,27 @@
 
   {if $field.field_type eq "Formatting"}
     {if $action neq 4}
-      {$field.help_pre}
+      {$field.help_pre|purify}
     {/if}
   {elseif $profileFieldName}
     {* Show explanatory text for field if not in 'view' mode *}
     {if $field.help_pre && $action neq 4}
       <div class="crm-section helprow-{$profileFieldName}-section helprow-pre" id="helprow-{$rowIdentifier}">
-        <div class="content description">{$field.help_pre}</div>
+        <div class="content description">{$field.help_pre|purify}</div>
       </div>
     {/if}
     {if array_key_exists('options_per_line', $field) && $field.options_per_line != 0}
-      <div class="crm-section editrow_{$profileFieldName}-section form-item" id="editrow-{$rowIdentifier}">
-        <div class="label option-label">{$formElement.label}</div>
-        <div class="content">
-          <div class="crm-multiple-checkbox-radio-options crm-options-per-line" style="--crm-opts-per-line:{$field.options_per_line};">
-            {foreach name=outer key=key item=item from=$formElement}
-              {if is_array($item) && array_key_exists('html', $item)}
-                <div class="crm-option-label-pair" >{$formElement.$key.html}</div>
-              {/if}
-            {/foreach}
-          </div>
-          {* Include the edit options list for admins *}
-          {if $formElement.html|strstr:"crm-option-edit-link"}
-            {$formElement.html|regex_replace:"@^.*(<a href=.*? class=.crm-option-edit-link.*?</a>)$@":"$1"}
-          {/if}
+      <div class="crm-section editrow_{$profileFieldName}-section form-item" id="editrow-{$rowIdentifier}" {if $field.html_type eq 'Radio'}role="radiogroup" aria-labelledby="{$profileFieldName}_group"{/if}>
+        <div class="label option-label" {if $field.html_type eq 'Radio' or $field.html_type eq 'CheckBox'}id="{$profileFieldName}_group">{$formElement.label|regex_replace:"/\<(\/|)label\>/":""}{else}>{$formElement.label}{/if}</div>
+        <div class="content" {if $field.html_type eq 'CheckBox'}role="group"  aria-labelledby="{$profileFieldName}_group"{/if}>
+          {$formElement.html}
         </div>
         <div class="clear"></div>
       </div>
     {else}
-      <div class="crm-section editrow_{$profileFieldName}-section form-item" id="editrow-{$rowIdentifier}">
-        <div class="label">
-          {$formElement.label}
-        </div>
-        <div class="content">
+      <div class="crm-section editrow_{$profileFieldName}-section form-item" id="editrow-{$rowIdentifier}"  {if $field.html_type eq 'Radio'}role="radiogroup" aria-labelledby="{$profileFieldName}_group"{/if}>
+        <div class="label"{if $field.html_type eq 'Radio' or $field.html_type eq 'CheckBox'}id="{$profileFieldName}_group">{$formElement.label|regex_replace:"/\<(\/|)label\>/":""}{else}>{$formElement.label}{/if}</div>
+        <div class="content" {if $field.html_type eq 'CheckBox'}role="group"  aria-labelledby="{$profileFieldName}_group"{/if}>
           {if $profileFieldName|str_starts_with:'im-'}
             {assign var="provider" value=profileFieldNamen|cat:"-provider_id"}
             {if array_key_exists($provider, $form)}{$form.$provider.html}{/if}&nbsp;
@@ -122,17 +110,17 @@
               {/if}
             {elseif $field.html_type eq 'File' && $viewOnlyFileValues}
               {$viewOnlyFileValues.$profileFieldName}
-            {elseif $field.html_type eq 'Radio' or $field.html_type eq 'CheckBox'}
-              <div class="crm-multiple-checkbox-radio-options" >
+            {elseif $field.html_type eq 'Radio' or $field.html_type eq 'CheckBox' && $field.data_type neq "Boolean"}
+              <div class="crm-multiple-checkbox-radio-options">
                 {foreach name=outer key=key item=item from=$formElement}
                   {if is_array($item) && array_key_exists('html', $item)}
-                    <div class="crm-option-label-pair" >{$formElement.$key.html}</div>
+                    {$formElement.$key.html}
                   {/if}
                 {/foreach}
               </div>
               {* Include the edit options list for admins *}
               {if $formElement.html|strstr:"crm-option-edit-link"}
-                {$formElement.html|regex_replace:"@^.*(<a href=.*? class=.crm-option-edit-link.*?</a>)$@":"$1"}
+                {$formElement.html|regex_replace:"@^.*(<a href=.*? class=.crm-option-edit-link.*?</a>)$@s":"$1"}
               {/if}
             {else}
               {$formElement.html}
@@ -152,7 +140,7 @@
     {* Show explanatory text for field if not in 'view' mode *}
     {if $field.help_post && $action neq 4}
       <div class="crm-section helprow-{$profileFieldName}-section helprow-post" id="helprow-{$rowIdentifier}">
-        <div class="content description">{$field.help_post}</div>
+        <div class="content description">{$field.help_post|purify}</div>
       </div>
     {/if}
   {/if}

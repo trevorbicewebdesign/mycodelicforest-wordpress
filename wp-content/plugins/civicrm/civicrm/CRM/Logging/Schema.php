@@ -9,6 +9,8 @@
  +--------------------------------------------------------------------+
  */
 
+use Civi\Core\Exception\DBQueryException;
+
 /**
  *
  * @package CRM
@@ -628,11 +630,17 @@ AND    (TABLE_NAME LIKE 'log_civicrm_%' $nonStandardTableNameString )
   private function columnsOf($table, $force = FALSE) {
     if ($force || !isset(\Civi::$statics[__CLASS__]['columnsOf'][$table])) {
       $from = (substr($table, 0, 4) == 'log_') ? "`{$this->db}`.$table" : $table;
-      $dao = CRM_Core_DAO::executeQuery("SHOW COLUMNS FROM $from", [], TRUE, NULL, FALSE, FALSE);
-      if (is_a($dao, 'DB_Error')) {
+      \Civi::$statics[__CLASS__]['columnsOf'][$table] = [];
+      try {
+        $dao = CRM_Core_DAO::executeQuery("SHOW COLUMNS FROM $from", [], TRUE, NULL, FALSE, FALSE);
+      }
+      catch (DBQueryException $e) {
         return [];
       }
-      \Civi::$statics[__CLASS__]['columnsOf'][$table] = [];
+      if (is_a($dao, 'DB_Error')) {
+        // This should be unreachable - we expect an exception to be thrown per above.
+        return [];
+      }
       while ($dao->fetch()) {
         \Civi::$statics[__CLASS__]['columnsOf'][$table][] = CRM_Utils_Type::escape($dao->Field, 'MysqlColumnNameOrAlias');
       }
@@ -686,7 +694,7 @@ WHERE  table_schema IN ('{$this->db}', '{$civiDB}')";
           $parValue = substr(
             $dao->COLUMN_TYPE, $first + 1, strpos($dao->COLUMN_TYPE, ')') - $first - 1
           );
-          if (strpos($parValue, "'") === FALSE) {
+          if (!str_contains($parValue, "'")) {
             // no quote in value means column length
             \Civi::$statics[__CLASS__]['columnSpecs'][$dao->TABLE_NAME][$dao->COLUMN_NAME]['LENGTH'] = $parValue;
           }
@@ -730,7 +738,7 @@ WHERE  table_schema IN ('{$this->db}', '{$civiDB}')";
           // ignore 'id' column for any spec changes, to avoid any auto-increment mysql errors
           if ($civiTableSpecs[$col]['DATA_TYPE'] != ($logTableSpecs[$col]['DATA_TYPE'] ?? NULL)
             // We won't alter the log if the length is decreased in case some of the existing data won't fit.
-            || CRM_Utils_Array::value('LENGTH', $civiTableSpecs[$col]) > CRM_Utils_Array::value('LENGTH', $logTableSpecs[$col])
+            || ($civiTableSpecs[$col]['LENGTH'] ?? 0) > ($logTableSpecs[$col]['LENGTH'] ?? 0)
           ) {
             // if data-type is different, surely consider the column
             $diff['MODIFY'][] = $col;
@@ -798,8 +806,18 @@ WHERE  table_schema IN ('{$this->db}', '{$civiDB}')";
    *
    * @param string $table
    */
-  private function createLogTableFor($table) {
-    $dao = CRM_Core_DAO::executeQuery("SHOW CREATE TABLE $table", [], TRUE, NULL, FALSE, FALSE);
+  private function createLogTableFor(string $table): void {
+    try {
+      $dao = CRM_Core_DAO::executeQuery("SHOW CREATE TABLE $table", [], TRUE, NULL, FALSE, FALSE);
+    }
+    catch (DBQueryException $e) {
+      if ($e->getSQLErrorCode() === 1146) {
+        // This would happen if an extension was registering a log table where the main table is deleted.
+        \Civi::log()->warning('Could not create log table for non-existent table ' . $table);
+        unset($this->tables[$table]);
+        return;
+      }
+    }
     $dao->fetch();
     $query = $dao->Create_Table;
 
@@ -831,7 +849,7 @@ COLS;
     $query = preg_replace("/^  [^`].*$/m", '', $query);
     $engine = strtoupper(empty($this->logTableSpec[$table]['engine']) ? self::ENGINE : $this->logTableSpec[$table]['engine']);
     $engine .= " " . ($this->logTableSpec[$table]['engine_config'] ?? '');
-    if (strpos($engine, 'ROW_FORMAT') !== FALSE) {
+    if (str_contains($engine, 'ROW_FORMAT')) {
       $query = preg_replace("/ROW_FORMAT=\w+/m", '', $query);
     }
     $query = preg_replace("/^\) ENGINE=[^ ]+ /im", ') ENGINE=' . $engine . ' ', $query);
@@ -976,6 +994,8 @@ COLS;
         $tableExceptions = array_key_exists('exceptions', $this->logTableSpec[$table]) ? $this->logTableSpec[$table]['exceptions'] : [];
         // ignore modified_date changes
         $tableExceptions[] = 'modified_date';
+        // Ignore cache_fill_took column on civicrm_group.
+        $tableExceptions[] = 'cache_fill_took';
         // exceptions may be provided with or without backticks
         $excludeColumn = in_array($column, $tableExceptions) ||
           in_array(str_replace('`', '', $column), $tableExceptions);

@@ -3,6 +3,7 @@
 namespace Gravity_Forms\Gravity_Forms\Config;
 
 use Gravity_Forms\Gravity_Forms\Config\GF_Config;
+use GFCommon;
 
 /**
  * Collection to hold GF_Config items and provide their structured data when needed.
@@ -58,19 +59,28 @@ class GF_Config_Collection {
 		$nonce_result = check_ajax_referer( 'gform_config_ajax', 'gform_ajax_nonce', false );
 
 		if ( ! $nonce_result ) {
-			wp_send_json_error( esc_html__( 'Unable to verify nonce. Please refresh the page and try again.', 'gravityforms' ) );
+			GFCommon::send_json_error( esc_html__( 'Unable to verify nonce. Please refresh the page and try again.', 'gravityforms' ) );
 		}
 
-		$args        = json_decode( rgpost( 'args' ), true );
-		$config_path = rgpost( 'config_path' );
-		$configs     = $this->get_configs_by_path( $config_path, $args );
+		$args         = json_decode( rgpost( 'args' ), true );
+		$config_path  = wp_strip_all_tags( rgpost( 'config_path' ) );
+		$query_string = rgpost( 'query_string' );
+
+		// Making the query string available for use with form filters.
+		if ( ! empty( $query_string ) && is_string( $query_string ) ) {
+			parse_str( $query_string, $query );
+			unset( $query['gf_page'] ); // Removing so it doesn't conflict with gf_ajax_page=preview.
+			$_GET = array_merge( $_GET, $query );
+		}
+
+		$configs = $this->get_configs_by_path( $config_path, $args );
 
 		if ( ! $configs ) {
-			wp_send_json_error( sprintf( esc_html__( 'Unable to find config: %s', 'gravityforms' ), $config_path ) );
+			GFCommon::send_json_error( sprintf( esc_html__( 'Unable to find config: %s', 'gravityforms' ), esc_html( $config_path ) ) );
 		}
 
 		$data = $this->get_merged_data_for_object( $configs, $args );
-		wp_send_json_success( $data );
+		GFCommon::send_json_success( $data );
 	}
 	/**
 	 * Localize the data for the given script.
@@ -138,8 +148,14 @@ class GF_Config_Collection {
 				continue;
 			}
 
+			$config_data = $config->get_data();
+
+			if ( ! is_array( $config_data ) ) {
+				continue;
+			}
+
 			// Config should be merged - loop through each key and attempt to recursively merge the values.
-			foreach ( $config->get_data() as $key => $value ) {
+			foreach ( $config_data as $key => $value ) {
 				$existing = isset( $data[ $key ] ) ? $data[ $key ] : null;
 
 				if ( is_null( $existing ) || ! is_array( $existing ) || ! is_array( $value ) ) {

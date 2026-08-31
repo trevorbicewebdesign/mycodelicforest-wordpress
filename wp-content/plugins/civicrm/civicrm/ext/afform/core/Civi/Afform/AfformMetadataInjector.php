@@ -19,11 +19,18 @@ use CRM_Afform_ExtensionUtil as E;
 class AfformMetadataInjector {
 
   /**
+   * Preprocess
+   *
    * @param \Civi\Core\Event\GenericHookEvent $e
    * @see CRM_Utils_Hook::alterAngular()
    */
   public static function preprocess($e) {
     $changeSet = \Civi\Angular\ChangeSet::create('fieldMetadata')
+      // Adjust default distance unit for Location input type
+      ->alterHtml('~/af/fields/afLocationInput.html', function($doc, $path) {
+        $defaultDistanceUnit = \CRM_Utils_Address::getDefaultDistanceUnit();
+        pq($doc)->find('select[ng-model="$ctrl.values.distance_unit"]')->attr('ng-init', "\$ctrl.values.distance_unit = \$ctrl.values.distance_unit || '$defaultDistanceUnit'");
+      })
       ->alterHtml(';\\.aff\\.html$;', function($doc, $path) {
         try {
           $module = \Civi::service('angular')->getModule(basename($path, '.aff.html'));
@@ -43,8 +50,13 @@ class AfformMetadataInjector {
         }
 
         // Each field can be nested within a fieldset, a join or a block
+        /** @var \DOMElement $afField */
         foreach (pq('af-field', $doc) as $afField) {
-          /** @var \DOMElement $afField */
+          if ($afField->getAttribute('name') === '') {
+            // "extra" fields have no associated entity
+            self::fillExtraFieldMetadata($afField);
+            continue;
+          }
           $action = 'create';
           $joinName = pq($afField)->parents('[af-join]')->attr('af-join');
           if ($joinName) {
@@ -62,7 +74,7 @@ class AfformMetadataInjector {
           if ($apiEntities) {
             $action = 'get';
             $entityList = \CRM_Utils_JS::decode(htmlspecialchars_decode($apiEntities));
-            $entityType = self::getFieldEntityType($afField->getAttribute('name'), $entityList);
+            $entityType = FormDataModel::getSearchFieldEntityType($afField->getAttribute('name'), $entityList);
           }
           else {
             $entityName = pq($fieldset)->attr('af-fieldset');
@@ -94,6 +106,16 @@ class AfformMetadataInjector {
     return NULL;
   }
 
+  private static function getFieldDefn(\DOMElement $afField): ?array {
+    $existingFieldDefn = trim(pq($afField)->attr('defn') ?: '');
+    if ($existingFieldDefn && $existingFieldDefn[0] != '{') {
+      // If it's not an object, can't parse it.
+      return NULL;
+    }
+
+    return $existingFieldDefn ? \CRM_Utils_JS::getRawProps($existingFieldDefn) : [];
+  }
+
   /**
    * Merge a field's definition with whatever's already in the markup
    *
@@ -107,18 +129,31 @@ class AfformMetadataInjector {
     // Defaults for attributes not in spec
     $fieldInfo['search_range'] = FALSE;
 
-    $existingFieldDefn = trim(pq($afField)->attr('defn') ?: '');
-    if ($existingFieldDefn && $existingFieldDefn[0] != '{') {
-      // If it's not an object, don't mess with it.
+    // Get field defn from afform markup
+    $fieldDefn = self::getFieldDefn($afField);
+    if (!is_array($fieldDefn)) {
+      // If it's not an array, don't mess with it.
       return;
     }
 
-    // Get field defn from afform markup
-    $fieldDefn = $existingFieldDefn ? \CRM_Utils_JS::getRawProps($existingFieldDefn) : [];
-    // This is the input type set on the form (may be different from the default input type in the field spec)
-    $inputType = !empty($fieldDefn['input_type']) ? \CRM_Utils_JS::decode($fieldDefn['input_type']) : $fieldInfo['input_type'];
+    // Uses input type set on the form if specified (else falls back to the input type in the field spec)
+    $inputType = !empty($fieldDefn['input_type']) ? \CRM_Utils_JS::decode($fieldDefn['input_type']) : ($fieldInfo['input_type'] ?? 'Text');
     // On a search form, search_range will present a pair of fields (or possibly 3 fields for date select + range)
     $isSearchRange = !empty($fieldDefn['search_range']) && \CRM_Utils_JS::decode($fieldDefn['search_range']);
+
+    // Set template based on input_type
+    $fieldInfo['template'] = FormDataModel::getInputTypeTemplate($inputType);
+
+    // Set format of DisplayOnly fields based on original input type
+    if ($inputType === 'DisplayOnly' && $fieldInfo['input_type'] === 'RichTextEditor') {
+      $fieldInfo['display_format'] = 'html';
+    }
+    if ($inputType === 'DisplayOnly' && $fieldInfo['input_type'] === 'File') {
+      $fieldInfo['display_format'] = 'file';
+    }
+    if ($inputType === 'DisplayOnly' && $fieldInfo['input_type'] === 'Url') {
+      $fieldInfo['display_format'] = 'url';
+    }
 
     // On a search form, the exposed operator requires a list of options.
     if (!empty($fieldDefn['expose_operator'])) {
@@ -142,7 +177,7 @@ class AfformMetadataInjector {
     if ($inputType === 'Select' || $inputType === 'ChainSelect') {
       $fieldInfo['input_attrs']['placeholder'] = E::ts('Select');
     }
-    elseif ($inputType === 'EntityRef' && empty($field['input_attrs']['placeholder'])) {
+    elseif ($inputType === 'EntityRef' && !empty($fieldInfo['fk_entity']) && empty($field['input_attrs']['placeholder'])) {
       $info = civicrm_api4('Entity', 'get', [
         'where' => [['name', '=', $fieldInfo['fk_entity']]],
         'checkPermissions' => FALSE,
@@ -166,16 +201,36 @@ class AfformMetadataInjector {
     }
 
     // Boolean checkbox has no options
-    if ($fieldInfo['data_type'] === 'Boolean' && $inputType === 'CheckBox') {
+    if ($fieldInfo['data_type'] === 'Boolean' && ($inputType === 'CheckBox')) {
       unset($fieldInfo['options'], $fieldDefn['options']);
     }
 
-    if ($inputType === 'DisplayOnly' && isset($fieldDefn['afform_default'])) {
-      $fieldName = $fieldInfo['name'];
-      $defaultValue = \CRM_Utils_JS::decode($fieldDefn['afform_default']);
-      $defaultValue = Utils::formatViewValue($fieldName, $fieldInfo, [$fieldName => $defaultValue]);
-      $fieldDefn['afform_default'] = \CRM_Utils_JS::encode($defaultValue);
-      unset($fieldInfo['options'], $fieldDefn['options']);
+    // Set min & max & step for options with range
+    if ($inputType === 'Range' && (!empty($fieldInfo['options']) || !empty($fieldDefn['options']))) {
+      $options = !empty($fieldDefn['options']) ? \CRM_Utils_JS::decode($fieldDefn['options']) : $fieldInfo['options'];
+      $optionRange = array_column($options, 'id');
+      sort($optionRange);
+      $fieldInfo['input_attrs']['min'] = min($optionRange);
+      $fieldInfo['input_attrs']['max'] = max($optionRange);
+      $fieldInfo['input_attrs']['step'] = 1;
+
+      // Calculate step from the spacing between numbers
+      if (count($optionRange) > 1) {
+        // Get the first difference between consecutive numbers
+        $step = $optionRange[1] - $optionRange[0];
+
+        // Verify that all differences are the same
+        for ($i = 1; $i < count($optionRange) - 1; $i++) {
+          $currentDiff = $optionRange[$i + 1] - $optionRange[$i];
+          if ($currentDiff != $step) {
+            // If differences aren't consistent, default to 1
+            $step = 1;
+            break;
+          }
+        }
+
+        $fieldInfo['input_attrs']['step'] = $step;
+      }
     }
 
     foreach ($fieldInfo as $name => $prop) {
@@ -200,6 +255,15 @@ class AfformMetadataInjector {
    */
   private static function fillFieldMetadata($entityNames, string $action, \DOMElement $afField):void {
     $fieldName = $afField->getAttribute('name');
+
+    // for magic munged fields like display_name,sort_name,email_primary.email
+    // we now fill with metadata for the first field. (previously they were ignored entirely)
+    // afform authors should take care that munged fields are of compatible types
+    // or strange things will happen
+    if (\str_contains($fieldName, ',')) {
+      $fieldName = explode(',', $fieldName)[0];
+    }
+
     $fieldInfo = self::getFieldMetadata($entityNames, $action, $fieldName);
     // Merge field definition data with whatever's already in the markup.
     if ($fieldInfo) {
@@ -207,29 +271,15 @@ class AfformMetadataInjector {
     }
   }
 
-  /**
-   * Determines name of the api entit(ies) based on the field name prefix
-   *
-   * Note: Normally will return a single entity name, but
-   * Will return 2 entity names in the case of Bridge joins e.g. RelationshipCache
-   *
-   * @param string $fieldName
-   * @param string[] $entityList
-   * @return string|array
-   */
-  private static function getFieldEntityType($fieldName, $entityList) {
-    $prefix = strpos($fieldName, '.') ? explode('.', $fieldName)[0] : NULL;
-    $joinEntities = [];
-    $baseEntity = array_shift($entityList);
-    if ($prefix) {
-      foreach ($entityList as $entityAndAlias) {
-        [$entity, $alias] = explode(' AS ', $entityAndAlias);
-        if ($alias === $prefix) {
-          $joinEntities[] = $entityAndAlias;
-        }
-      }
-    }
-    return $joinEntities ?: $baseEntity;
+  public static function fillExtraFieldMetadata(\DOMElement $afField) {
+    $fieldDefn = self::getFieldDefn($afField);
+    $inputType = \CRM_Utils_JS::decode($fieldDefn['input_type']);
+    $typeInfo = Utils::getInputTypes()[$inputType] ?? [];
+    $fieldInfo = ($typeInfo['extra_defn'] ?? []) + [
+      'input_type' => $inputType,
+      'data_type' => 'String',
+    ];
+    self::setFieldMetadata($afField, $fieldInfo);
   }
 
   private static function getFormEntities(\phpQueryObject $doc) {

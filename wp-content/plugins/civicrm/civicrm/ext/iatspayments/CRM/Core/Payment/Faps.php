@@ -36,6 +36,11 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
   protected $disable_cryptogram = FALSE;
 
   /**
+   * @var int
+   */
+  protected $is_test;
+
+  /**
    * Constructor
    *
    * @param string $mode the mode of operation: live or test
@@ -92,7 +97,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
           $settings['days'] = array('-1');
         }
       }
-      catch (CiviCRM_API3_Exception $e) {
+      catch (CRM_Core_Exception $e) {
         // Assume no settings exist, use safest fallback.
         $settings = array('days' => array('-1'));
       }
@@ -272,7 +277,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
       return _iats_payment_status_complete();
     }
 
-    $isRecur = CRM_Utils_Array::value('is_recur', $params);
+    $isRecur = $params['is_recur'] ?? NULL;
     if ($isRecur && empty($params['contributionRecurID'])) {
       return self::error('Invalid call to doPayment with is_recur and no contributionRecurID');
     }
@@ -345,11 +350,11 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
           // Test for admin setting that limits allowable transaction days
           $allow_days = $this->getSettings('days');
           // Test for a specific receive date request and convert to a timestamp, default now
-          $receive_date = CRM_Utils_Array::value('receive_date', $params);
+          $receive_date = $params['receive_date'] ?? NULL;
           // my front-end addition to will get stripped out of the params, do a
           // work-around
           if (empty($receive_date)) {
-            $receive_date = CRM_Utils_Array::value('receive_date', $_POST);
+            $receive_date = $_POST['receive_date'] ?? NULL;
           }
           $receive_ts = empty($receive_date) ? time() : strtotime($receive_date);
           // If the admin setting is in force, ensure it's compatible.
@@ -480,7 +485,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         ]);
 	$params['country'] = $result['values'][0]['name'];
       }
-      catch (CiviCRM_API3_Exception $e) {
+      catch (CRM_Core_Exception $e) {
         Civi::log()->info('Unexpected error from api3 looking up countries/states/provinces');
       }
     }
@@ -494,12 +499,12 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         ]);
 	$params['state_province'] = $result['values'][0]['name'];
       }
-      catch (CiviCRM_API3_Exception $e) {
+      catch (CRM_Core_Exception $e) {
         Civi::log()->info('Unexpected error from api3 looking up countries/states/provinces');
       }
     }
-    $request = array();
-    $convert = array(
+    $request = [];
+    $convert = [
       'ownerEmail' => 'email',
       'ownerStreet' => 'street_address',
       'ownerCity' => 'city',
@@ -511,10 +516,10 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
 //      'cardtype' => 'credit_card_type',
       'cVV' => 'cvv2',
       'creditCardCryptogram' => 'cryptogram',
-    );
+    ];
     foreach ($convert as $r => $p) {
       if (isset($params[$p])) {
-        $request[$r] = htmlspecialchars($params[$p]);
+        $request[$r] = str_replace(';','',$params[$p]);
       }
     }
     if (empty($params['email'])) {
@@ -613,7 +618,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         $result = civicrm_api3('ContributionRecur', 'create', $recur_update);
         return $result;
       }
-      catch (CiviCRM_API3_Exception $e) {
+      catch (CRM_Core_Exception $e) {
         // Not a critical error, just log and continue.
         $error = $e->getMessage();
         Civi::log()->info('Unexpected error updating the next scheduled contribution date for id {id}: {error}', array('id' => $recur_id, 'error' => $error));
@@ -642,7 +647,7 @@ class CRM_Core_Payment_Faps extends CRM_Core_Payment {
         $result = civicrm_api3('Contribution', 'create', $update);
         return $result;
       }
-      catch (CiviCRM_API3_Exception $e) {
+      catch (CRM_Core_Exception $e) {
         // Not a critical error, just log and continue.
         $error = $e->getMessage();
         Civi::log()->info('Unexpected error updating the contribution date for id {id}: {error}', array('id' => $contribution_id, 'error' => $error));

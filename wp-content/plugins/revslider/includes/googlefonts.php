@@ -18,22 +18,22 @@ $list = $list['items'];
 
 echo '<pre>';
 foreach($list as $l){
-	echo "'".$l['family'] ."' => array("."\n";
-	echo "'variants' => array(";
+	echo "'".$l['family'] ."' => ["."\n";
+	echo "'variants' => [";
 	foreach($l['variants'] as $k => $v){
 		if($k > 0) echo ", ";
 		if($v == 'regular') $v = '400';
 		echo "'".$v."'";
 	}
-	echo "),\n";
-	echo "'subsets' => array(";
+	echo "],\n";
+	echo "'subsets' => [";
 	foreach($l['subsets'] as $k => $v){
 		if($k > 0) echo ", ";
 		echo "'".$v."'";
 	}
-	echo "),\n";
+	echo "],\n";
 	echo "'category' => '". $l['category'] ."'";
-	echo "\n),\n";
+	echo "\n],\n";
 }
 echo '</pre>';
 **/

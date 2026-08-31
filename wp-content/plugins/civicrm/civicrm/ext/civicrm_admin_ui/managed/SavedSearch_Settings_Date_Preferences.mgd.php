@@ -61,22 +61,19 @@ return [
             [
               'type' => 'field',
               'key' => 'name',
-              'dataType' => 'String',
-              'label' => E::ts('Date Class'),
+              'label' => 'Date Class',
               'sortable' => TRUE,
             ],
             [
               'type' => 'field',
               'key' => 'description',
-              'dataType' => 'String',
-              'label' => E::ts('Description'),
+              'label' => 'Description',
               'sortable' => TRUE,
             ],
             [
               'type' => 'field',
               'key' => 'date_format',
-              'dataType' => 'String',
-              'label' => E::ts('Date Format'),
+              'label' => 'Date Format',
               'sortable' => TRUE,
               'rewrite' => '',
               'empty_value' => 'Default',
@@ -84,15 +81,13 @@ return [
             [
               'type' => 'field',
               'key' => 'start',
-              'dataType' => 'Integer',
-              'label' => E::ts('Start Offset'),
+              'label' => 'Start Offset',
               'sortable' => TRUE,
             ],
             [
               'type' => 'field',
               'key' => 'end',
-              'dataType' => 'Integer',
-              'label' => E::ts('End Offset'),
+              'label' => 'End Offset',
               'sortable' => TRUE,
             ],
             [
@@ -118,6 +113,7 @@ return [
           'classes' => [
             'table',
             'table-striped',
+            'crm-sticky-header',
           ],
         ],
       ],

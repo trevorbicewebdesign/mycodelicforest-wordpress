@@ -7,28 +7,40 @@
 
 if(!defined('ABSPATH')) exit();
 
+/**
+ * Events Manager integration.
+ *
+ * Adds a date filter ("today", "this month", …) to post-based sliders whose posts are EM events, and
+ * exposes the event's date/location fields as %event_*% layer placeholders. Every entry point checks
+ * isEventsExists() first, so the class is inert without the Events Manager plugin.
+ */
 class RevSliderEventsManager extends RevSliderFunctions {
 	public function __construct(){
 		$this->init_em();
 	}
-	
+
+	/**
+	 * @return void
+	 */
 	public function init_em(){
-		add_filter('revslider_get_posts_by_category', array($this, 'add_post_query'), 10, 2);
+		add_filter('revslider_get_posts_by_category', [$this, 'add_post_query'], 10, 2);
 	}
-	
+
 	/**
 	 * check if events class exists
+	 * @return bool
 	 */
 	public static function isEventsExists(){
 		return defined('EM_VERSION') && defined('EM_PRO_MIN_VERSION');
 	}
-	
+
 	/**
 	 * get sort by list
-	 * @before: RevSliderEventsManager::getArrFilterTypes()
+	 * the date filters offered in the editor, filter key => label
+	 * @return array
 	 */
 	public static function get_filter_types(){
-		return array(
+		return [
 			'none'		=> __('All Events', 'revslider'),
 			'today'		=> __('Today', 'revslider'),
 			'tomorrow'	=> __('Tomorrow', 'revslider'),
@@ -36,53 +48,67 @@ class RevSliderEventsManager extends RevSliderFunctions {
 			'past'		=> __('Past', 'revslider'),
 			'month'		=> __('This Month', 'revslider'),
 			'nextmonth'	=> __('Next Month', 'revslider')
-		);
+		];
 	}
 	
 	
 	/**
 	 * get meta query
-	 * @before: RevSliderEventsManager::getWPQuery()
+	 * translates a filter key from get_filter_types() into WP_Query meta_query/orderby arguments against
+	 * Events Manager's _start_ts / _end_ts meta
+	 * @param string $filter_type one of the get_filter_types() keys
+	 * @param string $sort_by     'event_start_date' | 'event_end_date' | anything else (ignored)
+	 * @return array query arguments to merge into the post query
+	 * @throws Exception on an unknown filter key
 	 */
 	public static function get_query($filter_type, $sort_by){
-		$response			= array();
-		$dayMs				= 60 * 60 * 24;
+		$response			= [];
+		$dayMs				= DAY_IN_SECONDS;
+		//current_time('timestamp') is a site-local *shifted* stamp (UTC + offset), and the day/month boundaries
+		//below have to be calculated in that same shifted space to line up with Events Manager's _start_ts /
+		//_end_ts meta. the previous date()/strtotime() round-trip did that correctly only as long as PHP's
+		//default timezone happened to be UTC (which WP sets, but any plugin may change). gmdate()/gmmktime()
+		//pin the calculation to UTC explicitly, so it no longer depends on ambient state.
 		$time				= current_time('timestamp');
-		$todayStart			= strtotime(date('Y-m-d', $time));
+		$month				= (int)gmdate('n', $time);
+		$year				= (int)gmdate('Y', $time);
+		$todayStart			= $time - ($time % $dayMs);
 		$todayEnd			= $todayStart + $dayMs-1;
 		$tomorrowStart		= $todayEnd+1;
 		$tomorrowEnd		= $tomorrowStart + $dayMs-1;
-		$start_month		= strtotime(date('Y-m-1',$time));
-		$end_month			= strtotime(date('Y-m-t',$time)) + 86399;
-		$next_month_middle	= strtotime('+1 month', $time); //get the end of this month + 1 day
-		$start_next_month	= strtotime(date('Y-m-1',$next_month_middle));
-		$end_next_month		= strtotime(date('Y-m-t',$next_month_middle)) + 86399;
-		$query				= array();
+		$start_month		= gmmktime(0, 0, 0, $month, 1, $year);
+		//first second of the following month minus 1; gmmktime() normalises month 13 into January of the next
+		//year on its own. this also fixes the old strtotime('+1 month') overflow, where "next month" jumped
+		//from e.g. Jan 31st straight into March.
+		$start_next_month	= gmmktime(0, 0, 0, $month + 1, 1, $year);
+		$end_month			= $start_next_month - 1;
+		$end_next_month		= gmmktime(0, 0, 0, $month + 2, 1, $year) - 1;
+		$query				= [];
 		
 		switch($filter_type){
 			case 'none':	//none
 			break;
 			case 'today':
-				$query[] = array('key' => '_start_ts', 'value' => $todayEnd, 'compare' => '<=');
-				$query[] = array('key' => '_end_ts', 'value' => $todayStart, 'compare' => '>=');
+				$query[] = ['key' => '_start_ts', 'value' => $todayEnd, 'compare' => '<='];
+				$query[] = ['key' => '_end_ts', 'value' => $todayStart, 'compare' => '>='];
 			break;
 			case 'future':
-				$query[] = array('key' => '_start_ts', 'value' => $time, 'compare' => '>');
+				$query[] = ['key' => '_start_ts', 'value' => $time, 'compare' => '>'];
 			break;
 			case 'tomorrow':
-				$query[] = array('key' => '_start_ts', 'value' => $tomorrowEnd, 'compare' => '<=');
-				$query[] = array('key' => '_end_ts', 'value' => $todayStart, 'compare' => '>=');	
+				$query[] = ['key' => '_start_ts', 'value' => $tomorrowEnd, 'compare' => '<='];
+				$query[] = ['key' => '_end_ts', 'value' => $todayStart, 'compare' => '>='];
 			break;
 			case 'past':
-				$query[] = array('key' => '_end_ts', 'value' => $todayStart, 'compare' => '<');
+				$query[] = ['key' => '_end_ts', 'value' => $todayStart, 'compare' => '<'];
 			break;
 			case 'month':
-				$query[] = array('key' => '_start_ts', 'value' => $end_month, 'compare' => '<=');
-				$query[] = array('key' => '_end_ts', 'value' => $start_month, 'compare' => '>=');					
+				$query[] = ['key' => '_start_ts', 'value' => $end_month, 'compare' => '<='];
+				$query[] = ['key' => '_end_ts', 'value' => $start_month, 'compare' => '>='];
 			break;
 			case 'nextmonth':
-				$query[] = array('key' => '_start_ts', 'value' => $end_next_month, 'compare' => '<=');
-				$query[] = array('key' => '_end_ts', 'value' => $start_next_month, 'compare' => '>=');
+				$query[] = ['key' => '_start_ts', 'value' => $end_next_month, 'compare' => '<='];
+				$query[] = ['key' => '_end_ts', 'value' => $start_next_month, 'compare' => '>='];
 			break;
 			default:
 				$f = RevSliderGlobals::instance()->get('RevSliderFunctions');
@@ -110,16 +136,30 @@ class RevSliderEventsManager extends RevSliderFunctions {
 	
 	
 	/**
-	 * get event post data in array. 
+	 * get event post data in array.
 	 * if the post is not event, return empty array
-	 * @before: RevSliderEventsManager::getEventPostData()
+	 * @param int    $postID
+	 * @param string $prefix prepended to every returned key, e.g. 'event_'
+	 * @return array date and location fields, empty when the post is not an EM event
 	 */
 	public static function get_event_post_data($postID, $prefix = ''){
-		if(self::isEventsExists() == false) return array();
+		//memoize per request: the same event post is resolved for every layer of a slide
+		static $em_cache = [];
+		$ckey = $postID . '|' . $prefix;
+		if(!isset($em_cache[$ckey])) $em_cache[$ckey] = self::_get_event_post_data($postID, $prefix);
+		return $em_cache[$ckey];
+	}
+
+	/**
+	 * uncached worker behind get_event_post_data(); dates are formatted with the site's date/time format
+	 * @return array
+	 */
+	private static function _get_event_post_data($postID, $prefix = ''){
+		if(self::isEventsExists() == false) return [];
 		
 		$postType = get_post_type($postID);
 		
-		if($postType != EM_POST_TYPE_EVENT) return array();
+		if($postType != EM_POST_TYPE_EVENT) return [];
 	
 		$f			 = RevSliderGlobals::instance()->get('RevSliderFunctions');
 		$event		 = new EM_Event($postID, 'post_id');
@@ -129,7 +169,7 @@ class RevSliderEventsManager extends RevSliderFunctions {
 		$date_format = get_option('date_format');
 		$time_format = get_option('time_format');
 		
-		$response = array(
+		$response = [
 			$prefix.'id'				 => $f->get_val($ev, 'event_id'),
 			$prefix.'start_date'		 => date_format(date_create_from_format('Y-m-d', $f->get_val($ev, 'event_start_date')), $date_format),
 			$prefix.'end_date'			 => date_format(date_create_from_format('Y-m-d', $f->get_val($ev, 'event_end_date')), $date_format),
@@ -145,7 +185,7 @@ class RevSliderEventsManager extends RevSliderFunctions {
 			$prefix.'location_country'	 => $f->get_val($loc, 'location_country'),
 			$prefix.'location_latitude'	 => $f->get_val($loc, 'location_latitude'),
 			$prefix.'location_longitude' => $f->get_val($loc, 'location_longitude')
-		);
+		];
 		
 		return $response;
 	}
@@ -153,16 +193,20 @@ class RevSliderEventsManager extends RevSliderFunctions {
 	
 	/**
 	 * get events sort by array
+	 * the extra sort options the editor offers for event sliders
+	 * @return array
 	 */
 	public static function getArrSortBy(){
-		return array(
+		return [
 			'event_start_date'	=> __('Event Start Date', 'revslider'),
 			'event_end_date'	=> __('Event End Date', 'revslider')
-		);
+		];
 	}
 	
 	/**
 	 * triggered if we receive posts by categories (RevSliderSlider::get_posts_by_categories())
+	 * injects the event date filter into the query arguments
+	 * @return array
 	 **/
 	public function add_post_query($data, $slider){
 		$filter_type = $slider->get_param('events_filter', 'none');
@@ -173,6 +217,11 @@ class RevSliderEventsManager extends RevSliderFunctions {
 		return $data;
 	}
 	
+	/**
+	 * sr_streamline_post_data_post filter: merge the event fields into each post so layers can use
+	 * %event_start_date%, %event_location_town% and the rest. Also fills an empty excerpt from the content.
+	 * @return array
+	 */
 	public static function add_em_layer_v7($post_data, $data, $metas, $slider){
 		if(self::isEventsExists() == false) return $post_data;
 		
@@ -183,7 +232,7 @@ class RevSliderEventsManager extends RevSliderFunctions {
 			if($data === false) continue;
 			//modify excerpt if empty to be filled with content
 			if(!isset($post['excerpt']) || trim($post['excerpt']) === ''){
-				$post['excerpt'] = str_replace(array('<br/>', '<br />'), '', strip_tags($f->get_val($post, array('content', 'content')), '<b><br><i><strong><small>'));
+				$post['excerpt'] = str_replace(['<br/>', '<br />'], '', strip_tags($f->get_val($post, ['content', 'content']), '<b><br><i><strong><small>'));
 			}
 
 			$post_data[$key] = array_merge($post, $data);
@@ -194,4 +243,4 @@ class RevSliderEventsManager extends RevSliderFunctions {
 	
 }
 
-add_filter('sr_streamline_post_data_post', array('RevSliderEventsManager', 'add_em_layer_v7'), 10, 4);
+add_filter('sr_streamline_post_data_post', ['RevSliderEventsManager', 'add_em_layer_v7'], 10, 4);

@@ -74,24 +74,21 @@ return [
             [
               'type' => 'field',
               'key' => 'title',
-              'dataType' => 'String',
-              'label' => E::ts('Title'),
+              'label' => 'Title',
               'sortable' => TRUE,
               'editable' => TRUE,
             ],
             [
               'type' => 'field',
               'key' => 'campaign_id:label',
-              'dataType' => 'Integer',
-              'label' => E::ts('Survey'),
+              'label' => 'Survey',
               'sortable' => TRUE,
               'editable' => TRUE,
             ],
             [
               'type' => 'field',
               'key' => 'is_default',
-              'dataType' => 'Boolean',
-              'label' => E::ts('Default'),
+              'label' => 'Default',
               'sortable' => TRUE,
               'rewrite' => ' ',
               'icons' => [
@@ -109,8 +106,7 @@ return [
             [
               'type' => 'field',
               'key' => 'is_active',
-              'dataType' => 'Boolean',
-              'label' => E::ts('Enabled'),
+              'label' => 'Enabled',
               'sortable' => TRUE,
             ],
             [
@@ -121,7 +117,7 @@ return [
                 [
                   'path' => 'civicrm/petition/add?reset=1&action=update&id=[id]',
                   'icon' => 'fa-pencil',
-                  'text' => E::ts('Edit'),
+                  'text' => 'Edit',
                   'style' => 'default',
                   'condition' => [],
                   'target' => 'crm-popup',
@@ -131,7 +127,7 @@ return [
                   'entity' => 'Survey',
                   'target' => 'crm-popup',
                   'icon' => 'fa-toggle-on',
-                  'text' => E::ts('Enable'),
+                  'text' => 'Enable',
                   'style' => 'default',
                   'condition' => [],
                 ],
@@ -140,7 +136,7 @@ return [
                   'entity' => 'Survey',
                   'target' => 'crm-popup',
                   'icon' => 'fa-toggle-off',
-                  'text' => E::ts('Disable'),
+                  'text' => 'Disable',
                   'style' => 'default',
                   'condition' => [],
                 ],
@@ -150,7 +146,7 @@ return [
                   'join' => '',
                   'target' => 'crm-popup',
                   'icon' => 'fa-trash',
-                  'text' => E::ts('Delete'),
+                  'text' => 'Delete',
                   'style' => 'danger small-popup',
                   'path' => '',
                   'condition' => [],
@@ -158,7 +154,7 @@ return [
               ],
             ],
             [
-              'text' => E::ts('Signatures'),
+              'text' => 'Signatures',
               'style' => 'default',
               'size' => 'btn-xs',
               'icon' => 'fa-bars',
@@ -168,7 +164,7 @@ return [
                 [
                   'path' => 'civicrm/petition/sign?reset=1&sid=[id]',
                   'icon' => 'fa-clipboard',
-                  'text' => E::ts('Sign'),
+                  'text' => 'Sign',
                   'style' => 'default',
                   'condition' => [],
                   'target' => '_blank',
@@ -176,7 +172,7 @@ return [
                 [
                   'path' => 'civicrm/activity/search?force=1&survey=[id]',
                   'icon' => 'fa-list-alt',
-                  'text' => E::ts('View Signatures'),
+                  'text' => 'View Signatures',
                   'style' => 'default',
                   'condition' => [],
                   'target' => '_blank',
@@ -187,7 +183,7 @@ return [
           'toolbar' => [
             [
               'path' => 'civicrm/petition/add?reset=1',
-              'text' => E::ts('Add Petition'),
+              'text' => 'Add Petition',
               'target' => 'crm-popup',
               'icon' => 'fa-plus',
               'style' => 'primary',

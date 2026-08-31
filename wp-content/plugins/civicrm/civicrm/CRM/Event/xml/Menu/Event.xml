@@ -19,6 +19,12 @@
      <component>CiviEvent</component>
   </item>
   <item>
+     <path>civicrm/task/register-participants</path>
+     <page_callback>CRM_Event_Form_Task_Register</page_callback>
+     <access_arguments>access CiviCRM,access CiviEvent</access_arguments>
+     <component>CiviEvent</component>
+  </item>
+  <item>
      <path>civicrm/event/info</path>
      <page_callback>CRM_Event_Page_EventInfo</page_callback>
      <title>Event Information</title>
@@ -155,7 +161,7 @@
   </item>
   <item>
      <path>civicrm/event/participant/print</path>
-     <title>ts('PDF letter - print for participants')</title>
+     <title>PDF letter - print for participants</title>
      <page_callback>CRM_Event_Form_Task_PDF</page_callback>
      <access_arguments>access CiviEvent</access_arguments>
   </item>

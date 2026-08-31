@@ -2,9 +2,9 @@
 /**
  * Plugin Name: CiviCRM
  * Description: CiviCRM - Growing and Sustaining Relationships
- * Version: 5.78.0
- * Requires at least: 4.9
- * Requires PHP:      7.4
+ * Version: 6.16.0
+ * Requires at least: 6.3
+ * Requires PHP:      8.1.2
  * Author: CiviCRM LLC
  * Author URI: https://civicrm.org/
  * Plugin URI: https://docs.civicrm.org/sysadmin/en/latest/install/wordpress/
@@ -36,7 +36,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Set version here: changing it forces Javascript and CSS to reload.
-define('CIVICRM_PLUGIN_VERSION', '5.78.0');
+define('CIVICRM_PLUGIN_VERSION', '6.16.0');
 
 // Store reference to this file.
 if (!defined('CIVICRM_PLUGIN_FILE')) {
@@ -65,7 +65,7 @@ if (!defined('CIVICRM_PLUGIN_DIR')) {
  * @see CiviWP\PhpVersionTest::testConstantMatch()
  */
 if (!defined('CIVICRM_WP_PHP_MINIMUM')) {
-  define('CIVICRM_WP_PHP_MINIMUM', '7.4.0');
+  define('CIVICRM_WP_PHP_MINIMUM', '8.1.2');
 }
 
 /*
@@ -101,9 +101,6 @@ if (file_exists(CIVICRM_SETTINGS_PATH)) {
 else {
   define('CIVICRM_INSTALLED', FALSE);
 }
-
-// Prevent CiviCRM from rendering its own header.
-define('CIVICRM_UF_HEAD', TRUE);
 
 /**
  * Setting this to 'TRUE' will replace all mailing URLs calls to 'extern/url.php'
@@ -257,6 +254,12 @@ class CiviCRM_For_WordPress {
         include_once CIVICRM_PLUGIN_DIR . 'wp-cli/wp-cli-civicrm.php';
       }
 
+      define('CIVICRM_IFRAME', self::$instance->is_iframe());
+      if (CIVICRM_IFRAME) {
+        // Must run before WP starts processing cookies.
+        self::$instance->activate_iframe();
+      }
+
       // Delay setup until 'plugins_loaded' to allow other plugins to load as well.
       add_action('plugins_loaded', [self::$instance, 'setup_instance']);
 
@@ -290,6 +293,78 @@ class CiviCRM_For_WordPress {
    */
   public function __wakeup() {
     _doing_it_wrong(__FUNCTION__, __('Please do not serialize CiviCRM_For_WordPress', 'civicrm'), '4.4');
+  }
+
+  /**
+   * Checks for iframe requests.
+   *
+   * @since 6.0.0
+   *
+   * @return bool True if this is an iframe request, false otherwise.
+   */
+  protected function is_iframe(): bool {
+    if (is_admin()) {
+      /*
+       * We intend to process iframes through WP-frontend not WP-backend.
+       * This is separate from the actual content of the page - which isn't really
+       * WP-frontend or WP-backend.
+       */
+      return FALSE;
+    }
+
+    /*
+     * There are several ways we could check.
+     *
+     * This method runs too early to test for registered query vars:
+     * `return (1 == get_query_var('_cvwpif'));`
+     *
+     * Harder to test. And Safari only gained support a year ago:
+     * `return 'iframe' === $_SERVER['HTTP_SEC_FETCH_DEST'];`
+     *
+     * So use the presence of a query var directly.
+     */
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    return !empty($_REQUEST['_cvwpif']);
+  }
+
+  /**
+   * Acts on iframe requests.
+   *
+   * @since 6.0.0
+   */
+  protected function activate_iframe(): void {
+    // By default, internal links should stay in the iframe.
+    $GLOBALS['civicrm_url_defaults'][]['scheme'] = 'iframe';
+
+    /*
+     * Strict browsers (e.g. Safari) will quietly disregard cookies when loading a page within an iframe.
+     * But it's quite awkward to test behavior with two variables (browser-type and page-context).
+     * For consistent testing/UX, we force similar behavior for any request with IFRAME-style URL.
+     */
+
+    // Variant A: Disregard specific pieces.
+    remove_filter('determine_current_user', 'wp_validate_auth_cookie');
+    remove_filter('determine_current_user', 'wp_validate_logged_in_cookie', 20);
+    remove_filter('determine_current_user', 'wp_validate_application_password', 20);
+
+    /*
+     * Variant B: This sounds more thorough, but interferes with co-session.
+     * Probably a timing issue:
+     *
+     * $_COOKIE = [];
+     * self::$instance->wp_cookie = [];
+     */
+
+    /*
+     * Variant C: Filter $_COOKIE by name. However, this might not work if local site
+     * has renamed the cookies:
+     *
+     * // phpcs:ignore WordPress.WP.CapitalPDangit.Misspelled
+     * $ignoreKeys = preg_grep('/^(wp|wordpress)/', array_keys($_COOKIE));
+     * foreach ($ignoreKeys as $key) {
+     *   unset($_COOKIE[$key]);
+     * }
+     */
   }
 
   /**
@@ -409,9 +484,6 @@ class CiviCRM_For_WordPress {
     if (isset(self::$in_wordpress)) {
       wp_die(__('Only one instance of CiviCRM_For_WordPress please', 'civicrm'));
     }
-
-    // Maybe start session.
-    $this->maybe_start_session();
 
     /*
      * AJAX calls do not set the 'cms.root' item, so make sure it is set here so
@@ -636,6 +708,9 @@ class CiviCRM_For_WordPress {
     // Store.
     self::$context = $context;
 
+    // Maybe start session.
+    $this->maybe_start_session();
+
   }
 
   /**
@@ -795,6 +870,8 @@ class CiviCRM_For_WordPress {
 
     // Register hooks for clean URLs.
     $this->register_hooks_clean_urls();
+
+    add_filter('show_admin_bar', [$this, 'suppress_menu_single_page']);
 
     if (!class_exists('CiviCRM_WP_REST\Plugin')) {
 
@@ -1228,7 +1305,18 @@ class CiviCRM_For_WordPress {
     }
 
     // Do the business.
-    CRM_Core_Invoke::invoke($argdata['args']);
+    if (CIVICRM_IFRAME && \Civi::service('iframe.router')->getLayout() !== 'cms') {
+      \Civi::service('iframe.router')->invoke([
+        'route' => implode('/', $argdata['args']),
+        'printPage' => function ($content) {
+          echo $content;
+          \CRM_Utils_System::civiExit();
+        },
+      ]);
+    }
+    else {
+      CRM_Core_Invoke::invoke($argdata['args']);
+    }
 
     // Restore original timezone.
     if ($original_timezone) {
@@ -1438,8 +1526,7 @@ class CiviCRM_For_WordPress {
     $html = get_query_var('html');
     if (empty($html)) {
       // We do not use $html apart to test for empty.
-      // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-      $html = isset($_GET['html']) ? wp_unslash($_GET['html']) : '';
+      $html = isset($_GET['html']) ? wp_unslash($_GET['html']) : ''; // phpcs:ignore
     }
 
     /*
@@ -1456,8 +1543,7 @@ class CiviCRM_For_WordPress {
     $is_civicrm_path = ($argdata['args'][0] === 'civicrm' && in_array($argdata['args'][1], $paths)) ? TRUE : FALSE;
 
     // Is this a CiviCRM "snippet" request?
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-    $is_snippet = !empty($_REQUEST['snippet']) ? TRUE : FALSE;
+    $is_snippet = !empty($_REQUEST['snippet']) ? TRUE : FALSE; // phpcs:ignore
 
     // Is this a CiviCRM iCal file request?
     $is_ical = (strpos($argdata['argString'], 'civicrm/event/ical') === 0 && empty($html)) ? TRUE : FALSE;
@@ -1561,6 +1647,43 @@ class CiviCRM_For_WordPress {
     else {
       return Civi::paths()->getUrl('[wp.frontend]/.', $absolute ? 'absolute' : 'relative');
     }
+  }
+
+  /**
+   * (dev/core#6171) Conditionally suppress admin navbar.
+   *
+   * Normally, other parties decide whether to show admin navbar.
+   *
+   * But there's an edge-case when:
+   * - Displaying a custom afform...
+   * - With a single-page access-token...
+   * - To a person who normally has permission to do admin-y things...
+   * - But isn't actually logged in
+   *
+   * Here, the navbar will tell the user that they're logged in, but they're
+   * not really logged-in, and the nav-links don't work in their normal way.
+   *
+   * @param $showAdminNav
+   *
+   * @return mixed|void
+   */
+  public function suppress_menu_single_page($showAdminNav) {
+    if (!$this->is_page_request()) {
+      return $showAdminNav;
+    }
+
+    if (!defined('_CIVICRM_FAKE_SESSION')) {
+      return $showAdminNav;
+    }
+
+    $scopes = explode(' ',
+      CRM_Core_Session::singleton()->get('authx')['jwt']['scope'] ?? ''
+    );
+    if (!in_array('afform', $scopes)) {
+      return $showAdminNav;
+    }
+
+    return FALSE;
   }
 
 }

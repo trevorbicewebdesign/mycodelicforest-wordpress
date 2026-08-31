@@ -1,5 +1,7 @@
 <?php
 
+use Gravity_Forms\Gravity_Forms\Form_Display;
+
 if ( ! class_exists( 'GFForms' ) ) {
 	die();
 }
@@ -28,6 +30,16 @@ class GF_Field extends stdClass implements ArrayAccess {
 	private $_is_entry_detail = null;
 
 	/**
+	 * Indicates the field is used to capture payments.
+	 *
+	 * @since 2.9.23
+	 *
+	 * @var bool
+	 */
+	public $is_payment = false;
+
+
+	/**
 	 * An array of properties used to help define and determine the context for the field.
 	 * As this is private, it won't be available in any json_encode() output and consequently not saved in the Form array.
 	 *
@@ -52,6 +64,33 @@ class GF_Field extends stdClass implements ArrayAccess {
 	 * @var bool
 	 */
 	protected $_supports_state_validation = false;
+
+	/**
+	 * The state validation handler.
+	 *
+	 * @since 3.0
+	 *
+	 * @var null|Gravity_Forms\Gravity_Forms\Form_Display\State\State_Handler
+	 */
+	private static $state_handler;
+
+	/**
+	 * Whether there can be more than one of this field type per form.
+	 *
+	 * @since 3.0
+	 *
+	 * @var bool
+	 */
+	public $duplicatable = true;
+
+	/**
+	 * Whether the field can be used in a repeater.
+	 *
+	 * @since 3.0
+	 *
+	 * @var bool
+	 */
+	public $repeatable = true;
 
 	public function __construct( $data = array() ) {
 		if ( empty( $data ) ) {
@@ -89,7 +128,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 		}
 
 		if ( ! self::$deprecation_notice_fired ) {
-			_deprecated_function( "Array access to the field object is now deprecated. Further notices will be suppressed. \$field['" . $offset . "']", '2.0', 'the object operator e.g. $field->' . $offset );
+			_deprecated_function( "Array access to the field object is now deprecated. Further notices will be suppressed. \$field['" . esc_attr( $offset ) . "']", '2.0', 'the object operator e.g. $field->' . esc_attr( $offset ) );
 			self::$deprecation_notice_fired = true;
 		}
 	}
@@ -168,9 +207,20 @@ class GF_Field extends stdClass implements ArrayAccess {
 		return isset( $this->$key );
 	}
 
+	/**
+	 * Magic __set handler called when attempting to set an inaccessible or non-existing property.
+	 *
+	 * @since 1.9
+	 * @since 3.0.0 Updated to set a context property for adminonly_hidden instead of inputType.
+	 *
+	 * @param string $key   The property key.
+	 * @param mixed  $value The property value
+	 *
+	 * @return void
+	 */
 	public function __set( $key, $value ) {
-		switch( $key ) {
-			case '_context_properties' :
+		switch ( $key ) {
+			case '_context_properties':
 				_doing_it_wrong( '$field->_context_properties', 'Use $field->get_context_property() instead.', '2.3' );
 				break;
 			case 'adminOnly':
@@ -178,6 +228,10 @@ class GF_Field extends stdClass implements ArrayAccess {
 				$this->visibility = $value ? 'administrative' : 'visible';
 				break;
 			default:
+				if ( $key === 'inputType' && $value === 'adminonly_hidden' ) {
+					$this->set_context_property( 'adminonly_hidden', true );
+					break;
+				}
 				$this->$key = $value;
 		}
 	}
@@ -193,16 +247,15 @@ class GF_Field extends stdClass implements ArrayAccess {
 	 * @return bool|mixed
 	 */
 	public function &__get( $key ) {
-
 		switch ( $key ) {
-			case '_context_properties' :
+			case '_context_properties':
 				_doing_it_wrong( '$field->_context_properties', 'Use $field->get_context_property() instead.', '2.3' );
 				$value = false;
 
 				return $value;
-			case 'adminOnly' :
+			case 'adminOnly':
 				// intercept 3rd parties trying to get the adminOnly property and fetch visibility property instead
-				$value = $this->visibility == 'administrative'; // set and return variable to avoid notice
+				$value = $this->visibility === 'administrative'; // set and return variable to avoid notice
 
 				return $value;
 			case 'size':
@@ -216,6 +269,10 @@ class GF_Field extends stdClass implements ArrayAccess {
 			default:
 				if ( ! isset( $this->$key ) ) {
 					$this->$key = '';
+				} elseif ( in_array( $this->$key, array( 'id', 'formId' ), true ) ) {
+					$value = absint( $this->$key );
+
+					return $value;
 				}
 		}
 
@@ -302,6 +359,82 @@ class GF_Field extends stdClass implements ArrayAccess {
 		return isset( $validations[ $input_id ] ) ? $validations[ $input_id ] : true;
 	}
 
+	/**
+	 * Builds an array of indices for navigating nested repeater POST data.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string|null $item_index Optional explicit repeater index (e.g., '_0_1_2').
+	 *
+	 * @return array|null Array of indices, or null if not in a repeater context.
+	 */
+	protected function get_repeater_indices( $item_index = null ) {
+		if ( $item_index !== null && $item_index !== '' && $item_index !== '{ID}' ) {
+			return explode( '_', ltrim( $item_index, '_' ) );
+		}
+
+		$current_index = $this->get_context_property( 'itemIndex' );
+
+		if ( $current_index === null || $current_index === '' || $current_index === '{ID}' ) {
+			return null;
+		}
+
+		$index_chain = $this->get_context_property( 'index_chain' );
+
+		if ( $index_chain !== null && $index_chain !== '' ) {
+			$indices   = explode( '-', $index_chain );
+			$indices[] = $current_index;
+			return $indices;
+		}
+
+		return array( $current_index );
+	}
+
+	/**
+	 * Navigates a nested array using the given indices.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param mixed $value   The value (may be nested array).
+	 * @param array $indices Array of indices to navigate.
+	 *
+	 * @return mixed The value at the specified path, or null if not found.
+	 */
+	protected function get_deep_value( $value, $indices ) {
+		foreach ( $indices as $index ) {
+			if ( is_array( $value ) && isset( $value[ $index ] ) ) {
+				$value = $value[ $index ];
+			} else {
+				return null;
+			}
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Clears value if price component is blank for price-enabled fields.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $value The field value in "label|price" format.
+	 *
+	 * @return string The original value or empty string if price is blank.
+	 */
+	protected function clear_blank_price_value( $value ) {
+		if ( ! $this->enablePrice ) {
+			return $value;
+		}
+
+		$ary   = rgexplode( '|', $value, 2, true );
+		$price = isset( $ary[1] ) ? $ary[1] : '';
+
+		if ( strlen( trim( $price ) ) <= 0 ) {
+			return '';
+		}
+
+		return $value;
+	}
 
 	/**
 	 * Get default properties for a field.
@@ -397,7 +530,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 			'group' => 'standard_fields',
 			'text'  => $this->get_form_editor_field_title(),
 			'icon'  => $this->get_form_editor_field_icon(),
-			'description' => $this->get_form_editor_field_description()
+			'description' => $this->get_form_editor_field_description(),
 		);
 	}
 
@@ -504,7 +637,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 		}
 
 		$field_content = sprintf(
-			"%s%s<$label_tag class='%s' $for_attribute>$legend_wrapper%s%s$legend_wrapper_close</$label_tag>%s%s{FIELD}%s%s$clear",
+			"%s%s<$label_tag class='%s' $for_attribute>$legend_wrapper<span class='gform-field-label__text'>%s</span>%s$legend_wrapper_close</$label_tag>%s%s{FIELD}%s%s$clear",
 			$admin_buttons,
 			$admin_hidden_markup,
 			esc_attr( $this->get_field_label_class() ),
@@ -585,6 +718,17 @@ class GF_Field extends stdClass implements ArrayAccess {
 
 		// Get the field sidebar messages, this could be an array of messages or a warning message string.
 		$field_sidebar_messages  = GFCommon::is_form_editor() ? $this->get_field_sidebar_messages() : '';
+
+		/**
+		 * Allows the field sidebar messages to be modified.
+		 *
+		 * @since 2.9.30
+		 *
+		 * @param array|string $field_sidebar_messages The field sidebar messages.
+		 * @param GF_Field     $field                  The field object.
+		 */
+		$field_sidebar_messages = $is_form_editor ? apply_filters( 'gform_field_sidebar_messages', $field_sidebar_messages, $this ) : $field_sidebar_messages;
+
 		$sidebar_message_type    = 'warning';
 		$sidebar_message_content = $field_sidebar_messages;
 
@@ -601,7 +745,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 			}
 		}
 		return sprintf(
-			'<%1$s id="%2$s" class="%3$s" %4$s%5$s%6$s%7$s%8$s%9$s data-js-reload="%10$s" %11$s>%12$s{FIELD_CONTENT}</%1$s>',
+			'<%1$s id="%2$s" class="%3$s" %4$s%5$s%6$s%7$s%8$s%9$s %10$s>%11$s{FIELD_CONTENT}</%1$s>',
 			$tag,
 			esc_attr( rgar( $atts, 'id' ) ),
 			esc_attr( rgar( $atts, 'class' ) ),
@@ -611,7 +755,6 @@ class GF_Field extends stdClass implements ArrayAccess {
 			rgar( $atts, 'aria-live' ) ? ' aria-live="' . esc_attr( $atts['aria-live'] ) . '"' : '',
 			rgar( $atts, 'data-field-class' ) ? ' data-field-class="' . esc_attr( $atts['data-field-class'] ) . '"' : '',
 			rgar( $atts, 'data-field-position' ) ? ' data-field-position="' . esc_attr( $atts['data-field-position'] ) . '"' : '',
-			$ajax_reload_id,
 			rgar( $atts, 'aria-invalid' ) ? ' aria-invalid="true"' : '',
 			empty( $sidebar_message_content ) ? '' : '<span class="field-sidebar-message-content field-sidebar-message-content--type-' . $sidebar_message_type . ' hidden">' . \GFCommon::maybe_wp_kses( $sidebar_message_content ) . '</span>'
 		);
@@ -754,6 +897,9 @@ class GF_Field extends stdClass implements ArrayAccess {
 	/**
 	 * Used to determine the required validation result.
 	 *
+	 * @since 1.9
+	 * @since 3.0 Added value sanitization to ensure that values that are empty after sanitization are not considered valid.
+	 *
 	 * @param int $form_id The ID of the form currently being processed.
 	 *
 	 * @return bool
@@ -777,10 +923,18 @@ class GF_Field extends stdClass implements ArrayAccess {
 				}
 
 				if ( is_array( $value ) && ! empty( $value ) ) {
-					return false;
+					foreach ( $value as $v ) {
+						$v         = GFCommon::trim_deep( $v );
+						$sanitized = $this->sanitize_entry_value( (string) $v, $form_id );
+						if ( GFCommon::safe_strlen( trim( $sanitized ) ) > 0 ) {
+							return false;
+						}
+					}
+					continue;
 				}
 
-				if ( ! is_array( $value ) && strlen( trim( $value ) ) > 0 ) {
+				$sanitized = $this->sanitize_entry_value( $value, $form_id );
+				if ( GFCommon::safe_strlen( trim( $sanitized ) ) > 0 ) {
 					return false;
 				}
 			}
@@ -796,20 +950,23 @@ class GF_Field extends stdClass implements ArrayAccess {
 			if ( is_array( $value ) ) {
 				//empty if any of the inputs are empty (for inputs with the same name)
 				foreach ( $value as $input ) {
-					$input = GFCommon::trim_deep( $input );
-					if ( GFCommon::safe_strlen( $input ) <= 0 ) {
+					$input     = GFCommon::trim_deep( $input );
+					$sanitized = $this->sanitize_entry_value( (string) $input, $form_id );
+					if ( GFCommon::safe_strlen( $sanitized ) <= 0 ) {
 						return true;
 					}
 				}
 
 				return false;
 			} elseif ( $this->enablePrice ) {
-				list( $label, $price ) = rgexplode( '|', $value, 2 );
-				$is_empty = ( strlen( trim( $price ) ) <= 0 );
+				list( $label, $price ) = rgexplode( '|', $value, 2, true );
+				$sanitized_price       = $this->sanitize_entry_value( $price, $form_id );
+				$is_empty              = ( strlen( trim( $sanitized_price ) ) <= 0 );
 
 				return $is_empty;
 			} else {
-				$is_empty = ( strlen( trim( $value ) ) <= 0 ) || ( $this->type == 'post_category' && $value < 0 );
+				$sanitized = $this->sanitize_entry_value( $value, $form_id );
+				$is_empty  = ( strlen( trim( $sanitized ) ) <= 0 ) || ( $this->type === 'post_category' && $sanitized < 0 );
 
 				return $is_empty;
 			}
@@ -820,6 +977,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 	 * Is the given value considered empty for this field.
 	 *
 	 * @since 2.4
+	 * @since 3.0 Added value sanitization to ensure that values that are empty after sanitization are not considered valid.
 	 *
 	 * @param $value
 	 *
@@ -829,34 +987,52 @@ class GF_Field extends stdClass implements ArrayAccess {
 		if ( is_array( $this->inputs ) ) {
 			if ( $this->is_value_submission_array() ) {
 				foreach ( $this->inputs as $i => $input ) {
-					$v = isset( $value[ $i ] ) ?  $value[ $i ] : '';
-					if ( is_array( $v ) && ! empty( $v ) ) {
-						return false;
+					$v = isset( $value[ $i ] ) ? $value[ $i ] : '';
+
+					if ( is_array( $v ) ) {
+						foreach ( $v as $sub ) {
+							$sub       = GFCommon::trim_deep( $sub );
+							$sanitized = $this->sanitize_entry_value( (string) $sub, $this->formId );
+							if ( ! is_null( $sanitized ) && strlen( trim( $sanitized ) ) > 0 ) {
+								return false;
+							}
+						}
+						continue;
 					}
 
-					if ( ! is_array( $v ) && strlen( trim( $v ) ) > 0 ) {
+					$sanitized = $this->sanitize_entry_value( $v, $this->formId );
+					if ( ! is_null( $sanitized ) && strlen( trim( $sanitized ) ) > 0 ) {
 						return false;
 					}
 				}
 			} else {
 				foreach ( $this->inputs as $input ) {
 					$input_id = (string) $input['id'];
-					$v = isset( $value[ $input_id ] ) ?  $value[ $input_id ] : '';
-					if ( is_array( $v ) && ! empty( $v ) ) {
-						return false;
+					$v        = isset( $value[ $input_id ] ) ? $value[ $input_id ] : '';
+
+					if ( is_array( $v ) ) {
+						foreach ( $v as $sub ) {
+							$sub       = GFCommon::trim_deep( $sub );
+							$sanitized = $this->sanitize_entry_value( (string) $sub, $this->formId );
+							if ( ! is_null( $sanitized ) && strlen( trim( $sanitized ) ) > 0 ) {
+								return false;
+							}
+						}
+						continue;
 					}
 
-					if ( ! is_array( $v ) && strlen( trim( $v ) ) > 0 ) {
+					$sanitized = $this->sanitize_entry_value( $v, $this->formId );
+					if ( ! is_null( $sanitized ) && strlen( trim( $sanitized ) ) > 0 ) {
 						return false;
 					}
 				}
 			}
-
 		} elseif ( is_array( $value ) ) {
 			// empty if any of the inputs are empty (for inputs with the same name)
 			foreach ( $value as $input ) {
-				$input = GFCommon::trim_deep( $input );
-				if ( GFCommon::safe_strlen( $input ) <= 0 ) {
+				$input     = GFCommon::trim_deep( $input );
+				$sanitized = $this->sanitize_entry_value( (string) $input, $this->formId );
+				if ( GFCommon::safe_strlen( trim( $sanitized ) ) <= 0 ) {
 					return true;
 				}
 			}
@@ -977,7 +1153,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 	 * @param int    $input_id      The input ID to obtain the property from.
 	 * @param string $property_name The property name to search for.
 	 *
-	 * @return null|string The property value if found. Otherwise, null.
+	 * @return null|string|array The property value if found. Otherwise, null.
 	 */
 	public function get_input_property( $input_id, $property_name ) {
 		$input = GFFormsModel::get_input( $this, $this->id . '.' . (string) $input_id );
@@ -1012,25 +1188,28 @@ class GF_Field extends stdClass implements ArrayAccess {
 	/**
 	 * Retrieve the input value on submission.
 	 *
+	 * @since 1.9
+	 * @since 2.9.17 Updated to return null if the field failed state validation.
+	 *
 	 * @param string    $standard_name            The input name used when accessing the $_POST.
 	 * @param string    $custom_name              The dynamic population parameter name.
 	 * @param array     $field_values             The dynamic population parameter names with their corresponding values to be populated.
 	 * @param bool|true $get_from_post_global_var Whether to get the value from the $_POST array as opposed to $field_values.
 	 *
-	 * @return array|string
+	 * @return array|string|null
 	 */
 	public function get_input_value_submission( $standard_name, $custom_name = '', $field_values = array(), $get_from_post_global_var = true ) {
 
 		$form_id = $this->formId;
-		if ( ! empty( $_POST[ 'is_submit_' . $form_id ] ) && $get_from_post_global_var ) {
-			$value = rgpost( $standard_name );
-			$value = GFFormsModel::maybe_trim_input( $value, $form_id, $this );
+		if ( ! empty( $_POST[ 'is_submit_' . $form_id ] ) && $get_from_post_global_var ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$value = $this->get_context_property( 'failed_state_validation' ) ? null : rgpost( $standard_name );
 
-			return $value;
+			return GFFormsModel::maybe_trim_input( $value, $form_id, $this );
 		} elseif ( $this->allowsPrepopulate ) {
 			return GFFormsModel::get_parameter_value( $custom_name, $field_values, $this );
 		}
 
+		return null;
 	}
 
 
@@ -1046,20 +1225,56 @@ class GF_Field extends stdClass implements ArrayAccess {
 	}
 
 	/**
+	 * Returns inputs structure for use in repeater fields.
+	 *
+	 * This method allows fields to provide different input structure when used inside
+	 * repeater fields vs standard entry processing. By default, it delegates to get_entry_inputs().
+	 *
+	 * @since 3.0.0
+	 * @return array|null Array of inputs or null if field has no inputs.
+	 */
+	public function get_repeater_inputs() {
+		return $this->get_entry_inputs();
+	}
+
+	/**
 	 * Sanitize and format the value before it is saved to the Entry Object.
 	 *
-	 * @param string $value      The value to be saved.
-	 * @param array  $form       The Form Object currently being processed.
-	 * @param string $input_name The input name used when accessing the $_POST.
-	 * @param int    $lead_id    The ID of the Entry currently being processed.
-	 * @param array  $lead       The Entry Object currently being processed.
+	 * @param string $value          The value to be saved.
+	 * @param array  $form           The Form Object currently being processed.
+	 * @param string $input_name     The input name used when accessing the $_POST.
+	 * @param int    $lead_id        The ID of the Entry currently being processed.
+	 * @param array  $lead           The Entry Object currently being processed.
 	 *
 	 * @return array|string The safe value.
 	 */
 	public function get_value_save_entry( $value, $form, $input_name, $lead_id, $lead ) {
-		if ( rgblank( $value ) ) {
+		_deprecated_function( __METHOD__, '3.0.0', 'GF_Field::get_value_save_input()' );
+		return $this->get_value_save_input( $value, $form, $input_name, $lead_id, $lead, '' );
+	}
 
-			return '';
+	/**
+	 * Sanitize and format the value before it is saved to the Entry Object.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $value          The value to be saved.
+	 * @param array  $form           The Form Object currently being processed.
+	 * @param string $input_name     The input name used when accessing the $_POST.
+	 * @param int    $entry_id       The ID of the Entry currently being processed.
+	 * @param array  $entry          The Entry Object currently being processed.
+	 * @param string $repeater_index The repeater index if the field is inside a repeater.
+	 *
+	 * @return array|string The sanitized and formatted input value to be saved.
+	 */
+	public function get_value_save_input( $value, $form, $input_name, $entry_id, $entry, $repeater_index = '' ) {
+		// For backward compatibility, call get_value_save_entry() if it's been overridden by a child class.
+		$reflection = new ReflectionMethod( $this, 'get_value_save_entry' );
+		if ( $reflection->getDeclaringClass()->getName() !== 'GF_Field' ) {
+			$value = $this->get_value_save_entry( $value, $form, $input_name, $entry_id, $entry );
+		} elseif ( rgblank( $value ) ) {
+
+			$value = '';
 
 		} elseif ( is_array( $value ) ) {
 
@@ -1073,13 +1288,15 @@ class GF_Field extends stdClass implements ArrayAccess {
 
 			}
 
-			return implode( ',', $value );
+			$value = implode( ',', $value );
 
 		} else {
 
-			return $this->sanitize_entry_value( $value, $form['id'] );
+			$value = $this->sanitize_entry_value( $value, $form['id'] );
 
 		}
+
+		return $value;
 	}
 
 	/**
@@ -1172,27 +1389,66 @@ class GF_Field extends stdClass implements ArrayAccess {
 	}
 
 	/**
+	 * Returns the field value formatted for the {all_fields} merge tag.
+	 *
+	 * @since 2.9.31
+	 *
+	 * @param string|array $value    The field value.
+	 * @param array        $entry    The entry.
+	 * @param bool|false   $use_text When processing choice based fields should the choice text be returned instead of the value.
+	 * @param string       $format   The format requested for the location the merge is being used. Possible values: html, text or url.
+	 *
+	 * @return string|false
+	 */
+	public function get_value_all_fields_merge_tag( $value, $entry, $use_text, $format ) {
+
+		return $this->get_value_entry_detail( $value, $entry, $use_text, $format, 'email' );
+	}
+
+	/**
 	 * Format the entry value for display on the entry detail page and for the {all_fields} merge tag.
 	 *
 	 * Return a value that's safe to display for the context of the given $format.
 	 *
+	 * @since 1.9
+	 * @since 2.9.14 Updated to display an inline error message on the entry detail page for array-based values.
+	 * @since 2.9.29 Changed the second parameter $currency (string) to $entry (array).
+	 *
 	 * @param string|array $value    The field value.
-	 * @param string       $currency The entry currency code.
+	 * @param array        $entry    The entry.
 	 * @param bool|false   $use_text When processing choice based fields should the choice text be returned instead of the value.
 	 * @param string       $format   The format requested for the location the merge is being used. Possible values: html, text or url.
 	 * @param string       $media    The location where the value will be displayed. Possible values: screen or email.
 	 *
-	 * @return string
+	 * @return string|false
 	 */
-	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
+	public function get_value_entry_detail( $value, $entry = array(), $use_text = false, $format = 'html', $media = 'screen' ) {
 
 		if ( is_array( $value ) ) {
-			_doing_it_wrong( __METHOD__, 'Override this method to handle array values', '2.0' );
-			return $value;
+			if ( ! $this->is_entry_detail() ) {
+				// Returning false for {all_fields}, so the field is omitted from the output even when the empty modifier is used.
+				return $media === 'email' ? false : '';
+			}
+
+			$class = get_class( $this );
+			if ( $class === GF_Field::class ) {
+				$error_message = sprintf( esc_html__( 'Field value cannot be displayed. Please activate the add-on that includes the `%s` field type.', 'gravityforms' ), $this->type );
+			} else {
+				$error_message = sprintf( esc_html__( 'Field value cannot be displayed. If you are the developer of the `%s` field type, please implement `%s::get_value_entry_detail()` to define how the value is displayed.', 'gravityforms' ), $this->type, $class );
+			}
+
+			return '<div class="error-alert-container alert-container">
+						<div class="gform-alert gform-alert--error">
+							<span class="gform-alert__icon gform-icon gform-icon--circle-close" aria-hidden="true"></span>
+							<div class="gform-alert__message-wrap">
+								<p class="gform-alert__message">' . $error_message . '</p>
+							</div>
+						</div>
+					</div>';
 		}
 
 		if ( $format === 'html' ) {
-			$value = nl2br( $value );
+			$value = nl2br( (string) $value );
 
 			$allowable_tags = $this->get_allowable_tags();
 
@@ -1285,7 +1541,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 		$price = '';
 
 		if ( $this->enablePrice ) {
-			$parts = explode( '|', $value );
+			$parts = rgexplode( '|', $value, 2, true );
 			$value = $parts[0];
 
 			if ( ! empty( $parts[1] ) ) {
@@ -1401,6 +1657,54 @@ class GF_Field extends stdClass implements ArrayAccess {
 		$placeholder_value = GFCommon::replace_variables_prepopulate( $placeholder );
 
 		return $placeholder_value;
+	}
+
+	/**
+	 * Convert an input mask pattern to a regex for validation.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $mask The input mask pattern.
+	 *
+	 * @return string The regex pattern.
+	 */
+	protected function mask_to_regex( $mask ) {
+		$regex    = '';
+		$optional = false;
+		$length   = strlen( $mask );
+
+		for ( $i = 0; $i < $length; $i++ ) {
+			$char = $mask[ $i ];
+
+			if ( $char === '?' ) {
+				$optional = true;
+				continue;
+			}
+
+			$pattern = '';
+			switch ( $char ) {
+				case '9':
+					$pattern = '[0-9]';
+					break;
+				case 'a':
+					$pattern = '[a-zA-Z]';
+					break;
+				case '*':
+					$pattern = '[a-zA-Z0-9]';
+					break;
+				default:
+					$pattern = preg_quote( $char, '/' );
+					break;
+			}
+
+			if ( $optional ) {
+				$pattern .= '?';
+			}
+
+			$regex .= $pattern;
+		}
+
+		return '/^' . $regex . '$/';
 	}
 
 	/**
@@ -1534,10 +1838,10 @@ class GF_Field extends stdClass implements ArrayAccess {
 	 */
 	public function is_description_above( $form ) {
 		$field_description_setting = $this->descriptionPlacement;
-		$form_description_setting =  rgar( $form, 'descriptionPlacement' ) ? $form['descriptionPlacement'] : 'below';
-		$form_label_placement = rgar( $form, 'labelPlacement' ) ? $form['labelPlacement'] : 'top_label';
+		$form_description_setting  = rgar( $form, 'descriptionPlacement' ) ? $form['descriptionPlacement'] : 'below';
+		$form_label_placement      = rgar( $form, 'labelPlacement' ) ? $form['labelPlacement'] : 'top_label';
 
-		if( ! $field_description_setting ) {
+		if ( ! $field_description_setting ) {
 			$field_description_setting = $form_description_setting;
 		}
 
@@ -1545,11 +1849,11 @@ class GF_Field extends stdClass implements ArrayAccess {
 
 		$description_can_be_above = false;
 
-		if( $this->labelPlacement == 'top_label' || $this->labelPlacement == 'hidden_label' ) {
+		if ( $this->labelPlacement == 'top_label' || $this->labelPlacement == 'hidden_label' ) {
 			$description_can_be_above = true;
 		}
 
-		if( ! $this->labelPlacement && $form_label_placement == 'top_label' ) {
+		if ( ! $this->labelPlacement && $form_label_placement == 'top_label' ) {
 			$description_can_be_above = true;
 		}
 
@@ -1558,6 +1862,24 @@ class GF_Field extends stdClass implements ArrayAccess {
 		}
 
 		return $is_description_above;
+	}
+
+
+	/**
+	 * Determines if the field sub labels should be positioned above or below the input.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param array $form The form array.
+	 *
+	 * @return bool
+	 */
+	public function is_sub_label_above( $form ) {
+
+		$form_sub_label_placement  = rgar( $form, 'subLabelPlacement' );
+		$field_sub_label_placement = $this->subLabelPlacement;
+
+		return $field_sub_label_placement === 'above' || ( empty( $field_sub_label_placement ) && $form_sub_label_placement === 'above' );
 	}
 
 	/**
@@ -1572,12 +1894,8 @@ class GF_Field extends stdClass implements ArrayAccess {
 	public function is_validation_above( $form ) {
 		$form_validation_placement = rgar( $form, 'validationPlacement' );
 
-		$is_validation_above = $form_validation_placement == 'above';
-
-		return $is_validation_above;
+		return $form_validation_placement === 'above';
 	}
-
-
 
 	public function is_administrative() {
 		return $this->visibility == 'administrative';
@@ -1631,6 +1949,8 @@ class GF_Field extends stdClass implements ArrayAccess {
 				if ( isset( $button['data-type'] ) && $button['data-type'] == $this->type ) {
 					$button['data-icon'] = $this->get_form_editor_field_icon();
 					$button['data-description'] = $this->get_form_editor_field_description();
+					$button['data-duplicatable'] = $this->duplicatable;
+					$button['data-repeatable'] = $this->repeatable;
 					return $field_groups;
 				}
 			}
@@ -1646,8 +1966,10 @@ class GF_Field extends stdClass implements ArrayAccess {
 						'data-icon'       =>  empty($new_button['icon']) ? $this->get_form_editor_field_icon() : $new_button['icon'],
 						'data-description' => empty($new_button['description']) ? $this->get_form_editor_field_description() : $new_button['description'],
 						'data-type'  => $this->type,
-						'onclick'    => "StartAddField('{$this->type}');",
-						'onkeypress' => "StartAddField('{$this->type}');",
+						'data-duplicatable' => $this->duplicatable,
+						'data-repeatable'   => $this->repeatable,
+						'onclick'           => "StartAddField('{$this->type}', '', '{$this->duplicatable}', '{$this->repeatable}');",
+						'onkeypress'        => "StartAddField('{$this->type}', '', '{$this->duplicatable}', '{$this->repeatable}');",
 					);
 					break;
 				}
@@ -1668,24 +1990,14 @@ class GF_Field extends stdClass implements ArrayAccess {
 			return '';
 		}
 
-		$duplicate_disabled   = array(
-			'captcha',
-			'post_title',
-			'post_content',
-			'post_excerpt',
-			'total',
-			'shipping',
-			'creditcard',
-			'submit',
-		);
 		$duplicate_field_link = '';
-		if(  ! in_array( $this->type, $duplicate_disabled ) ) {
+		if( $this->duplicatable ) {
 			$duplicate_aria_action = __( 'duplicate this field', 'gravityforms' );
 			$duplicate_field_link = "
-				<button 
-					id='gfield_duplicate_{$this->id}' 
-					class='gfield-field-action gfield-duplicate' 
-					onclick='StartDuplicateField(this); return false;' 
+				<button
+					id='gfield_duplicate_{$this->id}'
+					class='gfield-field-action gfield-duplicate'
+					onclick='StartDuplicateField(this); return false;'
 					onkeypress='StartDuplicateField(this); return false;'
 					aria-label='" . esc_html( $this->get_field_action_aria_label( $duplicate_aria_action ) ) . "'
 				>
@@ -1709,10 +2021,10 @@ class GF_Field extends stdClass implements ArrayAccess {
 
 		$delete_aria_action = __( 'delete this field', 'gravityforms' );
 		$delete_field_link = "
-			<button 
-				id='gfield_delete_{$this->id}' 
-				class='gfield-field-action gfield-delete' 
-				onclick='DeleteField(this);' 
+			<button
+				id='gfield_delete_{$this->id}'
+				class='gfield-field-action gfield-delete'
+				onclick='DeleteField(this);'
 				onkeypress='DeleteField(this); return false;'
 				aria-label='" . esc_html( $this->get_field_action_aria_label( $delete_aria_action ) ) . "'
 			>
@@ -1733,10 +2045,10 @@ class GF_Field extends stdClass implements ArrayAccess {
 
 		$edit_aria_action = __( 'jump to this field\'s settings', 'gravityforms' );
 		$edit_field_link = "
-			<button 
-				id='gfield_edit_{$this->id}' 
+			<button
+				id='gfield_edit_{$this->id}'
 				class='gfield-field-action gfield-edit'
-				onclick='EditField(this);' 
+				onclick='EditField(this);'
 				onkeypress='EditField(this); return false;'
 				aria-label='" . esc_html( $this->get_field_action_aria_label( $edit_aria_action ) ) . "'
 			>
@@ -1752,7 +2064,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 		$edit_field_link = apply_filters( 'gform_edit_field_link', $edit_field_link );
 
 		$drag_handle = '
-			<span class="gfield-field-action gfield-drag">
+			<span class="gfield-field-action gfield-drag" data-icon="' . esc_attr( $this->get_form_editor_field_icon() ) . '">
 				<i class="gform-icon gform-icon--drag-indicator"></i>
 				<span class="gfield-field-action__description">' . esc_html__( 'Move', 'gravityforms' ) . '</span>
 			</span>';
@@ -1769,6 +2081,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 		$conditional         = "<span class='gfield-compact-icon--conditional' id='gfield_{$this->id}-conditional-logic-icon' title='" . esc_attr( 'Conditional Logic', 'gravityforms' ) . "' style='display: {$conditional_display}' aria-label=" . esc_html( 'Conditional Logic', 'gravityforms' ) . ">" . GFCommon::get_icon_markup( array( 'icon' => 'gform-icon--conditional-logic' ) ) . "<span class='screen-reader-text'>" . esc_attr( 'This field has conditional logic enabled.', 'gravityforms' ) . "</span></span>";
 
 		$field_sidebar_messages    = $this->get_field_sidebar_messages();
+		$field_sidebar_messages    = GFCommon::is_form_editor() ? apply_filters( 'gform_field_sidebar_messages', $field_sidebar_messages, $this ) : $field_sidebar_messages;
 		$sidebar_message           = is_array( rgar( $field_sidebar_messages, '0' ) ) ? array_shift( $field_sidebar_messages ) : $field_sidebar_messages;
 		$compact_view_sidebar_message_icon = '';
 		if ( ! empty( $sidebar_message ) ) {
@@ -1785,7 +2098,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 		}
 
 		$admin_buttons = "
-			<div class='gfield-admin-icons gform-theme__disable'>
+			<div class='gfield-admin-icons gform-theme__disable' data-icon='{$this->get_form_editor_field_icon()}'>
 				{$drag_handle}
 				{$duplicate_field_link}
 				{$edit_field_link}
@@ -1830,13 +2143,14 @@ class GF_Field extends stdClass implements ArrayAccess {
 	 *
 	 * @since unknown
 	 * @since 2.5     Move conditions about the singleproduct and calculation fields to their own class.
+	 * @since 3.0     Made the params optional.
 	 *
 	 * @param bool   $force_frontend_label Should the frontend label be displayed in the admin even if an admin label is configured.
 	 * @param string $value                The field value. From default/dynamic population, $_POST, or a resumed incomplete submission.
 	 *
 	 * @return string
 	 */
-	public function get_field_label( $force_frontend_label, $value ) {
+	public function get_field_label( $force_frontend_label = true, $value = '' ) {
 		$label = $force_frontend_label ? $this->label : GFCommon::get_label( $this );
 
 		if ( '' === $label ) {
@@ -2046,6 +2360,51 @@ class GF_Field extends stdClass implements ArrayAccess {
 		return "{$required} {$invalid} {$describedby}";
 	}
 
+	/**
+	 * Get the choice alignment for the given field.
+	 *
+	 * @since 2.9.0
+	 * @since 3.0 - moved from the GF_Field_Multiple_Choice class to the GF_Field class.
+	 *
+	 * @param object $field The field object.
+	 * @return string
+	 */
+	public function get_field_choice_alignment( $field ) {
+
+		if ( ! rgempty( 'choiceAlignment', $field ) ) {
+			return $field->choiceAlignment;
+		}
+
+		if ( ! empty( $field->enableDisplayInColumns ) ) {
+			return 'columns';
+		}
+
+		return $this->get_default_choice_alignment( $field );
+	}
+
+	/**
+	 * Get the default choice alignment for the multi_choice field.
+	 *
+	 * @since 2.9.0
+	 * @since 3.0 - moved from the GF_Field_Multiple_Choice class to the GF_Field class.
+	 *
+	 * @param object $field The field object.
+	 * @return string
+	 */
+	public function get_default_choice_alignment( $field) {
+		/*
+		 * Filter the default choice alignment.  Default is vertical.  Options are 'vertical' and 'horizontal'.
+		 *
+		 * @since 2.9.0
+		 *
+		 * @param string $default_choice_alignment The default choice alignment.
+		 * @param object $field                    The field.
+		 *
+		 * @return string
+		 */
+		return gf_apply_filters( array( 'gform_default_choice_alignment', $field->formId ), 'vertical', $field );
+	}
+
 
 	/**
 	 * Whether this field has been submitted,
@@ -2081,6 +2440,131 @@ class GF_Field extends stdClass implements ArrayAccess {
 	 */
 	public function is_state_validation_supported() {
 		return $this->_supports_state_validation && $this->validateState && ! $this->allowsPrepopulate;
+	}
+
+	/**
+	 * Indicates if state validation should be skipped if the submitted value is blank.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|int $key The field or input ID.
+	 *
+	 * @return bool
+	 */
+	public function skip_state_validation_if_blank( $key ) {
+		return false;
+	}
+
+	/**
+	 * Determines the if the field has been tampered with before submission.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|array $value The submitted value.
+	 *
+	 * @return bool
+	 */
+	public function is_state_valid( $value ) {
+		if ( ! $this->is_state_validation_supported() ) {
+			return true;
+		}
+
+		if ( empty( self::$state_handler ) ) {
+			require_once GFCommon::get_base_path() . '/form_display.php';
+			self::$state_handler = GFFormDisplay::get_state_handler();
+		}
+
+		return self::$state_handler->is_valid_field( $this, $this->get_value_for_state_validation( $value ) );
+	}
+
+	/**
+	 * Returns the validation message to be applied when the field has failed state validation.
+	 *
+	 * @since 3.0
+	 *
+	 * @return string
+	 */
+	public function get_state_validation_message() {
+		if ( is_array( $this->choices ) ) {
+			return esc_html__( 'Invalid selection. Please select from the available choices.', 'gravityforms' );
+		}
+
+		return esc_html__( 'Please enter a valid value.', 'gravityforms' );
+	}
+
+	/**
+	 * Gets a field choice value, including the price if enabled.
+	 *
+	 * @since 3.0
+	 *
+	 * @param array $choice The choice properties.
+	 *
+	 * @return string
+	 */
+	public function get_choice_option_value( $choice ) {
+		$value = rgar( $choice, 'value' );
+		$value = ! rgblank( $value ) || $this->enableChoiceValue || $this->type === 'post_category' ? $value : rgar( $choice, 'text' );
+
+		if ( ! $this->enablePrice ) {
+			return $value;
+		}
+
+		$price = rgempty( 'price', $choice ) ? 0 : GFCommon::to_number( rgar( $choice, 'price' ) );
+
+		return $value . '|' . $price;
+	}
+
+	/**
+	 * Prepares the array of choice values for the state hash.
+	 *
+	 * @since 3.0
+	 *
+	 * @param null|array $choices Optional. The choices to parse or null to use the field choices property.
+	 *
+	 * @return array
+	 */
+	protected function get_choices_for_state_hash( $choices = null ) {
+		if ( is_null( $choices ) ) {
+			$choices = $this->choices;
+		}
+
+		$values = array();
+		foreach ( $choices as $choice ) {
+			$values[] = $this->get_choice_option_value( $choice );
+		}
+
+		return $values;
+	}
+
+	/**
+	 * Prepares the value that will be hashed on form display as part of the state.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|array $value The default value.
+	 *
+	 * @return null|array
+	 */
+	public function get_values_for_state_hash( $value ) {
+		return array( $this->id => $value );
+	}
+
+	/**
+	 * Returns the value to use when the state is validated.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|array $value The submitted value.
+	 *
+	 * @return array
+	 */
+	public function get_value_for_state_validation( $value ) {
+		$id = $this->id;
+		if ( ! is_array( $value ) ) {
+			$value = array( $id => $value );
+		}
+
+		return $value;
 	}
 
 	/**
@@ -2379,6 +2863,7 @@ class GF_Field extends stdClass implements ArrayAccess {
 
 			// HTML is expected. Output will not be encoded so the value will stripped of scripts and some tags and encoded.
 			$return = wp_kses_post( $value );
+			$this->post_entry_value_sanitization( $value, $return, 'wp_kses_post' );
 
 		} elseif ( $allowable_tags === false ) {
 
@@ -2388,13 +2873,34 @@ class GF_Field extends stdClass implements ArrayAccess {
 		} else {
 
 			// Some HTML is expected. Output will not be encoded so the value will stripped of scripts and some tags and encoded.
-			$value = wp_kses_post( $value );
+			$sanitized = wp_kses_post( $value );
+			$this->post_entry_value_sanitization( $value, $sanitized, 'wp_kses_post' );
 
 			// Strip all tags except those allowed by the gform_allowable_tags filter.
 			$return = strip_tags( $value, $allowable_tags );
+			$this->post_entry_value_sanitization( $sanitized, $return, 'strip_tags' );
 		}
 
 		return $return;
+	}
+
+	/**
+	 * Post entry value sanitization. Logs a message if the value was sanitized during the entry save process.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $original_value  Original value before sanitization.
+	 * @param string $sanitized_value Value after sanitization.
+	 * @param string $method          The sanitization method used, e.g. 'wp_kses_post' or 'strip_tags'.
+	 *
+	 * @return void
+	 */
+	public function post_entry_value_sanitization( $original_value, $sanitized_value, $method ) {
+		if ( $sanitized_value === $original_value ) {
+			return;
+		}
+
+		GFCommon::log_debug( __METHOD__ . "(): Value was sanitized by {$method}() for {$this->label}(#{$this->id} - {$this->type})." );
 	}
 
 	/**

@@ -106,11 +106,11 @@ class CRM_Contact_Form_Task_AddToGroup extends CRM_Contact_Form_Task {
     }
 
     // add select for groups
-    $group = ['' => ts('- select group -')] + CRM_Core_PseudoConstant::nestedGroup();
+    $group = ['' => ts('- select group -')] + CRM_Core_PseudoConstant::nestedGroup(textFormat: 'plain');
 
     $groupElement = $this->add('select', 'group_id', ts('Select Group'), $group, FALSE, ['class' => 'crm-select2 huge']);
 
-    $this->_title = $group[$this->_id];
+    $this->_title = $this->_id ? $group[$this->_id] : '';
 
     if ($this->_context === 'amtg') {
       $groupElement->freeze();
@@ -191,7 +191,7 @@ class CRM_Contact_Form_Task_AddToGroup extends CRM_Contact_Form_Task {
       $groupParams['is_active'] = 1;
       $groupParams['custom'] = CRM_Core_BAO_CustomField::postProcess($this->getSubmittedValues(), $this->_id, 'Group');
 
-      $createdGroup = CRM_Contact_BAO_Group::create($groupParams);
+      $createdGroup = CRM_Contact_BAO_Group::writeRecord($groupParams);
       $groupID = $createdGroup->id;
       $groupName = $groupParams['title'];
     }

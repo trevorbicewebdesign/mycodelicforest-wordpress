@@ -50,6 +50,7 @@ return [
       'sql_type' => 'int unsigned',
       'input_type' => 'EntityRef',
       'required' => TRUE,
+      'default_callback' => ['CRM_Core_BAO_Domain', 'getDomainID'],
       'entity_reference' => [
         'entity' => 'Domain',
         'key' => 'id',
@@ -131,6 +132,7 @@ return [
       'input_type' => 'EntityRef',
       'description' => ts('Contact responsible for creating this token'),
       'add' => '5.76',
+      'default_callback' => ['CRM_Core_Session', 'getLoggedInContactID'],
       'input_attrs' => [
         'label' => ts('Created By'),
       ],
@@ -147,6 +149,7 @@ return [
       'readonly' => TRUE,
       'description' => ts('FK to contact table.'),
       'add' => '5.76',
+      'default_callback' => ['CRM_Core_Session', 'getLoggedInContactID'],
       'input_attrs' => [
         'label' => ts('Modified By'),
       ],

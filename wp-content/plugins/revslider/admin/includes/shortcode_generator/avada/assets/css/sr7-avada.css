@@ -1,0 +1,125 @@
+.sr--avada--module--info .sr--module--info--logo {
+    height: 36px;
+    background-image: url("../../../../../assets/images/SR7-Logo-Light.svg");
+    background-repeat: no-repeat;
+}
+@media (prefers-color-scheme: dark) {
+    .sr--avada--module--info .sr--module--info--logo {
+        background-image: url("../../../../../assets/images/SR7-Logo-Dark.svg");
+    }
+}
+
+.sr--module--info--hidden {
+    display: none !important;
+}
+.sr--avada--module--info {
+    border-bottom: 1px solid #ddd;
+    display: inline-block;
+    width: 95%;
+    padding: 2em 2.5%;
+    margin: 0;
+}
+.sr--avada--module--info .sr--module--info--thumb {
+    width: 320px;
+    height: 180px;
+    background-size: cover;
+    background-repeat: no-repeat;
+    margin: 2em 0;
+}
+.sr--avada--module--info .sr--module--info--title {
+    margin-bottom: 0.5em;
+    font-size: 1.2em;
+}
+.sr--avada--module--info .sr--module--info--row {
+    margin-bottom: 0.5em;
+    font-size: 14px;
+}
+
+.sr--avada--module--info--buttons {
+    margin-top: 1.5em;
+}
+.sr--avada--module--info--buttons button {
+	background: #008fc5;
+    color: #fff;
+    border: none;
+    text-transform: uppercase;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 12px 28px;
+    height: auto;
+    display: inline-block;
+    text-decoration: none;
+    box-shadow: none;
+	transition-property: border, background, color;
+    transition-duration: .05s;
+    transition-timing-function: ease-in-out;
+    cursor: pointer;
+}
+.sr--avada--module--info--buttons button svg {
+    line-height: 18px;
+    height: 12px;
+    margin-right: 5px;
+    fill: #fff;
+}
+.sr--avada--module--info--buttons button:hover {
+    background: #222;
+    color: #fff;
+}
+
+.sr--avada--module--info.sr--live--module--info {
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--gray-bg);
+    background: var(--white);
+    width: 100%;
+}
+.sr--avada--module--info.sr--live--module--info .sr--module--info--thumb {
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
+}
+.sr--avada--module--info.sr--live--module--info .sr--module--info--title {
+    font-size: 14px;
+}
+.sr--avada--module--info.sr--live--module--info .sr--module--info--row {
+    font-size: 13px;
+}
+
+.sr--avada--module--preview--card .sr--module--info--thumb {
+    width: 120px;
+    height: 67.5px;
+    display: inline-block;
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+.sr7--avada--icon::before {
+    background: url(../images/sr7-logo.svg) no-repeat center center;
+    background-size: contain;
+    content: ' ';
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+}
+
+.fusion-builder-enabled sr-popups,
+.fusion-builder-enabled sr-pleasewait {
+    width: 100% !important;
+    margin-left: 0 !important;
+}
+.fusion-builder-live .sr--basic--library sr-modal-header {
+    height: 60px;
+}
+.fusion-builder-live sr-sp[h="10"] {
+    height: 10px;
+}
+.fusion-builder-live lib-i-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.fusion-builder-live sr-input .sr--input--icon--left svg {
+    margin-top: 6px;
+}
+.fusion-builder-live .sr--basic--library .sr--library--right sr-modal-close {
+    top: 11px;
+}

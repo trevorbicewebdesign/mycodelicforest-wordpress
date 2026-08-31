@@ -10,7 +10,6 @@ class SkEntityMetaProvider extends SqlEntityMetadata {
 
   public function getProperty(string $propertyName) {
     $staticProps = [
-      'primary_keys' => ['_row'],
       'log' => FALSE,
       'icon' => 'fa-search-plus',
       'paths' => [],
@@ -25,24 +24,13 @@ class SkEntityMetaProvider extends SqlEntityMetadata {
       'title_plural' => $display['label'],
       'description' => $display['settings']['description'] ?? NULL,
       'table' => $display['tableName'],
+      'primary_key' => $display['settings']['primaryKey'] ?? [],
     ];
     return $displayProps[$propertyName] ?? NULL;
   }
 
   public function getFields(): array {
     $entityDisplay = $this->getDisplayInfo();
-    $fields = [
-      '_row' => [
-        'title' => E::ts('Case ID'),
-        'sql_type' => 'int unsigned',
-        'input_type' => 'Number',
-        'required' => TRUE,
-        'description' => E::ts('Search result row number'),
-        'usage' => [],
-        'primary_key' => TRUE,
-        'auto_increment' => TRUE,
-      ],
-    ];
     foreach ($entityDisplay['settings']['columns'] as $column) {
       $field = [
         'title' => $column['label'],

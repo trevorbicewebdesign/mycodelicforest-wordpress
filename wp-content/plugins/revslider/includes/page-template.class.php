@@ -7,20 +7,30 @@
 
 if( !defined( 'ABSPATH') ) exit();
 
+/**
+ * Registers the "Slider Revolution Blank Template" page template.
+ *
+ * The template file lives in this plugin, not in the theme, so WordPress would not list it. The filters
+ * below inject it into the theme's template cache and list, and template_include then resolves the stored
+ * meta value back to the file inside the plugin.
+ */
 class RevSliderPageTemplate {
 
 	/**
 	 * A reference to an instance of this class.
+	 * @var RevSliderPageTemplate
 	 */
 	private static $instance;
 
 	/**
 	 * The array of templates that this plugin tracks.
+	 * @var array file path (relative to this directory) => display name
 	 */
 	protected $templates;
 
 	/**
-	 * Returns an instance of this class. 
+	 * Returns an instance of this class.
+	 * @return RevSliderPageTemplate
 	 */
 	public static function get_instance(){
 
@@ -34,40 +44,47 @@ class RevSliderPageTemplate {
 	 */
 	private function __construct(){
 
-		$this->templates = array();
+		$this->templates = [];
 
 		// Add a filter to the attributes metabox to inject template into the cache.
-		add_filter('page_attributes_dropdown_pages_args', array( $this, 'register_project_templates'));
+		add_filter('page_attributes_dropdown_pages_args', [$this, 'register_project_templates']);
 
 		// Add a filter to the save post to inject out template into the page cache
-		add_filter('wp_insert_post_data', array($this, 'register_project_templates'));
+		add_filter('wp_insert_post_data', [$this, 'register_project_templates']);
 
 		// Add a filter to the template include to determine if the page has our 
 		// template assigned and return it's path
-		add_filter('template_include', array($this, 'view_project_template'));
+		add_filter('template_include', [$this, 'view_project_template']);
 
 		// Add your templates to this array.
-		$this->templates = array('../public/views/revslider-page-template.php' => 'Slider Revolution Blank Template');
+		$this->templates = ['../public/views/revslider-page-template.php' => 'Slider Revolution Blank Template'];
 		
 		// Fix for WP 4.7
-		add_filter('theme_page_templates', array($this, 'register_project_templates_new'));
+		add_filter('theme_page_templates', [$this, 'register_project_templates_new']);
 
 		// Add filters to the attributes metabox to inject templates to all posts
 		$types = get_post_types([], 'objects');
 		foreach($types as $type => $values){
-			if(isset($type)) add_filter('theme_' . $type . '_templates', array($this, 'add_post_templates'));
+			if(isset($type)) add_filter('theme_' . $type . '_templates', [$this, 'add_post_templates']);
 		}
 	} 
 
 
-	// Adds our template to the new post templates setting (WP >= 4.7)
+	/**
+	 * Adds our template to the new post templates setting (WP >= 4.7)
+	 * @return array
+	 */
 	public function register_project_templates_new($post_templates){
 	    return array_merge($post_templates, $this->templates);
 	}
 
 
+	/**
+	 * same for every other post type - hooked as theme_<type>_templates in the constructor
+	 * @return array
+	 */
 	public function  add_post_templates($templates){
-		$my_virtual_templates = array('../public/views/revslider-page-template.php' => 'Slider Revolution Blank Template');
+		$my_virtual_templates = ['../public/views/revslider-page-template.php' => 'Slider Revolution Blank Template'];
 
 		return array_merge($templates, $my_virtual_templates);
 	}
@@ -77,6 +94,7 @@ class RevSliderPageTemplate {
 	 * Adds our template to the pages cache in order to trick WordPress
 	 * into thinking the template file exists where it doens't really exist.
 	 *
+	 * @return mixed $atts unchanged - this is a filter used purely for its side effect
 	 */
 
 	public function register_project_templates($atts){
@@ -88,7 +106,7 @@ class RevSliderPageTemplate {
 		// If it doesn't exist, or it's empty prepare an array
 		$templates = wp_get_theme()->get_page_templates();
 
-		if(empty($templates)) $templates = array();
+		if(empty($templates)) $templates = [];
 
 		// New cache, therefore remove the old one
 		wp_cache_delete($cache_key , 'themes');
@@ -106,6 +124,7 @@ class RevSliderPageTemplate {
 
 	/**
 	 * Checks if the template is assigned to the page
+	 * @return string path to our template file, or the theme's $template when it does not apply
 	 */
 	public function view_project_template($template){
 
@@ -114,21 +133,14 @@ class RevSliderPageTemplate {
 		global $post;
 		
 		if(!isset($post->ID)) return $template;
-			
-		if(!isset($this->templates[get_post_meta( 
-			$post->ID, '_wp_page_template', true 
-		)])){
-			return $template;
-		} 
+		if(!isset($this->templates[get_post_meta($post->ID, '_wp_page_template', true)])) return $template;
 
 		$file = plugin_dir_path(__FILE__). get_post_meta($post->ID, '_wp_page_template', true);
-		
-		// Just to be safe, we check if the file exist first
-		if(file_exists($file)){
-			return $file;
-		}else{
-			echo $file;
-		}
+
+		if(file_exists($file)) return $file; // Just to be safe, we check if the file exist first
+
+		//the missing file used to be echoed here, which printed the absolute server path into the page for
+		if(defined('WP_DEBUG') && WP_DEBUG) error_log('RevSlider: page template not found: ' . $file);
 
 		return $template;
 	}

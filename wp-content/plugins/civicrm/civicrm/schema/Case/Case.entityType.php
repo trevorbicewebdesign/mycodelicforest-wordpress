@@ -119,7 +119,7 @@ return [
     'details' => [
       'title' => ts('Details'),
       'sql_type' => 'text',
-      'input_type' => 'TextArea',
+      'input_type' => 'RichTextEditor',
       'description' => ts('Details populated from Open Case. Only used in the CiviCase extension.'),
       'add' => '1.8',
       'input_attrs' => [
@@ -145,6 +145,7 @@ return [
       ],
       'pseudoconstant' => [
         'option_group_name' => 'case_status',
+        'condition_provider' => ['CRM_Case_BAO_Case', 'alterStatusOptions'],
       ],
     ],
     'is_deleted' => [

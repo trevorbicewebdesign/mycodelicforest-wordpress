@@ -42,6 +42,7 @@ if(!class_exists('Rev_Aq_Resize')){
 
         /**
          * For your custom default usage you may want to initialize an Aq_Resize object by yourself and then have own defaults
+         * @return Aq_Resize
          */
         static public function getInstance() {
             if(self::$instance == null) {
@@ -53,13 +54,14 @@ if(!class_exists('Rev_Aq_Resize')){
 
         /**
          * Run, forest.
+         * @return string|array the resized image URL, or [url, width, height] when $single is false
          */
         public function process( $url, $width = null, $height = null, $crop = null, $single = true, $upscale = false ) {
             // Validate inputs.
             if ( ! $url || ( ! $width && ! $height ) ) return false;
 
             // Caipt'n, ready to hook.
-            if ( true === $upscale ) add_filter( 'image_resize_dimensions', array($this, 'aq_upscale'), 10, 6 );
+            if ( true === $upscale ) add_filter( 'image_resize_dimensions', [$this, 'aq_upscale'], 10, 6 );
 
             // Define upload path & dir.
             $upload_info = wp_upload_dir();
@@ -87,17 +89,19 @@ if(!class_exists('Rev_Aq_Resize')){
             $img_path = $upload_dir . $rel_path;
 
             // Check if img path exists, and is an image indeed.
-            if ( ! file_exists( $img_path ) or ! @getimagesize( $img_path ) ) return false;
+            if ( ! file_exists( $img_path ) ) return false;
+            $size = @getimagesize( $img_path );
+            if ( ! $size ) return false;
 
             // Get image info.
             $info = pathinfo( $img_path );
             $ext = $info['extension'];
-            list( $orig_w, $orig_h ) = getimagesize( $img_path );
+            list( $orig_w, $orig_h ) = $size; // reuse the getimagesize() result instead of calling it a second time
 
             // Get image size after cropping.
             $dims = image_resize_dimensions( $orig_w, $orig_h, $width, $height, $crop );
-            $dst_w = $dims[4];
-            $dst_h = $dims[5];
+            $dst_w = $dims ? $dims[4] : false;
+            $dst_h = $dims ? $dims[5] : false;
 
             // Return the original image only if it exactly fits the needed measures.
             if ( ! $dims && ( ( ( null === $height && $orig_w == $width ) xor ( null === $width && $orig_h == $height ) ) xor ( $height == $orig_h && $width == $orig_w ) ) ) {
@@ -139,7 +143,7 @@ if(!class_exists('Rev_Aq_Resize')){
             }
 
             // Okay, leave the ship.
-            if ( true === $upscale ) remove_filter( 'image_resize_dimensions', array( $this, 'aq_upscale' ) );
+            if ( true === $upscale ) remove_filter( 'image_resize_dimensions', [$this, 'aq_upscale']);
 
             // Return the output.
             if ( $single ) {
@@ -147,11 +151,11 @@ if(!class_exists('Rev_Aq_Resize')){
                 $image = $img_url;
             } else {
                 // array return.
-                $image = array (
+                $image = [
                     0 => $img_url,
                     1 => $dst_w,
                     2 => $dst_h
-                );
+                ];
             }
 
             return $image;
@@ -159,6 +163,7 @@ if(!class_exists('Rev_Aq_Resize')){
 
         /**
          * Callback to overwrite WP computing of thumbnail measures
+         * @return array|null new crop dimensions when upscaling is allowed
          */
         function aq_upscale( $default, $orig_w, $orig_h, $dest_w, $dest_h, $crop ) {
             if ( ! $crop ) return null; // Let the wordpress default function handle this.
@@ -184,7 +189,7 @@ if(!class_exists('Rev_Aq_Resize')){
             $s_x = floor( ( $orig_w - $crop_w ) / 2 );
             $s_y = floor( ( $orig_h - $crop_h ) / 2 );
 
-            return array( 0, 0, (int) $s_x, (int) $s_y, (int) $new_w, (int) $new_h, (int) $crop_w, (int) $crop_h );
+            return [0, 0, (int) $s_x, (int) $s_y, (int) $new_w, (int) $new_h, (int) $crop_w, (int) $crop_h];
         }
     }
 }
@@ -195,6 +200,7 @@ if(!function_exists('rev_aq_resize')){
     /**
      * This is just a tiny wrapper function for the class above so that there is no
      * need to change any code in your own WP themes. Usage is still the same :)
+     * @return string|array
      */
     function rev_aq_resize($url, $width = null, $height = null, $crop = null, $single = true, $upscale = false){
 		/* WPML Fix */

@@ -9,6 +9,33 @@ class GF_Field_CreditCard extends GF_Field {
 
 	public $type = 'creditcard';
 
+	/**
+	 * Whether there can be more than one of this field type per form.
+	 *
+	 * @since 3.0
+	 *
+	 * @var bool
+	 */
+	public $duplicatable = false;
+
+	/**
+	 * Whether the field can be used in a repeater.
+	 *
+	 * @since 3.0
+	 *
+	 * @var bool
+	 */
+	public $repeatable = false;
+
+	/**
+	 * Indicates the field is used to capture payments.
+	 *
+	 * @since 2.9.23
+	 *
+	 * @var bool
+	 */
+	public $is_payment = true;
+
 	public function get_form_editor_field_title() {
 		return esc_attr__( 'Credit Card', 'gravityforms' );
 	}
@@ -92,7 +119,7 @@ class GF_Field_CreditCard extends GF_Field {
 		foreach ( $this->inputs as $input ) {
 			$input_id    = str_replace( $this->id . '.', '', $input['id'] );
 			$input_value = GFForms::get( $input['id'], $values );
-			if ( ! empty( $_POST[ 'is_submit_' . $this->formId ] ) && $this->isRequired && in_array( $input_id, $required_inputs_ids ) &&  empty( $input_value ) ) {
+			if ( ! empty( $_POST[ 'is_submit_' . $this->formId ] ) && $this->isRequired && in_array( $input_id, $required_inputs_ids ) &&  empty( $input_value ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 				$describedby_attributes[ $input_id ] = "aria-describedby='validation_message_{$this->formId}_{$this->id} {$warning_container_id}'";
 			} else {
 				$describedby_attributes[ $input_id ] = empty( $warning_container_id ) ? '' : "aria-describedby='{$warning_container_id}'";
@@ -215,11 +242,9 @@ class GF_Field_CreditCard extends GF_Field {
 		$disabled_text = $is_form_editor ? "disabled='disabled'" : '';
 		$class_suffix  = $is_entry_detail ? '_admin' : '';
 
+		$is_sub_label_above        = $this->is_sub_label_above( $form );
 
-		$form_sub_label_placement = rgar( $form, 'subLabelPlacement' );
-		$field_sub_label_placement = $this->subLabelPlacement;
-		$is_sub_label_above       = $field_sub_label_placement == 'above' || ( empty( $field_sub_label_placement ) && $form_sub_label_placement == 'above' );
-		$sub_label_class          = $field_sub_label_placement == 'hidden_label' ? "hidden_sub_label screen-reader-text" : '';
+		$sub_label_class = $this->subLabelPlacement  == 'hidden_label' ? "hidden_sub_label screen-reader-text" : '';
 
 		$card_number      = '';
 		$card_name        = '';
@@ -497,17 +522,33 @@ class GF_Field_CreditCard extends GF_Field {
 
 	}
 
-	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
+	/**
+	 * Format the entry value for display on the entry detail page and for the {all_fields} merge tag.
+	 *
+	 * @since 1.9
+	 * @since 2.9.29 Changed the second parameter $currency (string) to $entry (array).
+	 *
+	 * @param string|array $value    The field value.
+	 * @param array        $entry    The entry.
+	 * @param bool|false   $use_text When processing choice based fields should the choice text be returned instead of the value.
+	 * @param string       $format   The format requested for the location the merge is being used. Possible values: html, text or url.
+	 * @param string       $media    The location where the value will be displayed. Possible values: screen or email.
+	 *
+	 * @return string
+	 */
+	public function get_value_entry_detail( $value, $entry = array(), $use_text = false, $format = 'html', $media = 'screen' ) {
 
 		if ( is_array( $value ) ) {
 			$card_number = trim( rgget( $this->id . '.1', $value ) );
 			$card_type   = trim( rgget( $this->id . '.4', $value ) );
 			$separator   = $format == 'html' ? '<br/>' : "\n";
-
+			if ( $format === 'html' ) {
+				$card_type   = esc_html( $card_type );
+				$card_number = esc_html( $card_number );
+			}
 			return empty( $card_number ) ? '' : $card_type . $separator . $card_number;
-		} else {
-			return '';
 		}
+		return '';
 	}
 
 	public function get_form_inline_script_on_page_render( $form ) {
@@ -554,7 +595,21 @@ class GF_Field_CreditCard extends GF_Field {
 		return $inputs;
 	}
 
-	public function get_value_save_entry( $value, $form, $input_name, $lead_id, $lead ) {
+	/**
+	 * Sanitize and format the value before it is saved to the Entry Object.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $value          The value to be saved.
+	 * @param array  $form           The Form object currently being processed.
+	 * @param string $input_name     The input name used when accessing the $_POST.
+	 * @param int    $entry_id        The ID of the entry currently being processed.
+	 * @param array  $entry           The entry currently being processed.
+	 * @param string $repeater_index The repeater index if the field is inside a repeater.
+	 *
+	 * @return array|string The sanitized and formatted input value to be saved.
+	 */
+	public function get_value_save_input( $value, $form, $input_name, $entry_id, $entry, $repeater_index = '' ) {
 
 		//saving last 4 digits of credit card
 		list( $input_token, $field_id_token, $input_id ) = rgexplode( '_', $input_name, 3 );
@@ -564,13 +619,12 @@ class GF_Field_CreditCard extends GF_Field {
 			$value              = substr( $value, - 4, 4 );
 			$value              = str_pad( $value, $card_number_length, 'X', STR_PAD_LEFT );
 		} elseif ( $input_id == '4' ) {
-
 			$value = rgpost( "input_{$field_id_token}_4" );
 
 			if ( ! $value ) {
 				$card_number = rgpost( "input_{$field_id_token}_1" );
 				$card_type   = GFCommon::get_card_type( $card_number );
-				$value       = $card_type ? $card_type['name'] : '';
+				$value       = $card_type ? strip_tags( $card_type['name'] ) : '';
 			}
 		} else {
 			$value = '';

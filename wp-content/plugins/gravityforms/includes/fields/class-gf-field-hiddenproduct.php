@@ -104,20 +104,34 @@ class GF_Field_HiddenProduct extends GF_Field {
 		return "<div class='ginput_container ginput_container_product_price_hidden'>" . $quantity_field . $product_name_field . "<input name='input_{$id}.2' id='ginput_base_price_{$form_id}_{$this->id}' type='{$field_type}' value='{$price}' class='gform_hidden ginput_amount' {$disabled_text}/></div>";
 	}
 
-	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
+	/**
+	 * Format the entry value for display on the entry detail page and for the {all_fields} merge tag.
+	 *
+	 * @since 1.9
+	 * @since 2.9.29 Changed the second parameter $currency (string) to $entry (array).
+	 *
+	 * @param string|array $value    The field value.
+	 * @param array        $entry    The entry.
+	 * @param bool|false   $use_text When processing choice based fields should the choice text be returned instead of the value.
+	 * @param string       $format   The format requested for the location the merge is being used. Possible values: html, text or url.
+	 * @param string       $media    The location where the value will be displayed. Possible values: screen or email.
+	 *
+	 * @return string
+	 */
+	public function get_value_entry_detail( $value, $entry = array(), $use_text = false, $format = 'html', $media = 'screen' ) {
 		if ( is_array( $value ) && ! empty( $value ) ) {
 			$product_name = trim( $value[ $this->id . '.1' ] );
 			$price        = trim( $value[ $this->id . '.2' ] );
 			$quantity     = trim( $value[ $this->id . '.3' ] );
 
-			$product_details = $product_name;
+			$product_details = wp_kses( $product_name, wp_kses_allowed_html( 'data' ) );
 
 			if ( ! rgblank( $quantity ) ) {
-				$product_details .= ', ' . esc_html__( 'Qty: ', 'gravityforms' ) . $quantity;
+				$product_details .= ', ' . esc_html__( 'Qty: ', 'gravityforms' ) . wp_kses( $quantity, wp_kses_allowed_html( 'data' ) );
 			}
 
 			if ( ! rgblank( $price ) ) {
-				$product_details .= ', ' . esc_html__( 'Price: ', 'gravityforms' ) . GFCommon::format_number( $price, 'currency', $currency );
+				$product_details .= ', ' . esc_html__( 'Price: ', 'gravityforms' ) . wp_kses( GFCommon::format_number( $price, 'currency', rgar( $entry, 'currency' ) ), wp_kses_allowed_html( 'data' ) );
 			}
 
 			return $product_details;
@@ -131,6 +145,57 @@ class GF_Field_HiddenProduct extends GF_Field {
 
 		$price_number    = GFCommon::to_number( $this->basePrice );
 		$this->basePrice = GFCommon::to_money( $price_number );
+	}
+
+	/**
+	 * Prepares the value that will be hashed on form display as part of the state.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|array $value The default value.
+	 *
+	 * @return null|array
+	 */
+	public function get_values_for_state_hash( $value ) {
+		$id         = $this->id;
+		$input_1_id = "{$id}.1";
+		$input_2_id = "{$id}.2";
+		$price      = rgar( $value, $input_2_id, $this->basePrice );
+		if ( empty( $price ) ) {
+			$price = 0;
+		}
+
+		return array(
+			$input_1_id => rgar( $value, $input_1_id, $this->label ),
+			$input_2_id => GFCommon::to_number( $price ),
+		);
+	}
+
+	/**
+	 * Returns the value to use when the state is validated.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|array $value The submitted value.
+	 *
+	 * @return array
+	 */
+	public function get_value_for_state_validation( $value ) {
+		$key           = $this->id . '.2';
+		$value[ $key ] = GFCommon::to_number( $value[ $key ] );
+
+		return $value;
+	}
+
+	/**
+	 * Returns the validation message to be applied when the field has failed state validation.
+	 *
+	 * @since 3.0
+	 *
+	 * @return string
+	 */
+	public function get_state_validation_message() {
+		return esc_html__( 'The value of this hidden field has been reset to default because the submitted value does not match the expected value.', 'gravityforms' );
 	}
 
 }

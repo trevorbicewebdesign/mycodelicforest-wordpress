@@ -21,32 +21,11 @@
 class CRM_Contact_Form_Task extends CRM_Core_Form_Task {
 
   /**
-   * The task being performed
-   *
-   * @var int
-   */
-  protected $_task;
-
-  /**
-   * The array that holds all the contact ids
-   *
-   * @var array
-   */
-  public $_contactIds;
-
-  /**
    * The array that holds all the contact types
    *
    * @var array
    */
-  public $_contactTypes;
-
-  /**
-   * The additional clause that we restrict the search with
-   *
-   * @var string
-   */
-  protected $_componentClause = NULL;
+  public $_contactTypes = [];
 
   /**
    * The name of the temp table where we store the contact IDs
@@ -54,13 +33,6 @@ class CRM_Contact_Form_Task extends CRM_Core_Form_Task {
    * @var string
    */
   protected $_componentTable = NULL;
-
-  /**
-   * The array that holds all the component ids
-   *
-   * @var array
-   */
-  protected $_componentIds;
 
   /**
    * This includes the submitted values of the search form
@@ -84,7 +56,6 @@ class CRM_Contact_Form_Task extends CRM_Core_Form_Task {
    */
   public static function preProcessCommon(&$form) {
     $form->_contactIds = [];
-    $form->_contactTypes = [];
 
     $isStandAlone = in_array('task', $form->urlPath) || in_array('standalone', $form->urlPath) || in_array('map', $form->urlPath);
     if ($isStandAlone) {
@@ -192,7 +163,7 @@ class CRM_Contact_Form_Task extends CRM_Core_Form_Task {
         $selectedTypes = explode(' ', $selectedTypes);
       }
       foreach ($selectedTypes as $ct => $dontcare) {
-        if (strpos($ct, CRM_Core_DAO::VALUE_SEPARATOR) === FALSE) {
+        if (!str_contains($ct, CRM_Core_DAO::VALUE_SEPARATOR)) {
           $form->_contactTypes[] = $ct;
         }
         else {
@@ -447,7 +418,7 @@ class CRM_Contact_Form_Task extends CRM_Core_Form_Task {
     if ($searchParams['radio_ts'] == 'ts_sel') {
       // Create a static group.
       // groups require a unique name
-      $randID = md5(time() . rand(1, 1000));
+      $randID = bin2hex(random_bytes(16));
       $grpTitle = "Hidden Group {$randID}";
       $grpID = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Group', $grpTitle, 'id', 'title');
 
@@ -459,7 +430,7 @@ class CRM_Contact_Form_Task extends CRM_Core_Form_Task {
           'group_type' => ['2' => 1],
         ];
 
-        $group = CRM_Contact_BAO_Group::create($groupParams);
+        $group = CRM_Contact_BAO_Group::writeRecord($groupParams);
         $grpID = $group->id;
 
         CRM_Contact_BAO_GroupContact::addContactsToGroup($this->_contactIds, $group->id);
@@ -471,7 +442,7 @@ class CRM_Contact_Form_Task extends CRM_Core_Form_Task {
           'title' => $newGroupTitle,
           'group_type' => ['2' => 1],
         ];
-        CRM_Contact_BAO_Group::create($groupParams);
+        CRM_Contact_BAO_Group::writeRecord($groupParams);
       }
 
       // note at this point its a static group
@@ -497,6 +468,10 @@ class CRM_Contact_Form_Task extends CRM_Core_Form_Task {
       return [$smartGroupId, $savedSearchId];
     }
 
+  }
+
+  public function getDefaultEntity() {
+    return 'Contact';
   }
 
 }

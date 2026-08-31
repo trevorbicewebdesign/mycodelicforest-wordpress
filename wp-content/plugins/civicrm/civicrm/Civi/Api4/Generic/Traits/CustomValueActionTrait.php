@@ -85,8 +85,8 @@ trait CustomValueActionTrait {
         $tableName = CoreUtil::getTableName($this->getEntityName());
         $items[$idx]['id'] = (int) \CRM_Core_DAO::singleValueQuery('SELECT MAX(id) FROM ' . $tableName);
       }
-      FormattingUtil::formatOutputValues($items[$idx], $fields, 'create');
     }
+    FormattingUtil::formatOutputValues($items, $fields, 'create');
     return $items;
   }
 
@@ -113,7 +113,7 @@ trait CustomValueActionTrait {
    */
   protected function fillDefaults(&$params) {
     foreach ($this->entityFields() as $name => $field) {
-      if (!isset($params[$name]) && isset($field['default_value'])) {
+      if (isset($field['default_value']) && !FormattingUtil::hasField($name, $params)) {
         $params[$name] = $field['default_value'];
       }
     }

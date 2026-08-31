@@ -1,5 +1,4 @@
 <?php
-
 $table = new CampManagerTotesTable();
 $table->process_bulk_action();
 $table->prepare_items();

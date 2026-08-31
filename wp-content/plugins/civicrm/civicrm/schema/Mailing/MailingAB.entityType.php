@@ -32,7 +32,7 @@ return [
       'description' => ts('Status'),
       'add' => '4.6',
       'pseudoconstant' => [
-        'callback' => 'CRM_Mailing_PseudoConstant::abStatus',
+        'callback' => ['CRM_Mailing_PseudoConstant', 'abStatus'],
       ],
     ],
     'mailing_id_a' => [
@@ -61,6 +61,7 @@ return [
       'sql_type' => 'int unsigned',
       'input_type' => 'Number',
       'required' => TRUE,
+      'default_callback' => ['CRM_Core_BAO_Domain', 'getDomainID'],
       'description' => ts('Which site is this mailing for'),
       'add' => '4.6',
     ],
@@ -70,7 +71,7 @@ return [
       'input_type' => 'Select',
       'add' => '4.6',
       'pseudoconstant' => [
-        'callback' => 'CRM_Mailing_PseudoConstant::abTestCriteria',
+        'callback' => ['CRM_Mailing_PseudoConstant', 'abTestCriteria'],
       ],
     ],
     'winner_criteria' => [
@@ -79,7 +80,7 @@ return [
       'input_type' => 'Select',
       'add' => '4.6',
       'pseudoconstant' => [
-        'callback' => 'CRM_Mailing_PseudoConstant::abWinnerCriteria',
+        'callback' => ['CRM_Mailing_PseudoConstant', 'abWinnerCriteria'],
       ],
     ],
     'specific_url' => [

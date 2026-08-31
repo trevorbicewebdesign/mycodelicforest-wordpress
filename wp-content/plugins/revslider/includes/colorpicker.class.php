@@ -8,6 +8,13 @@
 if(!defined('ABSPATH')) exit();
 
 if(!class_exists('RSColorpicker')){
+	/**
+	 * Colour handling for the editor's colour picker.
+	 *
+	 * A colour value is either a plain CSS colour, or - for gradients - a JSON array of stops that starts
+	 * with "[{". process() is the central entry point: it normalizes whatever came from the database into
+	 * [css value, type], so callers do not have to know which of the historic formats they were handed.
+	 */
 	class RSColorpicker {
 		
 		/**
@@ -18,7 +25,9 @@ if(!class_exists('RSColorpicker')){
 		
 		/**
 		 * get a value
+		 * the ready-to-use CSS value for any stored colour or gradient
 		 * @since 5.3.1.6
+		 * @return string
 		 */
 		public static function get($val){
 	        if(!$val || empty($val)) return 'transparent';
@@ -28,11 +37,14 @@ if(!class_exists('RSColorpicker')){
 		
 		/**
 		 * parse a color
+		 * @param string|false $prop            optional CSS property, e.g. 'background' - wraps the value in "prop: value;"
+		 * @param bool         $returnColorType also return the detected type in index 1
 		 * @since 5.3.1.6
+		 * @return array
 		 */
 		public static function parse($val, $prop, $returnColorType){
 			$val = RSColorpicker::process($val, true);
-			$ar = array();
+			$ar = [];
 			$ar[0] = (!$prop) ? $val[0] : $prop . ': ' . $val[0] . ';';
 			
 			if($returnColorType) $ar[1] = $val[1];
@@ -43,7 +55,9 @@ if(!class_exists('RSColorpicker')){
 
 		/**
 		 * convert a color
+		 * applies a legacy separate opacity value to a colour, producing rgba() where needed
 		 * @since 5.3.1.6
+		 * @return string
 		 */
 		public static function convert($color, $opacity = '100'){
 			if($opacity == 'transparent') return 'rgba(0,0,0,0)';
@@ -79,56 +93,60 @@ if(!class_exists('RSColorpicker')){
 
 		/**
 		 * process color
+		 * the central normalizer: takes any stored colour (plain, gradient JSON, gradient CSS) and returns
+		 * [css value, type] - plus the decoded gradient in index 2 for gradients
+		 * @param bool $processColor also sanitize the gradient stops
 		 * @since 5.3.1.6
+		 * @return array
 		 */
 		public static function process($clr, $processColor = false){
 			if(!is_string($clr)){
 				if($processColor) $clr = RSColorpicker::sanatizeGradient($clr);
-				return array(RSColorpicker::processGradient($clr), 'gradient', $clr);
+				return [RSColorpicker::processGradient($clr), 'gradient', $clr];
 			}elseif(trim($clr) == 'transparent'){
-				return array('transparent', 'transparent');
+				return ['transparent', 'transparent'];
 			}elseif(strpos($clr, '[{') !== false){
 				try{
 					$clr = json_decode(str_replace("amp;", '',str_replace("&", '"', $clr)), true);
 
 					if($processColor) $clr = RSColorpicker::sanatizeGradient($clr);
 
-					return array(RSColorpicker::processGradient($clr), 'gradient', $clr);
+					return [RSColorpicker::processGradient($clr), 'gradient', $clr];
 				}catch(Exception $e){
-					return array(
+					return [
 						'linear-gradient(0deg, rgb(255, 255, 255) 0%, rgb(0, 0, 0) 100%)', 
 						'gradient',
-						array(
+						[
 							'type' => 'linear',
 							'angle' => '0',
-							'colors' => array(
-								array(
+							'colors' => [
+								[
 									'r' => '255',
 									'g' => '255',
 									'b' => '255',
 									'a' => '1',
 									'position' => '0',
 									'align' => 'bottom'
-								),
-								array(
+								],
+								[
 									'r' => '0',
 									'g' => '0',
 									'b' => '0',
 									'a' => '1',
 									'position' => '100',
 									'align' => 'bottom'
-								)
-							)
-						)
-					);
+								]
+							]
+						]
+					];
 				}
 			}elseif(strpos($clr, '-gradient') !== false){
 				// gradient was not stored as a JSON string for some reason and needs to be converted
 				$reversed = RSColorpicker::reverseGradient($clr);
-				return array(RSColorpicker::processGradient($reversed), 'gradient_css', $reversed);
+				return [RSColorpicker::processGradient($reversed), 'gradient_css', $reversed];
 				
 			}elseif(strpos($clr,'#') !== false){
-				return array(RSColorpicker::sanitizeHex($clr), 'hex');
+				return [RSColorpicker::sanitizeHex($clr), 'hex'];
 			}elseif(strpos($clr,'rgba') !== false){
 				$clr = preg_replace('/\s+/', '', $clr);
 				
@@ -139,21 +157,23 @@ if(!class_exists('RSColorpicker')){
 					$clr = $clr[0] . ',1)';
 				}
 				
-				return array($clr, 'rgba');
+				return [$clr, 'rgba'];
 			}else{
 				$clr = preg_replace('/\s+/', '', $clr);
-				return array($clr, 'rgb');
+				return [$clr, 'rgb'];
 			}
 		}
 
 		/**
 		 * sanitize a gradient
+		 * casts every stop to int/float and drops stops identical to their predecessor
 		 * @since 5.3.1.6
+		 * @return array
 		 */
 		public static function sanatizeGradient($obj){
 			$colors = $obj['colors'];
 			$len = count($colors);
-			$ar = array();
+			$ar = [];
 
 			for($i = 0; $i < $len; $i++){
 				$cur = $colors[$i];
@@ -184,7 +204,9 @@ if(!class_exists('RSColorpicker')){
 		
 		/**
 		 * cleans up the alpha value for comparison operations
+		 * clamped to 0..1 and stripped of trailing zeros, so 0.50 and .5 compare equal
 		 * @since 6.0
+		 * @return float
 		 */
 		 public static function sanitizeAlpha($alpha){
 			$alpha = floatval($alpha);
@@ -198,7 +220,9 @@ if(!class_exists('RSColorpicker')){
 		
 		/**
 		 * accounting for cases where gradient doesn't exist as a JSON Object from previous templates for some reason
+		 * parses a CSS gradient string back into the stop array format
 		 * @since 6.0
+		 * @return array|string the stop array, or the input unchanged when it cannot be parsed
 		 */
 		public static function reverseGradient($str){
 			// hsl colors not supported yet
@@ -231,7 +255,7 @@ if(!class_exists('RSColorpicker')){
 			if($grad[strlen($grad) - 1] === ',') $grad = rtrim($grad, ',');
 			
 			$colors = explode('%', $grad);
-			$list = array();
+			$list = [];
 			
 			array_pop($colors);
 			$prev = false;
@@ -276,17 +300,19 @@ if(!class_exists('RSColorpicker')){
 				$prev = $clr;
 				
 				$clr = RSColorpicker::rgbValues($clr, 4);
-				$list[] = array('r' => $clr[0], 'g' => $clr[1], 'b' => $clr[2], 'a' => $clr[3], 'position' => $perc, 'align' => 'top');
+				$list[] = ['r' => $clr[0], 'g' => $clr[1], 'b' => $clr[2], 'a' => $clr[3], 'position' => $perc, 'align' => 'top'];
 			
 			}
 			
-			return array('type' => trim($gradient[0]), 'angle' => $degree, 'colors' => $list);
+			return ['type' => trim($gradient[0]), 'angle' => $degree, 'colors' => $list];
 		
 		}
 		
 		/**
 		 * create the gradient
+		 * inserts interpolated stops so the gradient follows the configured easing curve
 		 * @since 6.0
+		 * @return void $gradient is modified in place
 		 */
 		 public static function easeGradient(&$gradient){
 			include_once(RS_PLUGIN_PATH . 'includes/coloreasing.class.php');
@@ -296,7 +322,7 @@ if(!class_exists('RSColorpicker')){
 				$points = $gradient['colors'];
 				
 				$len = count($points) - 1;
-				$ar = array();
+				$ar = [];
 
 				for($i = 0; $i < $len; $i++){
 					$ar[] = $points[$i];
@@ -310,7 +336,9 @@ if(!class_exists('RSColorpicker')){
 
 		/**
 		 * create the gradient
+		 * renders the stop array as a CSS linear/radial-gradient()
 		 * @since 5.3.1.6
+		 * @return string
 		 */
 		public static function processGradient($obj){
 			if(!is_array($obj)) return 'transparent';
@@ -345,7 +373,10 @@ if(!class_exists('RSColorpicker')){
 
 		/**
 		 * get rgb values
+		 * @param string $values an "rgb(...)" / "rgba(...)" string
+		 * @param int    $num    how many components to return (3 or 4)
 		 * @since 5.3.1.6
+		 * @return array|string the components, or the input unchanged when it is not a rgb/rgba string
 		 */
 		public static function rgbValues($values, $num){
 			if(empty($values)) return $values;
@@ -371,7 +402,9 @@ if(!class_exists('RSColorpicker')){
 
 		/**
 		 * get an rgba string
+		 * an alpha above 1 is treated as a percentage
 		 * @since 5.3.1.6
+		 * @return string
 		 */
 		public static function rgbaString($r, $g, $b, $a){
 			if($a > 1){
@@ -384,6 +417,7 @@ if(!class_exists('RSColorpicker')){
 		/**
 		 * change rgb to hex
 		 * @since 5.3.1.6
+		 * @return string
 		 */
 		public static function rgbToHex($clr){
 			$values = RSColorpicker::rgbValues($clr, 3);
@@ -392,7 +426,9 @@ if(!class_exists('RSColorpicker')){
 
 		/**
 		 * change rgba to hex
+		 * the alpha channel is dropped
 		 * @since 5.3.1.6
+		 * @return string
 		 */
 		public static function rgbaToHex($clr){
 			$values = RSColorpicker::rgbValues($clr, 4);
@@ -411,9 +447,10 @@ if(!class_exists('RSColorpicker')){
 		/**
 		 * change rgb to hex
 		 * @since 5.3.1.6
+		 * @return string
 		 */
 		public static function getRgbToHex($r, $g, $b){
-			$rgb = array($r, $g, $b);
+			$rgb = [$r, $g, $b];
 			$hex = "#";
 	   		$hex .= str_pad(dechex($rgb[0]), 2, "0", STR_PAD_LEFT);
 	   		$hex .= str_pad(dechex($rgb[1]), 2, "0", STR_PAD_LEFT);
@@ -423,7 +460,9 @@ if(!class_exists('RSColorpicker')){
 
 		/**
 		 * join it together to be rgba
+		 * splits the legacy "color||opacity" storage format and converts it
 		 * @since 5.3.1.6
+		 * @return string
 		 */
 		public static function joinToRgba($val){
 			$val = explode('||', $val);
@@ -433,6 +472,7 @@ if(!class_exists('RSColorpicker')){
 		/**
 		 * rgb to rgba
 		 * @since 6.0
+		 * @return string
 		 */
 		public static function rgbToRgba($val){
 			$val = RSColorpicker::rgbValues($val, 4);
@@ -440,8 +480,9 @@ if(!class_exists('RSColorpicker')){
 		}
 		
 		/**
-		 * convert rgba with 100% opacity to hex
+		 * shorten #aabbcc to #abc where possible
 		 * @since 6.0
+		 * @return string
 		 */
 		public static function trimHex($color){
 			$color = trim($color);
@@ -460,7 +501,9 @@ if(!class_exists('RSColorpicker')){
 		
 		/**
 		* the legacy opacity to rgba conversions and also checks for gradients
+		* leaves gradients and non-strings untouched
 		* @since: 6.0
+		* @return mixed
 		*/
 		public function correctValue($color, $opacity = false) {
 			if(!is_string($color)) return $color; // unknown value
@@ -480,6 +523,7 @@ if(!class_exists('RSColorpicker')){
 		 * for example, this function will convert both"
 		 * "rgba(255,255, 255,1)" and "#FFFFFF" to "#FFF"
 		 * @since: 6.0
+		 * @return string
 		 */  
 		public static function normalizeColor($color) {
 			if(empty(trim($color))) return $color;
@@ -508,7 +552,9 @@ if(!class_exists('RSColorpicker')){
 		
 		/**
 		 * normalize colors for comparison
+		 * accepts a single colour or a list and normalizes each
 		 * @since: 6.0
+		 * @return mixed
 		 */  
 		public static function normalizeColors($color){
 			if(is_object($color)) $color = (array)$color;
@@ -524,7 +570,9 @@ if(!class_exists('RSColorpicker')){
 		
 		/**
 		 * convert rgba with 100% opacity to hex
+		 * a fully opaque rgba() is stored as hex instead
 		 * @since 6.0
+		 * @return string
 		 */
 		public static function sanitizeRgba($color, $opacity = false){
 			if($opacity){
@@ -543,7 +591,9 @@ if(!class_exists('RSColorpicker')){
 
 		/**
 		 * process rgba
+		 * hex to "rgb(r,g,b)", or "rgba(r,g,b,a)" when an opacity is given
 		 * @since 5.3.1.6
+		 * @return string
 		 */
 		public static function processRgba($hex, $opacity = false){
 			$hex = trim(str_replace('#', '' , $hex));
@@ -568,7 +618,9 @@ if(!class_exists('RSColorpicker')){
 
 		/**
 		 * sanitize hex
+		 * expands the 3 digit shorthand and puts the # back
 		 * @since 5.3.1.6
+		 * @return string
 		 */
 		public static function sanitizeHex($hex){
 			$hex = trim(str_replace('#', '' , $hex));
@@ -585,10 +637,14 @@ if(!class_exists('RSColorpicker')){
 		
 		/**
 		 * Save presets
+		 * the colour swatches the user saved in the editor
 		 * @since 5.3.2
+		 * @return array the stored presets
 		 */
 		public static function save_color_presets($presets){
-			update_option('tp_colorpicker_presets', $presets);
+			$f = RevSliderGlobals::instance()->get('RevSliderFunctions');
+			$f->update_option(['presets', 'colorpicker'], $presets);
+			
 			return self::get_color_presets();
 		}
 		
@@ -596,9 +652,12 @@ if(!class_exists('RSColorpicker')){
 		/**
 		 * Load presets
 		 * @since 5.3.2
+		 * @return array
 		 */
 		public static function get_color_presets(){
-			return get_option('tp_colorpicker_presets', array());
+			$f = RevSliderGlobals::instance()->get('RevSliderFunctions');
+			
+			return $f->get_options(['presets', 'colorpicker'], []);
 		}
 		
 	}

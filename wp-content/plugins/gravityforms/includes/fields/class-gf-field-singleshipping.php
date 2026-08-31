@@ -10,6 +10,24 @@ class GF_Field_SingleShipping extends GF_Field {
 	public $type = 'singleshipping';
 
 	/**
+	 * Whether there can be more than one of this field type per form.
+	 *
+	 * @since 3.0
+	 *
+	 * @var bool
+	 */
+	public $duplicatable = false;
+
+	/**
+	 * Whether the field can be used in a repeater.
+	 *
+	 * @since 3.0
+	 *
+	 * @var bool
+	 */
+	public $repeatable = false;
+	
+	/**
 	 * Indicates if this field supports state validation.
 	 *
 	 * @since 2.5.11
@@ -62,8 +80,22 @@ class GF_Field_SingleShipping extends GF_Field {
 				</div>";
 	}
 
-	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
-		return GFCommon::to_money( $value, $currency );
+	/**
+	 * Format the entry value for display on the entry detail page and for the {all_fields} merge tag.
+	 *
+	 * @since 1.9
+	 * @since 2.9.29 Changed the second parameter $currency (string) to $entry (array).
+	 *
+	 * @param string|array $value    The field value.
+	 * @param array        $entry    The entry.
+	 * @param bool|false   $use_text When processing choice based fields should the choice text be returned instead of the value.
+	 * @param string       $format   The format requested for the location the merge is being used. Possible values: html, text or url.
+	 * @param string       $media    The location where the value will be displayed. Possible values: screen or email.
+	 *
+	 * @return string
+	 */
+	public function get_value_entry_detail( $value, $entry = array(), $use_text = false, $format = 'html', $media = 'screen' ) {
+		return GFCommon::to_money( $value, rgar( $entry, 'currency' ) );
 	}
 
 	public function sanitize_settings() {
@@ -90,6 +122,38 @@ class GF_Field_SingleShipping extends GF_Field {
 
 		// Ensure the choices property is not an array to prevent issues with some features such as the conditional logic reset to default.
 		$this->choices = null;
+	}
+
+	/**
+	 * Prepares the value that will be hashed on form display as part of the state.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|array $value The value on display.
+	 *
+	 * @return array
+	 */
+	public function get_values_for_state_hash( $value ) {
+		$id = $this->id;
+
+		return array(
+			$id => ! empty( $value ) ? GFCommon::to_number( $value ) : 0,
+		);
+	}
+
+	/**
+	 * Returns the value to use when the state is validated.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|array $value The submitted value.
+	 *
+	 * @return array
+	 */
+	public function get_value_for_state_validation( $value ) {
+		$id = $this->id;
+
+		return array( $id => GFCommon::to_number( $value ) );
 	}
 
 }

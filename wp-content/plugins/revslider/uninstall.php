@@ -3,7 +3,11 @@ if(!defined('ABSPATH') && !defined('WP_UNINSTALL_PLUGIN')){
 	exit();
 }
 
-//needs to be deleted so that everything gets checked at a new installation
-delete_option('revslider_table_version');
-delete_option('revslider_checktables');
-delete_option('rs_public_version');
+$sr_options = get_option('sr-options', []);
+if(is_array($sr_options)
+	&& isset($sr_options['system']) && is_array($sr_options['system'])
+	&& isset($sr_options['system']['table'])){
+		unset($sr_options['system']['table']);
+
+		update_option('sr-options', $sr_options);
+}

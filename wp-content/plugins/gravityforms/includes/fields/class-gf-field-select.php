@@ -73,6 +73,38 @@ class GF_Field_Select extends GF_Field {
 		return true;
 	}
 
+	/**
+	 * Indicates if state validation should be skipped if the submitted value is blank.
+	 *
+	 * Value will be blank when the placeholder is selected.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|int $key The field or input ID.
+	 *
+	 * @return bool
+	 */
+	public function skip_state_validation_if_blank( $key ) {
+		return ! rgblank( $this->placeholder );
+	}
+
+	/**
+	 * Prepares the value that will be hashed on form display as part of the state.
+	 *
+	 * @since 3.0
+	 *
+	 * @param string|array $value The default value.
+	 *
+	 * @return null|array
+	 */
+	public function get_values_for_state_hash( $value ) {
+		$id = $this->id;
+
+		return array(
+			$id => $this->get_choices_for_state_hash(),
+		);
+	}
+
 	public function get_field_input( $form, $value = '', $entry = null ) {
 		$form_id         = absint( $form['id'] );
 		$is_entry_detail = $this->is_entry_detail();
@@ -149,9 +181,9 @@ class GF_Field_Select extends GF_Field {
 
 		foreach ( $items as $input_id => $item ) {
 			if ( $use_value ) {
-				list( $val, $price ) = rgexplode( '|', $item, 2 );
+				list( $val, $price ) = rgexplode( '|', $item, 2, true );
 			} elseif ( $use_price ) {
-				list( $name, $val ) = rgexplode( '|', $item, 2 );
+				list( $name, $val ) = rgexplode( '|', $item, 2, true );
 				if ( $format_currency ) {
 					$val = GFCommon::to_money( $val, rgar( $entry, 'currency' ) );
 				}
@@ -170,8 +202,26 @@ class GF_Field_Select extends GF_Field {
 		return GFCommon::implode_non_blank( ', ', $ary );
 	}
 
-	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
-		return esc_html( $this->get_selected_choice_output( $value, $currency, $use_text ) );
+	/**
+	 * Format the entry value for display on the entry detail page and for the {all_fields} merge tag.
+	 *
+	 * @since 1.9
+	 * @since 2.9.29 Changed the second parameter $currency (string) to $entry (array).
+	 *
+	 * @param string|array $value    The field value.
+	 * @param array        $entry    The entry.
+	 * @param bool|false   $use_text When processing choice based fields should the choice text be returned instead of the value.
+	 * @param string       $format   The format requested for the location the merge is being used. Possible values: html, text or url.
+	 * @param string       $media    The location where the value will be displayed. Possible values: screen or email.
+	 *
+	 * @return string
+	 */
+	public function get_value_entry_detail( $value, $entry = array(), $use_text = false, $format = 'html', $media = 'screen' ) {
+		if ( $this->type === 'post_category' ) {
+			$value = GFCommon::prepare_post_category_value( $value, $this, 'entry_detail' );
+		}
+
+		return esc_html( $this->get_selected_choice_output( $value, rgar( $entry, 'currency' ), $use_text ) );
 	}
 
 	public function get_value_export( $entry, $input_id = '', $use_text = false, $is_csv = false ) {
@@ -187,16 +237,56 @@ class GF_Field_Select extends GF_Field {
 	/**
 	 * Strips all tags from the input value.
 	 *
+	 * @since 1.9
+	 * @since 2.9.18 Added check for state validation.
+	 *
 	 * @param string $value The field value to be processed.
 	 * @param int $form_id The ID of the form currently being processed.
 	 *
 	 * @return string
 	 */
 	public function sanitize_entry_value( $value, $form_id ) {
+		if ( $this->is_state_validation_supported() ) {
+			return parent::sanitize_entry_value( $value, $form_id );
+		}
 
-		$value = wp_strip_all_tags( $value );
+		$sanitized = wp_strip_all_tags( $value );
+		$this->post_entry_value_sanitization( $value, $sanitized, 'wp_strip_all_tags' );
 
-		return $value;
+		return $sanitized;
+	}
+
+	/**
+	 * Sanitize and format the value before it is saved to the Entry Object.
+	 *
+	 * @since 3.0.0
+	 *
+	 * @param string $value          The value to be saved.
+	 * @param array  $form           The Form object currently being processed.
+	 * @param string $input_name     The input name used when accessing the $_POST.
+	 * @param int    $entry_id       The ID of the entry currently being processed.
+	 * @param array  $entry          The entry currently being processed.
+	 * @param string $repeater_index The repeater index if the field is inside a repeater.
+	 *
+	 * @return array|string The sanitized and formatted input value to be saved.
+	 */
+	public function get_value_save_input( $value, $form, $input_name, $entry_id, $entry, $repeater_index = '' ) {
+		$value = parent::get_value_save_input( $value, $form, $input_name, $entry_id, $entry, $repeater_index );
+
+		return $this->clear_blank_price_value( $value );
+	}
+
+	/**
+	 * Forces settings into expected values while saving the form object.
+	 *
+	 * @since 2.9.16
+	 * @access public
+	 *
+	 * @return void
+	 */
+	public function sanitize_settings() {
+		parent::sanitize_settings();
+		$this->enableEnhancedUI = (bool) $this->enableEnhancedUI;
 	}
 
 	// # FIELD FILTER UI HELPERS ---------------------------------------------------------------------------------------
