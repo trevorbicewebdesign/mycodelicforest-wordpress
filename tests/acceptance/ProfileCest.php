@@ -9,6 +9,14 @@ class ProfileCest
     protected $profileIncompleteId;
     public function _before(AcceptanceTester $I)
     {
+        // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
+        // duplicates make wp_signon() log in the oldest one, so start clean.
+        foreach (["testadmin", "testuser"] as $login) {
+            // dontHaveUserInDatabase($login) removes only the first match; remove every row.
+            foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
+                $I->dontHaveUserInDatabase((int) $staleId);
+            }
+        }
         $this->userId = $I->haveUserInDatabase("testuser", "subscriber",[
             "first_name" => "Test",
             "last_name" => "User",
@@ -20,14 +28,15 @@ class ProfileCest
     public function profilePageIsVisible(AcceptanceTester $I)
     {
         $I->loginAs("testuser", "password123!test");
+        $I->waitForElement("#wpadminbar, body.logged-in", 10);
         $I->amOnPage("/profile/");
         $I->see("Profile");
         $I->takeFullPageScreenshot("profile-page");
 
-        $I->see("Name (Required)", "legend.gfield_label");
+        $I->see("Name", "legend.gfield_label");
         $I->see("First", "label[for='input_6_16_3']");
         $I->see("Last", "label[for='input_6_16_6']");
-        $I->see("Email (Required)", "label[for='input_6_18']");
+        $I->see("Email", "label[for='input_6_18']");
         $I->see("Phone Number", "label[for='input_6_5']");
         $I->see("Street Address", "label[for='input_6_9_1']");
         $I->see("Address Line 2", "label[for='input_6_9_2']");
@@ -44,17 +53,19 @@ class ProfileCest
 
         $I->click("Save");
         $I->wait(2);
-        $I->see("There was a problem with your submission, Please review the fields below,");
+        $I->see("There was a problem with your submission");
         $I->takeFullPageScreenshot("profile-page-errors");
 
         $I->fillField("#input_6_16_3", "Test");
         $I->fillField("#input_6_16_6", "User");
+        // Gravity Forms rejects @example.com / @domain.com addresses outright (GF_Field_Email::is_email_rejected).
+        $I->fillField("#input_6_18", "testuser@example.org");
         $I->fillField("#input_6_5", "555-555-5555");
         $I->fillField("#input_6_9_1", "123 Main St");
         $I->fillField("#input_6_9_3", "Anytown");
         $I->fillField("#input_6_9_4", "CA");
         $I->fillField("#input_6_9_5", "12345");
-        $I->selectOption("#input_6_9_6", ["value" => "United States"]);
+        $I->selectOption("#input_6_9_6", "United States"); // GF 3 option values are ISO codes; match by visible name
         $I->fillField("#input_6_13", "This is a test.");
         $I->fillField("#input_6_6", "TestBurner");
         $I->click("#choice_6_19_1");
@@ -65,7 +76,7 @@ class ProfileCest
 
         $I->seeInField("#input_6_16_3", "Test");
         $I->seeInField("#input_6_16_6", "User");
-        $I->seeInFIeld("#input_6_18", "testuser@example.com");
+        $I->seeInFIeld("#input_6_18", "testuser@example.org");
         $I->seeInField("input[name=input_5]", "(555) 555-5555");
         $I->seeInField("#input_6_9_1", "123 Main St");
         $I->seeInField("#input_6_9_3", "Anytown");
@@ -90,7 +101,7 @@ class ProfileCest
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "playa_name","meta_value" => "TestBurner"]);
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "has_attended_burning_man","meta_value" => "No"]);
 
-        $I->seeInDatabase("wp_users", ["ID" => $this->userId, "user_email" => "testuser@example.com"]);
+        $I->seeInDatabase("wp_users", ["ID" => $this->userId, "user_email" => "testuser@example.org"]);
 
    
     }
@@ -98,6 +109,7 @@ class ProfileCest
     public function profileIncompleteFrontEndRedirect(AcceptanceTester $I)
     {
         $I->loginAs("testuser", "password123!test");
+        $I->waitForElement("#wpadminbar, body.logged-in", 10);
         $I->amOnPage("/");
         $I->wait(1);
         $I->seeInCurrentUrl("/profile");

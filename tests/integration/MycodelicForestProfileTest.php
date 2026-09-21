@@ -12,7 +12,10 @@ class MycodelicForestProfileTest extends \lucatume\WPBrowser\TestCase\WPTestCase
 
         $faker = Faker\Factory::create();
         $user_login = $faker->userName();
-        $phone_number = str_replace("+1 ","", $faker->phoneNumber());
+        // Faker's US phone formats include "1-979-962-6478", "001-234-567-8901" and
+        // "x1234" extensions, none of which count as a complete US number, so the old
+        // random value made this suite flaky. Generate a valid (###) ###-#### instead.
+        $phone_number = $faker->numerify('(###) ###-####');
         $user_data = [
             'user_login' => $user_login,
             'user_email' => "{$user_login}@mailinator.com",

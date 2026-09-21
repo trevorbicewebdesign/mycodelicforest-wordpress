@@ -24,7 +24,7 @@ class CampManagerRoster
         }
 
         try {
-              $this->updateMember([
+              $member_id = $this->updateMember([
                 'id' => isset($_POST['id']) ? (int)$_POST['id'] : null,
                 'fname' => isset($_POST['member_fname']) ? sanitize_text_field($_POST['member_fname']) : '',
                 'lname' => isset($_POST['member_lname']) ? sanitize_text_field($_POST['member_lname']) : '',
@@ -39,8 +39,11 @@ class CampManagerRoster
             
         } catch (\Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-add-member&error=' . urlencode($e->getMessage())));
+            exit;
         }
-        wp_redirect(admin_url('admin.php?page=camp-manager-add-member&id=' . (isset($_POST['id']) ? intval($_POST['id']) : 0) ));
+        // Stay on the member's edit form: for a new member that is the id we just created,
+        // not the (empty) id from the request.
+        wp_redirect(admin_url('admin.php?page=camp-manager-add-member&id=' . intval($member_id)));
         exit;
     }
 

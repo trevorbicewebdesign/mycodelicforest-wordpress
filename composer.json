@@ -3,14 +3,15 @@
     "config": {
         "vendor-dir": "vendor",
         "allow-plugins": {
-            "johnpbloch/wordpress-core-installer": true,
             "composer/installers": true
         },
         "preferred-install": "dist",
-        "parallel-install": 1
+        "parallel-install": 1,
+        "platform": {
+            "php": "8.4.0"
+        }
     },
     "extra": {
-        "wordpress-install-dir": "./",
         "installer-paths": {
             "wp-content/plugins/{$name}/": [
                 "type:wordpress-plugin"
@@ -27,16 +28,26 @@
         },
         {
             "type": "vcs",
+            "url": "https://github.com/trevorbicewebdesign/gravityforms.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/trevorbicewebdesign/revslider.git"
+        },
+        {
+            "type": "vcs",
             "url": "https://github.com/trevorbicewebdesign/codeception-mailpit"
         }
     ],
     "require": {
-        "johnpbloch/wordpress": "^7.0",      
+        "trevorbicewebdesign/gravityforms": "^3.1",
+        "trevorbicewebdesign/revslider": "^7.1",
+        "wpackagist-plugin/enable-turnstile-cloudflare-for-gravity-forms": "*",
         "wpackagist-plugin/google-site-kit": "*",
         "wpackagist-plugin/really-simple-ssl": "*",
         "wpackagist-plugin/redirection": "*",
         "wpackagist-plugin/xml-sitemap-generator-for-google": "*",
-        "wpackagist-plugin/email-address-obfuscation":"*",
+        "wpackagist-plugin/email-address-obfuscation": "*",
         "wpackagist-plugin/ultimate-addons-for-gutenberg": "*",
         "wpackagist-plugin/login-with-google": "*",
         "wpackagist-plugin/wordfence": "*",
@@ -45,7 +56,7 @@
         "wpackagist-plugin/members": "*",
         "wpackagist-plugin/loginpress": "*",
         "wpackagist-plugin/svg-support": "*",
-        "wpackagist-theme/spectra-one":"*"
+        "wpackagist-theme/spectra-one": "*"
     },
     "require-dev": {
         "lucatume/wp-browser": "^4.0",

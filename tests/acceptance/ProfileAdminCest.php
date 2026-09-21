@@ -10,6 +10,14 @@ class ProfileAdminCest
     protected $profileIncompleteId;
     public function _before(AcceptanceTester $I)
     {
+        // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
+        // duplicates make wp_signon() log in the oldest one, so start clean.
+        foreach (["testadmin", "testuser"] as $login) {
+            // dontHaveUserInDatabase($login) removes only the first match; remove every row.
+            foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
+                $I->dontHaveUserInDatabase((int) $staleId);
+            }
+        }
         $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
             "first_name" => "Test",
             "last_name" => "Admin",
@@ -65,13 +73,14 @@ class ProfileAdminCest
     public function profileAdminEditUserPage(AcceptanceTester $I)
     {
         $I->loginAs("testadmin", "password123!test");
+        $I->waitForElement("#wpadminbar", 10);
         $I->amOnPage("/wp-admin/user-edit.php?user_id=".$this->userId);
         $I->see("Edit User testuser");
         $I->takeFullPageScreenshot("admin-edit-user-page");
 
         $I->see("First Name", "label[for='first_name']");
         $I->see("Last Name", "label[for='last_name']");
-        $I->see("Email (Required)", "label[for='email']");
+        $I->see("Email", "label[for='email']");
         $I->see("Phone Number", "label[for='user_phone']");
         $I->see("Street Address", "label[for='address_1']");
         $I->see("Address Line 2", "label[for='address_2']");
@@ -100,7 +109,8 @@ class ProfileAdminCest
         $I->checkOption("[name='years_attended[]'][value='2024']");
         $I->seeCheckboxIsChecked("[name='years_attended[]']", "2024");
         
-        $I->click("Update User");   
+        $I->click("Update User");
+        $I->waitForText("User updated.", 10);
 
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "first_name","meta_value" => "Test"]);
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "last_name","meta_value" => "User"]);
@@ -120,13 +130,14 @@ class ProfileAdminCest
     public function profileAdminPageIsVisible(AcceptanceTester $I)
     {
         $I->loginAs("testadmin", "password123!test");
+        $I->waitForElement("#wpadminbar", 10);
         $I->amOnPage("/wp-admin/profile.php");
         $I->see("Profile", "h1");
         $I->takeFullPageScreenshot("admin-profile-page");
 
         $I->see("First Name", "label[for='first_name']");
         $I->see("Last Name", "label[for='last_name']");
-        $I->see("Email (Required)", "label[for='email']");
+        $I->see("Email", "label[for='email']");
         $I->see("Phone Number", "label[for='user_phone']");
         $I->see("Street Address", "label[for='address_1']");
         $I->see("Address Line 2", "label[for='address_2']");
@@ -154,7 +165,8 @@ class ProfileAdminCest
         $I->checkOption("[name='years_attended[]'][value='2024']");
         $I->seeCheckboxIsChecked("[name='years_attended[]']", "2024");
         
-        $I->click("Update Profile");   
+        $I->click("Update Profile");
+        $I->waitForText("Profile updated.", 10);
 
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "first_name","meta_value" => "Test"]);
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "last_name","meta_value" => "Admin"]);

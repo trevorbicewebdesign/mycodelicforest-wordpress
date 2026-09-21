@@ -116,7 +116,8 @@ class CampManagerLedger
             $type = isset($types[$i]) ? sanitize_text_field($types[$i]) : '';
 
             // Skip empty/irrelevant line items
-            if ($amount === 0 && empty($type)) {
+            // floatval() returns a float, so compare numerically (=== 0 was never true).
+            if (abs($amount) < 0.00001 && $type === '') {
                 continue;
             }
 

@@ -18,7 +18,8 @@ defaults:
 
 # Define environment variables to avoid duplication
 env:
-  PHP_VERSION: '8.2'  # PHP version to use across jobs
+  PHP_VERSION: '8.4'  # must match composer.json config.platform.php and production
+  WP_VERSION: '7.1.1'  # WordPress core for tests (core is not a Composer package; see deploy.sh / composer.json)
   CACHE_PATHS: |      # Paths to cache composer dependencies
     vendor/
     wp-admin/
@@ -45,7 +46,7 @@ env:
 jobs:
   setup:
     name: Cache Composer Dependencies
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     outputs:
       cache-hit: ${{ steps.cache-hit.outputs.cache-hit }}  # Output for cache status
       cache-key: ${{ steps.cache-key.outputs.key }}        # Output for cache key
@@ -53,7 +54,7 @@ jobs:
     steps:
       # Step to check out the code repository
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Step to prepare the workspace by removing unnecessary files
       - name: Prepare workspace for caching composer dependencies
@@ -71,7 +72,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          tools: composer:${{ env.COMPOSER_VERSION }}
+          tools: composer:${{ env.COMPOSER_VERSION }}, wp-cli
 
       # Generate a unique cache key based on the `composer.lock` file
       - name: Generate cache key from composer.lock
@@ -81,7 +82,7 @@ jobs:
       # Look up cache based on the generated key
       - name: Lookup Composer cache
         id: cache-hit
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ steps.cache-key.outputs.key }}
@@ -94,9 +95,27 @@ jobs:
         run: echo "Cache hit was ${{ steps.cache-hit.outputs.cache-hit }}"
 
       # Install dependencies if cache is missing
+      - name: Authenticate Composer with GitHub (private plugin packages)
+        if: steps.cache-hit.outputs.cache-hit != 'true'
+        # Secret COMPOSER_AUTH holds the bare read-only GitHub token (not Composer's JSON format).
+        run: |
+          # Trim any whitespace/newline that came along when the secret was pasted.
+          token="$(printf '%s' "${{ secrets.COMPOSER_AUTH }}" | tr -d '[:space:]')"
+          if [ -z "${token}" ]; then
+            echo "::error::COMPOSER_AUTH secret is empty."; exit 1
+          fi
+          code="$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: token ${token}" https://api.github.com/user)"
+          echo "GitHub token check: HTTP ${code} (token length $(printf '%s' "${token}" | wc -c | tr -d ' '))"
+          if [ "${code}" != "200" ]; then
+            echo "::error::GitHub rejected the COMPOSER_AUTH token (HTTP ${code}). Regenerate it (Contents: read-only on the private plugin repos) and update the secret."; exit 1
+          fi
+          composer config -g github-oauth.github.com "${token}"
       - name: Install Dependencies if no cache hit
         if: steps.cache-hit.outputs.cache-hit != 'true'
         run: composer install --no-interaction --no-progress --optimize-autoloader
+      - name: Download WordPress core if no cache hit
+        if: steps.cache-hit.outputs.cache-hit != 'true'
+        run: wp core download --version="${{ env.WP_VERSION }}" --skip-content --force
 
       # Remove composer files to avoid caching them
       - name: Remove composer files from caching
@@ -106,7 +125,7 @@ jobs:
       # Cache dependencies if they were not previously cached
       - name: Cache Composer dependencies
         if: steps.cache-hit.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
@@ -117,7 +136,7 @@ jobs:
   run-tests:
     name: Test 
     needs: [setup]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false  # Allow tests to continue even if some fail
       matrix:
@@ -129,7 +148,7 @@ jobs:
     steps:
       # Check out repository for tests
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.head_ref || github.ref }}
 
@@ -138,11 +157,11 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          tools: composer:${{ env.COMPOSER_VERSION }}, wp
+          tools: composer:${{ env.COMPOSER_VERSION }}, wp-cli
 
       # Restore cached dependencies
       - name: Restore Cached dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ needs.setup.outputs.cache-key }}
@@ -150,6 +169,8 @@ jobs:
             ${{ runner.os }}-composer
 
       # Create .env file for testing
+      - name: Ensure WordPress core is present
+        run: test -f wp-load.php || wp core download --version="${{ env.WP_VERSION }}" --skip-content --force
       - name: Create .env file for tests
         run: |
           cp ./tests/.env.ci ./tests/.env
@@ -166,8 +187,45 @@ jobs:
           mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS seed;"
           mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS test;"
           
-      - name: Run Setup
-        run: make setup
+      # bin/setup.php is an interactive local-dev reset (prompts, git clean -fdx of the
+      # very folders the cache just restored, its own composer install). CI does the
+      # two things the suites actually need: an uploads dir and a populated seed DB
+      # (functional populates itself via WPDb; acceptance expects it pre-loaded).
+      - name: Prepare test fixtures
+        env:
+          # wp-config.php reads $_SERVER['HTTP_X_TEST_REQUEST']; PHP CLI mirrors env
+          # vars into $_SERVER, so this makes wp-cli operate on the seed database.
+          HTTP_X_TEST_REQUEST: '1'
+        run: |
+          mkdir -p wp-content/uploads
+          mysql -u root -proot -h localhost seed < tests/_support/Data/db/dump.sql
+          # The dump predates the core version under test; without this WordPress
+          # bounces every wp-admin request (and logins) to /wp-admin/upgrade.php.
+          wp core update-db
+          # Never show the "verify your admin e-mail" interstitial on admin logins.
+          wp option update admin_email_lifespan 2533080438
+          # Cloudflare Turnstile always-pass test keys, so the registration form can be
+          # submitted by a headless browser (production keys only work on the real domain).
+          wp option update gravityformsaddon_ss88-gravity-forms-turnstile_settings \
+            '{"ct_site_key":"1x00000000000000000000AA","ct_secret_key":"1x0000000000000000000000000000000AA"}' --format=json
+          # Route outgoing mail through PHP mail() -> sendmail_path -> Mailpit (see below);
+          # the option may not exist in the dump, so do not fail if there is nothing to patch.
+          wp option patch update wp_mail_smtp mail mailer mail || true
+          # The dump's Profile form (id 6) is an old revision: it ends with a text
+          # confirmation and has no pre-population params, while production redirects
+          # back to /profile/ and pre-fills from the user. Load the production
+          # definition (exported with GFAPI::get_form) and use the non-AJAX page block.
+          wp eval '$f = json_decode(file_get_contents("tests/_support/Data/forms/form-6-profile.json"), true); $r = GFAPI::update_form($f); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message()); exit(1); }'
+          wp post update 275 --post_content='<!-- wp:gravityforms/form {"formId":"6","inputPrimaryColor":"#204ce5"} /-->'
+          # Plugin state for the suites: camp-manager must be active (its admin pages are
+          # under test and activation creates the mf_* tables); CiviCRM is listed active in
+          # the dump but has no tables/settings here, so it would only add installer notices.
+          wp plugin activate camp-manager
+          wp plugin deactivate civicrm || true
+          # The budget acceptance tests assume these two categories (ids 1 and 2).
+          mysql -u root -proot -h localhost seed -e "INSERT IGNORE INTO wp_mf_budget_category (id, name, description) VALUES (1, 'Power', ''), (2, 'Sojourner', '')"
+          wp option get siteurl; wp option get home
+          wp plugin list --status=active --field=name | tr '\n' ' '; echo
 
       # Restart Chromedriver for acceptance tests
       - name: Restart Chromedriver
@@ -188,15 +246,28 @@ jobs:
         uses: ./.github/actions/setup-nginx
         with:
           php-version: ${{ env.PHP_VERSION }}
+      # The acceptance suite's Mailpit module expects an API at localhost:10006 (the port
+      # Local uses on the dev machine). Run the real thing here and point PHP's
+      # sendmail_path at it so wp_mail() lands in Mailpit.
+      - name: Start Mailpit
+        if: ${{ matrix.test-type == 'acceptance' }}
+        run: |
+          set -euo pipefail
+          curl -sSL https://github.com/axllent/mailpit/releases/latest/download/mailpit-linux-amd64.tar.gz | sudo tar -xz -C /usr/local/bin mailpit
+          nohup mailpit --smtp 127.0.0.1:1025 --listen 127.0.0.1:10006 > mailpit.log 2>&1 &
+          printf 'sendmail_path = "/usr/local/bin/mailpit sendmail --smtp-addr 127.0.0.1:1025"\n' | sudo tee "/etc/php/${{ env.PHP_VERSION }}/fpm/conf.d/99-mailpit.ini" >/dev/null
+          sudo systemctl restart "php${{ env.PHP_VERSION }}-fpm"
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:10006/api/v1/info >/dev/null && break; sleep 0.5; done
+          curl -sf http://127.0.0.1:10006/api/v1/info | head -c 200; echo
 
       # Run the tests based on matrix test-type
       - name: Run ${{ matrix.test-type }} tests
-        run: ./vendor/bin/codecept run ${{ matrix.test-type }} -d -f --no-interaction --skip-group=skipCI --html
+        run: ./vendor/bin/codecept run ${{ matrix.test-type }} -d --no-interaction --skip-group=skipCI --html
 
       # Upload artifacts if any tests fail
       - name: Upload Artifacts on Failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.test-type }}-test-artifacts-${{ github.sha }}
           path: |
