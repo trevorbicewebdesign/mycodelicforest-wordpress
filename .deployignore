@@ -1,32 +1,48 @@
-# Ignore cache files
-.githooks
-.github
-/bin/*
-/tests/*
+# Files and folders that must never be copied into the web root by deploy.sh.
+# rsync --exclude-from semantics: a trailing slash matches a directory (and
+# everything inside it). Patterns ending in "/*" only exclude the CONTENTS and
+# leave an empty directory behind, which is how bin/ and tests/ ended up in the
+# docroot, so directories are listed with a trailing slash here.
 
-*.env
+# --- dev tooling / CI (repo root only) --------------------------------------
+/.git/
+/.githooks/
+/.github/
+/bin/
+/tests/
+/docker/
+/vendor/
+/node_modules/
 /.gitignore
 /.deployignore
 /codeception.yml
 /docker-compose.yml
 /Gruntfile.js
-/codeception.yml
 /composer.json
 /composer.lock
 /package-lock.json
 /package.json
 /Makefile
+/README.md
 /nginx-test-admin.conf
 /local-phpinfo.php
 /auth.json
-/README.md
-/vendor/*
+/phpunit.xml
+/phpunit.xml.dist
+/phpcs.xml
+*.env
+*.env.*
+
+# --- production-owned files: never overwrite from git ------------------------
 /wp-config.php
+/wp-content/uploads/
+/wp-content/mu-plugins/
+/wp-content/cache/
+/wp-content/upgrade/
+/wp-content/upgrade-temp-backup/
+/wp-content/backups/
+/wp-content/wflogs/
 /wp-content/debug.log
 /wp-content/debug-test.log
 /wp-content/mysql.sql
-/wp-content/cache/*
-
-/wp-content/mu-plugins/*
-/wp-content/uploads/*
-/wp/*
+/wp/
