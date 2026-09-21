@@ -56,7 +56,7 @@ class CampManagerRosterCest
         $I->see("Roster", "h1"); // Adjust if needed to match page title
 
         // Assert that the `Add New` button is present
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-member"]);
+        $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-member']");
 
         // Assert that each table header is present
         $I->see("ID", "th#id");

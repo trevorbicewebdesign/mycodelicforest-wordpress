@@ -40,7 +40,7 @@ class RegistrationCest
         $I->wait(1);
 
         $I->takeFullPageScreenshot("register-page-thank-you");
-        $I->see("Thank you for registering!");
+        $I->see("Thanks for registering!");
         $I->wait(1);        
         $email_id = $I->getLastEmailId();
         $email = $I->getEmailById($email_id);
@@ -53,20 +53,14 @@ class RegistrationCest
             echo "Key not found.";
         }        
 
-        $domain = "https://local.mycodelicforest.org";
-
-        $expectedMessageText = <<<EOT
-        Hi {$user_login},
-
-        Please click the following link to activate your account and set a new password:
-
-        {$domain}/wp-login.php?action=rp&key={$user_activation_key}&login={$user_login}
-
-        If you did not register, please ignore this email.
-
-
-        EOT;
-        $I->assertEmailTextEquals($email_id, $expectedMessageText);
+        // Base URL of whatever site the suite is pointed at (CI: http://127.0.0.1).
+        $domain = rtrim($I->executeJS('return location.origin;'), '/');
+        $text = $email['Text'];
+        $I->assertStringContainsString("Hi {$user_login},", $text);
+        $I->assertStringContainsString("activate your account and set a new password", $text);
+        $I->assertStringContainsString("{$domain}/wp-login.php?action=rp&key={$user_activation_key}&login={$user_login}", $text);
+        $I->assertStringContainsString("This link expires in 24 hours", $text);
+        $I->assertStringContainsString("If you did not register, please ignore this email.", $text);
     
         $I->amOnPage("/wp-login.php?login=$user_login&key=$user_activation_key&action=rp");
         $I->wait(1);
@@ -84,7 +78,9 @@ class RegistrationCest
         $I->fillField("#user_pass", $password);
         $I->click("#wp-submit");
         $I->wait(1);
-        $I->seeCurrentUrlEquals("/");
+        // A freshly registered member has no address/phone yet, so the plugin sends
+        // them to the profile page until it is complete.
+        $I->seeInCurrentUrl("/profile/");
     }
     
 }

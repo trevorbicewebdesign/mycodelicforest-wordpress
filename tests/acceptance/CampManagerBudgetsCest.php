@@ -69,7 +69,7 @@ class CampManagerBudgetsCest
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budgets");
         $I->see("Budget Items", "h1");
 
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-budget-item"]);
+        $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-budget-item']");
 
         $I->see("ID", "th#id");
         $I->see("Name", "th#name");
@@ -271,7 +271,7 @@ class CampManagerBudgetsCest
         $I->see("Budget Categories", "h1");
 
         // Assert that the `Add New` button is present
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-budget-category"]);
+        $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-budget-category']");
 
         // Assert that each table header is present
         $I->see("ID", "th#id");

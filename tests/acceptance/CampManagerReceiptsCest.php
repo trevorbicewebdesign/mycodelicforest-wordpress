@@ -56,7 +56,7 @@ class CampManagerReceiptsCest
         $I->see("Receipts", "h1"); // Adjust if needed to match page title
 
         // Assert that the `Add New` button is present
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-receipt"]);
+        $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-receipt']");
 
         // Assert that each table header is present
         $I->see("ID", "th#id");

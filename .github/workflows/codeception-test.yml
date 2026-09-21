@@ -211,6 +211,8 @@ jobs:
           # the dump but has no tables/settings here, so it would only add installer notices.
           wp plugin activate camp-manager
           wp plugin deactivate civicrm || true
+          # The budget acceptance tests assume these two categories (ids 1 and 2).
+          mysql -u root -proot -h localhost seed -e "INSERT IGNORE INTO wp_mf_budget_category (id, name, description) VALUES (1, 'Power', ''), (2, 'Sojourner', '')"
           wp option get siteurl; wp option get home
           wp plugin list --status=active --field=name | tr '\n' ' '; echo
 

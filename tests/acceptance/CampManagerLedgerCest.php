@@ -64,7 +64,7 @@ class CampManagerLedgerCest
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-ledger");
         $I->see("Ledger", "h1");
 
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-ledger"]);
+        $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-ledger']");
 
         $I->see("ID", "th#id");
         $I->see("Note", "th#note");
