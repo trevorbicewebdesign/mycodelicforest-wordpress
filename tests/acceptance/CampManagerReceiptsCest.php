@@ -85,7 +85,6 @@ class CampManagerReceiptsCest
             "quantity" => 2,
             "subtotal" => 200.00,
             "tax" => 10.00,
-            "shipping" => 20.00,
             "total" => 230.00,
         ]);
         

@@ -177,7 +177,6 @@ class CampManagerBudgetsCest
         $id = $I->haveInDatabase("wp_mf_budget_items", [
             "name" => "Test Budget Item",
             "category_id" => 0,
-            "receipt_item_id" => NULL,
             "price" => 100,
             "quantity" => 2,
             "subtotal" => 200,
