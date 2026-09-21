@@ -211,6 +211,12 @@ jobs:
           # Route outgoing mail through PHP mail() -> sendmail_path -> Mailpit (see below);
           # the option may not exist in the dump, so do not fail if there is nothing to patch.
           wp option patch update wp_mail_smtp mail mailer mail || true
+          # The dump's Profile form (id 6) is an old revision: it ends with a text
+          # confirmation and has no pre-population params, while production redirects
+          # back to /profile/ and pre-fills from the user. Load the production
+          # definition (exported with GFAPI::get_form) and use the non-AJAX page block.
+          wp eval '$f = json_decode(file_get_contents("tests/_support/Data/forms/form-6-profile.json"), true); $r = GFAPI::update_form($f); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message()); exit(1); }'
+          wp post update 275 --post_content='<!-- wp:gravityforms/form {"formId":"6","inputPrimaryColor":"#204ce5"} /-->'
           # Plugin state for the suites: camp-manager must be active (its admin pages are
           # under test and activation creates the mf_* tables); CiviCRM is listed active in
           # the dump but has no tables/settings here, so it would only add installer notices.
