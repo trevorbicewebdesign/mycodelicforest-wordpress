@@ -9,6 +9,14 @@ class CampManagerLedgerCest
     protected $adminId;
     public function _before(AcceptanceTester $I)
     {
+         // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
+         // duplicates make wp_signon() log in the oldest one, so start clean.
+         foreach (["testadmin", "testuser"] as $login) {
+             // dontHaveUserInDatabase($login) removes only the first match; remove every row.
+             foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
+                 $I->dontHaveUserInDatabase((int) $staleId);
+             }
+         }
          $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
             "first_name" => "Test",
             "last_name" => "Admin",
@@ -57,6 +65,8 @@ class CampManagerLedgerCest
         $I->wait(1);
 
         $I->loginAs("testadmin", "password123!test");
+        // Let the login redirect finish before the test navigates, or the redirect wins and lands on the Dashboard.
+        $I->waitForElement("#wpadminbar", 10);
     }
     public function ViewLedgerItems(AcceptanceTester $I)
     {
