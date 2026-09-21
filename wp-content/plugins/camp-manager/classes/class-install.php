@@ -240,10 +240,13 @@ class CampManagerInstall
             quantity int NOT NULL DEFAULT '1',
             PRIMARY KEY  (id),
             KEY inventory_id (inventory_id),
-            KEY tote_id (tote_id),
-            CONSTRAINT {$table}_ibfk_inventory FOREIGN KEY (inventory_id) REFERENCES {$wpdb->prefix}mf_inventory (id) ON DELETE CASCADE,
-            CONSTRAINT {$table}_ibfk_tote FOREIGN KEY (tote_id) REFERENCES {$wpdb->prefix}mf_totes (id) ON DELETE CASCADE
+            KEY tote_id (tote_id)
         ) $charset_collate;";
+        // NOTE: production carries ON DELETE CASCADE foreign keys from this table to
+        // mf_inventory/mf_totes. They are deliberately not declared here: dbDelta()
+        // never adds constraints to existing tables, and the WordPress test framework
+        // creates plugin tables as TEMPORARY tables, which cannot carry foreign keys
+        // ("Cannot add foreign key constraint").
         dbDelta($sql);
     }
 
