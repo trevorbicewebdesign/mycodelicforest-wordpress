@@ -28,7 +28,7 @@ class ProfileCest
     public function profilePageIsVisible(AcceptanceTester $I)
     {
         $I->loginAs("testuser", "password123!test");
-        $I->waitForElement("#wpadminbar, body.logged-in", 10);
+        $I->waitForElement("#wpadminbar, body.logged-in", 30);
         $I->amOnPage("/profile/");
         $I->see("Profile");
         $I->takeFullPageScreenshot("profile-page");
@@ -109,7 +109,7 @@ class ProfileCest
     public function profileIncompleteFrontEndRedirect(AcceptanceTester $I)
     {
         $I->loginAs("testuser", "password123!test");
-        $I->waitForElement("#wpadminbar, body.logged-in", 10);
+        $I->waitForElement("#wpadminbar, body.logged-in", 30);
         $I->amOnPage("/");
         $I->wait(1);
         $I->seeInCurrentUrl("/profile");

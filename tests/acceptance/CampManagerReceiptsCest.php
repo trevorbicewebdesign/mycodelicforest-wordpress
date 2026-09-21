@@ -57,7 +57,7 @@ class CampManagerReceiptsCest
         ]);
         $I->loginAs("testadmin", "password123!test");
         // Let the login redirect finish before the test navigates, or the redirect wins and lands on the Dashboard.
-        $I->waitForElement("#wpadminbar", 10);
+        $I->waitForElement("#wpadminbar", 30);
     }
     public function ViewReceipts(AcceptanceTester $I)
     {

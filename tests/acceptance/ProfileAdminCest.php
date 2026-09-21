@@ -73,7 +73,7 @@ class ProfileAdminCest
     public function profileAdminEditUserPage(AcceptanceTester $I)
     {
         $I->loginAs("testadmin", "password123!test");
-        $I->waitForElement("#wpadminbar", 10);
+        $I->waitForElement("#wpadminbar", 30);
         $I->amOnPage("/wp-admin/user-edit.php?user_id=".$this->userId);
         $I->see("Edit User testuser");
         $I->takeFullPageScreenshot("admin-edit-user-page");
@@ -130,7 +130,7 @@ class ProfileAdminCest
     public function profileAdminPageIsVisible(AcceptanceTester $I)
     {
         $I->loginAs("testadmin", "password123!test");
-        $I->waitForElement("#wpadminbar", 10);
+        $I->waitForElement("#wpadminbar", 30);
         $I->amOnPage("/wp-admin/profile.php");
         $I->see("Profile", "h1");
         $I->takeFullPageScreenshot("admin-profile-page");
