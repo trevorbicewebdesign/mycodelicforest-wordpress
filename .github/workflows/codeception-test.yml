@@ -192,10 +192,21 @@ jobs:
       # two things the suites actually need: an uploads dir and a populated seed DB
       # (functional populates itself via WPDb; acceptance expects it pre-loaded).
       - name: Prepare test fixtures
+        env:
+          # wp-config.php reads $_SERVER['HTTP_X_TEST_REQUEST']; PHP CLI mirrors env
+          # vars into $_SERVER, so this makes wp-cli operate on the seed database.
+          HTTP_X_TEST_REQUEST: '1'
         run: |
           mkdir -p wp-content/uploads
           mysql -u root -proot -h localhost seed < tests/_support/Data/db/dump.sql
-          mysql -u root -proot -h localhost -e "SELECT option_value FROM wp_options WHERE option_name IN ('siteurl','home')" seed
+          # Cloudflare Turnstile always-pass test keys, so the registration form can be
+          # submitted by a headless browser (production keys only work on the real domain).
+          wp option update gravityformsaddon_ss88-gravity-forms-turnstile_settings \
+            '{"ct_site_key":"1x00000000000000000000AA","ct_secret_key":"1x0000000000000000000000000000000AA"}' --format=json
+          # Route outgoing mail through PHP mail() -> sendmail_path -> Mailpit (see below);
+          # the option may not exist in the dump, so do not fail if there is nothing to patch.
+          wp option patch update wp_mail_smtp mail mailer mail || true
+          wp option get siteurl; wp option get home
 
       # Restart Chromedriver for acceptance tests
       - name: Restart Chromedriver
@@ -216,6 +227,19 @@ jobs:
         uses: ./.github/actions/setup-nginx
         with:
           php-version: ${{ env.PHP_VERSION }}
+      # The acceptance suite's Mailpit module expects an API at localhost:10006 (the port
+      # Local uses on the dev machine). Run the real thing here and point PHP's
+      # sendmail_path at it so wp_mail() lands in Mailpit.
+      - name: Start Mailpit
+        if: ${{ matrix.test-type == 'acceptance' }}
+        run: |
+          set -euo pipefail
+          curl -sSL https://github.com/axllent/mailpit/releases/latest/download/mailpit-linux-amd64.tar.gz | sudo tar -xz -C /usr/local/bin mailpit
+          nohup mailpit --smtp 127.0.0.1:1025 --listen 127.0.0.1:10006 > mailpit.log 2>&1 &
+          printf 'sendmail_path = "/usr/local/bin/mailpit sendmail --smtp-addr 127.0.0.1:1025"\n' | sudo tee "/etc/php/${{ env.PHP_VERSION }}/fpm/conf.d/99-mailpit.ini" >/dev/null
+          sudo systemctl restart "php${{ env.PHP_VERSION }}-fpm"
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:10006/api/v1/info >/dev/null && break; sleep 0.5; done
+          curl -sf http://127.0.0.1:10006/api/v1/info | head -c 200; echo
 
       # Run the tests based on matrix test-type
       - name: Run ${{ matrix.test-type }} tests
