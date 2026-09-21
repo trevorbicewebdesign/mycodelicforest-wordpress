@@ -23,9 +23,17 @@ runs:
         sudo apt-get install -y --no-install-recommends \
           "php${V}-fpm" "php${V}-mysql" "php${V}-mbstring" "php${V}-xml" "php${V}-curl" \
           "php${V}-zip" "php${V}-gd" "php${V}-intl" "php${V}-bcmath"
+        # The workspace lives under /home/runner (mode 750). Run the FPM pool as the
+        # runner user so PHP can read the site and write its error log there, and let
+        # nginx (www-data) traverse the home dir for static files. Otherwise FPM
+        # answers "Primary script unknown" and every request is a bare 404.
+        POOL="/etc/php/${V}/fpm/pool.d/www.conf"
+        sudo sed -i -E "s/^user = .*/user = $(id -un)/; s/^group = .*/group = $(id -gn)/" "${POOL}"
+        sudo chmod o+x "${HOME}"
         sudo touch "/var/log/php${V}-fpm.log"
         sudo chmod 644 "/var/log/php${V}-fpm.log"
         sudo systemctl enable --now "php${V}-fpm"
+        sudo systemctl restart "php${V}-fpm"
         sudo systemctl is-active "php${V}-fpm"
       shell: bash
 
@@ -48,8 +56,14 @@ runs:
         sleep 10 # Pause to allow services to stabilize
       shell: bash
     
-    - name: Test Nginx
-      run: curl -I http://127.0.0.1/local-phpinfo.php
+    - name: Test Nginx + PHP-FPM
+      run: |
+        set -euo pipefail
+        echo '<?php header("Content-Type: text/plain"); echo "php-ok ", PHP_VERSION, " user=", get_current_user(), " mysqli=", extension_loaded("mysqli") ? "yes" : "no";' > __probe.php
+        out="$(curl -s -H 'X_TEST_REQUEST: 1' http://127.0.0.1/__probe.php)"; rm -f __probe.php
+        echo "${out}"
+        case "${out}" in php-ok*mysqli=yes*) ;; *) echo "::error::PHP-FPM is not serving the workspace correctly"; sudo tail -n 30 /var/log/nginx/error.log || true; exit 1;; esac
+        echo "front page status: $(curl -s -o /dev/null -w '%{http_code}' -H 'X_TEST_REQUEST: 1' http://127.0.0.1/)"
       shell: bash
 
     - name: Log PHP-FPM
