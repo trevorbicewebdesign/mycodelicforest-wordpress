@@ -57,37 +57,16 @@ $classes = [
         <sr-wrap view="sr_nav_tabs_style" viewchild="navigationtabs" class="sr--tab--content sr--open" data-tab-target-group="1" id="sr_nav_tabs_style" style="max-width:330px; width:auto">
             <sr-separator>
                 <sr-separator-head notoggle>
-                    <sr-separator-title><?php _e('Based On','revslider'); ?></sr-separator-title>  
+                    <sr-separator-title><?php _e('Skins & Presets','revslider'); ?></sr-separator-title>  
                 </sr-separator-head>
                 <sr-separator-body class="sr_nav_tabs_layoutuse"> 
-                    <sr-drop wide data-v="" r="nav.tabs.t" viewchild="sr_nav_tabs_style" data-source="navigation" data-source-type="tabs" data-onset="editor.nav.skin.get" data-onsetparams="tabs" data-onchange="editor.nav.skin.update" data-onchangeparams="tabs">
-                        <sr-drop-view>
-                            <span class="sr--drop--value"><?php _e('Pick a Skin','revslider'); ?></span>
-                            <span class="sr--form--otitle"><?php _e('Tabs Skin Type','revslider'); ?></span>
-                            <span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
-                        </sr-drop-view>  
-                    </sr-drop>
+                    <sr-wrap id="sr_nav_tabs_essentials" class="sr--mb--10"></sr-wrap>
                     <sr-sp h="5"></sr-sp>
                 </sr-separator-body>
             </sr-separator>
             <sr-separator>
                 <sr-separator-head notoggle nohover>
                     <sr-separator-title><?php _e('Settings','revslider'); ?></sr-separator-title>
-                    <sr-wrap inline class="sr--abs--top--right sr--allowpointer sr--mt--10">
-                        <sr-drop  class="sr--oicon" clean
-                        r="nav.tabs.ps"  viewchild="sr_nav_tabs_style" 
-                            data-onchange="editor.nav.presets.reload" data-onchangeparams="tabs"                            
-                            data-source="presets" data-source-type="navigation.tabs" 
-                            dropsw="300" dropsh="380"><sr-icon-wrap style="width:25px"><svg class="sr--icon" width="16" height="16" transform="translate(0,-1)"><use xlink:href="#General_Download"></use></svg></sr-icon-wrap></sr-drop>
-                        <sr-drop id="sr_nav_tabs_preset_drop"  class="sr--oicon" clean
-                            r="nav.tabs.ps" viewchild="sr_nav_tabs_style"
-                            data-onlyexport="true"                              
-                            data-onchange="editor.nav.presets.save"
-                            data-onpreset="editor.nav.presets.add" data-onpresetextend="editor.nav.presets.extendOption" data-onpresetparams="tabs" 
-                            data-type="preset" data-typelbl="<?php _e('New Skin Preset','revslider'); ?>" 
-                            data-source="presets" data-source-type="navigation.tabs" 
-                            dropsw="300" dropsh="380"><sr-icon-wrap style="width:25px"><svg class="sr--icon" width="16" height="16" transform="translate(0,-1)"><use xlink:href="#General_Upload"></use></svg></sr-icon-wrap></sr-drop>
-                    </sr-wrap>  
                 </sr-separator-head> 
                 <sr-separator-body>
                     <sr-sp h="5"></sr-sp>
@@ -125,17 +104,7 @@ $classes = [
                         <sr-tab right half data-v="slider"><?php _e('Full Stage','revslider'); ?></sr-tab>
                     </sr-tabs-wrap>
                     <sr-aligner mini class="sr--mr--10" responsive respshow="below" r="nav.tabs.v.#LEV#,nav.tabs.h.#LEV#" viewchild="sr_nav_tabs_layout">
-                        <sr-aligner-wrap>    
-                            <sr-aligner-pos data-v="top left" data-action="B.aligner.update,editor.nav.preview.update"></sr-aligner-pos>
-                            <sr-aligner-pos data-v="top center" data-action="B.aligner.update,editor.nav.preview.update"></sr-aligner-pos>
-                            <sr-aligner-pos data-v="top right" data-action="B.aligner.update,editor.nav.preview.update"></sr-aligner-pos>
-                            <sr-aligner-pos data-v="center left" data-action="B.aligner.update,editor.nav.preview.update"></sr-aligner-pos>
-                            <sr-aligner-pos data-v="center center" data-action="B.aligner.update,editor.nav.preview.update" class="checked"></sr-aligner-pos>
-                            <sr-aligner-pos data-v="center right" data-action="B.aligner.update,editor.nav.preview.update"></sr-aligner-pos>
-                            <sr-aligner-pos data-v="bottom left" data-action="B.aligner.update,editor.nav.preview.update"></sr-aligner-pos>
-                            <sr-aligner-pos data-v="bottom center" data-action="B.aligner.update,editor.nav.preview.update"></sr-aligner-pos>
-                            <sr-aligner-pos data-v="bottom right" data-action="B.aligner.update,editor.nav.preview.update"></sr-aligner-pos>    
-                        </sr-aligner-wrap>
+<?php include(RS_PLUGIN_PATH . 'admin/includes/modals/module/navigation/parts/aligner.php'); ?>
                     </sr-aligner><!--                    
                     --><sr-wrap basic alignpickerxy class="sr--mb--15"><!--
                         --><sr-input half class="sr--mr--10"><input name="X" replace responsive="inherit" respfix="round" respshow="below"  r="nav.tabs.x.#LEV#" viewchild="sr_nav_tabs_layout" type="text" number="true" min="-1000" max="10000" suffix="px" validate="true"><span noicon="" class="sr--form--otitle"><?php _e('X','revslider'); ?></span></sr-input><!--
@@ -196,27 +165,12 @@ $classes = [
                             <span class="sr--form--otitle"><?php _e('In / Out Animation','revslider'); ?></span>
                             <span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
                         </sr-drop-view>
-                        <sr-drops data-v="fade"><?php _e('Fade','revslider'); ?></sr-drops>
-						<sr-drops data-v="left"><?php _e('From Left','revslider'); ?></sr-drops>
-						<sr-drops data-v="right"><?php _e('From Right','revslider'); ?></sr-drops>
-						<sr-drops data-v="top"><?php _e('From Up','revslider'); ?></sr-drops>
-						<sr-drops data-v="bottom"><?php _e('From Bottom','revslider'); ?></sr-drops>
-						<sr-drops data-v="zoomin"><?php _e('Zoom In','revslider'); ?></sr-drops>
-						<sr-drops data-v="zoomout"><?php _e('Zoom Out','revslider'); ?></sr-drops>
+<?php include(RS_PLUGIN_PATH . 'admin/includes/modals/module/navigation/parts/anim-options.php'); ?>
                     </sr-drop>
                     <sr-input wide class="sr--mr--10"><input name="Animation Speed" replace r="nav.tabs.s" viewchild="sr_nav_tabs_behavior" type="text" number="true" min="0" max="10000" suffix="ms" validate="true"><span noicon="" class="sr--form--otitle"><?php _e('Animation Speed','revslider'); ?></span></sr-input>
                     <sr-input wide class="sr--mr--10"><input name="Delay to Show" replace responsive="inherit" respfix="round" respshow="below"  r="nav.tabs.dIn.#LEV#" viewchild="sr_nav_tabs_behavior" type="text" number="true" min="0" max="10000" suffix="ms" validate="true"><span noicon="" class="sr--form--otitle"><?php _e('Delay to Show','revslider'); ?></span></sr-input>                    
                     <sr-drop  wide multiselect="truefalse" multilen="5" usecheck="" r="nav.tabs.show" viewchild="sr_nav_tabs_behavior" data-v="" dropsw="190" dropsh="200"> 
-                        <sr-drop-view>
-                            <span class="sr--drop--value"></span>    
-                            <span class="sr--form--otitle"><?php _e('Visibility','revslider'); ?></span>
-                            <span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
-                        </sr-drop-view>     
-                        <sr-drops valuelisting data-v="0"><sr-wrap dropicon=""><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Wide_Desktop"></use></svg></sr-wrap><?php _e('Wide Screen','revslider'); ?></sr-drops>
-                        <sr-drops valuelisting data-v="1"><sr-wrap dropicon=""><svg class="sr--icon" width="22" height="18" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Regular_Desktop"></use></svg></sr-wrap><?php _e('Desktop','revslider'); ?></sr-drops>
-                        <sr-drops valuelisting data-v="2"><sr-wrap dropicon=""><svg class="sr--icon" width="22" height="16" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Laptop"></use></svg></sr-wrap><?php _e('Notebook','revslider'); ?></sr-drops>
-                        <sr-drops valuelisting data-v="3"><sr-wrap dropicon=""><svg class="sr--icon" width="20" height="24" transform="translate(0, 0)"><use xlink:href="#Top_Bar_Tablet"></use></svg></sr-wrap><?php _e('Tablet','revslider'); ?></sr-drops>
-                        <sr-drops valuelisting data-v="4"><sr-wrap dropicon=""><svg class="sr--icon" width="14" height="20" transform="translate(0, 0)"><use xlink:href="#Top_Bar_Phone"></use></svg></sr-wrap><?php _e('Mobile','revslider'); ?></sr-drops>
+<?php include(RS_PLUGIN_PATH . 'admin/includes/modals/module/navigation/parts/visibility.php'); ?>
                     </sr-drop> 
                     
                 </sr-separator-body>

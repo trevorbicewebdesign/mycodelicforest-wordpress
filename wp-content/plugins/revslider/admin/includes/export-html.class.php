@@ -379,6 +379,7 @@ class RevSliderSliderExportHtml extends RevSliderSliderExport {
 			'slide.js',
 			'sr7.js',
 			'srtools.js',
+			'story.js',
 			'transitions.js',
 			'libs/three.js',
 			'libs/tpgsap.js',

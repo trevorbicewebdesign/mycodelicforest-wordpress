@@ -129,10 +129,13 @@ if(!defined('ABSPATH')) exit();
                 </sr-separator-head>
                 <sr-separator-body>
                     <sr-wrap basic>
-                        <sr-input half><input name="Slide Duration" replace class="sr--capitalize" r="slideshow.len" rdef="module.settings.default.len" viewchild="slide_progress" type="text" validate="true" min="500" max="300000" fallback="default" number="true" suffix="ms"><span class="sr--input--icon"><svg width="18" height="18" transform="translate(0, 4)"><use xlink:href="#Options_Timing"></use></svg></span></sr-input><!--
+                        <sr-input half><input name="Slide Duration" replace class="sr--capitalize" r="slideshow.len" rdef="module.settings.default.len" viewchild="slide_progress" type="text" validate="true" min="500" max="300000" fallback="default" number="true" suffix="ms" data-onupdate="forms.populate"><span class="sr--input--icon"><svg width="18" height="18" transform="translate(0, 4)"><use xlink:href="#Options_Timing"></use></svg></span></sr-input><!--
                         --><sr-sp w="15"></sr-sp><!--
                         --><span class="sr--form--grp"><sr-onoff r="slideshow.stop" viewchild="slide_progress" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Pause Module','revslider'); ?></span></span>
                     </sr-wrap>
+                    <?php /* Auf einer Story macht die Slidedauer zwei Jobs: sie ist die Animationslaenge UND der
+                           Anteil an der Scrollstrecke. Hier steht, wie viel davon sich bewegt. */ ?>
+                    <sr-slide-span viewchild="slide_progress"></sr-slide-span>
                     <sr-sp h="5"></sr-sp>
                 </sr-separator-body>
             </sr-separator>

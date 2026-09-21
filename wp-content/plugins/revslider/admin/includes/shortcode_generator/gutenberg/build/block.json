@@ -79,6 +79,18 @@
     "owner_post_id": {
       "type": "string",
       "default": ""
+    },
+    "title": {
+      "type": "string",
+      "default": ""
+    },
+    "premium": {
+      "type": "boolean",
+      "default": false
+    },
+    "notFound": {
+      "type": "boolean",
+      "default": false
     }
   },
   "editorScript": "file:./index.js",

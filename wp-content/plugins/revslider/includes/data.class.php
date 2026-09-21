@@ -20,14 +20,12 @@ define('RS_T10', '										');
 define('RS_T11', '											');
 
 /**
- * Static catalogues + the object cache layer, at the very bottom of the class hierarchy
- * (RevSliderFunctions extends this, and almost everything extends that).
+ * Static catalogues + the object cache layer, at the very bottom of the class hierarchy.
  *
- * Two jobs. First, it ships the large built-in datasets the editor needs - layer animations, slide
- * transitions, font families, image sizes, icon sets - mostly as JSON literals decoded on demand. Second,
- * it wraps wp_cache_* with a namespace key: since WP has no "delete a whole cache group", bumping
- * $_cache_ns_key invalidates every key at once, which happens automatically whenever a write to one of the
- * plugin's own tables is detected.
+ * Two jobs. It ships the large built-in datasets the editor needs (layer animations, slide transitions, font
+ * families, image sizes, icon sets), mostly as JSON literals decoded on demand. And it wraps wp_cache_* with a
+ * namespace key: WP has no "delete a whole cache group", so bumping $_cache_ns_key invalidates every key at
+ * once, which happens whenever a write to one of the plugin's own tables is detected.
  */
 class RevSliderData {
 
@@ -132,11 +130,6 @@ class RevSliderData {
 		$this->image_path_v6['layers'][] = ['svg', 'source'];
 		$this->image_path_v6 = apply_filters('revslider_import_image_path_v6', $this->image_path_v6);
 
-		//$very_big	= (is_array($very_big) && isset($very_big['url'])) ? $very_big['url'] : $very_big;
-		//$big		= (is_array($big) && isset($big['url'])) ? $big['url'] : $big;
-		//$large		= (is_array($large) && isset($large['url'])) ? $large['url'] : $large;
-		//$medium		= (is_array($medium) && isset($medium['url'])) ? $medium['url'] : $medium;
-		//$small		= (is_array($small) && isset($small['url'])) ? $small['url'] : $small;
 
 		$this->directories['plugin'] = apply_filters('revslider_directory_path', $this->directories['plugin']);
 	}

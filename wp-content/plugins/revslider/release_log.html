@@ -1,86 +1,147 @@
+
 <div class="slider-revolution-update-list">
+	<h3 class="version-number">Version 7.1.8 (31st August 2026)</h3>
+	<div class="newfeature"><strong style="font-weight:700">New Features</strong></div>
+	<ul>
+		<li>Seven more Pan and Zoom moves, and each of them changes its mind on the way: Arc Swing, Push and Settle, Pull Back, Glide By, Float, Corner Arc and Tilt Sweep. They are there for a layer, for the slide background and in the Page Effect</li>
+		<li>A template package can now bring whole pages, not only its modules. The page arrives with its blocks in order, its Page Effects already pointing at the modules just installed, and its menus and images</li>
+		<li>A module can now be given a wrapper ID and CSS classes wherever it is placed. The Module Wrapper IDs field in Module Settings finally does something, it had nowhere to be stored before</li>
+		<li>Every page builder now shows the module it holds and offers the same controls: swap it, import one from the library, open the editor, Quick Edit it, and one Module Settings dialog. Elementor, Divi 4 and 5, Avada, WPBakery, BeTheme, block editor</li>
+		<li>Divi 5 gains Block Offsets, Block Depth and a wrapper ID it never had</li>
+		<li>Divi 4 and 5: the Visual Builder now draws the module itself on the canvas instead of a stand in card. A Live Preview Render switch turns it back, and modals, missing modules and unregistered premium ones keep the card</li>
+		<li>Themes and plugins can now list modules, offer the module picker and place a module through a documented API. Until now every integration outside the plugin had to reach into Slider Revolution's internals</li>
+		<li>The slide end can now be dragged on the timeline to set the slide's length, instead of opening Slide Settings for it. It stops where the last animation on the slide ends, and its arrow still leads into the Out animation</li>
+		<li>Story Telling is a new module type. The whole module runs off the page scroll instead of a timer, and Scroll Pace sets how much scrolling a story costs</li>
+		<li>A story now says what it spends its scroll on: the Story Telling panel for the whole track, each slide for its own share, and the timeline ruler switchable from seconds to scroll pixels while the animation is being built</li>
+		<li>Arrows, Bullets, Tabs, Thumbnails and the Scrubber are now picked from a grid of live tiles instead of a dropdown. Each tile is the skin itself, and presets you save get one too, with saving, renaming and deleting on the tile</li>
+		<li>The Progress Bar has presets for the first time: twenty two to pick from, among them coloured and segmented bars, edge bars, rings, a hairline through the middle and a wide tint, and you can save your own</li>
+		<li>The scrubber's track pattern and its idle size can be set at last. The engine drew both all along, but the pattern was nailed to dots and the idle size had no control anywhere</li>
+		<li>Thirty three new navigation skins across all five types: pill, outline and card looks, frosted glass, hard black outlines with an offset shadow, gradient rings, and a set that inverts itself against whatever the slide shows so it reads on any image</li>
+	</ul>
+	<div class="change"><strong style="font-weight:700">Changes</strong></div>
+	<ul>
+		<li>The layer Tab Index starts at auto instead of 0, and takes -1 to keep a decorative layer out of the keyboard order. An empty field falls back to auto. 0 left the quick list, it never wrote a tab index in Slider Revolution 6 either</li>
+		<li>Progressive Blur is about four times cheaper to draw and looks the same. Modules already built get it, with nothing to re-save</li>
+		<li>Slider Revolution eases effects back on a device that cannot keep up, and restores them once it can. It ignores the first seconds of loading, so a slow start is not mistaken for a slow device</li>
+		<li>Aligning several layers now moves the anchor with them. A centered layer that is aligned left is anchored left afterwards, so its edge stays put when the layer gets wider</li>
+		<li>Distribute now says so when the selected layers overlap on that axis, instead of pulling them apart into a row. Arrange as Row and Arrange as Column still do that, it is what they are for</li>
+		<li>All eight translations are complete again, with the 154 strings that are new this release, the template package installer among them</li>
+	</ul>
+	<div class="bugfix"><strong style="font-weight:700">Bug Fixes</strong></div>
+	<ul>
+		<li>Fixed modules from folders being displayed at root level on module selection</li>
+		<li>Fixed a dialog opened over another one dimming the page but leaving what was under it clickable, so a template behind an install dialog could still be started</li>
+		<li>Fixed the block editor keeping an old copy of the Slider Revolution block's stylesheet until WordPress itself was updated. It is now versioned by the file, so a corrected block card shows up on the next reload</li>
+		<li>Fixed a slider imported from Slider Revolution 6 arriving without any of its add-on settings. They were dropped in silence, so the module opened as if the add-ons had never been on. Sliders imported before this update need importing again</li>
+		<li>Fixed the layer Tab Index appending auto to every number, so picking 5 left 5auto in the field. Fields already saved this way repair themselves when the value is next edited</li>
+		<li>Fixed the layer Tab Index and Rel attributes never reaching the page. Both were saved, but nothing wrote them onto the layer. On a layer that is a link, Rel adds to what the link settings produce, so a new tab link keeps its noopener</li>
+		<li>Fixed the layer Rel attribute only ever growing, so a word deleted from the field stayed, and a link switched from nofollow back to follow stayed nofollow until a full page reload</li>
+		<li>Fixed module search to properly filter by titles and aliases containing dashes</li>
+		<li>Fixed a Filmstrip module keeping its old size when the browser window grew past the module content width. Shrinking the window always worked, so it looked random, and only a reload brought the right size back</li>
+		<li>Fixed the media actions Play, Stop, Toggle, Mute, Unmute and Toggle Mute Media doing nothing when they point at Active Video in Slide and that video is the first layer of the slide. Sliders imported from Slider Revolution 6 hit this most</li>
+		<li>Fixed a YouTube layer not starting by itself on phones and tablets, even with Autoplay and Mute on. Both settings reached the player in a form YouTube does not read, so it came up with sound and outside the page, and the browser refused to play it</li>
+		<li>Fixed the alignment toolbar of a multi selection starting above the stage, with only its shadow in view. It stayed there until the pointer left the stage and came back, which rebuilt it in the right place</li>
+		<li>Fixed a module set to open as a modal on a custom event saving no event name at all, so it listened for nothing. The name the settings showed was never the one that was stored</li>
+		<li>Elementor: fixed the modal settings of a saved widget losing their values when the page was reopened. Session length, delay and scroll offset fell back to their defaults while their switches stayed on, and a custom event name was replaced</li>
+		<li>Elementor: fixed the Slider Revolution widget never appearing in the editor on Elementor below 3.5. The check deciding how to register it was reading the PHP version instead of Elementor's</li>
+		<li>WPBakery: fixed Module Settings refusing to open a second time on the same element, and no longer losing the module title and the link to the editor when those settings are saved</li>
+		<li>Fixed a module set to open as a modal playing inside the page builder instead of standing in as a card. One set to open after a delay took over the editing canvas with nothing to dismiss it (Elementor and Avada)</li>
+		<li>Divi 4: fixed the Premium Template and Register License to Unlock labels never appearing on a module in the builder. They were saved under one spelling and looked for under another</li>
+		<li>Fixed a module failing to load its data inside a page builder that draws its canvas in a frame. The request was rewritten to an about:// address, which browsers refuse to send</li>
+		<li>Divi: fixed Module Settings doing nothing on a module placed before this update, and that module's modal, offsets and depth reading back as unset</li>
+		<li>Divi: fixed a Slider Revolution module built in Divi 4 arriving in Divi 5 as an unconvertible block. The file telling Divi how to carry it across was generated but never shipped</li>
+		<li>Divi: fixed a page built with Divi 4 printing the module's shortcode as plain text once the site moved to Divi 5. It now renders whether or not it has been converted</li>
+		<li>Elementor: fixed the Slider Revolution panel coming up empty, with no module card and no buttons, on the first page load after the plugin was activated or on any slow one</li>
+		<li>Fixed the Module Settings dialog losing the space between its controls in every page builder, so every tab's rows ran together into one block</li>
+		<li>Fixed the help tooltip on the Module Wrapper IDs field never opening. Its text was written where nothing could find it</li>
+		<li>Elementor: fixed a module's wrapper ID and CSS classes being forgotten whenever its widget was reopened. They were saved correctly but read back as empty, so the next save dropped them</li>
+		<li>Avada: fixed a module placed without "Override Module Layout" rendering full width to visitors while looking correct to whoever was editing the page</li>
+		<li>Fixed modules vanishing from the page on sites that have Fusion Builder installed alongside another theme or builder. A slider added the way BeTheme, Jupiter, Cornerstone and hand written shortcodes add it rendered as nothing at all</li>
+		<li>Divi: fixed a module set to open as a modal ignoring Pop Up after Time completely, and losing the scroll position it was given. Opening at a scroll offset or inside a container now works as set</li>
+		<li>Fixed the Page FX settings window opening empty on WordPress 7.1, with an alert about the page being cross origin. Chalk Line, Pan and Zoom, Cursor Motion and Scroll Animation can be set up again</li>
+		<li>Fixed the Page FX mark on a small block in the editor covering the picture and hanging out under its bottom edge. It now takes a share of the block it sits on, up to the size it always had</li>
+		<li>Fixed switching an effect on for a gallery or a set of columns looking like nothing happened when a block inside already runs one. Both marks sat in the same corner, so the second one landed under the first</li>
+		<li>Fixed a slide never showing on the front, usually the first one of a module imported from Slider Revolution 6. Modules already built get this, with nothing to re-save</li>
+		<li>Fixed the Gaps switch in the Progress Bar settings turning the whole progress bar off instead of its gaps</li>
+		<li>The scrubber works properly at last. Its handle showed a flat colour, or the last slide's picture, wherever it stood: it now shows the slide it is on, dragging included. Modules already built keep what they saved</li>
+		<li>Fixed the scrubber slide title flipping in flat, and the Thin Bar skin losing the size of its handle arrows and the colour of its track pattern</li>
+		<li>Quick Edit: fixed the poster image standing in as the video's thumbnail too, so picking a poster looked like it changed the video</li>
+		<li>Quick Edit: a module with sound no longer plays it while the module is being edited</li>
+		<li>WPBakery: fixed Module Settings forgetting Layout Override when neither switch is on, and Use as Modal when no trigger is set. Both came back off as soon as the dialog was reopened</li>
+	</ul>
 	<h3 class="version-number">Version 7.1.7 (21st August 2026)</h3>
 	<div class="newfeature"><strong style="font-weight:700">New Features</strong></div>
 	<ul>
-		<li>Page FX &mdash; Slider Revolution effects on ordinary WordPress blocks, with no module on the page: switch an effect on from the block&rsquo;s toolbar, or place its own block. Settings open in a workbench that browses presets on the left and tunes them on the right, with a Preview button that shows the page without saving it first</li>
-		<li>Page FX &middot; Pan &amp; Zoom: the Ken Burns move on any image or Cover block. The same eight moves the editor offers &mdash; Zoom In, Zoom Out, Pan, Zoom &amp; Pan, Corner Push, Breathe, Sweep and Tilt Drift &mdash; with Direction, Corner, Strength, Easing, Duration and Repeat. It starts when the image scrolls into view and pauses when it leaves</li>
-		<li>Page FX &middot; Scroll Animation: any block plays a Slider Revolution layer animation as it scrolls in &mdash; twenty-nine curated animations, including text animations that split a heading into its lines, words or characters. It can follow the reader&rsquo;s scroll and wind back again, animate out as the block leaves, stagger the children of a group or columns, and be held back on phones</li>
-		<li>Page FX &middot; Cursor Motion: a block answers the pointer &mdash; lean toward it, pop, tilt or shy away &mdash; the same motions the layer panel offers</li>
-		<li>Twelve slide background filters now run on the core transitions as well as the Transition Pack&rsquo;s, grouped by what they do: Grain, Dither, Vignette, Chromatic, Posterize, Halftone, Pixelate, Glitches, Glitch &amp; Noise, Motion Blur, Film and Bokeh. The new Motion Blur smears along the direction the transition travels, and Grain gained an Exposure control</li>
-		<li>Filters have their own tab in the slide background browser, next to Transition and Pan &amp; Zoom, with a live preview and a Strength control &mdash; and a filter stays on when a different transition is picked</li>
-		<li>Every filter carries its own timing inside the transition &mdash; Shape, Start, End and Fade, editable per slide &mdash; so it builds up and resolves instead of running flat from beginning to end</li>
-		<li>Preset browsers instead of dropdowns, across the editor: SunBeam, Hover Morph, Particles, Particle Wave, Custom Shapes and the layer Interaction panel now show a grid of tiles. Each tile carries a real render of that preset and plays it live on hover, and presets can be saved, renamed, overwritten in place and deleted on the tile itself</li>
-		<li>Presets are grouped by what they are rather than listed by name: Particles and Particle Wave in four sections each, Hover Morph in three (Liquid Mask, Image Effects, Silhouette &amp; Text), Custom Shapes in six families</li>
-		<li>The layer Interaction panel is rebuilt: Cursor Icon is a twelve-cell grid where hovering a cell shows the real system pointer, and Cursor Motion is a tile browser whose tiles run the effect itself as you hover them</li>
-		<li>SunBeam Add-On: thirteen factory presets instead of three &mdash; Golden Hour, Spectral, Haze, Anamorphic, Star Filter, Shafts, Cathedral, Forest, Dust Motes and Ember join the original three &mdash; with the controls to match: Tint and Chroma for coloured beams, Threshold and Softness for what the light picks up, and Flare for anamorphic streaks and star filters at any angle</li>
-		<li>SunBeam Add-On: a new Atmosphere section &mdash; Dust, Blinds or Canopy as the medium the light travels through, with volumetric Shafts, Detail, Contrast and Speed &mdash; plus a Rays Only mode that paints just the light and leaves the layer sharp</li>
-		<li>Particles Add-On: nine new presets &mdash; Snowfall, Falling Blossom, Party Poppers, Firelight, Desert Drift, Orbit Field, Radar, Magnetic Field and Neural Crawl &mdash; bringing six shapes into use that shipped with the add-on but no preset had ever picked, and answering the cursor by pulling the field toward it or reaching out along it. Six older presets renamed to say what they do</li>
-		<li>Applying an animation preset to a 3D object no longer throws away where you put it: position, rotation and size are kept and the preset animates towards them. A switch above the Apply button turns that off when the preset&rsquo;s own resting place is what you want</li>
-		<li>DepthForge Add-On: many more ways for a 3D object to arrive and leave &mdash; Punch, Blast, Overshoot, Arc, Vortex and Fold, with the Out tab mirroring In &mdash; plus ten One Shot moves played once on top of whatever the object already does: Hop, Flip, Pop, Shake, Tada, Stomp, Levitate, Swoosh, Orbit and Boomerang</li>
-		<li>3D animation presets show a render of the move itself on their tiles, and a 3D layer is only offered the animation categories it can actually use</li>
-		<li>Forty-two Custom Shape presets instead of nine, in six families, on tiles that draw the real shape rather than a picture of it &mdash; replacing both the preset dropdown and the list of shape types beside it</li>
-		<li>New Custom Shapes: Slant, Ring, Arrow, Speech Bubble and Heart, plus Arch, Notch, Steps, Skyline, Diamond, Hexagon, Sparkle, Burst and dividers that hug the left or right edge &mdash; shapes the generator could always draw but nothing offered</li>
-		<li>New Repeat control draws the same shape again, nested inward: concentric rings from an Oval, nested frames from a Rectangle, a contour map from a Blob. Five more Shape Animations run on any shape &mdash; Spin, Sway, Pulse, Orbit and Cascade &mdash; and Morph now reshapes fourteen of the twenty shape types instead of eight</li>
-		<li>The timeline has an end-of-slide marker that is also the door into the Out animation</li>
+		<li>Page FX brings Slider Revolution effects to ordinary WordPress blocks, with no module on the page. Switch an effect on from the block toolbar, or place its own block. Settings open in a workbench that browses presets and tunes them</li>
+		<li>Page FX Pan & Zoom: the Ken Burns move on any image or Cover block. Eight moves, from Zoom In to Tilt Drift, with Direction, Corner, Strength, Easing, Duration and Repeat. It starts when the image scrolls into view and pauses when it leaves</li>
+		<li>Page FX Scroll Animation: a block plays a Slider Revolution layer animation as it scrolls in. Twenty-nine animations, including text animations that split a heading into lines, words or characters. It can follow the scroll and wind back</li>
+		<li>Page FX Cursor Motion: a block answers the pointer, leaning toward it, popping, tilting or shying away</li>
+		<li>Twelve slide background filters now run on the core transitions as well as the Transition Pack ones: Grain, Dither, Vignette, Chromatic, Posterize, Halftone, Pixelate, Glitches, Glitch & Noise, Motion Blur, Film and Bokeh</li>
+		<li>Filters have their own tab in the slide background browser, with a live preview and a Strength control, and a filter stays on when a different transition is picked. Each carries its own timing inside the transition, editable per slide</li>
+		<li>Preset browsers instead of dropdowns, across the editor: SunBeam, Hover Morph, Particles, Particle Wave, Custom Shapes and the layer Interaction panel now show a grid of tiles. Each tile renders that preset and plays it on hover</li>
+		<li>The layer Interaction panel is rebuilt. Cursor Icon is a twelve cell grid where hovering a cell shows the real system pointer, and Cursor Motion is a tile browser whose tiles run the effect itself</li>
+		<li>SunBeam Add-On: thirteen presets instead of three, with the controls to match. Tint and Chroma for coloured beams, Threshold and Softness for what the light picks up, Flare for anamorphic streaks, and an Atmosphere section with Dust, Blinds or Canopy</li>
+		<li>Particles Add-On: nine new presets, bringing six shapes into use that shipped with the add-on but no preset ever picked, and answering the cursor. Six older presets renamed to say what they do</li>
+		<li>DepthForge Add-On: many more ways for a 3D object to arrive and leave, with Punch, Blast, Overshoot, Arc, Vortex and Fold, and ten One Shot moves. The tiles show a render of the move itself</li>
+		<li>Applying an animation preset to a 3D object no longer throws away where you put it. Position, rotation and size are kept and the preset animates towards them, with a switch above the Apply button to turn that off</li>
+		<li>Forty-two Custom Shape presets instead of nine, in six families, on tiles that draw the real shape. New among them: Slant, Ring, Arrow, Speech Bubble, Heart, Arch, Notch, Steps, Skyline, Diamond, Hexagon, Sparkle and Burst</li>
+		<li>New Repeat control draws the same shape again, nested inward: concentric rings from an Oval, nested frames from a Rectangle, a contour map from a Blob. Five more Shape Animations run on any shape, and Morph reshapes fourteen shape types</li>
+		<li>The timeline has an end of slide marker that is also the door into the Out animation</li>
 		<li>The Content Flow Container has a Reset button that puts widths, heights and device switches back to what a new module starts with</li>
 	</ul>
 	<div class="change"><strong style="font-weight:700">Changes</strong></div>
 	<ul>
-		<li>Every Page FX surface now carries the same name and mark: &ldquo;Page FX &middot; Filmstrip&rdquo; in the block inserter, the Page FX sticker on the block itself, and one click from that sticker to the settings &mdash; or to the list, where a block can run more than one effect</li>
-		<li>Post Processing left the Transition Pack&rsquo;s own Filters tab: it is one selector now, in the same place whichever transition engine a slide uses</li>
-		<li>The slide background transition family &ldquo;Filter&rdquo; (Flash, Grayscale, Sepia) is now called &ldquo;Color&rdquo; &mdash; all three are colour treatments, and the word belonged to the filter set</li>
-		<li>The Breakpoints panel now explains itself, and its fields accept the whole sensible range (320 to 3840) instead of five narrow windows that blocked real setups &mdash; a 1920 monitor could not be put in the Desktop tier, nor a mobile breakpoint lined up with Elementor&rsquo;s 767. The widest size is labelled Wide Screen Design Width, since it only sets the editor canvas</li>
-		<li>Opening a colour picker is no longer treated as an edit: it used to write the value straight back and run every live colour update on the way in, more than thirty times for a single open</li>
-		<li>The Page FX editor takes its colours, type sizes and radii from the Slider Revolution editor, so it follows the light and dark themes with everything else. Its top bar was tidied, the breakpoint being edited is named on a strip above the page, and preview-only aids are kept apart from the settings that actually save</li>
-		<li>Hover Morph Add-On: the Liquid Mask presets now share one palette for the colour behind the cell &mdash; ink or bone, the two tones most of them already used. That colour only shows where no second image is picked. Layers you have already built are untouched</li>
-		<li>The Custom Shape builder moved from the Style tab to the Layer tab, above Position &amp; Size, where every other layer type keeps its content. Only Fill, Stroke and Stroke Size stay in Style, the way an SVG layer splits</li>
-		<li>Shape Animation only shows the settings that reach the chosen animation: Drift never read Amount, and a full Spin has no arc for it to scale</li>
-		<li>All eight translations completed &mdash; 280 strings that had never been translated, the whole Page FX interface among them. Removed revslider-en_US.mo, whose every entry translated English into itself</li>
-		<li>The Slider Revolution block in the WordPress editor speaks the same language as the Page FX cards beside it: Select Module and Edit Module wear the effect cards&rsquo; buttons, the menus sit flush with the module preview below them, and the four buttons in its sidebar answer the pointer in Slider Revolution&rsquo;s blue. Its sidebar fields stand at the editor&rsquo;s own height instead of WordPress&rsquo;s taller boxes, and switches, focus rings and device icons carry the Slider Revolution blue rather than the WordPress admin blue</li>
-		<li>A block&rsquo;s Page FX menu marks a running effect with a tint and a tick, and no longer with a purple edge down the left as well &mdash; on a block with several effects switched on, that edge turned the list into one striped block instead of four separate answers</li>
+		<li>Every Page FX surface carries the same name and mark, from the block inserter to the sticker on the block itself, and one click from that sticker opens the settings, or the list where a block can run more than one effect</li>
+		<li>A block's Page FX menu marks a running effect with a tint and a tick. The purple edge down the left is gone, since on a block with several effects it turned the list into one striped block instead of four separate answers</li>
+		<li>Post Processing left the Transition Pack Filters tab. It is one selector now, in the same place whichever transition engine a slide uses</li>
+		<li>The slide background transition family Filter (Flash, Grayscale, Sepia) is now called Color, since all three are colour treatments and the word belonged to the filter set</li>
+		<li>The Breakpoints panel explains itself, and its fields accept the whole sensible range of 320 to 3840 instead of five narrow windows that blocked real setups. A 1920 monitor could not be put in the Desktop tier</li>
+		<li>Opening a colour picker is no longer treated as an edit. It used to write the value straight back and run every live colour update on the way in, more than thirty times for a single open</li>
+		<li>The Page FX editor takes its colours, type sizes and radii from the Slider Revolution editor, so it follows the light and dark themes with everything else. The breakpoint being edited is named on a strip above the page</li>
+		<li>The Slider Revolution block in the WordPress editor speaks the same language as the Page FX cards beside it. Select Module and Edit Module wear the effect card buttons, and its fields stand at the editor height rather than the taller WordPress boxes</li>
+		<li>Hover Morph Add-On: the Liquid Mask presets share one palette for the colour behind the cell, ink or bone. That colour only shows where no second image is picked, and layers you have already built are untouched</li>
+		<li>The Custom Shape builder moved from the Style tab to the Layer tab, above Position & Size, where every other layer type keeps its content. Only Fill, Stroke and Stroke Size stay in Style, the way an SVG layer splits</li>
+		<li>Shape Animation only shows the settings that reach the chosen animation. Drift never read Amount, and a full Spin has no arc for it to scale</li>
+		<li>All eight translations completed, 280 strings that had never been translated, the whole Page FX interface among them. Removed revslider-en_US.mo, whose every entry translated English into itself</li>
 	</ul>
 	<div class="bugfix"><strong style="font-weight:700">Bug Fixes</strong></div>
 	<ul>
-		<li>Fixed custom responsive breakpoints being ignored on live pages: the front end was still reading them from where Slider Revolution 6 kept them, so anything typed into Global Settings only ever moved the editor stage. Sites left on the default breakpoints are unaffected, and a site that would rather keep the previous widths can pin them with the new revslider_front_breakpoints filter</li>
+		<li>Fixed custom responsive breakpoints being ignored on live pages. The front end still read them from where Slider Revolution 6 kept them, so Global Settings only moved the editor stage. The revslider_front_breakpoints filter pins the old widths</li>
 		<li>Fixed the Global Settings never opening again once a breakpoint field had been left empty. Emptying a field now puts its default back, and settings already damaged this way repair themselves the next time the Global Settings are opened</li>
-		<li>Fixed the Content Flow alignment doing nothing at all: arrows, bullets, tabs, thumbnails, the scrubber and the progress bar sat on the full stage whichever option was picked. A module whose content is narrower than its stage now gets its navigation on the content edge</li>
-		<li>Fixed the Content Flow width and height fields accepting an empty value, which came back as a module at default size &mdash; on every slider on the page. Modules already saved without a usable size repair themselves the next time they load</li>
-		<li>Fixed WebGL effects and slide background transitions dropping out on pages with several modules: preloaded slides were claiming a graphics context each and never giving it back, so whatever loaded first used up the page budget. A WebGL effect that loses its context now rebuilds itself the next time its slide is shown instead of staying blank for good</li>
-		<li>WebGL effects no longer leave graphics memory behind each time they are rebuilt. Changing a setting or hovering through a preset browser handed back only part of what the effect had claimed, so a long editing session slowly filled the graphics card and the editor grew sluggish. The stream of graphics errors that came with it is gone too</li>
-		<li>Fixed The Cluster and Particle Wave effects disappearing after stepping through the slides of a module and coming back, and The Cluster&rsquo;s Magnetic presets showing their source image over the grains on a second visit. The Cluster now runs on the shared render loop, so it pauses properly when its module is off screen</li>
-		<li>Particle Wave Add-On: fixed the presets that pair visible particles with a strong blur &mdash; Poison, Cells and Starry Night &mdash; rendering in Safari as flickering square tiles instead of an even depth of field</li>
+		<li>Fixed the Content Flow alignment doing nothing at all. Arrows, bullets, tabs, thumbnails, the scrubber and the progress bar sat on the full stage whichever option was picked. Narrower content now gets its navigation on the content edge</li>
+		<li>Fixed the Content Flow width and height fields accepting an empty value, which came back as a module at default size on every slider on the page. Modules already saved without a usable size repair themselves the next time they load</li>
+		<li>Fixed WebGL effects and slide background transitions dropping out on pages with several modules. Preloaded slides claimed a graphics context each and never gave it back. An effect that loses its context now rebuilds the next time its slide is shown</li>
+		<li>WebGL effects no longer leave graphics memory behind each time they are rebuilt. Changing a setting or hovering through a preset browser handed back only part of what the effect had claimed, so a long editing session filled the graphics card</li>
+		<li>Fixed The Cluster and Particle Wave effects disappearing after stepping through the slides of a module and coming back, and The Cluster Magnetic presets showing their source image over the grains. The Cluster now runs on the shared render loop</li>
+		<li>Particle Wave Add-On: fixed the presets that pair visible particles with a strong blur, Poison, Cells and Starry Night, rendering in Safari as flickering square tiles instead of an even depth of field</li>
 		<li>Fixed the Bokeh depth of field blurring by the wrong amount after a module or the browser window was resized</li>
-		<li>Fixed the slide background standing still while its timeline kept running: every rebuild of the scene added another Pan &amp; Zoom chain on the same layer, and once a spent chain rendered last it pinned the image</li>
+		<li>Fixed the slide background standing still while its timeline kept running. Every rebuild of the scene added another Pan & Zoom chain on the same layer, and once a spent chain rendered last it pinned the image</li>
 		<li>Fixed the timeline sitting at IDLE while an animation was in fact running, and only the Play button ever moving the playhead. Every real run drives the timeline now, and a seek ends it</li>
-		<li>Fixed the Coverage control of the Pan &amp; Zoom presets doing nothing: &ldquo;Half&rdquo; now finishes the move by the middle of the slide and holds it there. Its labels reach the translations too</li>
-		<li>Fixed a gradient colour field changing its own gradient as soon as it was edited, and a gradient swatch turning into a stock blue gradient the moment its picker was opened &mdash; the preview was writing its own ramp and palette onto the stored colour</li>
+		<li>Fixed the Coverage control of the Pan & Zoom presets doing nothing. Half now finishes the move by the middle of the slide and holds it there. Its labels reach the translations too</li>
+		<li>Fixed a gradient colour field changing its own gradient as soon as it was edited, and a gradient swatch turning into a stock blue gradient the moment its picker was opened. The preview was writing its own ramp and palette onto the stored colour</li>
 		<li>Fixed the colour palette opening behind the Bulk Style Editor, out of sight and out of reach</li>
-		<li>Fixed dropdowns coming up empty when they were left on their default value: saving strips values that match the default, and the dropdown had nothing left to fall back on. It now shows what a newly created layer would show</li>
-		<li>Fixed the animation preset tabs coming up short the first time they were opened: presets contributed by an add-on only appeared after switching away and back again</li>
-		<li>Fixed the layer animation &ldquo;Smash&rdquo; (Center) leaving the layer permanently tilted &mdash; its closing keyframe never brought the X rotation home</li>
-		<li>Fixed applying an animation preset to a 3D object resizing it, throwing away the framing a camera or light preset should keep, and stopping every other layer on the slide &mdash; the 3D world the camera lives on among them &mdash; from animating at all</li>
-		<li>Fixed the editor panels throwing when the In scene was left with the Slide Background layer selected, and the &ldquo;back to In&rdquo; tab staying on offer for seconds after it had done its job</li>
-		<li>Fixed a selected Slider Revolution block showing the editor&rsquo;s selection frame around its preview only: the block&rsquo;s own title row and preview were painting over the top and the sides of it</li>
+		<li>Fixed dropdowns coming up empty when they were left on their default value. Saving strips values that match the default, and the dropdown had nothing left to fall back on. It now shows what a newly created layer would show</li>
+		<li>Fixed settings whose range holds fractional values, such as the Bubble Morph Pulse, showing a slider that could not be dragged, and a slider handle staying on the previous layer value after another layer was selected</li>
+		<li>Fixed the animation preset tabs coming up short the first time they were opened. Presets contributed by an add-on only appeared after switching away and back again</li>
+		<li>Fixed the layer animation Smash (Center) leaving the layer permanently tilted, since its closing keyframe never brought the X rotation home</li>
+		<li>Fixed applying an animation preset to a 3D object resizing it, throwing away the framing a camera or light preset should keep, and stopping every other layer on the slide from animating at all, the 3D world the camera lives on among them</li>
+		<li>Fixed the editor panels throwing when the In scene was left with the Slide Background layer selected, and the back to In tab staying on offer for seconds after it had done its job</li>
+		<li>Fixed a selected Slider Revolution block showing the editor selection frame around its preview only, with the block title row and preview painting over the top and the sides of it</li>
 		<li>Fixed the Shape Animation Speed and Amount fields showing red on a custom shape that had no animation yet, and the Custom Shape panel leaving a block of empty space below the colours on shapes that use none of the lower settings</li>
-		<li>Page FX effects that take over the same image now know about each other, instead of leaving one of them silently doing nothing on the front end. A Filmstrip takes the pictures over as it swallows them and names what it switched off &mdash; one undo puts it back &mdash; while Pan &amp; Zoom and Hover Morph, which never really clashed, can now run on the same image</li>
+		<li>Fixed the Drift shape animation sliding out of its layer on the front end and after any editor reload. The spare copy it draws is kept inside the shape drawing now, rather than by clipping the layer. Shapes already built repair themselves</li>
+		<li>Fixed the Custom Shape browser marking the shape that was applied last instead of the one on the selected layer. The marked tile now follows the layer, and a shape tuned past anything the catalogue describes shows no tile marked at all</li>
+		<li>Removed Morph from the Shape Animations offered for shape types that cannot morph</li>
+		<li>Page FX effects that take over the same image now know about each other, instead of leaving one silently doing nothing on the front end. A Filmstrip takes the pictures over and names what it switched off, and one undo puts it back</li>
 		<li>Fixed a Page FX effect losing its settings panel once another effect had claimed the block, leaving no way to switch it off short of removing the other effect first</li>
-		<li>Fixed the Scroll Animation Page Effect flickering while the page is scrolled, and one set to play every time replaying over and over once the block had been scrolled past. Both came from measuring the block by the size its own animation was drawing it at; it now goes by where the block sits on the page</li>
+		<li>Fixed the Scroll Animation Page Effect flickering while the page is scrolled, and one set to play every time replaying over and over. Both came from measuring the block by the size its own animation was drawing it at</li>
 		<li>Fixed Page FX showing the last saved page in the WordPress preview instead of the one being previewed</li>
-		<li>Fixed the Page FX colour picker&rsquo;s Opacity and Angle boxes standing taller than the hex field beside them, the Angle box pushing its label onto a second line, and the gradient row wrapping instead of keeping &ldquo;remove stop&rdquo; and the angle on one line</li>
-		<li>Hover Morph Add-On: fixed the Slide Background effect staying on screen after its switch was turned off &mdash; until now it only went away after the editor was reloaded</li>
-		<li>Fixed a fixed font weight being loaded on top of the variable font a theme had already provided, which shut down weight animation across the whole page &mdash; a menu that thickens to bold on hover simply stayed put. Italic is now asked for as italic, which also fixes a family needed in italic alone arriving upright</li>
-		<li>Fixed the layer settings tab reading &ldquo;Attibutes&rdquo;, and &ldquo;Layer&rdquo; reading &ldquo;Importar Slider&rdquo; in Brazilian Portuguese</li>
-		<li>Fixed upload path for addons images and videos</li>
-		<li>Fixed download_url in loadbalancer fail with &lsquo;Invalid destination path&rsquo; for symlinked upload directories</li>
-		<li>Fixed Page FX settings dialog layout issues at smaller screen sizes</li>
-		<li>Removed Morph from available Shape Animations for Shape Types that do not support morphing</li>
-		<li>Fixed the Drift shape animation sliding out of its layer on the front end and after any editor reload: the wave crept a full box width past the right-hand edge before snapping back. Drift draws the wave twice so the second copy can slide seamlessly into the first, and the spare copy is now kept inside the shape&rsquo;s own drawing rather than by clipping the layer, which the layer&rsquo;s Overflow setting undid on every rebuild. Shapes already built repair themselves the next time they load</li>
-		<li>Fixed the Custom Shape browser marking the shape that was applied last instead of the one on the selected layer &mdash; a Star could sit under a highlighted Triangle, and selecting another layer never moved the mark. The marked tile now follows the layer, and a shape tuned past anything the catalogue describes shows no tile marked at all. It is read when a layer is selected, and held while that layer&rsquo;s settings are being changed, so tuning a shape never takes the mark away mid-edit</li>
-		<li>Fixed settings whose range holds fractional values, such as Bubble Morph&rsquo;s Pulse, showing a slider that could not be dragged</li>
-		<li>Fixed a setting&rsquo;s slider handle staying on the previous layer&rsquo;s value after selecting another layer</li>
+		<li>Fixed the Page FX settings dialog and colour picker at smaller screen sizes, where the Opacity and Angle boxes stood taller than the hex field beside them and the gradient row wrapped onto two lines</li>
+		<li>Hover Morph Add-On: fixed the Slide Background effect staying on screen after its switch was turned off, where until now it only went away after the editor was reloaded</li>
+		<li>Fixed a fixed font weight being loaded on top of the variable font a theme had already provided, which shut down weight animation across the whole page, so a menu that thickens to bold on hover stayed put</li>
+		<li>Fixed the layer settings tab reading Attibutes, and Layer reading Importar Slider in Brazilian Portuguese</li>
+		<li>Fixed the upload path for add-on images and videos</li>
+		<li>Fixed download_url in the load balancer failing with Invalid destination path for symlinked upload directories</li>
 	</ul>
-</div>
-<div class="slider-revolution-update-list">
 	<h3 class="version-number">Version 7.1.6 (7th August 2026)</h3>
 	<div class="newfeature"><strong style="font-weight:700">New Features</strong></div>
 	<ul>
@@ -501,7 +562,7 @@
 	<div class="newfeature"><strong style="font-weight:700">New Features</strong></div>	
 	<ul>
 		<li>Layers hidden in the editor (because they are not part of the active scene) can now be edited by temporarily resetting parent transitions and visibility during editing.</li>
-		<li>In the editor, full-stage alignment is now calculated based on the visible checkerboard stage area (instead of the full wrapper container) to make elements easier to edit.</li>
+		<li>In the editor, full-stage alignment is now calculated based on the visible checkerboard stage area (instead of the full wrapper container) to make elements easier to edit</li>
 		<li>Added an optional live preview rendering feature in the Elementor Builder</li>
 		<li>Added a function to add bulk slides from WP media library</li>
 		<li>Added a function to add Slide(s) from existing modules</li>

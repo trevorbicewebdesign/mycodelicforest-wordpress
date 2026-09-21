@@ -8,11 +8,9 @@
 if(!defined('ABSPATH')) exit();
 
 /**
- * Image optimizer.
- *
- * Generates resized WebP copies of the images a slider uses and stores them under
- * uploads/revslider/o/<slider id>/. Runs after a slider is saved or imported, and optionally on the fly
- * while rendering. Needs GD or Imagick with WebP support - verify_webp() gates everything.
+ * Image optimizer. Generates resized WebP copies of the images a slider uses under
+ * uploads/revslider/o/<slider id>/, after a save or import and optionally on the fly while rendering.
+ * Needs GD or Imagick with WebP support - verify_webp() gates everything.
  */
 class RevSliderOptimizer extends RevSliderFunctions {
 
@@ -650,12 +648,10 @@ class RevSliderOptimizer extends RevSliderFunctions {
 		//this out too
 		if (strpos($src_url, '/wp-content/plugins/revslider/') !== false){
 			$parts = explode('/wp-content/plugins/revslider/', $src_url);
-			//the *destination* was already contained by basename(), but the source was taken from the URL as
-			//is - a crafted layer image URL containing "../" could copy any readable file on the server into
-			//the public uploads folder. validate_file() rejects traversal, and the resolved path has to stay
-			//inside the plugin directory.
-			//rawurldecode() first: "%2e%2e%2f" cannot resolve on a filesystem, but decoding before the check
-			//means the guard holds no matter whether the URL reached us encoded or already decoded
+			//The *destination* was already contained by basename(), but the source came from the URL as is - a
+			//crafted layer image URL containing "../" could copy any readable file into the public uploads folder.
+			//rawurldecode() first: "%2e%2e%2f" cannot resolve on a filesystem, so decoding before the check means
+			//the guard holds whether the URL reached us encoded or not.
 			$rel_file = (!empty($parts[1])) ? wp_normalize_path(rawurldecode($parts[1])) : '';
 			if ($rel_file !== '' && validate_file($rel_file) === 0 && strpos($rel_file, '../') === false) {
 				$src_path = wp_normalize_path(RS_PLUGIN_PATH . $rel_file);

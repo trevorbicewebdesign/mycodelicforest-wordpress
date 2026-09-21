@@ -37,14 +37,18 @@ if(!defined('ABSPATH')) exit();
                     <sr-separator-title><?php _e('Type','revslider'); ?></sr-separator-title>
                 </sr-separator-head>
                 <sr-separator-body>
-                    <sr-radio r="type" viewchild="module_naming" data-onchange="editor.module.submenu,stage.dims.redrawFull+100,editor.module.carouselCheck" data-onundoredo="editor.module.submenu,stage.dims.redrawFull+100" class="sr--mb--10">
+                    <sr-radio r="type" viewchild="module_naming" data-onchange="editor.module.submenu,stage.dims.redrawFull+100,editor.module.carouselCheck,editor.module.storyCheck,forms.populate" data-onundoredo="editor.module.submenu,stage.dims.redrawFull+100" class="sr--mtype--grid sr--mb--10">
                             <sr-radio-item class="sr--mtype--sel" value="hero"><span class="sr--icon--wrap"><svg class="sr--icon" width="22" height="17.01" transform="translate(0, -2)"><use xlink:href="#Addon_Panorama"></use></svg></span><span><?php _e('Hero','revslider'); ?></span></sr-radio-item><!--
                             --><sr-radio-item class="sr--mtype--sel" value="standard"><span class="sr--icon--wrap"><svg class="sr--icon" width="25" height="15.975" transform="translate(0, -2)"><use xlink:href="#Dashboard_Slides"></use></svg></span><span><?php _e('Slider','revslider'); ?></span></sr-radio-item><!--
-                            --><sr-radio-item class="sr--mtype--sel" value="carousel"><span class="sr--icon--wrap"><svg class="sr--icon" width="25" height="17.105" transform="translate(0, -2)"><use xlink:href="#Carousel"></use></svg></span><span><?php _e('Carousel','revslider'); ?></span></sr-radio-item>  
+                            --><sr-radio-item class="sr--mtype--sel" value="carousel"><span class="sr--icon--wrap"><svg class="sr--icon" width="25" height="17.105" transform="translate(0, -2)"><use xlink:href="#Carousel"></use></svg></span><span><?php _e('Carousel','revslider'); ?></span></sr-radio-item><!--
+                            --><sr-radio-item class="sr--mtype--sel" value="story"><span class="sr--icon--wrap"><svg class="sr--icon" width="22" height="17" transform="translate(0, -2)"><use xlink:href="#Module_Story"></use></svg></span><span><?php _e('Story Telling','revslider'); ?></span></sr-radio-item>  
                     </sr-radio>
                     <sr-sp h="10"></sr-sp>
+                    <?php /* Story: volle Breite und Hoehe sind gesetzt und keine Wahl - der Typ bringt sie mit. */ ?>
+                    <sr-sh r="type" data-shdep="standard#;#hero#;#carousel" viewchild="module_naming">
                     <sr-wrap basic class="sr--form--grp"><sr-onoff r="size.fullWidth" viewchild="module_naming" class="sr--mr--10 checked" data-onchange="stage.dims.prepareLevels" data-onchangeparams="force" data-shaction="editor.module.minMaxDimCheck"></sr-onoff><span><?php _e('Full Width','revslider'); ?></span><sr-tooltip key="fullwidth"></sr-tooltip></sr-wrap>
                     <sr-wrap basic class="sr--form--grp  sr--mb--10 "><sr-onoff r="size.fullHeight" viewchild="module_naming" class="sr--mr--10 checked" data-onchange="stage.dims.prepareLevels" data-onchangeparams="force" data-shaction="editor.module.minMaxDimCheck"></sr-onoff><span><?php _e('Full Height','revslider'); ?></span><sr-tooltip key="fullheight"></sr-tooltip></sr-wrap>
+                    </sr-sh>
                     <sr-sp h="10"></sr-sp>
                 </sr-separator-body>
             </sr-separator>
@@ -53,8 +57,11 @@ if(!defined('ABSPATH')) exit();
                     <sr-separator-title><?php _e('Responsive Behavior','revslider'); ?></sr-separator-title>                    
                 </sr-separator-head>
                 <sr-separator-body>
+                <?php /* Story: volle Hoehe steht fest, also gibt es weder feste Breakpoint-Hoehen noch ein Seitenverhaeltnis. */ ?>
+                <sr-sh r="type" data-shdep="standard#;#hero#;#carousel" viewchild="module_naming">
                 <sr-wrap basic class="sr--form--grp"><sr-onoff r="size.keepBPHeight" data-onchange="stage.dims.prepareLevels" data-onchangeparams="force" viewchild="module_naming" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Fixed Breakpoint Heights','revslider'); ?></span><sr-tooltip key="keepbreakpoint"></sr-tooltip></sr-wrap> 
                 <sr-wrap basic class="sr--form--grp"><sr-onoff r="size.respectRatio" data-onchange="stage.dims.prepareLevels" data-onchangeparams="force" viewchild="module_naming" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Keep Aspect Ratio','revslider'); ?></span><sr-tooltip key="keepratio"></sr-tooltip></sr-wrap> 
+                </sr-sh>
                 <sr-wrap basic class="sr--form--grp" id="sr_module_upscaling"><sr-onoff r="size.upscaling" viewchild="module_naming" data-onchange="stage.dims.prepareLevels" data-onchangeparams="force" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Layer Upscaling','revslider'); ?></span><sr-tooltip key="layerupscaling"></sr-tooltip></sr-wrap> 
                 <sr-wrap basic class="sr--form--grp" id="sr_module_keepflow"><sr-onoff r="size.keepFlow" viewchild="module_naming" data-onchange="stage.dims.prepareLevels" data-onchangeparams="force" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Keep Content Flow Width','revslider'); ?></span><sr-tooltip key="keepflow"></sr-tooltip></sr-wrap> 
                 <sr-wrap basic class="sr--form--grp" id="sr_module_urljumpfix"><sr-onoff r="mobileURLJumpFix" viewchild="module_naming" data-onchange="stage.dims.prepareLevels" data-onchangeparams="force" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Ignore Mobile Height Changes','revslider'); ?></span><sr-tooltip key="ignoremobileheight"></sr-tooltip></sr-wrap>
@@ -70,6 +77,8 @@ if(!defined('ABSPATH')) exit();
                         <sr-wrap basic class="sr--form--grp"><sr-onoff r="size.FHOU" data-sh="#sr_module_fullheightdecr_inp" viewchild="module_naming" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Decrease Module Height','revslider'); ?></span><sr-tooltip key="decreasemoduleheight"></sr-tooltip></sr-wrap> 
                         <sr-wrap id="sr_module_fullheightdecr_inp" class="sr--mt--10 sr--mb--0" basic><sr-input wide textblock class="sr--mb--0"><textarea name="Full Height Offset Containers" style="height:28px;line-height:28px;vertical-align:top" class="sr--mb--0" r="size.fullHeightOffset" viewchild="module_naming"></textarea><span noicon="" class="sr--form--otitle" style="bottom:0px"><?php _e('#topbar,.content,5px','revslider'); ?></span></sr-input><sr-sp h="12"></sr-sp></sr-wrap>
                     </sr-wrap>
+                    <?php /* Story: die Groesse ergibt sich aus dem Schirm, eine Min/Max-Grenze widerspricht dem. */ ?>
+                    <sr-sh r="type" data-shdep="standard#;#hero#;#carousel" viewchild="module_naming">
                     <sr-wrap basic><!--
                         --><sr-wrap basic class="sr--form--grp sr--mb--0"><sr-onoff r="size.MMOU" data-sh="#sr_module_mmsizes_inp" viewchild="module_naming" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Min/Max Limitations','revslider'); ?></span><sr-tooltip key="minmaxmodulesizes"></sr-tooltip></sr-wrap>
                         <sr-sp h="5"></sr-sp><!--
@@ -81,6 +90,7 @@ if(!defined('ABSPATH')) exit();
                             --><sr-sp h="0"></sr-sp>
                         </sr-wrap>
                     </sr-wrap>                                        
+                    </sr-sh>
                     <sr-sp h="15"></sr-sp>
                 </sr-separator-body>
             </sr-separator>             
@@ -140,6 +150,8 @@ if(!defined('ABSPATH')) exit();
                     <sr-sp h="20"></sr-sp>
                 </sr-separator-body>
             </sr-separator>
+            <?php /* Story: fuellt immer den Schirm, also gibt es keinen Aussen- oder Innenabstand zu setzen. */ ?>
+            <sr-sh r="type" data-shdep="standard#;#hero#;#carousel" viewchild="module_naming">
             <sr-separator>                
                 <sr-separator-head notoggle>
                     <sr-separator-title><?php _e('Module Spacing','revslider'); ?></sr-separator-title>
@@ -152,7 +164,10 @@ if(!defined('ABSPATH')) exit();
                     <sr-sp h="5"></sr-sp>
                 </sr-separator-body>
             </sr-separator>
+            </sr-sh>
             
+            <?php /* Story: das Modul haelt sich selbst im Blick - Position und Sticky gibt es dort nicht zu waehlen. */ ?>
+            <sr-sh r="type" data-shdep="standard#;#hero#;#carousel" viewchild="module_naming">
             <sr-separator>
                 <sr-separator-head notoggle>
                     <sr-separator-title><?php _e('Module Position','revslider'); ?></sr-separator-title>
@@ -179,14 +194,16 @@ if(!defined('ABSPATH')) exit();
                         <sr-drops data-v="true"><?php _e('Visible','revslider'); ?></sr-drops>                    
                         <sr-drops data-v="false"><?php _e('Hidden','revslider'); ?></sr-drops>
                     </sr-drop>
-                    <sr-wrap basic class="sr--form--grp sr--mt--5">
+                    <sr-wrap basic class="sr--form--grp sr--mt--0">
                         <sr-onoff r="size.stickyReserve" viewchild="module_html" class="sr--mr--10"></sr-onoff>
                         <span><?php _e('Reserve Space','revslider'); ?></span>
                         <span class="sr--form--otitle"><?php _e('(for page content)','revslider'); ?></span>
+                        <sr-sp h="10"></sr-sp>
                     </sr-wrap>
                     <sr-sp h="5"></sr-sp>
                 </sr-separator-body>
             </sr-separator>
+            </sr-sh>
             <sr-separator>
                 <sr-separator-head notoggle>
                     <sr-separator-title><?php _e('3D Perspective','revslider'); ?></sr-separator-title>

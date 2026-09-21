@@ -12,10 +12,30 @@ if(!defined('ABSPATH')) exit();
  */
 class RevSliderWpbakeryShortcode {
 
+    /**
+     * Keep the older Revolution Slider elements out of the Add Element list.
+     *
+     * content_element => false is WPBakery's own way of saying mapped but not offered - see
+     * class-vc-add-element-box.php, which skips exactly that. Anything already built with one keeps its
+     * editor, which unregistering would not allow.
+     *
+     * rev_slider_vc is WPBakery's own element, not ours, and it is mapped on vc_after_mapping - so this
+     * runs after that rather than beside our own registrations on vc_before_init.
+     *
+     * @return void
+     */
+    public static function hide_legacy_from_add_element(){
+        if(!function_exists('vc_map_update')) return;
+
+        vc_map_update('rev_slider_vc', 'content_element', false);
+    }
+
     public static function visual_composer_include(){
 
         // VC is enabled
         if(defined('WPB_VC_VERSION') && function_exists('vc_map')){
+            add_action('vc_after_mapping', [__CLASS__, 'hide_legacy_from_add_element'], 20);
+
             vc_map(
                 [
                     'name' => __('Slider Revolution 7', 'revslider'),
@@ -102,6 +122,9 @@ class RevSliderWpbakeryShortcode {
                     'base' => 'rev_slider',
                     'icon' => 'icon-wpb-revslider',
                     'category' => __('Content', 'revslider'),
+                    //Mapped, but not offered. A page built with this years ago still opens and still
+                    //edits; unregistering would take its editor away as well as its place in the list.
+                    'content_element' => false,
                     'show_settings_on_create' => false,
                     'js_view' => 'VcSliderRevolution6',
                     'admin_enqueue_js' => RS_PLUGIN_URL . 'admin/includes/shortcode_generator/wpbakery/assets/js/sr6-wpbakery.js',

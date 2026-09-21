@@ -10,7 +10,7 @@ if(!defined('ABSPATH')) exit();
 <sr-modal id="sr_module_scroll" class="sr--no--padding sr--panel--leftsidebar" view="modulescroll" style="width:360px">    
     <sr-options-menu fourperrow>        
         <sr-nav-btn data-sr-tabc="sr_moscr_mod" class="sr--tab--call selected"><sr-icon-wrap><svg class="sr--icon" width="21.9" height="16.9" transform="translate(0,-1)"><use xlink:href="#Dashboard_HTML"></use></svg></sr-icon-wrap><span><?php echo __('Parallax Effect','revslider');?></span></sr-nav-btn>        
-        <sr-nav-btn data-sr-tabc="sr_moscr_sbt" class="sr--tab--call"><sr-icon-wrap><svg class="sr--icon" width="16" height="12.31"><use xlink:href="#Dashboard_Rename"></use></svg></sr-icon-wrap><span><?php echo __('Scroll Based Timeline','revslider');?></span></sr-nav-btn>
+        <sr-nav-btn data-sr-tabc="sr_moscr_sbt" class="sr--tab--call"><sr-icon-wrap><svg class="sr--icon" width="13" height="13"><use xlink:href="#Submenu_Progress"></use></svg></sr-icon-wrap><span><?php echo __('Scroll Based Timeline','revslider');?></span></sr-nav-btn>
     </sr-options-menu>
     <sr-modal-content>
     <sr-wrap view="module_mods" viewchild="modulescroll" class="sr--tab--content sr--open" id="sr_moscr_mod">
@@ -58,52 +58,42 @@ if(!defined('ABSPATH')) exit();
             </sr-separator>            
         </sr-wrap>  
         <sr-wrap view="module_sbt" viewchild="modulescroll" class="sr--tab--content" id="sr_moscr_sbt">
-            <sr-separator topborder dark>
-                <sr-separator-head notoggle>
-                    <sr-separator-title><?php _e('Active','revslider'); ?></sr-separator-title>
-                    <sr-onoff class="sr--mr--10" data-sh="#sr_sbt_settings" r="sbt.use" data-onchange="forms.populate,editor.module.submenu" data-onundoredo="editor.module.submenu" viewchild="module_sbt"></sr-onoff>
-                </sr-separator-head>
-            </sr-separator>
+            <sr-sh r="type" data-shdep="standard#;#hero#;#carousel" viewchild="module_sbt">
+                <sr-separator topborder dark>
+                    <sr-separator-head notoggle>
+                        <sr-separator-title><?php _e('Active','revslider'); ?></sr-separator-title>
+                        <sr-onoff class="sr--mr--10" data-sh="#sr_sbt_settings" r="sbt.use" data-onchange="forms.populate,editor.module.submenu" data-onundoredo="editor.module.submenu" viewchild="module_sbt"></sr-onoff>
+                    </sr-separator-head>
+                </sr-separator>
+            </sr-sh>
             <sr-separator id="sr_sbt_settings">   
                 <sr-separator-body >
                     <sr-sp h="20"></sr-sp>
-                    <sr-tabs-wrap viewchild="module_sbt" r="sbt.mode" data-onchange="editor.module.sbtMode,forms.populate">
-                        <sr-tab left half class="sr--active--tab" data-v="slide"><?php _e('Single Slide','revslider'); ?></sr-tab>
-                        <sr-tab right half data-v="module"><?php _e('Whole Module','revslider'); ?></sr-tab>
-                    </sr-tabs-wrap>
-                    <sr-sh r="sbt.mode" data-shdep="module" viewchild="module_sbt">
-                        <sr-wrap basic class="sr--form--grp sr--mb--10"><span class="sr--form--otitle"><?php _e('Every slide, every slide transition and every layer runs on the scroll position. Scroll distance follows the slide durations, and the module is held in view for the whole story.','revslider'); ?></span></sr-wrap>
-                    </sr-sh>
+                    <?php /* Einzel-Slide bleibt unangetastet. */ ?>
+                    <sr-sh r="type" data-shdep="standard#;#hero#;#carousel" viewchild="module_sbt">
                     <sr-input wide class="sr--mr--10"><input name="Timeline Animation Speed" replace r="sbt.s" viewchild="module_sbt" type="text" number="true" min="0" max="999999" suffix="ms" validate="true"><span noicon="" class="sr--form--otitle"><?php _e('Timeline Animation Speed','revslider'); ?></span></sr-input>
                     <sr-wrap basic class="sr--form--grp sr--mb--10"><sr-onoff data-sh="#module_sbt_smoothset" r="sbt.smooth" viewchild="module_sbt" class="sr--mr--10"></sr-onoff><span><?php _e('Smooth Scroll','revslider'); ?></span></sr-wrap>
                     <sr-wrap class="sr--mb--10" id="module_sbt_smoothset" wide basic>
                         <sr-input wide><input name="Smoothing Amount" replace r="sbt.smoothAmt" viewchild="module_sbt" type="text" number="true" def="0.12" min="0.02" max="1" validate="true"><span noicon="" class="sr--form--otitle"><?php _e('Smoothing (0.02 sluggish – 1 instant)','revslider'); ?></span></sr-input>
                     </sr-wrap>
-                    <sr-sh r="sbt.mode" data-shdep="slide" viewchild="module_sbt">
+                    </sr-sh>
+                    <sr-sh r="type" data-shdep="standard#;#hero#;#carousel" viewchild="module_sbt">
                         <sr-wrap basic class="sr--form--grp sr--mb--10"><sr-onoff data-sh="#module_sbt_fixscroll" r="sbt.f" viewchild="module_sbt" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Hold Module in View','revslider'); ?></span><sr-tooltip key="preventpagescroll"></sr-tooltip></sr-wrap>
                     </sr-sh>
+                    <?php /* Haelt-im-Blick, Haltebereich, Ausrichtung und der Traditional/Advanced-Umschalter
+                           gehoeren alle zur Einzel-Slide-Timeline. Eine Story haelt sich immer im Blick und richtet
+                           immer oben aus - also faellt der ganze Kasten weg statt ihn leer stehen zu lassen. */ ?>
+                    <sr-sh r="type" data-shdep="standard#;#hero#;#carousel" viewchild="module_sbt">
                     <sr-wrap class="sr--mb--10" id="module_sbt_fixscroll" wide basic>
-                        <sr-sh r="sbt.mode" data-shdep="slide" viewchild="module_sbt">
                             <sr-input half class="sr--mr--10"><input name="Hold From" replace r="sbt.fStart" viewchild="module_sbt" type="text" number="true" min="0" max="999999" suffix="ms" validate="true" extvalidate="editor.module.sbtCheck"><span noicon="" class="sr--form--otitle"><?php _e('Hold From','revslider'); ?></span></sr-input><!--
                          --><sr-input half><input name="Hold Until" replace r="sbt.fEnd" viewchild="module_sbt" type="text" number="true" min="0" max="9999999" validate="true" suffix="ms" extvalidate="editor.module.sbtCheck"><span noicon="" class="sr--form--otitle"><?php _e('Hold Until','revslider'); ?></span></sr-input>
-                        </sr-sh>
-                        <sr-drop wide r="sbt.a" viewchild="module_sbt">
-                            <sr-drop-view>
-                                <span class="sr--drop--value"></span>
-                                <span class="sr--form--otitle"><?php _e('Vertical Align','revslider'); ?></span>
-                                <span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
-                            </sr-drop-view>
-                            <sr-drops data-v="top"><?php _e('Top','revslider'); ?></sr-drops>
-                            <sr-drops data-v="bottom"><?php _e('Bottom','revslider'); ?></sr-drops>
-                            <sr-drops data-v="travel"><?php _e('Travel','revslider'); ?></sr-drops>                            
-                        </sr-drop>
-                        <sr-sh r="sbt.mode" data-shdep="slide" viewchild="module_sbt">
+                        <?php include(RS_PLUGIN_PATH . 'admin/includes/modals/module/parts/sbt-align.php'); ?>
                             <sr-tabs-wrap viewchild="module_sbt" r="sbt.nL">
                                 <sr-tab left half class="sr--active--tab" data-v="true"><?php _e('Traditional','revslider'); ?></sr-tab>
                                 <sr-tab right half data-v="false"><?php _e('Advanced ','revslider'); ?></sr-tab>
                             </sr-tabs-wrap>
-                        </sr-sh>
                     </sr-wrap>
+                    </sr-sh>
                     <!--<sr-wrap basic class="sr--form--grp sr--mb--10"><sr-onoff r="sbt.layers" viewchild="module_sbt" class="sr--mr--10 checked"></sr-onoff><span>Default Enabled on all Layers</span></sr-wrap>-->
                     <sr-sp h="10"></sr-sp>
                 </sr-separator-body>

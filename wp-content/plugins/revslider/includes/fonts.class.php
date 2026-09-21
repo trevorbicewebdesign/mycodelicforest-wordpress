@@ -547,26 +547,6 @@ class RevSliderFonts extends RevSliderFunctions {
 			$used_fonts[$font]['font'] = $font;
 		}
 
-		if($fetch_all === true){
-			/*if(class_exists('ThemePunch_Fonts') && method_exists('ThemePunch_Fonts', 'collect_used_fonts')){
-				$esg_fonts = new ThemePunch_Fonts();
-				$return = $esg_fonts->collect_used_fonts(false, false, $page);
-				$fonts = $this->get_val($return, 'fonts', []);
-				$_more = $this->get_val($return, 'more', false);
-				if($_more === true) $more = true;
-				//merge esg and revslider
-
-				foreach($fonts ?? [] as $handle => $urls){
-					if(empty($urls) || !is_array($urls)) continue;
-					if(!isset($used_fonts[$handle]) ) $used_fonts[$handle] = [];
-					if(!in_array($handle, $used_fonts[$handle])) {
-						foreach($urls ?? [] as $url){
-							if(!in_array($url, $used_fonts[$handle])) $used_fonts[$handle][] = $url;
-						}
-					}
-				}
-			}*/
-		}
 
 		$used_fonts = apply_filters('punchfonts_collect_fonts_v7', $used_fonts);
 		if($save === true) $this->update_option(['fonts', 'collected'], $used_fonts, self::OPTIONS_FONTS);

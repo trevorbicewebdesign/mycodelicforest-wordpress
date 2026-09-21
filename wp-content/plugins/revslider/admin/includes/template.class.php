@@ -79,6 +79,62 @@ class RevSliderTemplate extends RevSliderFunctions {
 	
 	
 	/**
+	 * Download a TEMPLATE PACKAGE zip by the package-parent's uid.
+	 *
+	 * A package parent is an ordinary catalogue row that happens to carry a zip of its own (manifest + bundled
+	 * media, see docs/template-packages-v2.md), so this uses the same endpoint, licence check and gates as any
+	 * module. Two things differ: it STREAMS to disk, because _download_template() holds the whole response in
+	 * memory and a package carries the media for five pages; and the result goes to RevSliderPackageInstaller,
+	 * never to the slider importer, because a package zip has a package.json where a module zip has
+	 * slider_data.json and its info.cfg is a plain alias rather than an md5, so check_template() would reject it.
+	 *
+	 * @param string $uid the package parent's uid
+	 * @return string|array path to the downloaded zip, or ['error' => msg]
+	 */
+	public function _download_package($uid){
+		if($this->_truefalse($this->get_options(['system', 'valid'], 'false')) === false) return ['error' => __("Please activate your Slider Revolution plugin to download templates", 'revslider')];
+
+		$rslb = RevSliderGlobals::instance()->get('RevSliderLoadBalancer');
+		$uid  = esc_attr($this->clear_uid($uid));
+		$code = $this->get_options(['system', 'license'], '');
+
+		if($uid === '') return ['error' => __('Package could not be found', 'revslider')];
+		if(!wp_mkdir_p($this->templates_basedir)) return ['error' => __("Can't write into the uploads folder of WordPress, please change permissions and try again!", 'revslider')];
+
+		$file = $this->templates_basedir . $uid . '-package.zip';
+
+		$result = $rslb->download_url_post($this->templates_download, $file, [
+			'code'			=> urlencode($code),
+			'shop_version'	=> urlencode(self::SHOP_VERSION),
+			'version'		=> urlencode(RS_REVISION),
+			'uid'			=> urlencode($uid),
+			'product'		=> urlencode(RS_PLUGIN_SLUG)
+		], 'templates');
+
+		if(is_wp_error($result)) return ['error' => __("Can't connect to the ThemePunch servers, please check your webserver settings", 'revslider')];
+
+		//A refused download is answered with the body "invalid" and a 200, so it arrives as a perfectly
+		//good tiny file. Streaming means we only find that out by looking at what landed.
+		if(!file_exists($file)) return ['error' => __('Package could not be downloaded', 'revslider')];
+		if(filesize($file) < 100 && trim((string)@file_get_contents($file)) === 'invalid'){
+			wp_delete_file($file);
+			return ['error' => __('Package could not be found / license key is invalid', 'revslider')];
+		}
+
+		return $file;
+	}
+
+
+	/**
+	 * Delete a downloaded package zip once it has been installed.
+	 * @return bool
+	 */
+	public function _delete_package($uid){
+		return wp_delete_file($this->templates_basedir . esc_attr($this->clear_uid($uid)) . '-package.zip');
+	}
+
+
+	/**
 	 * Delete the Template file
 	 * @return bool
 	 */
@@ -101,6 +157,14 @@ class RevSliderTemplate extends RevSliderFunctions {
 			$last_check = 172801;
 			$this->update_option(['timestamps', 'templates'], time());
 		}
+
+		//The catalogue's SHAPE depends on the plugin version that asked for it — the server withholds a
+		//package parent's manifest zip from a build with no installer for it. After an update the stored
+		//list is still the old shape, and the throttle below would keep it that way; recording the
+		//version a list arrived with lets that one case refetch immediately instead of waiting out the
+		//window. (Syncing tp-admin and a manual library refresh both clear it too.)
+		$fetched_with = $this->get_options(['fetched_version'], '', false, 'rs-templates');
+		if($fetched_with !== RS_REVISION) $force = true;
 
 		// Get latest Templates
 		if(time() - $last_check <= 345600 && $force === false) return; //4 days
@@ -126,6 +190,11 @@ class RevSliderTemplate extends RevSliderFunctions {
 
 					$templates = $this->do_compress($templates);
 					$this->update_option(['new'], $templates, 'rs-templates');
+
+					//Only once a list actually arrived. Recording it earlier would mean a failed request
+					//(server down, no network) permanently satisfied the check above, and the old-shaped
+					//catalogue would never be refetched.
+					$this->update_option(['fetched_version'], RS_REVISION, 'rs-templates');
 				}
 			}
 		}
@@ -563,6 +632,13 @@ class RevSliderTemplate extends RevSliderFunctions {
 		$max	 = 500;
 		
 		foreach($templates ?? [] as $k => $t){
+			//A package PARENT carrying a zip is a Template Package v2: that zip holds the manifest with the
+			//package's pages, media and menus (docs/template-packages-v2.md). The library needs to know which
+			//install path to take, and 'zip' itself is stripped a line below — so flag it before it goes.
+			if($this->get_val($t, 'package_parent', 'false') === 'true'){
+				$templates[$k]['pkg'] = ($this->get_val($t, 'zip', '') !== '');
+			}
+
 			foreach($remove ?? [] as $r){
 				if(isset($templates[$k][$r])) unset($templates[$k][$r]);
 			}
@@ -796,7 +872,11 @@ class RevSliderTemplate extends RevSliderFunctions {
 	 * @return string
 	 */
 	public function clear_uid($uid){
-		return preg_replace("/[^a-zA-Z0-9\s]/", '', $uid);
+		// Hyphens and underscores SURVIVE. The uid goes into a request and into a filename, so the point is to keep
+		// out anything that could climb a path - a dash does neither. Stripping them was harmless while every uid
+		// was an md5, but a package parent's uid is a SLUG built from the alias, so it quietly turned
+		// church-light-website-template into churchlightwebsitetemplate: every package refused.
+		return preg_replace("/[^a-zA-Z0-9\s_-]/", '', $uid);
 	}
 	
 	/**

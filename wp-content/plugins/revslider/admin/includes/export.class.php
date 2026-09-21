@@ -56,7 +56,16 @@ class RevSliderSliderExport extends RevSliderSlider {
 	 * export slider from data, output a file for download
 	 * @return void builds the zip, sends it to the browser and ends the request
 	 */
-	public function export_slider($id = 0){
+	/**
+	 * @param int  $id      the module to export
+	 * @param bool $deliver whether to hand the zip to the browser and end the request. Pass false to get
+	 *                      the PATH back instead and leave the file alone - which is what anything
+	 *                      building a bigger archive out of module exports needs, rather than the
+	 *                      sixteen steps below copied somewhere else, where they fall out of step the
+	 *                      first time one is added here.
+	 * @return string|void  the zip path when $deliver is false, otherwise this never returns
+	 */
+	public function export_slider($id = 0, $deliver = true){
 		//slider needs to be initialized :)
 		if($id > 0) $this->init_by_id($id);
 		
@@ -86,6 +95,14 @@ class RevSliderSliderExport extends RevSliderSlider {
 		$slider->add_static_styles_to_zip();
 		$slider->add_info_to_zip();
 		$slider->close_export_zip();
+
+		if($deliver === false){
+			$path = isset($slider->directories['zip_path']) ? $slider->directories['zip_path'] : '';
+
+			//the caller owns the file from here, including deleting it
+			return (is_string($path) && $path !== '' && file_exists($path)) ? $path : '';
+		}
+
 		$slider->push_zip_to_client();
 		$slider->delete_export_zip();
 

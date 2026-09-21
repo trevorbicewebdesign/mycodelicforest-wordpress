@@ -4,13 +4,19 @@
 .vc_control-btn.sr7--wpbakery--icon span.vc_btn-content i.vc-composer-icon {
     fill: #f2f2f2;
 }
-.vc_control-btn.sr7--wpbakery--icon.sr7--wpbakery--settings span.vc_btn-content i.vc-composer-icon {
-    transform: translateX(-1px);
-}
-.vc_control-btn.sr7--wpbakery--icon.sr7--wpbakery--edit span.vc_btn-content i.vc-composer-icon {
+/* The nudge belongs to the icon rather than to the button. Each glyph sits differently in its own
+   viewBox, and two of the three are used by two buttons each - so they are grouped by the icon they
+   carry. Quick Edit and Import Template were the two that had no rule, and both sat hard against the
+   right of their cell while the button beside them, drawn with the same glyph, did not. */
+.vc_control-btn.sr7--wpbakery--icon.sr7--wpbakery--edit span.vc_btn-content i.vc-composer-icon,
+.vc_control-btn.sr7--wpbakery--icon.sr7--wpbakery--quickedit span.vc_btn-content i.vc-composer-icon {
     transform: translateX(-4px);
 }
-.vc_control-btn.sr7--wpbakery--icon.sr7--wpbakery--select span.vc_btn-content i.vc-composer-icon {
+.vc_control-btn.sr7--wpbakery--icon.sr7--wpbakery--select span.vc_btn-content i.vc-composer-icon,
+.vc_control-btn.sr7--wpbakery--icon.sr7--wpbakery--template span.vc_btn-content i.vc-composer-icon {
+    transform: translateX(-1px);
+}
+.vc_control-btn.sr7--wpbakery--icon.sr7--wpbakery--settings span.vc_btn-content i.vc-composer-icon {
     transform: translateX(-1px);
 }
 .vc_control-btn.sr7--wpbakery--icon span.vc_btn-content i svg {
@@ -20,25 +26,4 @@
     background-color: #5c24ff;
 }
 
-sr-modal#block_settings {
-    width: 580px;
-    padding: 0;
-    top: 50%;
-    transform: translateY(-50%) !important;
-}
-sr-modal#block_settings .sr--p--20--15 { padding: 20px 15px; }
-sr-modal#block_settings .sr--ml--10 { margin-left: 10px; }
-sr-modal#block_settings .sr--mr--10,
-sr-popup#save_before_exit .sr--mr--10 { margin-right :10px; }
-sr-modal#block_settings .sr--mr--5 { margin-right: 5px; }
-sr-modal#block_settings .sr--mb--0 { margin-bottom: 0; }
-sr-modal#block_settings .sr--mb--10 { margin-bottom: 10px; }
-sr-modal#block_settings sr-tooltip { transform: none; }
-sr-modal#block_settings sr-bmp .sr--lock { display: none; }
-sr-modal#block_settings sr-separator {
-    margin: 20px -30px;
-    padding: 0px 30px;
-}
-sr-popup#save_before_exit span.sr--text {
-    display: none;
-}
+/* the block settings modal styles itself now - admin/assets/css/block-settings.css */

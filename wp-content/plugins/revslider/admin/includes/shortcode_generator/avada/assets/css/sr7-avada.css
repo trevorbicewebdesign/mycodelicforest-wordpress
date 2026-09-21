@@ -1,89 +1,57 @@
-.sr--avada--module--info .sr--module--info--logo {
-    height: 36px;
-    background-image: url("../../../../../assets/images/SR7-Logo-Light.svg");
-    background-repeat: no-repeat;
-}
-@media (prefers-color-scheme: dark) {
-    .sr--avada--module--info .sr--module--info--logo {
-        background-image: url("../../../../../assets/images/SR7-Logo-Dark.svg");
-    }
-}
+/* The card is the panel, not one option's value.
 
-.sr--module--info--hidden {
-    display: none !important;
-}
-.sr--avada--module--info {
-    border-bottom: 1px solid #ddd;
-    display: inline-block;
-    width: 95%;
-    padding: 2em 2.5%;
-    margin: 0;
-}
-.sr--avada--module--info .sr--module--info--thumb {
-    width: 320px;
-    height: 180px;
-    background-size: cover;
-    background-repeat: no-repeat;
-    margin: 2em 0;
-}
-.sr--avada--module--info .sr--module--info--title {
-    margin-bottom: 0.5em;
-    font-size: 1.2em;
-}
-.sr--avada--module--info .sr--module--info--row {
-    margin-bottom: 0.5em;
-    font-size: 14px;
-}
+   Fusion lays every option out as a label column beside a value column, and sizes the value column to its
+   content: the card came out at 180px of the sidebar's 350px empty, 278px with a module in it. The param
+   declares no heading, so that label column is holding nothing. The row gives the card the whole width.
 
-.sr--avada--module--info--buttons {
-    margin-top: 1.5em;
+   This has to live here rather than in sr7-avada-live.css. Everything in that file dresses the canvas
+   preview widget, which is a different document from the sidebar; this file is the one both builders
+   load, which is also why the cap below is scoped by selector rather than by which file it sits in. */
+.fusion-builder-option.info:has(.sr--avada--card) {
+    display: block;
 }
-.sr--avada--module--info--buttons button {
-	background: #008fc5;
-    color: #fff;
-    border: none;
-    text-transform: uppercase;
-    font-size: 14px;
-    font-weight: bold;
-    padding: 12px 28px;
-    height: auto;
-    display: inline-block;
-    text-decoration: none;
-    box-shadow: none;
-	transition-property: border, background, color;
-    transition-duration: .05s;
-    transition-timing-function: ease-in-out;
-    cursor: pointer;
-}
-.sr--avada--module--info--buttons button svg {
-    line-height: 18px;
-    height: 12px;
-    margin-right: 5px;
-    fill: #fff;
-}
-.sr--avada--module--info--buttons button:hover {
-    background: #222;
-    color: #fff;
-}
-
-.sr--avada--module--info.sr--live--module--info {
-    padding: 24px 20px;
-    border-bottom: 1px solid var(--gray-bg);
-    background: var(--white);
+.fusion-builder-option.info:has(.sr--avada--card) .fusion-builder-option-container,
+.fusion-builder-option.info:has(.sr--avada--card) .fusion-option-info {
     width: 100%;
-}
-.sr--avada--module--info.sr--live--module--info .sr--module--info--thumb {
-    width: 100%;
-    height: 0;
-    padding-bottom: 56.25%;
-}
-.sr--avada--module--info.sr--live--module--info .sr--module--info--title {
-    font-size: 14px;
-}
-.sr--avada--module--info.sr--live--module--info .sr--module--info--row {
-    font-size: 13px;
+    max-width: 100%;
+    flex: 1 1 100%;
+    box-sizing: border-box;
 }
 
+.sr--avada--card {
+    padding: 10px 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* The backend builder only, which is the one screen where the opposite is wanted: its dialog is nearly
+   the width of the screen, and a card let loose there upscales a 388px thumbnail to fill the first
+   screenful, pushing the details and the buttons below the fold. The live builder runs on the front end,
+   so wp-admin is what separates the two. */
+body.wp-admin .sr--avada--card {
+    max-width: 388px;
+}
+
+/* Avada dresses the "info" option it draws us in as a notice: a blue exclamation badge before every
+   <strong>, each one on a line of its own, and each one recoloured and enlarged. Ours are not notices,
+   they are the card's own labels - the module's title, and the "Alias:" and "Type:" that read as one line
+   with the value beside them - so all five of those are put back.
+
+   Colour and size come from the card, which sets them on the row; weight is the browser's own for
+   <strong>, which is what the same card gets in every other builder. !important is not decoration here:
+   Avada's rule carries six classes, so nothing short of it wins. */
+.sr--avada--card strong {
+    display: inline !important;
+    margin-bottom: 0 !important;
+    color: inherit !important;
+    font-size: inherit !important;
+    font-weight: bold !important;
+}
+.sr--avada--card strong::before {
+    content: none !important;
+}
+
+/* the module card in the backend builder's element block (templates/sr7-preview.php) */
 .sr--avada--module--preview--card .sr--module--info--thumb {
     width: 120px;
     height: 67.5px;
@@ -92,13 +60,17 @@
     background-repeat: no-repeat;
 }
 
+/* Avada sizes its own element icons with font-size:1em and lets them sit on the text baseline
+   (.fusion-module-icon). A fixed pixel box towers over the label wherever the surrounding text is
+   smaller - the element list, the navigator tree, the block outline - so match how they scale. */
 .sr7--avada--icon::before {
     background: url(../images/sr7-logo.svg) no-repeat center center;
     background-size: contain;
     content: ' ';
     display: inline-block;
-    width: 30px;
-    height: 30px;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
 }
 
 .fusion-builder-enabled sr-popups,
@@ -112,14 +84,27 @@
 .fusion-builder-live sr-sp[h="10"] {
     height: 10px;
 }
+/* inline-flex, not flex: the library lays these out inline-block and there are two of them on a template,
+   Preview and Details. A block-level box gives each one a line of its own. The centring is what this rule
+   is for, and inline-flex centres just the same. */
 .fusion-builder-live lib-i-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 .fusion-builder-live sr-input .sr--input--icon--left svg {
     margin-top: 6px;
 }
+/* The settings dialog's close icon, in the live builder only.
+
+   Something on the front end states a height for this button - 30px, against the 40px it gets on an admin
+   screen - and with border-box the 20px line box has nowhere to go, so the icon rides the top. The admin
+   builder is a wp-admin screen and has none of this, which is why the shared stylesheet must not carry
+   the correction: it would push the icon down where nothing had moved it. A nudge, not a derivation. */
+.fusion-builder-live sr-modal#block_settings sr-modal-close {
+    padding-top: 15px;
+}
+
 .fusion-builder-live .sr--basic--library .sr--library--right sr-modal-close {
     top: 11px;
 }

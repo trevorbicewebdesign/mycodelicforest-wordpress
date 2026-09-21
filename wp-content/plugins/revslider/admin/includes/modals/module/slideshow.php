@@ -60,6 +60,14 @@ if(!defined('ABSPATH')) exit();
                 </sr-separator-head>
             </sr-separator>
             <sr-wrap id="sr_moshow_prbar">
+                <sr-separator>
+                    <sr-separator-head notoggle>
+                        <sr-separator-title><?php _e('Presets','revslider'); ?></sr-separator-title>
+                    </sr-separator-head>
+                    <sr-separator-body>
+                        <sr-wrap id="sr_moshow_pbar_essentials" class="sr--mb--10"></sr-wrap>
+                    </sr-separator-body>
+                </sr-separator>
                 <sr-separator> 
                     <sr-separator-body>
                         <sr-sp h="20"></sr-sp>                    
@@ -89,7 +97,7 @@ if(!defined('ABSPATH')) exit();
                 <sr-separator id="sr_moshow_pbar_gaps" value="module">
                     <sr-separator-head notoggle>
                         <sr-separator-title><?php _e('Gaps','revslider'); ?></sr-separator-title>    
-                        <sr-onoff style="right:0px" data-sh="#sr_moshow_pbar_gaps_settings" data-onchange="editor.elements.updatePbar" r="pbar.set" viewchild="module_pbar"></sr-onoff>
+                        <sr-onoff style="right:0px" data-sh="#sr_moshow_pbar_gaps_settings" data-onchange="editor.elements.updatePbar" r="pbar.g" viewchild="module_pbar"></sr-onoff>
                     </sr-separator-head>
                     <sr-separator-body id="sr_moshow_pbar_gaps_settings">                        
                         <sr-input half class="sr--mr--10"><input name="Gaps Size" replace r="pbar.gs" viewchild="module_pbar" data-onchange="editor.elements.updatePbar" type="text" number="true" min="0" max="100" suffix="px" validate="true"><span noicon="" class="sr--form--otitle"><?php _e('Gap Size','revslider'); ?></span></sr-input><!--    

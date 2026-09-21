@@ -2,26 +2,17 @@
 /**
  * SCROLL ANIMATION PAGE EFFECT — the SR7 layer-animation catalogue, on ordinary page content.
  *
- * INSPECTOR-style, self_block page effect, built on the Pan & Zoom page effect's shape and, like it,
- * CORE's own (a layer animation is a core feature, so no addon owns it). Two ways in:
- *   1. a dedicated block themepunch/sr7-scrollanim — a container whose content animates in;
- *   2. a block EXTENSION on the common content blocks — the author keeps their block and just switches
- *      the effect on; the front animates the markup the block already rendered.
+ * INSPECTOR-style, self_block page effect built on the Pan & Zoom page effect's shape and, like it, CORE's
+ * own. Two ways in: a dedicated block themepunch/sr7-scrollanim, or a block EXTENSION on the common content
+ * blocks, where the front animates the markup the block already rendered. Like Pan & Zoom it does NOT pull
+ * the SR7 module engine: public/js/animpreset.js plays a preset body on a plain element with only GSAP.
  *
- * Like Pan & Zoom this effect does NOT pull the SR7 module engine: public/js/animpreset.js plays a
- * preset body on a plain element with nothing but GSAP.
- *
- * ⭐ THE PRESET IS A REFERENCE, NOT A COPY. The block stores the preset KEY ("cinematic.reveal" + a
- * variant); this class resolves the body out of the catalogue (RevSliderData::get_layer_animations)
- * at RENDER time and emits that one leaf. Decided 2026-08-11, the same way Pan & Zoom works and the
- * same way a slider layer works — a page follows the catalogue instead of freezing a copy of it:
- *   • a retune or a fix reaches every page that uses the preset, and the user's own animations stay live;
- *   • tools/anim-player/fidelity.mjs compares player and engine on the CURRENT catalogue, which only
- *     means something while that is also what pages play;
- *   • baking could not keep its promise anyway — the ~10 rules in animpreset.js interpret the data, so
- *     a change there moves a frozen body just as much as a live one.
- * The price is that a renamed or removed preset stops resolving. Hence the rule below: the start state
- * is set by JS ALONE, never by PHP or inline CSS — no body, no timeline, and the content is simply there.
+ * ⭐ THE PRESET IS A REFERENCE, NOT A COPY. The block stores the preset KEY ("cinematic.reveal" + a variant)
+ * and this class resolves the body out of the catalogue (RevSliderData::get_layer_animations) at RENDER time,
+ * so a retune reaches every page that uses the preset and tools/anim-player/fidelity.mjs stays meaningful.
+ * Baking could not keep its promise anyway: the ~10 rules in animpreset.js interpret the data, so a change
+ * there moves a frozen body just as much as a live one. The price is that a renamed preset stops resolving,
+ * hence the rule below: the start state is set by JS ALONE, never by PHP or inline CSS.
  *
  * @author    ThemePunch <info@themepunch.com>
  * @copyright 2026 ThemePunch
@@ -82,6 +73,7 @@ class RevSliderPageEffectScrollAnim {
 			'claim'			=> ['attr' => 'sr7Anim', 'scope' => 'self', 'takes' => 'box'],	// the block's own box, not the picture in it — so an image effect may run alongside	// we animate the block itself — see SR7.PE.claimedBy
 			'attributes'	=> self::attributes(),
 			'supports'		=> ['align' => ['wide', 'full']],
+			'storage'		=> 'attrs',			// config lives in the block attributes, not in post meta — see front_enqueue()
 			'render'		=> [self::class, 'render'],
 			'editor'		=> RS_PLUGIN_URL . 'admin/assets/js/scrollanim.editor.js?mt=' . self::mt('admin/assets/js/scrollanim.editor.js'),
 			'runtime'		=> RS_PLUGIN_URL . 'public/js/scrollanim.pe.js?mt=' . self::mt('public/js/scrollanim.pe.js'),
@@ -123,15 +115,13 @@ class RevSliderPageEffectScrollAnim {
 	// =====================================================================================
 
 	/**
-	 * The presets the picker offers. NOT a copy of any preset data — a key, a name and the still the editor's
-	 * own animation browser uses for that tile (presets.js _IMGLAYER). The variants of each are read from the
-	 * catalogue at runtime (see tile_list), so an axis added there shows up here without an edit.
+	 * The presets the picker offers. NOT a copy of any preset data - a key, a name and the still the editor's own
+	 * animation browser uses for that tile (presets.js _IMGLAYER). The variants are read from the catalogue at
+	 * runtime (tile_list), so an axis added there shows up here without an edit.
 	 *
-	 * Curated rather than complete: the catalogue's 124 presets include families that need a module stage,
-	 * a mask wrapper or an SVG path, and a tile that quietly does nothing is worse than no tile.
-	 * Every entry below is measured by tools/anim-player/fidelity.mjs.
-	 *
-	 * 'x' marks a text preset: it splits the block's text, so it is only offered where there is text.
+	 * Curated rather than complete: the catalogue's 124 presets include families that need a module stage, a mask
+	 * wrapper or an SVG path, and a tile that quietly does nothing is worse than no tile. Every entry below is
+	 * measured by tools/anim-player/fidelity.mjs. 'x' marks a text preset, offered only where there is text.
 	 * @return array
 	 */
 	public static function tiles($scene = 'in'){
@@ -463,11 +453,9 @@ class RevSliderPageEffectScrollAnim {
 	public static function wrap_host($html, $block){
 		if(empty($block['blockName']) || !in_array($block['blockName'], self::HOSTS, true)) return $html;
 
-		// A rich-text block IS its own editable element, so an editor badge portalled into it became part of the
-		// TEXT and was saved with the post — it turned up on the live page next to the words. The editor no
-		// longer does that; this takes the leftovers back out of content saved before the fix, whether the
-		// effect is still switched on or not. The strpos keeps it free for every other block on the page.
-		// Both names: this effect's own badge, and the shell's that replaced it.
+		// A rich-text block IS its own editable element, so an editor badge portalled into it became part of the TEXT
+		// and was saved with the post. The editor no longer does that; this takes the leftovers back out of content
+		// saved before the fix. Both names: this effect's own badge, and the shell's that replaced it.
 		if(strpos($html, 'sr7-sa-hostbadge') !== false || strpos($html, 'sr7pe-badge') !== false){
 			$html = preg_replace('#<button[^>]*(?:sr7-sa-hostbadge|sr7pe-badge)[^>]*>.*?</button>#is', '', $html);
 		}

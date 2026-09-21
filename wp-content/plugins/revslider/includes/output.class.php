@@ -10,14 +10,13 @@ if(!defined('ABSPATH')) exit();
 /**
  * Front end renderer - turns a slider into HTML, CSS and the JavaScript config.
  *
- * add_slider_to_stage() is the single entry point (the shortcode calls it) and drives the whole pass:
- * slider wrapper -> slides -> layers, echoing markup as it goes rather than building one big string.
- * Because of that the object carries the current position as state ($slide, $layer, $layer_depth …), which
- * the many small get_html_* helpers read instead of taking parameters.
+ * add_slider_to_stage() is the single entry point and drives the whole pass (slider wrapper -> slides ->
+ * layers), echoing markup as it goes rather than building one big string. Because of that the object carries
+ * the current position as state ($slide, $layer, $layer_depth …), which the many small get_html_* helpers
+ * read instead of taking parameters.
  *
- * Two cross-cutting concerns run alongside: collected assets (fonts, icons, images) are pushed into
- * $SR_GLOBALS so they can be emitted once for the whole page, and if the internal cache is on, the finished
- * markup plus everything that cannot be cached goes to RevSliderCache.
+ * Collected assets (fonts, icons, images) are pushed into $SR_GLOBALS so they can be emitted once per page,
+ * and with the internal cache on the finished markup goes to RevSliderCache.
  */
 class RevSlider7Output extends RevSliderFunctions {
 
@@ -1127,11 +1126,14 @@ class RevSlider7Output extends RevSliderFunctions {
 			if($static_id !== false && $slide->get_id() === $static_id) continue;
 			$story_slides[] = $slide;
 		}
-		$sbt_story	= ($this->slider->get_param(['sbt', 'mode'], 'slide') === 'module' && $mtype !== 'carousel' && count($story_slides) > 1);
+		//A story is a module TYPE, not a combination of settings. It used to be a mode plus "not a carousel" plus a
+		//slide count, rebuilt here and in three more places; the type says it once. A single slide is still no
+		//story, and that is the only part the type cannot carry.
+		$sbt_story	= ($mtype === 'story' && count($story_slides) > 1);
 		if($this->slider->get_param(['sbt', 'use'], false) === true && ($this->slider->get_param(['sbt', 'f'], false) === true || $sbt_story)){
 			$sbt = true;
 			$mlen = $this->slider->get_param(['default', 'len'], 'default');
-			if($mlen === 'default') $mlen = 9000;
+			if(!is_numeric($mlen) || intval($mlen) <= 0) $mlen = 9000; //stored as text, may carry 'default', '' or units
 			//A story spends the sum of ALL slide durations on scroll distance, so the pre-JS height has to be the sum
 			//too — otherwise the module resizes under the visitor the moment the engine works the real one out.
 			$len = 0;
@@ -1242,7 +1244,9 @@ class RevSlider7Output extends RevSliderFunctions {
 				
 		$html .= "mh:'".esc_attr($mheight)."',";
 		
-		if($sbt) $html .= "sbt:{use:true".($sbt_story ? ",mode:'module'" : "")."},";
+		//sbt.use travels on for a story too: defaults.js only builds the sbt bag when it is set, and the engine's
+		//scroll listener lives in there. The MODE is gone — the type in the same config already carries it.
+		if($sbt) $html .= "sbt:{use:true},";
 		
 		if(!is_string($bgcolor)) $bgcolor = json_encode($bgcolor, JSON_HEX_APOS); else $bgcolor = esc_attr($bgcolor);
 		$html .= "onh:".esc_attr($onh).",";

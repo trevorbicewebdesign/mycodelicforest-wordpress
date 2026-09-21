@@ -12,24 +12,21 @@ if(!defined('ABSPATH')) exit();
  *
  * Three entry points:
  *  - do_ajax_action()       admin AJAX. Requires a logged in user, a valid revslider_actions nonce and the
- *                           configured capability, then routes on the dotted `client_action` request
- *                           parameter (e.g. "slider.save", "template.import.slider"): it is split into
- *                           module / operation / suboperation and resolved by nested switches.
- *  - do_front_ajax_action() public (nopriv) AJAX for the front end. No nonce - it only exposes read-only
- *                           slider data and is protected by a per-IP rate limit instead.
- *  - init_rest_api()        REST routes under /sliderrevolution/, used by the front end and by the
- *                           editor's preview iframe.
+ *                           configured capability, then routes on the dotted `client_action` parameter
+ *                           (e.g. "slider.save"), split into module / operation / suboperation.
+ *  - do_front_ajax_action() public (nopriv) AJAX. No nonce - it only exposes read-only slider data and is
+ *                           protected by a per-IP rate limit instead.
+ *  - init_rest_api()        REST routes under /sliderrevolution/, for the front end and the preview iframe.
  *
- * Almost every method here is one endpoint and follows the same shape: read the payload with get_data(),
- * hand it to the class that owns the logic (RevSliderSlider, RevSliderSlide, RevSliderTemplate …), and
- * answer with ajax_response_success()/_error()/_data(). Those end the request, which is why the endpoints
- * are documented as returning void.
+ * Almost every method here is one endpoint of the same shape: read the payload with get_data(), hand it to
+ * the class that owns the logic, answer with ajax_response_success()/_error()/_data(). Those end the
+ * request, which is why the endpoints are documented as returning void.
  */
 class RevSliderApi extends RevSliderFunctions {
 	private $global_settings	= [];
 
 	// The allowlist for a "low-privileged editor support"
-	public $user_allowed		= ['fonts.get', 'fonts.get.google', 'library.get', 'library.load.image', 'library.load.object', 'module.load', 'page_effects.get', 'page_effects.preview', 'page_effects.save', 'plugin.modal.*', 'plugin.modals', 'plugin.panel.*', 'plugin.panels', 'plugin.get.nonce', 'plugin.get.popups', 'revslider-*-addon.all.get', 'revslider-*-addon.lang.get', 'revslider-*-addon.template.list',  'revslider-*-addon.transitions.get', 'revslider-*-addon.values.get', 'slide.get', 'slide.get.by_slider_id', 'slide.get.layers', 'slide.quickedit.get', 'slide.quickedit.save', 'slider.get', 'slider.get.alias', 'slider.get.full', 'slider.get.image', 'slider.get.layout', 'slider.get.post_templates', 'wordpress.create.image' ];
+	public $user_allowed		= ['fonts.get', 'fonts.get.google', 'library.get', 'library.load.image', 'library.load.object', 'module.load', 'page_effects.get', 'page_effects.preview', 'page_effects.save', 'plugin.modal.*', 'plugin.modals', 'plugin.panel.*', 'plugin.panels', 'plugin.get.nonce', 'plugin.get.popups', 'revslider-*-addon.all.get', 'revslider-*-addon.lang.get', 'revslider-*-addon.template.list',  'revslider-*-addon.transitions.get', 'revslider-*-addon.values.get', 'slide.get', 'slide.get.by_slider_id', 'slide.get.layers', 'slide.quickedit.get', 'slide.quickedit.save', 'slider.get', 'slider.get.alias', 'slider.get.full', 'slider.get.image', 'slider.get.layout', 'slider.get.list', 'slider.get.post_templates', 'wordpress.create.image' ];
 
 	// Actions in this list does not trigger cache invalidate for the revslider object-cache namespace
 	public $no_cache_invalidate	= ['template.get_short', 'slider.export', 'slider.export_html', 'slider.get_image', 'slider.get_fullheight', 'wordpress.get.object', 'plugin.get_settings', 'slide.get.by_slider_id', 'slide.quickedit.get', 'slide.quickedit.save', 'slider.get.full', 'slider.get.full_object', 'plugin.subscribe', 'plugin.check.system', 'slide.get_layers', 'layers.export', 'wordpress.get_image', 'library.load_image', 'plugin.get_help', 'plugin.get.tooltips', 'addon.get_sizes', 'editor.get.all', 'page_effects.get', 'page_effects.preview' ];
@@ -157,11 +154,10 @@ class RevSliderApi extends RevSliderFunctions {
 	/**
 	 * true when the calling browser session belongs to a user who may see unsaved module drafts.
 	 *
-	 * the preview route is opened as an iframe / top level navigation from the editor, so it carries the WP auth
-	 * cookies but no REST nonce - and WP forces the current user to 0 for nonce-less REST requests
-	 * (rest_cookie_check_errors). current_user_can() would therefore report "not allowed" even for a logged in
-	 * editor, so validate the logged_in cookie directly instead. The route is a read-only GET, so the missing
-	 * nonce is not a CSRF concern: an attacker cannot read the cross-origin response.
+	 * The preview route is opened as an iframe from the editor, so it carries the WP auth cookies but no REST
+	 * nonce - and WP forces the current user to 0 for nonce-less REST requests (rest_cookie_check_errors), so
+	 * current_user_can() would report "not allowed" even for a logged in editor. The route is a read-only GET,
+	 * so the missing nonce is not a CSRF concern: an attacker cannot read the cross-origin response.
 	 * @return bool
 	 */
 	private function can_view_module_preview(){
@@ -316,6 +312,11 @@ class RevSliderApi extends RevSliderFunctions {
 								break;
 								case 'overview':
 									$this->slider_get_overview_data($data);
+								break;
+								//the JS twin of RevSliderBuilders::modules(), so a client-side integration gets the
+								//identical array rather than a second listing that drifts from it (CONTRACT B8.1)
+								case 'list':
+									$this->builder_module_list($data);
 								break;
 							}
 						break;
@@ -494,6 +495,37 @@ class RevSliderApi extends RevSliderFunctions {
 						break;
 					}
 				break;
+				//Template Packages v2 — a package that ships whole pages. See docs/template-packages-v2.md.
+				case 'package':
+					switch($operation){
+						case 'inspect': //download the package zip, parse its manifest, report what installing would do
+							$this->inspect_package($data);
+						break;
+						case 'install':
+							switch($suboperation){
+								case 'begin': //open an install and get the phase list
+									$this->begin_package_install($data);
+								break;
+								case 'step': //run the next phase
+									$this->step_package_install($data);
+								break;
+							}
+						break;
+						case 'installed': //every install this site has a receipt for
+							$this->get_package_installs();
+						break;
+						case 'uninstall':
+							switch($suboperation){
+								case 'report': //what removing it would take away
+									$this->get_package_uninstall_report($data);
+								break;
+								default: //remove it
+									$this->uninstall_package($data);
+								break;
+							}
+						break;
+					}
+				break;
 				case 'stream':
 					switch($operation){
 						case 'facebook':
@@ -544,12 +576,6 @@ class RevSliderApi extends RevSliderFunctions {
 						break;
 						case 'get':
 							switch($suboperation){
-								//case 'help': //get_help_directory
-								//	$this->get_plugin_help();
-								//break;
-								//case 'tooltips': //get_tooltips
-								//	$this->get_plugin_tooltips();
-								//break;
 								case 'tooltips':
 									$handle = $this->get_val($data, 'handle', false);
 									if($handle !== false){
@@ -794,6 +820,9 @@ class RevSliderApi extends RevSliderFunctions {
 								case 'animation': //save_animation
 									$this->save_animation($data);
 								break;
+								case 'pbar': //save_pbar_preset
+									$this->save_pbar_preset($data);
+								break;
 							}
 						break;
 						case 'delete':
@@ -814,12 +843,18 @@ class RevSliderApi extends RevSliderFunctions {
 								case 'animation': //delete_animation
 									$this->delete_animation($data);
 								break;
+								case 'pbar': //delete_pbar_preset
+									$this->delete_pbar_preset($data);
+								break;
 							}
 						break;
 						case 'get':
 							switch($suboperation){
 								case 'all':
 									$this->editor_get_all($data);
+									break;
+								case 'pbar': //the Progress Bar preset browser, read once when the panel opens
+									$this->ajax_response_data(['presets' => $this->get_options(['presets', 'pbar'], [])]);
 									break;
 								case 'navigation':
 									switch($subsuboperation){
@@ -832,6 +867,8 @@ class RevSliderApi extends RevSliderFunctions {
 												$nav_skins = $this->get_navigation_skin_by_id($this->get_val($data, 'id', 0), $subsuboperation);
 											}elseif($this->get_val($data, 'handle', false) !== false){
 												$nav_skins = $this->get_navigation_skin_by_handle($this->get_val($data, 'handle', false), $subsuboperation);
+											}elseif($this->get_val($data, 'full', false) !== false){ //the skin browser draws every tile from the real css+markup, so it needs them all at once instead of one request per skin
+												$nav_skins = $this->get_val($this->get_navigation_skins(), $subsuboperation, []);
 											}else{
 												$nav_skins = $this->get_navigation_skins_short($subsuboperation);
 											}
@@ -1018,16 +1055,10 @@ class RevSliderApi extends RevSliderFunctions {
 	/**
 	 * Throttle anonymous front-end AJAX (wp_ajax_nopriv_revslider_ajax_call_front).
 	 *
-	 * These endpoints are unauthenticated and return full slider objects, so a per-IP
-	 * fixed-window limiter blunts scraping / denial-of-service abuse. Logged-in users
-	 * (editors, live preview) are never throttled. When the limit is exceeded a 429
-	 * response with a Retry-After header is sent and the request is terminated.
-	 *
-	 * Tune or disable via the `revslider_front_ajax_rate_limit` filter:
-	 *   add_filter('revslider_front_ajax_rate_limit', function($cfg){
-	 *       $cfg['limit'] = 300; $cfg['window'] = 60; // or $cfg['enabled'] = false;
-	 *       return $cfg;
-	 *   });
+	 * These endpoints are unauthenticated and return full slider objects, so a per-IP fixed-window limiter blunts
+	 * scraping and denial-of-service abuse. Logged-in users are never throttled. Over the limit a 429 with a
+	 * Retry-After header is sent and the request is terminated. Tune or disable it through the
+	 * `revslider_front_ajax_rate_limit` filter ($cfg['limit'], $cfg['window'], $cfg['enabled']).
 	 *
 	 * @return void
 	 */
@@ -1830,6 +1861,26 @@ class RevSliderApi extends RevSliderFunctions {
 		}
 
 		$this->ajax_response_data(['slider' => $slider->get_overview_data()]);
+	}
+
+	/**
+	 * Every module as plain arrays, for a builder integration working client-side.
+	 *
+	 * One line of substance on purpose: the shape is RevSliderBuilders::modules() and nothing here may
+	 * add to it, or SR7.Block.modules() and its PHP twin stop agreeing.
+	 *
+	 * @param mixed $data include, filter, search, orderby - see RevSliderBuilders::modules()
+	 * @return void the response is sent by ajax_response_data(), which ends the request
+	 */
+	public function builder_module_list($data){
+		$data = $this->get_data($data);
+
+		$this->ajax_response_data(['modules' => RevSliderBuilders::modules([
+			'include'	=> (array)$this->get_val($data, 'include', []),
+			'filter'	=> (string)$this->get_val($data, 'filter', 'all'),
+			'search'	=> (string)$this->get_val($data, 'search', ''),
+			'orderby'	=> (string)$this->get_val($data, 'orderby', 'title')
+		])]);
 	}
 
 	/** @return void the response is sent by ajax_response_*(), which ends the request */
@@ -2911,6 +2962,116 @@ class RevSliderApi extends RevSliderFunctions {
 		$this->ajax_response_error($error);
 	}
 
+	/**
+	 * Fetch a template package and report what installing it would do, without writing anything.
+	 *
+	 * The zip is kept where it lands: begin_package_install() reuses it rather than pulling it a second
+	 * time, so looking at a package before installing it does not cost the download twice.
+	 * @return void the response is sent by ajax_response_*(), which ends the request
+	 */
+	public function inspect_package($data = false){
+		$data	= $this->get_data($data);
+		$uid	= $this->get_val($data, 'uid');
+
+		$templates	= new RevSliderTemplate();
+		$zip		= $templates->_download_package($uid);
+		if(is_array($zip) && isset($zip['error'])) $this->ajax_response_error($zip['error']);
+
+		$installer	= new RevSliderPackageInstaller();
+		$manifest	= $installer->read_manifest($zip);
+		if(is_wp_error($manifest)){
+			$templates->_delete_package($uid);
+			$this->ajax_response_error($manifest->get_error_message());
+		}
+
+		$report = $installer->dry_run($manifest, !empty($this->get_val($data, 'modules_only', false)));
+
+		$this->ajax_response_data([
+			'uid'		=> $uid,
+			'title'		=> $this->get_val($manifest, 'title'),
+			'version'	=> $this->get_val($manifest, 'version'),
+			'report'	=> $report
+		]);
+	}
+
+	/**
+	 * Open a package install. Expects any Add-Ons the package needs to be installed already — the library
+	 * does that first, through the same path the "Install Package & Addons" button has always used, so
+	 * the effects a page carries are registered by the time their pages are built.
+	 * @return void the response is sent by ajax_response_*(), which ends the request
+	 */
+	public function begin_package_install($data = false){
+		$data	= $this->get_data($data);
+		$uid	= $this->get_val($data, 'uid');
+
+		$templates	= new RevSliderTemplate();
+		$zip		= $templates->_download_package($uid);
+		if(is_array($zip) && isset($zip['error'])) $this->ajax_response_error($zip['error']);
+
+		$installer	= new RevSliderPackageInstaller();
+		$manifest	= $installer->read_manifest($zip);
+		if(is_wp_error($manifest)) $this->ajax_response_error($manifest->get_error_message());
+
+		$begun = $installer->begin($manifest, $zip, !empty($this->get_val($data, 'modules_only', false)));
+		if(is_wp_error($begun)) $this->ajax_response_error($begun->get_error_message());
+
+		$templates->_delete_package($uid); //begin() has unpacked it; the download is no longer needed
+
+		$this->ajax_response_data($begun);
+	}
+
+	/**
+	 * Run the next phase of an open package install. One phase per request: a package with five pages and
+	 * forty images does not finish inside one PHP timeout.
+	 * @return void the response is sent by ajax_response_*(), which ends the request
+	 */
+	public function step_package_install($data = false){
+		$data		= $this->get_data($data);
+		$install_id	= $this->get_val($data, 'install_id');
+
+		$installer	= new RevSliderPackageInstaller();
+		$result		= $installer->step($install_id);
+
+		if(is_wp_error($result)) $this->ajax_response_error($result->get_error_message());
+
+		$this->ajax_response_data($result);
+	}
+
+	/** @return void the response is sent by ajax_response_*(), which ends the request */
+	public function get_package_installs(){
+		$installer = new RevSliderPackageInstaller();
+
+		$this->ajax_response_data(['installs' => $installer->get_installs()]);
+	}
+
+	/** @return void the response is sent by ajax_response_*(), which ends the request */
+	public function get_package_uninstall_report($data = false){
+		$data	= $this->get_data($data);
+		$uid	= $this->get_val($data, 'uid');
+		$index	= $this->get_val($data, 'index', null);
+
+		$installer	= new RevSliderPackageInstaller();
+		$report		= $installer->uninstall_report($uid, ($index === null || $index === '') ? null : intval($index));
+
+		if(is_wp_error($report)) $this->ajax_response_error($report->get_error_message());
+
+		$this->ajax_response_data(['report' => $report]);
+	}
+
+	/** @return void the response is sent by ajax_response_*(), which ends the request */
+	public function uninstall_package($data = false){
+		$data	= $this->get_data($data);
+		$uid	= $this->get_val($data, 'uid');
+		$index	= $this->get_val($data, 'index', null);
+
+		$installer	= new RevSliderPackageInstaller();
+		$removed	= $installer->uninstall($uid, ($index === null || $index === '') ? null : intval($index));
+
+		if(is_wp_error($removed)) $this->ajax_response_error($removed->get_error_message());
+
+		$this->ajax_response_data(['removed' => $removed]);
+	}
+
 	/** @return void the response is sent by ajax_response_*(), which ends the request */
 	public function import_template_slide($data = false){
 		$data		= $this->get_data($data);
@@ -2980,6 +3141,42 @@ class RevSliderApi extends RevSliderFunctions {
 		if($return === false) $this->ajax_response_error(__('Preset could not be saved/values are the same', 'revslider'));
 
 		$this->ajax_response_error($return);
+	}
+
+	/**
+	 * Progress Bar presets. The Progress Bar has no Skin row to hang them off the way a Navigation preset does,
+	 * so they live in the shared options bucket next to the ones the factory Navigation skins keep there.
+	 * @return void the response is sent by ajax_response_*(), which ends the request
+	 */
+	public function save_pbar_preset($data = false){
+		$data	= $this->get_data($data);
+		$handle	= sanitize_key($this->get_val($data, 'handle', ''));
+		$values	= $this->get_val($data, 'values', false);
+		if($handle === '' || !is_array($values)) $this->ajax_response_error(__('Progress bar preset could not be saved', 'revslider'));
+
+		$presets = $this->get_options(['presets', 'pbar'], []);
+		if(!is_array($presets)) $presets = [];
+		$old = sanitize_key($this->get_val($data, 'old_handle', ''));
+		if($old !== '' && $old !== $handle) unset($presets[$old]);
+
+		$presets[$handle] = [
+			'name'	 => esc_attr($this->get_val($data, 'name', $handle)),
+			'values' => $values
+		];
+		$this->update_option(['presets', 'pbar'], $presets);
+		$this->ajax_response_success(__('Progress bar preset saved', 'revslider'), ['presets' => $presets]);
+	}
+
+	/** @return void the response is sent by ajax_response_*(), which ends the request */
+	public function delete_pbar_preset($data = false){
+		$data	 = $this->get_data($data);
+		$handle	 = sanitize_key($this->get_val($data, 'handle', ''));
+		$presets = $this->get_options(['presets', 'pbar'], []);
+		if(!is_array($presets) || !isset($presets[$handle])) $this->ajax_response_error(__('Progress bar preset not found', 'revslider'));
+
+		unset($presets[$handle]);
+		$this->update_option(['presets', 'pbar'], $presets);
+		$this->ajax_response_success(__('Progress bar preset deleted', 'revslider'), ['presets' => $presets]);
 	}
 
 	/** @return void the response is sent by ajax_response_*(), which ends the request */
@@ -3137,22 +3334,6 @@ class RevSliderApi extends RevSliderFunctions {
 
 	/***********************
 	 * PLUGIN FUNCTIONS    *
-	 ***********************/
-	/*public function get_plugin_help(){
-		include_once(RS_PLUGIN_PATH . 'admin/includes/help.class.php');
-
-		if(!class_exists('RevSliderHelp')) $this->ajax_response_error(__('Error loading RevSliderHelp', 'revslider'));
-
-		$this->ajax_response_data(['data' => RevSliderHelp::getIndex()]);
-	}
-
-	public function get_plugin_tooltips(){
-		include_once(RS_PLUGIN_PATH . 'admin/includes/tooltips.class.php');
-
-		if(!class_exists('RevSliderTooltips')) $this->ajax_response_error(__('Error loading RevSliderTooltips', 'revslider'));
-		
-		$this->ajax_response_data(['data' => RevSliderTooltips::getTooltips()]);
-	}*/
 
 	/** @return void the response is sent by ajax_response_*(), which ends the request */
 	public function get_plugin_settings(){
@@ -3509,6 +3690,7 @@ class RevSliderApi extends RevSliderFunctions {
 			'sr_actions'			=> 'actions.php',
 			'sr_module_general'		=> 'module/general.php',
 			'sr_module_scroll'		=> 'module/scroll.php',
+			'sr_module_story'		=> 'module/story.php',
 			'sr_module_style'		=> 'module/style.php',
 			'sr_module_acc'			=> 'module/accessibility.php',
 			'sr_module_browser'		=> 'module/browser.php',
@@ -3540,7 +3722,9 @@ class RevSliderApi extends RevSliderFunctions {
 		}finally{
 			$popups = ob_get_clean(); //always close the buffer, even if the included file throws
 		}
-		$html = '<div class="sr--block--editor--popup--wrap" style="display:none;">' . $popups . '</div>';
+		//sr-light-theme pins the palette: these dialogs are drawn on WordPress and on other builders'
+		//screens, where following the SR7 app into dark mode reads as a mistake rather than as a theme.
+		$html = '<div class="sr--block--editor--popup--wrap sr-light-theme" style="display:none;">' . $popups . '</div>';
 		if (!isset($data['skipIcons'])) {
 			$html .= RevSliderFunctions::get_sprite_svg();
 		}
@@ -3989,7 +4173,8 @@ class RevSliderApi extends RevSliderFunctions {
 			'slider.save.advanced',
 			'slider.import',
 			'slider.create',
-			'template.import.slider'
+			'template.import.slider',
+			'package.install.begin'
 		], true)) {
 			return true;
 		}
