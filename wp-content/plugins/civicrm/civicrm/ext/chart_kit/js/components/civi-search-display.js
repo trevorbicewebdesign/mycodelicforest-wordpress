@@ -18,6 +18,9 @@
       this.onPreRun = [];
       this.onPostRun = [];
       this._runCount = 0;
+      // Bound once: the listener runs on afFieldset, so a bare
+      // _onChangeFilters loses `this`, and .bind() breaks removal.
+      this._onChangeFiltersListener = () => this._onChangeFilters();
     }
 
     connectedCallback() {
@@ -25,9 +28,9 @@
     }
 
     disconnectedCallback() {
-      // this removes listeners added in initializeDisplay
-      if (this.formContainer) {
-        this.formContainer.removeEventListener('crmFormChangeFilters', () => this._onChangeFilters());
+      // Must match the element, handler and capture flag used in initializeDisplay.
+      if (this.afFieldset) {
+        this.afFieldset.removeEventListener('crmFormChangeFilters', this._onChangeFiltersListener, true);
       }
     }
 
@@ -175,15 +178,6 @@
         });
       }
 
-      if (this.afFieldset) {
-        // Add filter title to Afform
-        this.onPostRun.push((apiResults) => {
-          if (apiResults.run.labels && apiResults.run.labels.length && $scope.$parent.addTitle) {
-            console.log("$scope.$parent.addTitle(apiResults.run.labels.join(' '));");
-          }
-        });
-      }
-
       // Trigger an event when the searchDisplay has completely (re-)loaded
       this.onPostRun.push(() => this.dispatchEvent(new Event('load')));
 
@@ -192,7 +186,7 @@
 
       // When filters are changed, trigger callbacks and refresh search (if there's no search button)
       if (this.afFieldset) {
-        this.afFieldset.addEventListener('crmFormChangeFilters', () => this._onChangeFilters(), true);
+        this.afFieldset.addEventListener('crmFormChangeFilters', this._onChangeFiltersListener, true);
       }
 
       // TODO: implement pager reload? this could be moved to a trait - not relevant for some displays

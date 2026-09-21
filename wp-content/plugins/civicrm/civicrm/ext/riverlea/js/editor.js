@@ -28,7 +28,7 @@
         if (result && result.length) {
           return result[0];
         }
-        throw new Error('Unable to load editor for ' + streamName);
+        throw new Error('Unable to load editor for ' + this.streamName);
       })
       .then((stream) => this.setStreamData(stream));
     }
@@ -86,7 +86,7 @@
 
           <div class="civi-riverlea-stream-editor-edit-pane"></div>
 
-          <div class="civi-riverlea-stream-editor-preview-pane">
+          <div class="civi-riverlea-stream-editor-preview-pane crm-flex-2">
             <iframe></iframe>
           </div>
 
@@ -194,10 +194,13 @@
         return group;
       };
 
-      this.editPane.querySelector('.civi-riverlea-stream-meta-inputs').append(
-        createTextInput(ts('Stream Name'), 'label'),
-        createTextInput(ts('Description'), 'description', true)
-      );
+      // only allow editing the label/description of custom streams
+      if (!this.data.base_module) {
+        this.editPane.querySelector('.civi-riverlea-stream-meta-inputs').append(
+          createTextInput(ts('Stream Name'), 'label'),
+          createTextInput(ts('Description'), 'description', true)
+        );
+      }
 
       // create parallel sets of inptus for light and dark mode
       [

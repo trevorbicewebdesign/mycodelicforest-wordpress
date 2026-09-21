@@ -27,8 +27,6 @@ use Civi\Api4\Utils\CoreUtil;
  * @method $this setLoadOptions(bool|array $value)
  * @method bool|array getLoadOptions()
  * @method $this setAction(string $value)
- * @method $this setValues(array $values)
- * @method array getValues()
  */
 class BasicGetFieldsAction extends BasicGetAction {
 
@@ -120,6 +118,8 @@ class BasicGetFieldsAction extends BasicGetAction {
   protected function formatResults(&$values, $isInternal) {
     $fieldDefaults = array_column($this->fields(), 'default_value', 'name') +
       array_fill_keys(array_column($this->fields(), 'name'), NULL);
+    // Add the default type if it is missing (e.g. Setting)
+    $fieldDefaults += ['type' => 'Field'];
     // Enforce field permissions
     if ($this->checkPermissions) {
       foreach ($values as $key => $field) {

@@ -189,7 +189,7 @@ class CRM_Event_BAO_Participant extends CRM_Event_DAO_Participant implements \Ci
       $participantRoles = CRM_Event_PseudoConstant::participantRole();
 
       if ($participant->role_id) {
-        $role = explode(CRM_Core_DAO::VALUE_SEPARATOR, $participant->role_id);
+        $role = CRM_Core_DAO::unSerializeField($participant->role_id, CRM_Core_DAO::SERIALIZE_SEPARATOR_TRIMMED);
 
         foreach ($role as & $roleValue) {
           if (isset($roleValue)) {
@@ -274,7 +274,7 @@ class CRM_Event_BAO_Participant extends CRM_Event_DAO_Participant implements \Ci
     // It might be case there are some empty spaces and still event
     // is full, as waitlist might represent group require spaces > empty.
 
-    $countedStatuses = \CRM_Event_BAO_Participant::buildOptions('status_id', NULL, ['is_counted' => 1]);;
+    $countedStatuses = \CRM_Event_BAO_Participant::buildOptions('status_id', NULL, ['is_counted' => 1]);
     $positiveStatuses = CRM_Event_PseudoConstant::participantStatus(NULL, "class = 'Positive'");
     $waitingStatuses = CRM_Event_PseudoConstant::participantStatus(NULL, "class = 'Waiting'");
     $onWaitlistStatusId = array_search('On waitlist', $waitingStatuses);

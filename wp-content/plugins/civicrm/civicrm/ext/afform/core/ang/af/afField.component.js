@@ -92,9 +92,31 @@
           }, true);
         }
 
+        // Watch conditional required attribute
+        const afRequiredAttr = $element.attr('af-required');
+        if (afRequiredAttr) {
+          $scope.$watch(() => {
+            const conditions = $scope.$eval(afRequiredAttr);
+            return ctrl.afForm.checkConditions(conditions);
+          }, (value) => {
+            ctrl.defn.required = value;
+          });
+        }
+
+        // Watch conditional disabled attribute
+        const afDisabledAttr = $element.attr('af-disabled');
+        if (afDisabledAttr) {
+          $scope.$watch(() => {
+            const conditions = $scope.$eval(afDisabledAttr);
+            return ctrl.afForm.checkConditions(conditions);
+          }, (value) => {
+            ctrl.defn.disabled = value;
+          });
+        }
+
         // check for tokens in the default value
         const tokens = this.afForm?.identifyTokens(this.defn.afform_default);
-        if (tokens && tokens.length) {
+        if (tokens && tokens.size) {
           const calculateValueWatcher = $scope.$watchCollection(() => Object.values(this.afForm.getTokenValues(tokens)), () => {
             if ($element[0].querySelector('.ng-touched')) {
               // user has touched this input, stop calculating
@@ -273,7 +295,7 @@
           value = value.split(',');
         }
         // When reloading values for fields with operators, the stored value is an object "operator"
-        if (typeof value === 'object' && value !== null && ctrl.search_operator) {
+        if (typeof value === 'object' && value !== null && !Array.isArray(value) && ctrl.search_operator) {
           // if the operator is a user select, load from the passed value
           // (we expect the value to be an Object with a single key)
           if (ctrl.defn.expose_operator) {
@@ -341,7 +363,7 @@
         if (ctrl.isReadonly()) {
           return true;
         }
-        return ctrl.defn.input_type === 'EntityRef' && !ctrl.fkEntity;
+        return (ctrl.defn.input_type === 'EntityRef' && !ctrl.fkEntity) || !!ctrl.defn.disabled;
       };
 
       ctrl.getDisplayValue = function(value) {

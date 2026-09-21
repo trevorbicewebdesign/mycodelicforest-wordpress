@@ -17,7 +17,6 @@
   <div id="crm-container" class="crm-container standalone-page-padding {if !empty($urlIsPublic)}crm-public{/if}" lang="{$config->lcMessages|substr:0:2}" xml:lang="{$config->lcMessages|substr:0:2}">
     {if $breadcrumb}
       <nav aria-label="{ts escape='htmlattribute'}Breadcrumb{/ts}" class="breadcrumb"><ol>
-        <li><a href="/civicrm/dashboard?reset=1" >{ts}Home{/ts}</a></li>
         {foreach from=$breadcrumb item=crumb key=key}
           <li><a href="{$crumb.url}">{$crumb.title}</a></li>
         {/foreach}
@@ -54,19 +53,8 @@
       {/if}
     {/crmRegion}
 
-    {* This has to come at the bottom because the variable may not be populated until some of the templates evaluated inline above get evaluated. *}
-    {if $standaloneErrors}
-      <div class="status error standalone-errors">
-        <ul>{$standaloneErrors}</ul>
-      </div>
-      <script type="text/javascript">
-      {if $breadcrumb}
-        CRM.$("div.standalone-errors").insertAfter("nav.breadcrumb");
-      {else}
-        CRM.$("div.standalone-errors").prependTo("div#crm-container");
-      {/if}
-      </script>
-    {/if}
+    {* replaced by \Civi\Standalone\ErrorHandler::renderErrors *}
+    <!-- STANDALONE ERRORS PLACEHOLDER -->
 
   </div>
 </body>

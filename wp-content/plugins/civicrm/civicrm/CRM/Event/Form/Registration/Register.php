@@ -497,11 +497,8 @@ class CRM_Event_Form_Registration_Register extends CRM_Event_Form_Registration {
 
     if (!$allAreBillingModeProcessors || !empty($this->_values['event']['is_pay_later']) || $bypassPayment
     ) {
-
       //freeze button to avoid multiple calls.
-      if (empty($this->_values['event']['is_monetary'])) {
-        $this->submitOnce = TRUE;
-      }
+      $this->submitOnce = TRUE;
 
       // CRM-11182 - Optional confirmation screen
       // Change button label depending on whether the next action is confirm or register
@@ -556,9 +553,20 @@ class CRM_Event_Form_Registration_Register extends CRM_Event_Form_Registration {
       self::checkRegistration($fields, $form);
     }
 
-    $spacesAvailable = $form->getEventValue('available_spaces');
+    $spacesAvailable = CRM_Event_BAO_Participant::getAvailableSpaces($form->getEventID(), (bool) ($form->getEventValue('has_waitlist') ?? FALSE));
     if (!$form->_allowConfirmation) {
       $errors += CRM_Event_BAO_Participant::validateAvailableSpaces($fields + ['event_id' => $form->getEventID()]);
+    }
+
+    // getAvailableSpaces only checks additionaly participants so now check the primary participant
+    if ($form->getEventValue('max_participants') !== NULL &&
+      !$form->_requireApproval && !$form->_allowWaitlist &&
+      !$form->_allowConfirmation &&
+      empty($fields['additional_participants'])
+    ) {
+      if ($spacesAvailable < 1) {
+        $errors['_qf_default'] = ts("Only %1 Registrations available.", [1 => $spacesAvailable]);
+      }
     }
 
     $numberAdditionalParticipants = $fields['additional_participants'] ?? 0;
