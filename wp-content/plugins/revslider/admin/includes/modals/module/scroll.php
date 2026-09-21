@@ -67,15 +67,26 @@ if(!defined('ABSPATH')) exit();
             <sr-separator id="sr_sbt_settings">   
                 <sr-separator-body >
                     <sr-sp h="20"></sr-sp>
+                    <sr-tabs-wrap viewchild="module_sbt" r="sbt.mode" data-onchange="editor.module.sbtMode,forms.populate">
+                        <sr-tab left half class="sr--active--tab" data-v="slide"><?php _e('Single Slide','revslider'); ?></sr-tab>
+                        <sr-tab right half data-v="module"><?php _e('Whole Module','revslider'); ?></sr-tab>
+                    </sr-tabs-wrap>
+                    <sr-sh r="sbt.mode" data-shdep="module" viewchild="module_sbt">
+                        <sr-wrap basic class="sr--form--grp sr--mb--10"><span class="sr--form--otitle"><?php _e('Every slide, every slide transition and every layer runs on the scroll position. Scroll distance follows the slide durations, and the module is held in view for the whole story.','revslider'); ?></span></sr-wrap>
+                    </sr-sh>
                     <sr-input wide class="sr--mr--10"><input name="Timeline Animation Speed" replace r="sbt.s" viewchild="module_sbt" type="text" number="true" min="0" max="999999" suffix="ms" validate="true"><span noicon="" class="sr--form--otitle"><?php _e('Timeline Animation Speed','revslider'); ?></span></sr-input>
                     <sr-wrap basic class="sr--form--grp sr--mb--10"><sr-onoff data-sh="#module_sbt_smoothset" r="sbt.smooth" viewchild="module_sbt" class="sr--mr--10"></sr-onoff><span><?php _e('Smooth Scroll','revslider'); ?></span></sr-wrap>
                     <sr-wrap class="sr--mb--10" id="module_sbt_smoothset" wide basic>
                         <sr-input wide><input name="Smoothing Amount" replace r="sbt.smoothAmt" viewchild="module_sbt" type="text" number="true" def="0.12" min="0.02" max="1" validate="true"><span noicon="" class="sr--form--otitle"><?php _e('Smoothing (0.02 sluggish – 1 instant)','revslider'); ?></span></sr-input>
                     </sr-wrap>
-                    <sr-wrap basic class="sr--form--grp sr--mb--10"><sr-onoff data-sh="#module_sbt_fixscroll" r="sbt.f" viewchild="module_sbt" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Hold Module in View','revslider'); ?></span><sr-tooltip key="preventpagescroll"></sr-tooltip></sr-wrap>
-                    <sr-wrap class="sr--mb--10" id="module_sbt_fixscroll" wide basic>                        
-                        <sr-input half class="sr--mr--10"><input name="Hold From" replace r="sbt.fStart" viewchild="module_sbt" type="text" number="true" min="0" max="999999" suffix="ms" validate="true" extvalidate="editor.module.sbtCheck"><span noicon="" class="sr--form--otitle"><?php _e('Hold From','revslider'); ?></span></sr-input><!--
-                     --><sr-input half><input name="Hold Until" replace r="sbt.fEnd" viewchild="module_sbt" type="text" number="true" min="0" max="9999999" validate="true" suffix="ms" extvalidate="editor.module.sbtCheck"><span noicon="" class="sr--form--otitle"><?php _e('Hold Until','revslider'); ?></span></sr-input>
+                    <sr-sh r="sbt.mode" data-shdep="slide" viewchild="module_sbt">
+                        <sr-wrap basic class="sr--form--grp sr--mb--10"><sr-onoff data-sh="#module_sbt_fixscroll" r="sbt.f" viewchild="module_sbt" class="sr--mr--10 checked"></sr-onoff><span><?php _e('Hold Module in View','revslider'); ?></span><sr-tooltip key="preventpagescroll"></sr-tooltip></sr-wrap>
+                    </sr-sh>
+                    <sr-wrap class="sr--mb--10" id="module_sbt_fixscroll" wide basic>
+                        <sr-sh r="sbt.mode" data-shdep="slide" viewchild="module_sbt">
+                            <sr-input half class="sr--mr--10"><input name="Hold From" replace r="sbt.fStart" viewchild="module_sbt" type="text" number="true" min="0" max="999999" suffix="ms" validate="true" extvalidate="editor.module.sbtCheck"><span noicon="" class="sr--form--otitle"><?php _e('Hold From','revslider'); ?></span></sr-input><!--
+                         --><sr-input half><input name="Hold Until" replace r="sbt.fEnd" viewchild="module_sbt" type="text" number="true" min="0" max="9999999" validate="true" suffix="ms" extvalidate="editor.module.sbtCheck"><span noicon="" class="sr--form--otitle"><?php _e('Hold Until','revslider'); ?></span></sr-input>
+                        </sr-sh>
                         <sr-drop wide r="sbt.a" viewchild="module_sbt">
                             <sr-drop-view>
                                 <span class="sr--drop--value"></span>
@@ -86,10 +97,12 @@ if(!defined('ABSPATH')) exit();
                             <sr-drops data-v="bottom"><?php _e('Bottom','revslider'); ?></sr-drops>
                             <sr-drops data-v="travel"><?php _e('Travel','revslider'); ?></sr-drops>                            
                         </sr-drop>
-                        <sr-tabs-wrap viewchild="module_sbt" r="sbt.nL">
-                            <sr-tab left half class="sr--active--tab" data-v="true"><?php _e('Traditional','revslider'); ?></sr-tab>
-                            <sr-tab right half data-v="false"><?php _e('Advanced ','revslider'); ?></sr-tab>
-                        </sr-tabs-wrap>                                                                 
+                        <sr-sh r="sbt.mode" data-shdep="slide" viewchild="module_sbt">
+                            <sr-tabs-wrap viewchild="module_sbt" r="sbt.nL">
+                                <sr-tab left half class="sr--active--tab" data-v="true"><?php _e('Traditional','revslider'); ?></sr-tab>
+                                <sr-tab right half data-v="false"><?php _e('Advanced ','revslider'); ?></sr-tab>
+                            </sr-tabs-wrap>
+                        </sr-sh>
                     </sr-wrap>
                     <!--<sr-wrap basic class="sr--form--grp sr--mb--10"><sr-onoff r="sbt.layers" viewchild="module_sbt" class="sr--mr--10 checked"></sr-onoff><span>Default Enabled on all Layers</span></sr-wrap>-->
                     <sr-sp h="10"></sr-sp>

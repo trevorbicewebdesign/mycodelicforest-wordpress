@@ -28,8 +28,8 @@
     </sr-tl-left><!--
 --><sr-tl-resizer></sr-tl-resizer><!--
 --><sr-tl-emarkerhandler data-action="editor.timeline.state.add"><sr-wrap class="sr--emarkerinner"><svg style="display:block; position:absolute;top:8px;left:12px" class="sr--icon" width="8" height="8"><use xlink:href="#Dashboard_Add_Mini"></use></svg><svg style="display:block; position:absolute;top:20px;left:9px" class="sr--icon sr--icon--second" width="12" height="7" transform="translate(1, -1)"><use xlink:href="#Emarker"></use></svg></sr-wrap></sr-tl-emarkerhandler><!--
---><sr-tl-right id="sr-tl-ruler"><sr-marker><span>IDLE</span></sr-marker><sr-quickmarker><span>IDLE</span></sr-quickmarker><sr-endmarker><span>Out</span></sr-endmarker></sr-tl-right>
-    <sr-back-to-idle data-action="editor.scene.select" data-aparams="in"><svg class="sr--icon" width="14" height="10.889"><use xlink:href="#TLBack"></use></svg></sr-back-to-idle>
+--><sr-tl-right id="sr-tl-ruler"><sr-marker><span>IDLE</span></sr-marker><sr-quickmarker><span>IDLE</span></sr-quickmarker><sr-endmarker><span data-action="editor.scene.select" data-aparams="out"><?php _e('Slide End','revslider'); ?></span></sr-endmarker></sr-tl-right>
+    <sr-back-to-idle data-action="editor.scene.select" data-aparams="in"><svg class="sr--icon" width="14" height="10.889"><use xlink:href="#TLBack"></use></svg><span><?php _e('Edit In Animation','revslider'); ?></span></sr-back-to-idle>
 </sr-tl-ruler-container>
 <sr-tl-content>    
     <sr-tl-left id="sr-tl-content-left"></sr-tl-left><!--

@@ -2,6 +2,8 @@
 
 class MycodelicForestForms
 {
+    const REGISTRATION_FORM_ID = 3;
+
     public function __construct()
     {
 
@@ -10,7 +12,13 @@ class MycodelicForestForms
     public function init()
     {
         add_action('gform_after_submission_4', array($this, 'contactFormHandler'), 10, 2);
-        add_action('gform_after_submission_3', array($this, 'registrationFormHandler'), 10, 2);
+
+        // Registration: validate before the entry is created so the user sees inline errors,
+        // then create the account after submission.
+        add_filter('gform_validation_' . self::REGISTRATION_FORM_ID, array($this, 'registrationFormValidation'));
+        add_action('gform_after_submission_' . self::REGISTRATION_FORM_ID, array($this, 'registrationFormHandler'), 10, 2);
+        add_filter('gform_confirmation_' . self::REGISTRATION_FORM_ID, array($this, 'registrationConfirmation'), 10, 4);
+
         add_filter( 'gform_confirmation_anchor', '__return_true' );
     }
 
@@ -19,104 +27,185 @@ class MycodelicForestForms
         // die("Contact Form Was Submitted");
 
     }
-    
-    // Array ( [id] => 9 [status] => active [form_id] => 3 [ip] => 127.0.0.1 [source_url] => https://local.mycodelicforest.org/register/ [currency] => USD 
-    // [post_id] => [date_created] => 2025-02-27 00:43:14 [date_updated] => 2025-02-27 00:43:14 [is_starred] => 0 [is_read] => 0 
-    // [user_agent] => Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 
-    // [payment_status] => [payment_date] => [payment_amount] => [payment_method] => [transaction_id] => [is_fulfilled] => [created_by] => 1 
-    // [transaction_type] => [source_id] => 44 [4.2] => [4.3] => 
-    // Test [4.4] => [4.6] => Smith [4.8] => [1] => 1234qwerasf [2] => t1234qwer@mailinator.com [5] => (555) 555-5555 )
 
-    public function registrationFormHandler($entry, $form)
+    /**
+     * Registration form field IDs:
+     *   1   = Username
+     *   2   = Email
+     *   4.3 = First name (Gravity Forms "advanced" name field: .3 is first, .6 is last)
+     *   4.6 = Last name
+     *   5   = Phone (optional)
+     */
+
+    /**
+     * Returns true if the phone number is already stored on any user, under either
+     * the registration meta key ('phone') or the profile meta key ('user_phone').
+     */
+    public function phoneRegistered($phone, $exclude_user_id = 0)
     {
-        // Sanitize user input
-        $username = sanitize_user($entry[1]);
-        $email = sanitize_email($entry[2]);
-        $first_name = sanitize_text_field($entry[4.3]);
-        $last_name = sanitize_text_field($entry[4.6]);
-        $phone = sanitize_text_field($entry[5]);
-
-        // Prepare usermeta
-        $usermeta = array(
-            'first_name' => $first_name,
-            'last_name' => $last_name,
-            'phone' => $phone,
-            // You can add additional fields as needed.
-        );
-
-        // Initialize errors object
-        $errors = new WP_Error();
-
-        // Basic validation
-        if (empty($username) || empty($email) ) {
-            $errors->add('field', 'Please fill in all required fields.');
-        }
-        if (!is_email($email)) {
-            $errors->add('email_invalid', 'The email address is not valid.');
-        }
-        if (username_exists($username)) {
-            $errors->add('username_exists', 'That username is already registered.');
-        }
-        if (email_exists($email)) {
-            $errors->add('email_exists', 'That email address is already registered.');
+        $phone = trim((string) $phone);
+        if ($phone === '') {
+            return false;
         }
 
-        // Check if their phone number is already registered
-        $user_query = new WP_User_Query([
-            'meta_query' => [
+        $args = [
+            'fields'      => 'ID',
+            'number'      => 1,
+            'count_total' => true,
+            'meta_query'  => [
+                'relation' => 'OR',
                 [
-                    'key' => 'phone',
+                    'key'   => 'phone',
+                    'value' => $phone,
+                ],
+                [
+                    'key'   => 'user_phone',
                     'value' => $phone,
                 ],
             ],
-        ]);
-        if($user_query->get_total() > 0){
-            $errors->add('phone_exists', 'That phone number is already registered.');
+        ];
+        if ($exclude_user_id) {
+            $args['exclude'] = [(int) $exclude_user_id];
         }
 
-        // If there are no errors, create the user
-        if (empty($errors->errors)) {
-            $userdata = array(
-                'user_login' => $username,
-                'user_email' => $email,
-                'role' => 'subscriber',  // Or any default role
-            );
+        $user_query = new WP_User_Query($args);
 
-            // Insert the user
-            $user_id = wp_insert_user( $userdata );
-            if ( is_wp_error( $user_id ) ) {
-                echo '<p>Error: ' . esc_html( $user_id->get_error_message() ) . '</p>';
-            } else {
-                // Insert the user meta.
-                foreach ( $usermeta as $key => $value ) {
-                    update_user_meta( $user_id, $key, $value );
-                }
-            
-                // Get the user object.
-                $user = get_userdata( $user_id );
-            
-                // Generate a proper password reset key.
-                $reset_key = get_password_reset_key( $user );
-            
-                // Build the confirmation URL.
-                $confirm_url = home_url( "/wp-login.php?action=rp&key={$reset_key}&login=" . rawurlencode( $user->user_login ) );
-            
-                // Send the confirmation email.
-                $subject = 'Please confirm your registration';
-                $message  = "Hi {$user->user_login},\n\n";
-                $message .= "Please click the following link to activate your account and set a new password:\n\n";
-                $message .= $confirm_url . "\n\n";
-                $message .= "If you did not register, please ignore this email.";
-                $headers  = array( 'From: Mycodelic Forest <no-reply@mycodelicforest.org>' );
-                wp_mail( $email, $subject, $message, $headers );
+        return $user_query->get_total() > 0;
+    }
+
+    /**
+     * gform_validation: reject duplicate usernames, emails and phone numbers with
+     * inline field errors before Gravity Forms stores the entry.
+     */
+    public function registrationFormValidation($validation_result)
+    {
+        $form = $validation_result['form'];
+
+        $username = sanitize_user(rgpost('input_1'));
+        $email    = sanitize_email(rgpost('input_2'));
+        $phone    = sanitize_text_field(rgpost('input_5'));
+
+        foreach ($form['fields'] as $field) {
+            $message = '';
+
+            switch ((int) $field->id) {
+                case 1:
+                    if ($username === '' || !validate_username($username)) {
+                        $message = 'Please choose a username using letters, numbers, spaces, dots, dashes or underscores.';
+                    } elseif (username_exists($username)) {
+                        $message = 'That username is already registered.';
+                    }
+                    break;
+
+                case 2:
+                    if (!is_email($email)) {
+                        $message = 'The email address is not valid.';
+                    } elseif (email_exists($email)) {
+                        $message = 'That email address is already registered. Try logging in or resetting your password.';
+                    }
+                    break;
+
+                case 5:
+                    if ($phone !== '' && $this->phoneRegistered($phone)) {
+                        $message = 'That phone number is already registered.';
+                    }
+                    break;
             }
-        } else {
-            // Store error messages in a session variable
-            $_SESSION['form_errors'] = $errors->get_error_messages();
 
-            // Redirect back to the form page
-            wp_redirect($_SERVER['HTTP_REFERER']);
-            exit;
+            if ($message !== '') {
+                $field->failed_validation  = true;
+                $field->validation_message = $message;
+                $validation_result['is_valid'] = false;
+            }
+        }
+
+        $validation_result['form'] = $form;
+
+        return $validation_result;
+    }
+
+    /**
+     * gform_confirmation: tell the new member what happens next.
+     */
+    public function registrationConfirmation($confirmation, $form, $entry, $ajax)
+    {
+        return '<div class="mycodelic-registration-confirmation">'
+            . '<p><strong>Thanks for registering!</strong></p>'
+            . '<p>We just emailed you a link to activate your account and set your password. '
+            . 'If it does not show up within a few minutes, please check your spam folder.</p>'
+            . '</div>';
+    }
+
+    public function registrationFormHandler($entry, $form)
+    {
+        // Sanitize user input. Entry keys for multi-input fields are strings like "4.3";
+        // never index with a float literal, PHP truncates it to 4.
+        $username   = sanitize_user(rgar($entry, '1'));
+        $email      = sanitize_email(rgar($entry, '2'));
+        $first_name = sanitize_text_field(rgar($entry, '4.3'));
+        $last_name  = sanitize_text_field(rgar($entry, '4.6'));
+        $phone      = sanitize_text_field(rgar($entry, '5'));
+
+        // Defensive re-check; registrationFormValidation should already have caught these,
+        // but two submissions can race.
+        if ($username === '' || !is_email($email) || username_exists($username) || email_exists($email)) {
+            error_log(sprintf(
+                'Mycodelic Forest registration skipped for entry %d: username "%s" / email "%s" invalid or already registered.',
+                (int) rgar($entry, 'id'), $username, $email
+            ));
+            return;
+        }
+
+        $userdata = array(
+            'user_login' => $username,
+            'user_email' => $email,
+            // Random throwaway password; the member sets their own via the activation link.
+            'user_pass'  => wp_generate_password(32, true, true),
+            'first_name' => $first_name,
+            'last_name'  => $last_name,
+            'role'       => get_option('default_role', 'subscriber'),
+        );
+
+        $user_id = wp_insert_user($userdata);
+        if (is_wp_error($user_id)) {
+            error_log(sprintf(
+                'Mycodelic Forest registration failed for entry %d (%s): %s',
+                (int) rgar($entry, 'id'), $email, $user_id->get_error_message()
+            ));
+            return;
+        }
+
+        // Store the phone under both keys so the profile form pre-populates and the
+        // duplicate check covers either source. Never store an empty phone.
+        if ($phone !== '') {
+            update_user_meta($user_id, 'phone', $phone);
+            update_user_meta($user_id, 'user_phone', $phone);
+        }
+
+        // Remember which Gravity Forms entry created this account.
+        update_user_meta($user_id, 'registration_entry_id', (int) rgar($entry, 'id'));
+
+        $user = get_userdata($user_id);
+
+        // Generate a password reset key; this doubles as the activation link.
+        $reset_key = get_password_reset_key($user);
+        if (is_wp_error($reset_key)) {
+            error_log('Mycodelic Forest registration: could not create activation key for user ' . $user_id . ': ' . $reset_key->get_error_message());
+            return;
+        }
+
+        $confirm_url = network_site_url("wp-login.php?action=rp&key={$reset_key}&login=" . rawurlencode($user->user_login), 'login');
+
+        $subject  = 'Please confirm your registration';
+        $message  = "Hi {$user->user_login},\n\n";
+        $message .= "Please click the following link to activate your account and set a new password:\n\n";
+        $message .= $confirm_url . "\n\n";
+        $message .= "This link expires in 24 hours. If it has expired, use the \"Lost your password?\" link on the login page to request a new one.\n\n";
+        $message .= "If you did not register, please ignore this email.";
+        $headers  = array('From: Mycodelic Forest <no-reply@mycodelicforest.org>');
+
+        if (!wp_mail($email, $subject, $message, $headers)) {
+            error_log('Mycodelic Forest registration: activation email failed to send to ' . $email);
         }
     }
 }

@@ -49,7 +49,6 @@ class MycodelicForestProfile
         }, 10, 2);
 
 
-        add_action('gform_after_submission_6', [$this, 'gform_after_submission_6'], 10, 2);
 
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_phone_mask']);
 
@@ -163,12 +162,6 @@ class MycodelicForestProfile
     }
 
 
-    public function gform_after_submission_6($entry, $form)
-    {
-        $this->messages->set_message('Profile updated successfully!', 'success');
-
-    }
-
     public function prevent_gravity_entry_save($entry_id, $form)
     {
         if ($form['id'] == 6) {
@@ -181,6 +174,11 @@ class MycodelicForestProfile
     {
         if (!is_user_logged_in()) {
             return; // Only logged-in users need a profile.
+        }
+
+        // Site admins manage the site; never lock them out of the front end.
+        if (current_user_can('manage_options')) {
+            return;
         }
 
         // Prevent redirect if already on the profile page
@@ -220,23 +218,36 @@ class MycodelicForestProfile
             }
         }
 
-        // Validate phone number (basic format check)
+        $country = get_user_meta($user_id, 'country', true);
+        $is_us   = in_array($country, ['United States', 'US', 'USA'], true);
+
+        // Validate phone number. US numbers must be 10 digits; other countries just
+        // need something that looks like a phone number.
         $phone = get_user_meta($user_id, 'user_phone', true);
-        if (!preg_match('/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/', $phone)) {
+        if ($is_us) {
+            if (!preg_match('/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/', $phone)) {
+                return false; // Invalid US phone format
+            }
+        } elseif (!preg_match('/^\+?[\d\s().-]{7,20}$/', $phone)) {
             return false; // Invalid phone format
         }
 
-        // Validate ZIP code (basic check for numbers only, can be expanded)
+        // Validate postal code. US ZIP codes are 5 or 5+4 digits; other countries
+        // (e.g. Canada "T3A 6E2", UK "SW1A 1AA") accept letters and spaces.
         $zip = get_user_meta($user_id, 'zip', true);
-        if (!preg_match('/^\d{5}(-\d{4})?$/', $zip)) {
-            return false; // Invalid ZIP format
+        if ($is_us) {
+            if (!preg_match('/^\d{5}(-\d{4})?$/', $zip)) {
+                return false; // Invalid ZIP format
+            }
+        } elseif (!preg_match('/^[A-Za-z0-9][A-Za-z0-9 -]{1,10}$/', trim($zip))) {
+            return false; // Invalid postal code format
         }
 
-        // Check if "Has Attended Burning Man" is set
-        $has_attended = get_user_meta($user_id, 'has_attended_burning_man', true) == '1';
+        // Members who have attended Burning Man must say which years.
+        $has_attended = get_user_meta($user_id, 'has_attended_burning_man', true) === 'Yes';
         $years_attended = json_decode(get_user_meta($user_id, 'years_attended', true), true);
 
-        if ($has_attended=="Yes") {
+        if ($has_attended) {
             // If user has attended, they must have at least one year selected
             if (empty($years_attended) || !is_array($years_attended)) {
                 return false;
@@ -708,7 +719,8 @@ class MycodelicForestProfile
             return;
         }
 
-        // Map Gravity Forms fields to user meta fields
+        // Map Gravity Forms fields to user meta fields.
+        // (years_attended is a multi-checkbox and is handled separately below.)
         $fields = [
             'first_name' => rgar($entry, '16.3'),
             'last_name' => rgar($entry, '16.6'),
@@ -722,11 +734,11 @@ class MycodelicForestProfile
             'country' => rgar($entry, '9.6'),
             'user_about_me' => rgar($entry, '13'),
             'has_attended_burning_man' => rgar($entry, '19'),
-            'years_attended' => rgar($entry, '14'),
         ];
+        $new_email = sanitize_email(rgar($entry, '18'));
 
         // Check if the user has attended Burning Man
-        $attended_burning_man = rgar($entry, '19'); // Checkbox field, should be 1 if checked
+        $attended_burning_man = rgar($entry, '19'); // Radio field: "Yes" or "No"
 
         // Handle Multi-Checkbox Field: "Years Attended" (Field ID: 14)
         $years_attended = [];
@@ -750,22 +762,38 @@ class MycodelicForestProfile
             delete_user_meta($user_id, 'years_attended');
         }
 
-        // Update user meta for other fields
+        // Update user meta for other fields. Empty values are saved too, so a member
+        // can clear an optional field such as Address Line 2 or Playa Name.
         foreach ($fields as $key => $value) {
-            if (!empty($value)) {
-                update_user_meta($user_id, $key, sanitize_text_field($value));
-            }
+            $clean = ($key === 'user_about_me')
+                ? sanitize_textarea_field($value)
+                : sanitize_text_field($value);
+            update_user_meta($user_id, $key, $clean);
+        }
+
+        // Keep the registration-time phone key in sync for the duplicate check.
+        if (!empty($fields['user_phone'])) {
+            update_user_meta($user_id, 'phone', sanitize_text_field($fields['user_phone']));
         }
 
         update_user_meta($user_id, 'profile_updated', current_time('mysql'));
 
-        // Update user email if provided
-        if (!empty($fields['user_email'])) {
-            wp_update_user([
-                'ID' => $user_id,
-                'user_email' => sanitize_email($fields['user_email']),
-            ]);
+        // Update the account email if it changed and is not in use by someone else.
+        $user = get_userdata($user_id);
+        if ($user && $new_email && is_email($new_email) && $new_email !== $user->user_email) {
+            $existing = email_exists($new_email);
+            if (!$existing || (int) $existing === (int) $user_id) {
+                wp_update_user([
+                    'ID' => $user_id,
+                    'user_email' => $new_email,
+                ]);
+            } else {
+                $this->messages->set_message('Your profile was saved, but that email address is already used by another account, so your email was not changed.', 'warning');
+                return;
+            }
         }
+
+        $this->messages->set_message('Profile updated successfully!', 'success');
     }
 
 }

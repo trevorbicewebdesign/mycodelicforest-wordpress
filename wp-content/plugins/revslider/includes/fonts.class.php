@@ -145,12 +145,6 @@ class RevSliderFonts extends RevSliderFunctions {
 
 						if(!empty($_variants['normal']) || !empty($_variants['italic'])){
 							$is_first_weight = true;
-							$italic = false;
-							if(!empty($font_settings['variants']['italic'])){
-								$font_query .= 'ital,';
-								$italic = true;
-							}
-							$font_query .= 'wght@';
 
 							$weights = [];
 							foreach($font_types as $font_type){
@@ -178,9 +172,17 @@ class RevSliderFonts extends RevSliderFunctions {
 								}
 							}
 							if(empty($weights)) continue;
-							
-							$i = 0;
-							foreach($weights ?? [] as $weight_type => $weight_values){
+
+							//only announce the ital axis once italic weights survived the filtering above,
+							//a lone "ital," makes Google answer the whole family with a 400
+							$italic = !empty($weights['italic']);
+							if($italic === true) $font_query .= 'ital,';
+							$font_query .= 'wght@';
+
+							//the axis value belongs to the style, not to the loop position - with an empty
+							//normal branch italic used to be asked for as 0 and came back upright
+							foreach(['normal' => 0, 'italic' => 1] as $weight_type => $i){
+								$weight_values = $this->get_val($weights, $weight_type, []);
 								if(empty($weight_values)) continue;
 
 								asort($weight_values); //sort as we need to start from low to high
@@ -191,9 +193,8 @@ class RevSliderFonts extends RevSliderFunctions {
 									$font_query .= ($italic === true) ? $i.','.$weight : $weight;
 									$is_first_weight = false;
 								}
-								$i++;
 							}
-							
+
 							//we did not add any variants, so dont add the font
 							if($is_first_weight === true) continue;
 
@@ -354,8 +355,6 @@ class RevSliderFonts extends RevSliderFunctions {
 
 			$collection = ['normal' => array_unique($this->get_val($_font, 'normal', [])), 'italic' => array_unique($this->get_val($_font, 'italic', []))];
 
-			if(empty($collection['normal']) && !empty($collection['italic'])) $collection['normal'][] = 400;
-
 			$is_first_weight = true;
 			$italic	 = false;
 			$font	.= ':';
@@ -365,10 +364,11 @@ class RevSliderFonts extends RevSliderFunctions {
 			}
 			$font .= 'wght@';
 
-			$i = 0;
-			$cycles = ['normal', 'italic'];
-			
-			foreach($cycles ?? [] as $cycle){
+			//the axis value belongs to the style, not to the loop position - an italic only font used to be
+			//asked for as 0 and came back upright, which a fabricated normal 400 papered over
+			$cycles = ['normal' => 0, 'italic' => 1];
+
+			foreach($cycles as $cycle => $i){
 				$weight_values = $collection[$cycle];
 				if(empty($weight_values)) continue;
 
@@ -380,7 +380,6 @@ class RevSliderFonts extends RevSliderFunctions {
 					$font .= ($italic === true) ? $i.','.$weight : $weight;
 					$is_first_weight = false;
 				}
-				$i++;
 			}
 
 			foreach($types as $ftype => $options){

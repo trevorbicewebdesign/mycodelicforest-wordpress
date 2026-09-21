@@ -1829,10 +1829,12 @@ class CRM_Core_Permission {
    *
    * @return string
    *   a comma separated list of email addresses
+   *
+   * @deprecated since 6.18 will be removed around 6.28
    */
   public static function permissionEmails($permissionName) {
-    $config = CRM_Core_Config::singleton();
-    return $config->userPermissionClass->permissionEmails($permissionName);
+    CRM_Core_Error::deprecatedFunctionWarning('use userPermissionClass');
+    return CRM_Core_Config::singleton()->userPermissionClass->permissionEmails($permissionName);
   }
 
   /**
@@ -1843,10 +1845,12 @@ class CRM_Core_Permission {
    *
    * @return string
    *   a comma separated list of email addresses
+   *
+   * @deprecated since 6.18 will be removed around 6.28
    */
   public static function roleEmails($roleName) {
-    $config = CRM_Core_Config::singleton();
-    return $config->userRoleClass->roleEmails($roleName);
+    CRM_Core_Error::deprecatedFunctionWarning('use userPermissionClass');
+    return CRM_Core_Config::singleton()->userRoleClass->roleEmails($roleName);
   }
 
   /**
@@ -1904,6 +1908,43 @@ class CRM_Core_Permission {
   protected static function getCoreAndComponentPermissions(): array {
     $permissions = self::getCorePermissions();
     $permissions = array_merge($permissions, self::getComponentPermissions());
+    return $permissions;
+  }
+
+  /**
+   * Formats permissions into a nested list for Select2
+   *
+   * @param array $groups Permission Types
+   *
+   * @return array[]
+   */
+  public static function getPermissionList(array $groups): array {
+    $perms = \Civi\Api4\Permission::get(FALSE)
+      ->addWhere('group', 'IN', $groups)
+      ->addWhere('is_active', '=', 1)
+      ->setOrderBy(['title' => 'ASC'])
+      ->execute();
+    $permissions = [];
+    $categories = [];
+    foreach ($perms as $perm) {
+      // By convention, permission labels begin with a category followed by a colon.
+      $titleParts = explode(':', $perm['title'], 2);
+      if (count($titleParts) === 1) {
+        array_unshift($titleParts, ts('Generic'));
+      }
+      $category = trim($titleParts[0]);
+      $categories[$category][] = [
+        'id' => $perm['name'],
+        'text' => ucfirst(trim($titleParts[1])),
+        'description' => $perm['description'] ?? NULL,
+      ];
+    }
+    foreach ($categories as $category => $perms) {
+      $permissions[] = [
+        'text' => $category,
+        'children' => $perms,
+      ];
+    }
     return $permissions;
   }
 

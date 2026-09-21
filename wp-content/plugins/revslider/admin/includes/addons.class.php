@@ -511,22 +511,28 @@ class RevSliderAddons extends RevSliderFunctions {
 	 * @return string the resolved path/url, or $image unchanged when it could not be fetched
 	 */
 	public function _check_file_path($image, $url = false, $download = true){
+		$local_image = ltrim(wp_normalize_path($image), '/');
+		$prefix      = trim($this->addons_path, '/') . '/';
+		if(strpos($local_image, $prefix) === 0){
+			$local_image = substr($local_image, strlen($prefix));
+		}
+
 		if(!wp_mkdir_p($this->addons_basedir)) return $image;
 		
 		$base_url = ($url) ? $this->addons_baseurl : $this->addons_basedir;
-		$file     = $this->addons_basedir . $image;
+		$file     = $this->addons_basedir . $local_image;
 		if(file_exists($file)){
 			if(!$this->check_checksum($image, $file)) {
 				$this->rslb->download_url( $image, $file, 'updates', false, $this->addons_basedir);
 			}
-			return $base_url . $image;
+			return $base_url . $local_image;
 		}
 		
 		if($download !== true) return $image;
 		
 		$this->rslb->download_url($image, $file, 'updates', false, $this->addons_basedir);
 
-		return (file_exists($file)) ? $base_url . $image : $image;
+		return (file_exists($file)) ? $base_url . $local_image : $image;
 	}
 
 	/**

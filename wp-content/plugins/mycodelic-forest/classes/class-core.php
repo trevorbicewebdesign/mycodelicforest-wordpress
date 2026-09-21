@@ -8,11 +8,12 @@ class MycodelicForestCore {
 
     public function init()
     {
-        register_activation_hook(__FILE__, function() {
+        // Activation hooks must reference the main plugin file, not this class file.
+        register_activation_hook(MYCO_CORE_PLUGIN_FILE, function() {
             flush_rewrite_rules();
         });
         
-        register_deactivation_hook(__FILE__, function() {
+        register_deactivation_hook(MYCO_CORE_PLUGIN_FILE, function() {
             flush_rewrite_rules();
         });        
 
@@ -24,7 +25,12 @@ class MycodelicForestCore {
     // include mycodelic-forest/assets/css/messages.css
     public function enqueue_styles()
     {   
-        wp_enqueue_style('mycodelic-forest-messages',   '/wp-content/plugins/mycodelic-forest/assets/css/messages.css');
+        wp_enqueue_style(
+            'mycodelic-forest-messages',
+            plugins_url('assets/css/messages.css', MYCO_CORE_PLUGIN_FILE),
+            [],
+            MYCO_CORE_VERSION
+        );
     }
 
 }

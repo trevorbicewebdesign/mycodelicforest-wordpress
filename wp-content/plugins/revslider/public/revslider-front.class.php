@@ -250,11 +250,20 @@ class RevSliderFront extends RevSliderFunctions {
 
 		$global = $this->get_global_settings();
 
-		$breakpoints = [];
-		$breakpoints[] = intval($this->get_val($global, ['size', 'desktop'], '1240'));
-		$breakpoints[] = intval($this->get_val($global, ['size', 'notebook'], '1024'));
-		$breakpoints[] = intval($this->get_val($global, ['size', 'tablet'], '778'));
-		$breakpoints[] = intval($this->get_val($global, ['size', 'mobile'], '480'));
+		//the front list starts at the desktop breakpoint - wide desktop is "everything above it" and needs no entry, so the
+		//editors five slot breakPoints list is read from slot 1 on. size.* is the pre 7.0 storage and stays as the per slot
+		//fallback for installs that never re-saved their Global Settings
+		$bpoints		= $this->get_val($global, 'breakPoints', []);
+		$breakpoints	= [];
+		$lev			= 1;
+		foreach(['desktop' => 1240, 'notebook' => 1024, 'tablet' => 778, 'mobile' => 480] as $device => $default){
+			$width = intval($this->get_val($bpoints, $lev++, 0));
+			if($width < 1) $width = intval($this->get_val($global, ['size', $device], $default));
+			$breakpoints[] = ($width > 0) ? $width : $default;
+		}
+		//escape hatch for a site whose layout was tuned while the front still ignored its custom breakpoints:
+		//add_filter('revslider_front_breakpoints', function(){ return [1240, 1024, 778, 480]; });
+		$breakpoints = apply_filters('revslider_front_breakpoints', $breakpoints, $global);
 		$ytnc	 = $this->_truefalse($this->get_val($global, 'ytnc', false));
 		$fSUVW	 = $this->_truefalse($this->get_val($global, 'fSUVW', false));		
 		$libs	 = [];

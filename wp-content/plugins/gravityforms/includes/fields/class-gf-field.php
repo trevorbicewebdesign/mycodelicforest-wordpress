@@ -84,6 +84,15 @@ class GF_Field extends stdClass implements ArrayAccess {
 	public $duplicatable = true;
 
 	/**
+	 * Whether this field allows links/URLs in the value.
+	 *
+	 * @since 3.1.0
+	 *
+	 * @var bool
+	 */
+	public $noURLs = false;
+
+	/**
 	 * Whether the field can be used in a repeater.
 	 *
 	 * @since 3.0
@@ -1065,6 +1074,63 @@ class GF_Field extends stdClass implements ArrayAccess {
 	}
 
 	/**
+	 * Uses regex to determine if the value contains a link or URL.
+	 *
+	 * @since 3.1.0
+	 *
+	 * @param string|array $value The field value to be checked.
+	 *
+	 * @return bool
+	 */
+	public function value_contains_url( $value ) {
+		$value = $this->prepare_value_for_url_detection( $value );
+		if ( empty( $value ) || ! is_string( $value ) || is_numeric( $value ) ) {
+			return false;
+		}
+
+		$pattern = '/' .
+						// plain URLs: http://, https:// or www.
+						'(?:https?:\/\/|www\.)[^\s<>\)\]]+' .
+						'|' .
+						// HTML anchor tags with href="..." or href='...'
+						'<a\b[^>]*\bhref\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)[^>]*>' .
+						'|' .
+						// Markdown links: [text](url)
+						'\[[^\]]+\]\([^)]+\)' .
+					'/iu';
+
+		return preg_match( $pattern, $value ) === 1;
+	}
+
+	/**
+	 * Returns the string value to be used for URL detection.
+	 *
+	 * @since 3.1.0
+	 *
+	 * @param string|array $value The value to be prepared for validation.
+	 *
+	 * @return string
+	 */
+	public function prepare_value_for_url_detection( $value ) {
+		if ( empty( $value ) || ! is_array( $value ) ) {
+			return $value;
+		}
+
+		return implode( ', ', array_filter( $value ) );
+	}
+
+	/**
+	 * Determines if Links/URLs should be detected.
+	 *
+	 * @since 3.1.0
+	 *
+	 * @return bool
+	 */
+	public function should_detect_urls() {
+		return $this->noURLs;
+	}
+
+	/**
 	 * Sets the failed_validation and validation_message properties for a required field error.
 	 *
 	 * @since 2.6.5
@@ -1240,6 +1306,9 @@ class GF_Field extends stdClass implements ArrayAccess {
 	/**
 	 * Sanitize and format the value before it is saved to the Entry Object.
 	 *
+	 * @deprecated 3.0
+	 * @remove-in 4.0
+	 *
 	 * @param string $value          The value to be saved.
 	 * @param array  $form           The Form Object currently being processed.
 	 * @param string $input_name     The input name used when accessing the $_POST.
@@ -1297,6 +1366,50 @@ class GF_Field extends stdClass implements ArrayAccess {
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Sanitize and formats the post category field value before it is saved to the database.
+	 *
+	 * @since 3.0.3
+	 *
+	 * @param array|string $value The selected post categories.
+	 *
+	 * @return array|string
+	 */
+	public function prepare_post_category_value_save_input( $value ) {
+		if ( empty( $value ) ) {
+			return $value;
+		}
+
+		$clean_value  = array();
+		$return_array = is_array( $value );
+
+		if ( ! $return_array ) {
+			$value = array( $value );
+		}
+
+		foreach ( $value as $cat_id ) {
+			if ( rgblank( $cat_id ) ) {
+				continue;
+			}
+
+			$cat_id = (int) $cat_id;
+			$cat    = get_term( $cat_id, 'category' );
+
+			if ( ! $cat || is_wp_error( $cat ) || empty( $cat->name ) ) {
+				continue;
+			}
+
+			$clean_name = $this->sanitize_entry_value( $cat->name, $this->formId );
+			if ( empty( $clean_name ) ) {
+				continue;
+			}
+
+			$clean_value[] = $clean_name . ':' . $cat_id;
+		}
+
+		return $return_array ? $clean_value : rgar( $clean_value, 0, '' );
 	}
 
 	/**
@@ -2924,6 +3037,10 @@ class GF_Field extends stdClass implements ArrayAccess {
 
 		if ( isset( $this->validateState ) ) {
 			$this->validateState = (bool) $this->validateState;
+		}
+
+		if ( isset( $this->noURLs ) ) {
+			$this->noURLs = (bool) $this->noURLs;
 		}
 
 		$this->allowsPrepopulate = (bool) $this->allowsPrepopulate;

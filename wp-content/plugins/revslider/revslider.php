@@ -6,7 +6,7 @@ Description: Slider Revolution - More than just a WordPress Slider
 Author: ThemePunch
 Text Domain: revslider
 Domain Path: /languages
-Version: 7.1.6
+Version: 7.1.7
 Author URI: https://themepunch.com/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=info
 */
 
@@ -17,7 +17,7 @@ if(class_exists('RevSliderFront')){
 	die('ERROR: It looks like you have more than one instance of Slider Revolution installed. Please remove additional instances for this plugin to work again.');
 }
 
-define('RS_REVISION',			'7.1.6');
+define('RS_REVISION',			'7.1.7');
 define('RS_PLUGIN_PATH',		plugin_dir_path(__FILE__));
 define('RS_PLUGIN_SLUG_PATH',	plugin_basename(__FILE__));
 define('RS_PLUGIN_FILE_PATH',	__FILE__);
@@ -25,7 +25,7 @@ define('RS_PLUGIN_SLUG',		apply_filters('set_revslider_slug', 'revslider'));
 define('RS_PLUGIN_URL',			get_sr_plugin_url());
 define('RS_PLUGIN_URL_CLEAN',	str_replace(['http://', 'https://'], '//', RS_PLUGIN_URL));
 define('RS_DEMO',				false);
-define('RS_TP_TOOLS',			'7.1.0'); //holds the version of the tp-tools script, load only the latest!
+define('RS_TP_TOOLS',			'7.1.7'); //holds the version of the tp-tools script, load only the latest!
 
 global $SR_GLOBALS;
 
@@ -53,7 +53,7 @@ $SR_GLOBALS = [
 	'loaded_by_editor'		=> false,
 	'preview_mode'			=> false,
 	'markup_export'			=> false,
-	'modules'				=> ['module','page','slide','layer','draw','animate','transitions','srtools','canvas','defaults','carousel','navigation','media','modifiers'],
+	'modules'				=> ['module','page','slide','layer','layerix','draw','animate','transitions','srtools','canvas','defaults','carousel','navigation','media','modifiers'],
 	'save_post'				=> false,
 	'serial'				=> 0,
 	'sliders'				=> [],
@@ -104,6 +104,9 @@ require_once(RS_PLUGIN_PATH . 'includes/colorpicker.class.php');
 require_once(RS_PLUGIN_PATH . 'includes/navigation.class.php');
 require_once(RS_PLUGIN_PATH . 'includes/object-library.class.php');
 require_once(RS_PLUGIN_PATH . 'includes/page-effects.class.php'); //Page Effects framework — addons register via RevSliderPageEffects::register_type()
+require_once(RS_PLUGIN_PATH . 'includes/page-effect-panzoom.class.php'); //Pan & Zoom on native WP image blocks — core's own Page Effect (no addon owns Pan & Zoom)
+require_once(RS_PLUGIN_PATH . 'includes/page-effect-scrollanim.class.php'); //the layer-animation catalogue on native WP blocks — core's own Page Effect as well
+require_once(RS_PLUGIN_PATH . 'includes/page-effect-pointerix.class.php'); //Cursor Motion on native WP blocks — pointer interactions, core's own as well
 require_once(RS_PLUGIN_PATH . 'admin/includes/loadbalancer.class.php');
 require_once(RS_PLUGIN_PATH . 'admin/includes/widget.class.php');
 require_once(RS_PLUGIN_PATH . 'admin/includes/upgrade_sr6.class.php');
@@ -294,6 +297,9 @@ try{
 	//activation hook) is picked up by 'admin_init' anyway, on the first admin page load after the update.
 	add_action('admin_init', ['RevSliderFront', 'create_tables']);
 	add_action('plugins_loaded', ['RevSliderPageTemplate', 'get_instance']);
+	add_action('plugins_loaded', ['RevSliderPageEffectPanZoom', 'init']);
+	add_action('plugins_loaded', ['RevSliderPageEffectPointerIX', 'init']);
+	add_action('plugins_loaded', ['RevSliderPageEffectScrollAnim', 'init']);
 	add_action('plugins_loaded', ['RevSliderFront', 'add_post_editor']);
 	add_action('wp_loaded', [$SR_ai, 'check_open_event_ids']);
 	add_filter('wpseo_sitemap_entry', ['RevSliderFront', 'get_images_for_seo'], 10, 3);

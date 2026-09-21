@@ -9,7 +9,8 @@ class MycodelicForestRoles {
 
     public function init() {
         add_action('init', [$this, 'add_roles']);
-        add_action('wp_login', [$this, 'lastLogin']);
+        // wp_login passes ($user_login, $user); we need the user object, not the login name.
+        add_action('wp_login', [$this, 'onWpLogin'], 10, 2);
         add_action('rtcamp.google_user_logged_in', [$this, 'lastGoogleLogin'], 10, 2);
         // Block subscribers from accessing the admin.
         add_action('admin_init', [$this, 'blockAdminForSubscribers']);
@@ -17,7 +18,7 @@ class MycodelicForestRoles {
 
     public function blockAdminForSubscribers() {
         // Only redirect in admin area and not during AJAX requests.
-        if ( is_admin() && ! defined('DOING_AJAX') && current_user_can('subscriber') ) {
+        if ( is_admin() && ! wp_doing_ajax() && current_user_can('subscriber') && ! current_user_can('edit_posts') ) {
             wp_redirect( home_url() );
             exit;
         }
@@ -43,13 +44,26 @@ class MycodelicForestRoles {
         );
     }
 
+    public function onWpLogin($user_login, $user)
+    {
+        if ($user instanceof WP_User) {
+            $this->lastLogin($user->ID);
+        }
+    }
+
     public function lastGoogleLogin($user_wp, $user)
     {
-        $this->lastLogin($user_wp->ID);
+        if (is_object($user_wp) && !empty($user_wp->ID)) {
+            $this->lastLogin($user_wp->ID);
+        }
     }
 
     public function lastLogin($user_id)
     {
+        $user_id = (int) $user_id;
+        if (!$user_id) {
+            return;
+        }
         update_user_meta($user_id, 'last_login', time());
         update_user_meta($user_id, 'wfls-last-login', time());
     }

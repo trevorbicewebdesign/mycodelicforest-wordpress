@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitc2a9329b707efe4dec8a61352acc0955
+class ComposerStaticInitcc47ce9baa5d2a719800bfb873045ddb
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -16,6 +16,7 @@ class ComposerStaticInitc2a9329b707efe4dec8a61352acc0955
         'decc78cc4436b1292c6c0d151b19445c' => __DIR__ . '/..' . '/phpseclib/phpseclib/phpseclib/bootstrap.php',
         '2cffec82183ee1cea088009cef9a6fc3' => __DIR__ . '/..' . '/ezyang/htmlpurifier/library/HTMLPurifier.composer.php',
         '9e4824c5afbdc1482b6025ce3d4dfde8' => __DIR__ . '/..' . '/league/csv/src/functions_include.php',
+        'c15d4a1253e33e055d05e547c61dcb71' => __DIR__ . '/..' . '/smarty/smarty/src/functions.php',
         'def43f6c87e4f8dfd0c9e1b1bab14fe8' => __DIR__ . '/..' . '/symfony/polyfill-iconv/bootstrap.php',
         '5897ea0ac4cccf14d323035e65887801' => __DIR__ . '/..' . '/symfony/polyfill-php82/bootstrap.php',
         '662a729f963d39afe703c9d9b7ab4a8c' => __DIR__ . '/..' . '/symfony/polyfill-php83/bootstrap.php',
@@ -81,6 +82,7 @@ class ComposerStaticInitc2a9329b707efe4dec8a61352acc0955
             'Symfony\\Component\\Config\\' => 25,
             'Svg\\' => 4,
             'Soundasleep\\' => 12,
+            'Smarty\\' => 7,
             'ScssPhp\\ScssPhp\\' => 16,
             'Sabberworm\\CSS\\' => 15,
         ),
@@ -104,7 +106,6 @@ class ComposerStaticInitc2a9329b707efe4dec8a61352acc0955
         ),
         'M' =>
         array (
-            'MyCLabs\\Enum\\' => 13,
             'MimeTyper\\' => 10,
             'Matrix\\' => 7,
             'Masterminds\\' => 12,
@@ -275,6 +276,10 @@ class ComposerStaticInitc2a9329b707efe4dec8a61352acc0955
         array (
             0 => __DIR__ . '/..' . '/soundasleep/html2text/src',
         ),
+        'Smarty\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/smarty/smarty/src',
+        ),
         'ScssPhp\\ScssPhp\\' =>
         array (
             0 => __DIR__ . '/..' . '/scssphp/scssphp/src',
@@ -344,10 +349,6 @@ class ComposerStaticInitc2a9329b707efe4dec8a61352acc0955
         'Padaliyajay\\PHPAutoprefixer\\' =>
         array (
             0 => __DIR__ . '/..' . '/padaliyajay/php-autoprefixer/src',
-        ),
-        'MyCLabs\\Enum\\' =>
-        array (
-            0 => __DIR__ . '/..' . '/myclabs/php-enum/src',
         ),
         'MimeTyper\\' =>
         array (
@@ -608,7 +609,7 @@ class ComposerStaticInitc2a9329b707efe4dec8a61352acc0955
         'SQLite3Exception' => __DIR__ . '/..' . '/symfony/polyfill-php83/Resources/stubs/SQLite3Exception.php',
         'SensitiveParameter' => __DIR__ . '/..' . '/symfony/polyfill-php82/Resources/stubs/SensitiveParameter.php',
         'SensitiveParameterValue' => __DIR__ . '/..' . '/symfony/polyfill-php82/Resources/stubs/SensitiveParameterValue.php',
-        'Stringable' => __DIR__ . '/..' . '/myclabs/php-enum/stubs/Stringable.php',
+        'Stringable' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Stringable.php',
         'TCPDF' => __DIR__ . '/..' . '/tecnickcom/tcpdf/tcpdf.php',
         'TCPDF2DBarcode' => __DIR__ . '/..' . '/tecnickcom/tcpdf/tcpdf_barcodes_2d.php',
         'TCPDFBarcode' => __DIR__ . '/..' . '/tecnickcom/tcpdf/tcpdf_barcodes_1d.php',
@@ -736,11 +737,11 @@ class ComposerStaticInitc2a9329b707efe4dec8a61352acc0955
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInitc2a9329b707efe4dec8a61352acc0955::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInitc2a9329b707efe4dec8a61352acc0955::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInitc2a9329b707efe4dec8a61352acc0955::$prefixesPsr0;
-            $loader->fallbackDirsPsr0 = ComposerStaticInitc2a9329b707efe4dec8a61352acc0955::$fallbackDirsPsr0;
-            $loader->classMap = ComposerStaticInitc2a9329b707efe4dec8a61352acc0955::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitcc47ce9baa5d2a719800bfb873045ddb::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitcc47ce9baa5d2a719800bfb873045ddb::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInitcc47ce9baa5d2a719800bfb873045ddb::$prefixesPsr0;
+            $loader->fallbackDirsPsr0 = ComposerStaticInitcc47ce9baa5d2a719800bfb873045ddb::$fallbackDirsPsr0;
+            $loader->classMap = ComposerStaticInitcc47ce9baa5d2a719800bfb873045ddb::$classMap;
 
         }, null, ClassLoader::class);
     }

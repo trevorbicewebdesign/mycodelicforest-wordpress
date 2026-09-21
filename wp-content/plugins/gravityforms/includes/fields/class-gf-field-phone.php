@@ -25,6 +25,15 @@ class GF_Field_Phone extends GF_Field {
 	public $type = 'phone';
 
 	/**
+	 * Whether this field allows links/URLs in the value.
+	 *
+	 * @since 3.1.0
+	 *
+	 * @var bool
+	 */
+	public $noURLs = true;
+
+	/**
 	 * Defines the field title to be used in the form editor.
 	 *
 	 * @since  Unknown
@@ -220,6 +229,17 @@ class GF_Field_Phone extends GF_Field {
 				? $this->errorMessage
 				: sprintf( esc_html__( 'Phone format: %s', 'gravityforms' ), rgar( $phone_format, 'instruction' ) );
 		}
+	}
+
+	/**
+	 * Determines if Links/URLs should be detected.
+	 *
+	 * @since 3.1.0
+	 *
+	 * @return bool
+	 */
+	public function should_detect_urls() {
+		return parent::should_detect_urls() && $this->phoneFormat === 'international';
 	}
 
 	/**
@@ -466,10 +486,11 @@ class GF_Field_Phone extends GF_Field {
 		$dial_code    = $country_data['dialCode'];
 
 		// Get sublabels
-		$country_sublabel_text = $this->countrySublabel != '' ? esc_html( $this->countrySublabel ) : esc_html__( 'Country', 'gravityforms' );
-		$phone_sublabel_text   = $this->phoneSublabel != '' ? esc_html( $this->phoneSublabel ) : esc_html__( 'Phone Number', 'gravityforms' );
-		$country_sublabel      = "<label for='" . esc_attr( $button_id ) . "' id='" . esc_attr( $button_id . '_label' ) . "' class='gform-field-label gform-field-label--type-sub'>{$country_sublabel_text}</label>";
-		$phone_sublabel        = "<label for='" . esc_attr( $visible_input_id ) . "' id='" . esc_attr( $visible_input_id . '_label' ) . "' class='gform-field-label gform-field-label--type-sub'>{$phone_sublabel_text}</label>";
+		$hidden_sublabel_class = $this->subLabelPlacement === 'hidden_label' ? 'hidden_sub_label screen-reader-text' : '';
+		$country_sublabel_text = esc_html( $this->countrySublabel ?: __( 'Country', 'gravityforms' ) );
+		$phone_sublabel_text   = esc_html( $this->phoneSublabel ?: __( 'Phone Number', 'gravityforms' ) );
+		$country_sublabel      = "<label for='" . esc_attr( $button_id ) . "' id='" . esc_attr( $button_id . '_label' ) . "' class='gform-field-label gform-field-label--type-sub {$hidden_sublabel_class}'>{$country_sublabel_text}</label>";
+		$phone_sublabel        = "<label for='" . esc_attr( $visible_input_id ) . "' id='" . esc_attr( $visible_input_id . '_label' ) . "' class='gform-field-label gform-field-label--type-sub {$hidden_sublabel_class}'>{$phone_sublabel_text}</label>";
 
 		$is_sublabel_above = $this->is_sub_label_above( $form );
 

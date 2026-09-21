@@ -198,19 +198,24 @@ class RevSliderLoadBalancer extends RevSliderFunctions {
 			return new WP_Error('basepath_fail', 'Base path is required');
 		}
 
+		$base_normalized = trailingslashit(wp_normalize_path($basepath));
+		$dst_normalized = wp_normalize_path($dst);
+		if (strpos($dst_normalized, $base_normalized) !== 0) {
+			return new WP_Error('dest_path_fail', 'Invalid destination path');
+		}
+
+		$relative = substr($dst_normalized, strlen($base_normalized));
+		if ($relative === '' || strpos($relative, "\0") !== false || preg_match('#(^|/)\.\.(/|$)#', $relative)) {
+			return new WP_Error('dest_path_fail', 'Invalid destination path');
+		}
+
 		$base = realpath($basepath);
 		if ($base === false) {
 			return new WP_Error('basepath_fail', 'Invalid base path');
 		}
 
-		$base = wp_normalize_path($base);
-		$dst_normalized = wp_normalize_path($dst);
-		// ensure trailing slash
-		$base = rtrim($base, '/') . '/';
-
-		if (strpos($dst_normalized, $base) !== 0) {
-			return new WP_Error('dest_path_fail', 'Invalid destination path');
-		}
+		$base = trailingslashit(wp_normalize_path($base));
+		$dst_target = $base . $relative;
 
 		$url = $this->validate_url($media, $subdomain, $force_http);
 		$tmp  = download_url($url, 45);
@@ -222,17 +227,30 @@ class RevSliderLoadBalancer extends RevSliderFunctions {
 			global $SR_GLOBALS;
 			$mime_types = array_merge($this->get_val($SR_GLOBALS, ['mime_types', 'image']), $this->get_val($SR_GLOBALS, ['mime_types', 'video']));
 		}
-		$file_type = wp_check_filetype($dst_normalized, $mime_types);
+		$file_type = wp_check_filetype($dst_target, $mime_types);
 		if(!$file_type['ext'] || !$file_type['type']) {
 			wp_delete_file($tmp);
 			return new WP_Error('download_fail', 'Failed to download file');
 		}
 
-		if (!wp_mkdir_p(dirname($dst_normalized))) {
+		if (!wp_mkdir_p(dirname($dst_target))) {
 			wp_delete_file($tmp);
 			return new WP_Error('mkdir_fail', 'Uploads dir not writable');
 		}
-		if (!@rename($tmp, $dst_normalized)) {
+
+		$parent = realpath(dirname($dst_target));
+		if ($parent === false) {
+			wp_delete_file($tmp);
+			return new WP_Error('mkdir_fail', 'Uploads dir not writable');
+		}
+
+		$parent = trailingslashit(wp_normalize_path($parent));
+		if (strpos($parent, $base) !== 0) {
+			wp_delete_file($tmp);
+			return new WP_Error('dest_path_fail', 'Invalid destination path');
+		}
+
+		if (!@rename($tmp, $dst_target)) {
 			wp_delete_file($tmp);
 			return new WP_Error('move_fail', 'Failed to move file');
 		}

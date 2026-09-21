@@ -144,7 +144,12 @@ class CRM_Api4_Page_AJAX extends CRM_Core_Page {
   private function execute(string $entity, string $action, array $params = [], $index = NULL) {
     $response = [];
     try {
-      $params['checkPermissions'] = TRUE;
+      // Do not allow permissions to be disabled by ajax callers
+      foreach (array_keys($params) as $key) {
+        if (strtolower($key) === 'checkpermissions') {
+          unset($params[$key]);
+        }
+      }
       // Handle numeric indexes later so we can get the count
       $itemAt = CRM_Utils_Type::validate($index, 'Integer', FALSE);
       $result = civicrm_api4($entity, $action, $params, isset($itemAt) ? NULL : $index);
@@ -154,6 +159,11 @@ class CRM_Api4_Page_AJAX extends CRM_Core_Page {
       foreach (get_class_vars(get_class($result)) as $key => $val) {
         $response[$key] = $result->$key;
       }
+      // Add error data from Result object
+      $response['errors'] = $result->getErrors();
+      $response['max_error_level'] = $result->getMaxErrorLevel();
+      $response['is_blocking_error'] = $result->isBlockingError();
+
       unset($response['rowCount']);
       $response['count'] = $result->count();
       $response['countFetched'] = $result->countFetched();

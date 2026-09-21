@@ -88,7 +88,8 @@ if(!defined('ABSPATH')) exit();
         <sr-wrap view="module_cfc" viewchild="modulesettings" class="sr--tab--content" id="sr_mose_contentflow">
             <sr-separator>
                 <sr-separator-head notoggle>
-                    <sr-separator-title><?php _e('Content Flow Container','revslider'); ?></sr-separator-title>                    
+                    <sr-separator-title><?php _e('Content Flow Container','revslider'); ?></sr-separator-title>
+                    <sr-wrap wide class="sr--dark--par--hover sr--mini--title sr--mb--0" style="float:right" clean=""><sr-button viewchild="module_cfc" data-action="stage.dims.resetFlow"><svg class="sr--icon" width="9" height="8" style="transform:scaleX(-1) translate(0px,-1px)"><use xlink:href="#General_Refresh"></use></svg><?php _e('Reset','revslider'); ?></sr-button></sr-wrap>
                 </sr-separator-head>
                 <sr-separator-body class="sr--modulesizes">
                     <sr-wrap>                        

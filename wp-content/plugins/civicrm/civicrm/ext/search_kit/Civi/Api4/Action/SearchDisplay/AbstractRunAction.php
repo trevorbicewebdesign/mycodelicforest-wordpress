@@ -328,6 +328,9 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
     if (!empty($column['icons'])) {
       $out['icons'] = $this->getColumnIcons($column, $data, $out);
     }
+    if (!empty($column['colors'])) {
+      $out['colors'] = $this->getColumnColors($column, $data, $out);
+    }
     return $out;
   }
 
@@ -340,9 +343,10 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
    * @return string
    */
   protected function rewrite(string $rewrite, array $data, string $format = 'view'): string {
-    // Cheap str_contains to skip Smarty processing if not needed
-    $hasSmarty = str_contains($rewrite, '{');
+    // Check if the original string contains smarty
+    $hasSmarty = str_contains($rewrite, '{') && str_contains($rewrite, '}');
     $output = $this->replaceTokens($rewrite, $data, $format);
+    $output = \Civi\Token\TokenCompatSubscriber::renderConditionalPunctuation($output);
     if ($hasSmarty) {
       $vars = [];
       $nestedIds = [];
@@ -473,6 +477,57 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
   }
 
   /**
+   * Add colors to a column
+   *
+   * Note: Only one color is allowed per value (no left/right distinction as with icons).
+   * If more than one color rule is given, latter rules are treated as fallbacks
+   * and only used if prior ones are missing.
+   *
+   * @param array $column
+   * @param array $data
+   * @param array $out
+   * @return array
+   */
+  protected function getColumnColors(array $column, array $data, array $out): array {
+    // Column is either outputting an array of links, or a plain value
+    // Value could be an array if field is multivalued or aggregated.
+    $value = $out['links'] ?? $out['val'] ?? NULL;
+    // Get 0-indexed keys of the values (pad so we have at least one)
+    $keys = array_pad(array_keys(array_values((array) $value)), 1, 0);
+    $result = [];
+    foreach ($keys as $index) {
+      $result[$index] = $this->getColumnColor($column['colors'], $index, $data, is_array($value));
+    }
+    // Drop if empty
+    return array_filter($result) ? $result : [];
+  }
+
+  private function getColumnColor(array $colors, int $index, array $data, bool $isMulti): ?string {
+    // Latter colors are fallbacks, earlier ones take priority
+    foreach ($colors as $color) {
+      $colorValue = NULL;
+      $color += ['color' => NULL];
+      $colorField = !empty($color['field']) ? $this->renameIfAggregate($color['field']) : NULL;
+      if (!empty($colorField) && !empty($data[$colorField])) {
+        // Color field may be multivalued e.g. tag_id:color, or it may be aggregated
+        // If both base field and color field are multivalued, use corresponding index
+        if ($isMulti && is_array($data[$colorField])) {
+          $colorValue = $data[$colorField][$index] ?? NULL;
+        }
+        // Otherwise get a single value
+        else {
+          $colorValue = \CRM_Utils_Array::first(array_filter((array) $data[$colorField]));
+        }
+      }
+      $colorValue ??= $color['color'];
+      if ($colorValue) {
+        return $colorValue;
+      }
+    }
+    return NULL;
+  }
+
+  /**
    * Returns the condition of a cssRules
    *
    * @param array $clause
@@ -541,6 +596,22 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
   }
 
   /**
+   * Return fields needed for calculating a column's colors
+   *
+   * @param array $colors
+   * @return array
+   */
+  protected function getColorsSelect($colors) {
+    $select = [];
+    foreach ($colors as $color) {
+      if (!empty($color['field'])) {
+        $select[] = $this->renameIfAggregate($color['field'], TRUE);
+      }
+    }
+    return $select;
+  }
+
+  /**
    * Format a field value as links
    * @param $column
    * @param $data
@@ -550,9 +621,9 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
   private function formatFieldLinks($column, $data, $value): array {
     $links = [];
     foreach ((array) $value as $index => $val) {
-      // If contents of field are multi-valued, pass $index to formatLink(), otherwise NULL
+      // If contents of field are multi-valued (array_is_list), pass $index to formatLink(), otherwise NULL
       // This tells it whether to select a single value or all values in a multivalued token
-      $link = $this->formatLink($column['link'], $data, FALSE, $val, is_array($value) ? $index : NULL);
+      $link = $this->formatLink($column['link'], $data, FALSE, $val, is_array($value) && array_is_list($value) ? $index : NULL);
       if ($link) {
         // Style rules get appled to each link
         if (!empty($column['cssRules'])) {
@@ -669,6 +740,9 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
       return NULL;
     }
     $link['text'] = $text ?? $this->replaceTokens($link['text'], $data, 'view');
+    if (!empty($link['title'])) {
+      $link['title'] = $this->replaceTokens($link['title'], $data, 'view');
+    }
     if (!empty($link['task'])) {
       $keys = ['task', 'text', 'title', 'icon', 'style'];
     }
@@ -836,11 +910,14 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
    *
    * @param array $link
    * @param array $data
+   * @param int|null $rowCount
+   *   Total matched rows, if known (only applicable to toolbar buttons, which
+   *   aren't tied to a specific row - used to evaluate the "no results" condition).
    * @return bool
    */
-  protected function checkLinkConditions(array $link, array $data): bool {
+  protected function checkLinkConditions(array $link, array $data, ?int $rowCount = NULL): bool {
     foreach ($link['conditions'] ?? [] as $condition) {
-      if (!$this->checkLinkCondition($condition, $data)) {
+      if (!$this->checkLinkCondition($condition, $data, $rowCount)) {
         return FALSE;
       }
     }
@@ -852,9 +929,10 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
    *
    * @param array $condition
    * @param array $data
+   * @param int|null $rowCount
    * @return bool
    */
-  protected function checkLinkCondition(array $condition, array $data): bool {
+  protected function checkLinkCondition(array $condition, array $data, ?int $rowCount = NULL): bool {
     if (empty($condition[0]) || empty($condition[1])) {
       return TRUE;
     }
@@ -871,6 +949,10 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
       }
       return \CRM_Core_Permission::check($permissions) == ($op !== '!=');
     }
+    if ($condition[0] === 'no results') {
+      // Only applicable to toolbar buttons
+      return $rowCount === 0;
+    }
     $field = $this->getField($condition[0]);
     // Handle date/time-based conditionals
     $dataType = $field['data_type'] ?? NULL;
@@ -884,6 +966,22 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
       }
       else {
         $condition[2] = \CRM_Core_Config::domainID();
+      }
+    }
+    // Convert the conditional value of 'user_contact_id' into an actual value that filterCompare can work with
+    if (
+      is_string($field['fk_entity'] ?? NULL)
+      && CoreUtil::isContact($field['fk_entity'])
+    ) {
+      if (($condition[2] ?? NULL) === 'user_contact_id') {
+        // value is a scalar, e.g. `=`, `!=`, `<`, `>`, etc.
+        $condition[2] = FormattingUtil::resolveContactID($field['name'], $condition[2]);
+      }
+      elseif (is_array($condition[2] ?? NULL)) {
+        // value is an array of values, e.g. `IN`, `NOT IN`, `CONTAINS`
+        $condition[2] = array_map(function($value) use ($field) {
+          return $value === 'user_contact_id' ? FormattingUtil::resolveContactID($field['name'], $value) : $value;
+        }, $condition[2]);
       }
     }
     return self::filterCompare($data, $condition);
@@ -1348,9 +1446,14 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
         break;
 
       case 'Money':
-        $currencyField = $this->getCurrencyField($key) ?? '';
-        $currency = is_string($data[$currencyField] ?? NULL) ? $data[$currencyField] : NULL;
-        $formatted = \Civi::format()->money($rawValue, $currency);
+        if ($format === 'number') {
+          $formatted = \CRM_Utils_Number::formatLocaleNumeric((string) $rawValue);
+        }
+        else {
+          $currencyField = $this->getCurrencyField($key) ?? '';
+          $currency = is_string($data[$currencyField] ?? NULL) ? $data[$currencyField] : NULL;
+          $formatted = \Civi::format()->money($rawValue, $currency);
+        }
         break;
 
       case 'Float':
@@ -1392,8 +1495,17 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
         $filters[$key] = explode(',', $filters[$key]);
       }
     }
-    // Add all filters to the WHERE or HAVING clause
+    // Add filters to the WHERE or HAVING clause or Api params
+    $paramInfo = [];
+    if (!empty($this->savedSearch['api_entity'])) {
+      $paramInfo = \Civi\API\Request::create($this->savedSearch['api_entity'], 'get', ['version' => 4])->getParamInfo();
+    }
     foreach ($filters as $key => $value) {
+      // Handle dynamicFieldControl api params
+      if (!empty($paramInfo[$key]['dynamicFieldControl'])) {
+        $this->_apiParams[$key] = $value;
+        continue;
+      }
       $fieldNames = explode(',', $key);
       if (in_array($key, $allowedFilters, TRUE) || !array_diff($fieldNames, $allowedFilters)) {
         $this->applyFilter($fieldNames, $value, $fieldFilters);
@@ -1541,6 +1653,9 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
       foreach ($this->getIconsSelect($column['icons'] ?? []) as $addition) {
         $this->addSelectExpression($addition);
       }
+      foreach ($this->getColorsSelect($column['colors'] ?? []) as $addition) {
+        $this->addSelectExpression($addition);
+      }
     }
 
     // Add primary key field if actions, draggable, or editable are enabled
@@ -1605,61 +1720,50 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
 
     $moneyFieldAlias = array_keys($clause['fields'])[0];
     $moneyField = $clause['fields'][$moneyFieldAlias];
-    $prefix = substr($moneyFieldAlias, 0, strrpos($moneyFieldAlias, $moneyField['name']));
 
-    // Custom fields do their own thing wrt currency
-    if ($moneyField['type'] === 'Custom') {
-      return NULL;
-    }
+    if (!empty($moneyField['input_attrs']['control_field'])) {
+      $prefix = substr($moneyFieldAlias, 0, strrpos($moneyFieldAlias, $moneyField['name']));
+      $currencyFieldName = $prefix . $moneyField['input_attrs']['control_field'];
 
-    // First look for a currency field on the same entity as the money field
-    $ownCurrencyField = $this->findCurrencyField($moneyField['entity']);
-    if ($ownCurrencyField) {
-      return $this->currencyFields[$select] = $prefix . $ownCurrencyField;
-    }
-
-    // Next look at the previously-joined entity
-    if ($prefix && $this->getQuery()) {
-      $parentJoin = $this->getQuery()->getJoinParent(rtrim($prefix, '.'));
-      $parentCurrencyField = $parentJoin ? $this->findCurrencyField($this->getQuery()->getExplicitJoin($parentJoin)['entity']) : NULL;
-      if ($parentCurrencyField) {
-        return $this->currencyFields[$select] = $parentJoin . '.' . $parentCurrencyField;
-      }
-    }
-
-    // Fall back on the base entity
-    $baseCurrencyField = $this->findCurrencyField($this->savedSearch['api_entity']);
-    if ($baseCurrencyField) {
-      return $this->currencyFields[$select] = $baseCurrencyField;
-    }
-
-    // Finally, try adding an implicit join
-    // e.g. the LineItem entity can use `contribution_id.currency`
-    foreach ($this->findFKFields($moneyField['entity']) as $fieldName => $fkEntity) {
-      $joinCurrencyField = $this->findCurrencyField($fkEntity);
-      if ($joinCurrencyField) {
-        return $this->currencyFields[$select] = $prefix . $fieldName . '.' . $joinCurrencyField;
-      }
-    }
-    return NULL;
-  }
-
-  /**
-   * Find currency field for an entity.
-   *
-   * @param string $entityName
-   * @return string|null
-   */
-  private function findCurrencyField(string $entityName): ?string {
-    $entityDao = CoreUtil::getInfoItem($entityName, 'dao');
-    if ($entityDao) {
-      // Check for a pseudoconstant that points to civicrm_currency.
-      foreach ($entityDao::getSupportedFields() as $fieldName => $field) {
-        if (($field['pseudoconstant']['table'] ?? NULL) === 'civicrm_currency') {
-          return $fieldName;
+      // If the currency field specifies a join, check if this entity is already joined to it.
+      if (str_contains($moneyField['input_attrs']['control_field'], '.')) {
+        [$joinEntityFieldName, $controlFieldName] = explode('.', $moneyField['input_attrs']['control_field']);
+        $joinEntityField = $this->getField($prefix . $joinEntityFieldName);
+        if ($joinEntityField && !empty($joinEntityField['fk_entity'])) {
+          foreach ($this->getQuery()->getExplicitJoins() as $join) {
+            if ($join['alias'] . '.' === $prefix) {
+              foreach ($join['on'] as $on) {
+                if ($on[3] ?? TRUE !== TRUE || !is_string($on[0]) || !is_string($on[2] ?? NULL)) {
+                  continue;
+                }
+                $clause = [
+                  $on[0] => $this->getField($on[0]),
+                  $on[2] => $this->getField($on[2]),
+                ];
+                if ($clause[$on[0]] === NULL || $clause[$on[2]] === NULL) {
+                  continue;
+                }
+                foreach ([$clause, array_reverse($clause)] as $fields) {
+                  $field1Name = array_keys($fields)[0];
+                  $field2Name = array_keys($fields)[1];
+                  $field1 = $fields[$field1Name];
+                  $field2 = $fields[$field2Name];
+                  if (!str_starts_with($field1Name, $prefix)) {
+                    continue;
+                  }
+                  if ($field2['entity'] === $joinEntityField['fk_entity']) {
+                    $currencyEntityPrefix = substr($field2['path'], 0, strrpos($field2['path'], $field2['name']));
+                    return $this->currencyFields[$select] = $currencyEntityPrefix . $controlFieldName;
+                  };
+                }
+              }
+            }
+          }
         }
       }
+      return $this->currencyFields[$select] = $currencyFieldName;
     }
+
     return NULL;
   }
 
@@ -2060,6 +2164,7 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
   protected function filterPrintableColumns(array &$settings): void {
     // Respect if user has disabled any columns, otherwise show all
     $this->toggleColumns = $this->toggleColumns ?: array_keys($settings['columns']);
+    $supportsLinks = isset($this->format) && !in_array($this->format, ['csv', 'array'], TRUE);
 
     // Checking permissions for menu, link or button columns is costly, so remove them early
     foreach ($settings['columns'] as $index => $col) {
@@ -2069,7 +2174,12 @@ abstract class AbstractRunAction extends \Civi\Api4\Generic\AbstractAction {
       }
       // Avoid wasting time processing links, editable and other non-printable items from spreadsheet
       else {
-        \CRM_Utils_Array::remove($settings['columns'][$index], 'link', 'editable', 'icons', 'cssClass');
+        if ($supportsLinks) {
+          \CRM_Utils_Array::remove($settings['columns'][$index], 'editable', 'icons', 'cssClass');
+        }
+        else {
+          \CRM_Utils_Array::remove($settings['columns'][$index], 'link', 'editable', 'icons', 'cssClass');
+        }
       }
     }
 
