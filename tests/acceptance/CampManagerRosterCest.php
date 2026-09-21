@@ -60,7 +60,7 @@ class CampManagerRosterCest
         }
         // Navigate to the roster page (not the add form, to see the table)
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members");
-        $I->see("Roster", "h1"); // Adjust if needed to match page title
+        $I->waitForText("Roster", 10, "h1"); // Adjust if needed to match page title
 
         // Assert that the `Add New` button is present
         $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-member']");

@@ -50,7 +50,8 @@ class ProfileCest
 
         $I->fillField("#input_6_16_3", "Test");
         $I->fillField("#input_6_16_6", "User");
-        $I->fillField("#input_6_18", "testuser@example.com");
+        // Gravity Forms rejects @example.com / @domain.com addresses outright (GF_Field_Email::is_email_rejected).
+        $I->fillField("#input_6_18", "testuser@example.org");
         $I->fillField("#input_6_5", "555-555-5555");
         $I->fillField("#input_6_9_1", "123 Main St");
         $I->fillField("#input_6_9_3", "Anytown");
@@ -67,7 +68,7 @@ class ProfileCest
 
         $I->seeInField("#input_6_16_3", "Test");
         $I->seeInField("#input_6_16_6", "User");
-        $I->seeInFIeld("#input_6_18", "testuser@example.com");
+        $I->seeInFIeld("#input_6_18", "testuser@example.org");
         $I->seeInField("input[name=input_5]", "(555) 555-5555");
         $I->seeInField("#input_6_9_1", "123 Main St");
         $I->seeInField("#input_6_9_3", "Anytown");
@@ -92,7 +93,7 @@ class ProfileCest
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "playa_name","meta_value" => "TestBurner"]);
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "has_attended_burning_man","meta_value" => "No"]);
 
-        $I->seeInDatabase("wp_users", ["ID" => $this->userId, "user_email" => "testuser@example.com"]);
+        $I->seeInDatabase("wp_users", ["ID" => $this->userId, "user_email" => "testuser@example.org"]);
 
    
     }

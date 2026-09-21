@@ -62,7 +62,7 @@ class CampManagerLedgerCest
     {
 
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-ledger");
-        $I->see("Ledger", "h1");
+        $I->waitForText("Ledger", 10, "h1");
 
         $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-ledger']");
 
@@ -88,7 +88,7 @@ class CampManagerLedgerCest
     public function AddLedger(AcceptanceTester $I)
     {
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-ledger");
-        $I->see("Add Ledger Entry", "h1");
+        $I->waitForText("Add Ledger Entry", 10, "h1");
 
         $I->see("Note", "label[for='ledger_note']");
         $I->see("Amount", "label[for='ledger_amount']");
@@ -114,6 +114,8 @@ class CampManagerLedgerCest
 
         // Submit the form
         $I->click("Save Ledger");
+        // The handler redirects to the entry's edit form; wait for it before reading the DB.
+        $I->waitForText("Edit Ledger Entry", 10, "h1");
 
         // Verify the item was added
         $I->seeInDatabase("wp_mf_ledger", [
@@ -158,7 +160,7 @@ class CampManagerLedgerCest
         
         // Navigate to the ledger page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-ledger");
-        $I->see("Ledger", "h1");
+        $I->waitForText("Ledger", 10, "h1");
 
         // Delete is a bulk action, so we need to select an item first
         $I->checkOption("input[name=\"ledger[]\"][value=\"$ledger_id\"]");

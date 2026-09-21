@@ -53,7 +53,7 @@ class CampManagerReceiptsCest
     {
         // Navigate to the receipts page (not the add form, to see the table)
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-actuals");
-        $I->see("Receipts", "h1"); // Adjust if needed to match page title
+        $I->waitForText("Receipts", 10, "h1"); // Adjust if needed to match page title
 
         // Assert that the `Add New` button is present
         $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-receipt']");
@@ -94,7 +94,7 @@ class CampManagerReceiptsCest
         ]);
         
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-receipt");
-        $I->see("Add New Receipt", "h1");
+        $I->waitForText("Add New Receipt", 10, "h1");
 
         // Check that the form fields and labels are present
         $I->see("Store", "label[for='store']");
@@ -216,7 +216,7 @@ class CampManagerReceiptsCest
         ]);
         // Navigate to the receipts page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-actuals");
-        $I->see("Receipts", "h1");
+        $I->waitForText("Receipts", 10, "h1");
 
         // Delete is a bulk action, so we need to select an item first
         $I->checkOption("input[name=\"receipt[]\"][value=\"$id\"]");

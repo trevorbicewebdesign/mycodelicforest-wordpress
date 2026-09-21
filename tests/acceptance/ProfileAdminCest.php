@@ -157,7 +157,8 @@ class ProfileAdminCest
         $I->checkOption("[name='years_attended[]'][value='2024']");
         $I->seeCheckboxIsChecked("[name='years_attended[]']", "2024");
         
-        $I->click("Update Profile");   
+        $I->click("Update Profile");
+        $I->waitForText("Profile updated.", 10);
 
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "first_name","meta_value" => "Test"]);
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->adminId, "meta_key" => "last_name","meta_value" => "Admin"]);
