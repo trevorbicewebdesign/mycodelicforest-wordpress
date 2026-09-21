@@ -206,7 +206,13 @@ jobs:
           # Route outgoing mail through PHP mail() -> sendmail_path -> Mailpit (see below);
           # the option may not exist in the dump, so do not fail if there is nothing to patch.
           wp option patch update wp_mail_smtp mail mailer mail || true
+          # Plugin state for the suites: camp-manager must be active (its admin pages are
+          # under test and activation creates the mf_* tables); CiviCRM is listed active in
+          # the dump but has no tables/settings here, so it would only add installer notices.
+          wp plugin activate camp-manager
+          wp plugin deactivate civicrm || true
           wp option get siteurl; wp option get home
+          wp plugin list --status=active --field=name | tr '\n' ' '; echo
 
       # Restart Chromedriver for acceptance tests
       - name: Restart Chromedriver
