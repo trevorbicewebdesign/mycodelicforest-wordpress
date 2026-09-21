@@ -3187,6 +3187,17 @@ class RevSliderApi extends RevSliderFunctions {
 			$global['fonts']['list'] = $rsf->sync_uploaded_fonts($global['fonts']['list'], $old_list);
 		}
 
+		//never store a gappy breakpoint list: the client drops emptied/null entries on the way here, which leaves a
+		//keyed object instead of a 5 slot list and made the Global Settings modal unopenable on the next load
+		if(isset($global['breakPoints'])){
+			$slots = [1920, 1240, 1024, 778, 480];
+			foreach($slots as $i => $default){
+				$sent = intval($this->get_val($global['breakPoints'], $i, 0));
+				$slots[$i] = ($sent > 0) ? $sent : $default;
+			}
+			$global['breakPoints'] = $slots;
+		}
+
 		$update = $this->get_val($data, 'update', false);
 		$return = $this->set_global_settings($global, $update);
 		if($return === true) $this->ajax_response_success(__('Global Settings saved/updated', 'revslider'), ['settings' => $global]);
@@ -3443,6 +3454,7 @@ class RevSliderApi extends RevSliderFunctions {
 			'sr_elements_video' => 'elements/video.php',
 			'sr_elements_overlay' => 'elements/overlay.php',
 			'sr_elements_customshape' => 'elements/customshape.php',
+			'sr_elements_customshapestyle' => 'elements/customshapestyle.php',
 			'sr_elements_background' => 'elements/background.php',
 			'sr_elements_parallax' => 'elements/parallax.php',
 			'sr_elements_border' => 'elements/border.php',

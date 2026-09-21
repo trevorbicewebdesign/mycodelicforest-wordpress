@@ -368,6 +368,7 @@ class RevSliderSliderExportHtml extends RevSliderSliderExport {
 			'defaults.js',
 			'draw.js',
 			'layer.js',
+			'layerix.js',
 			'media.js',
 			//'migration.js',
 			'modifiers.js',

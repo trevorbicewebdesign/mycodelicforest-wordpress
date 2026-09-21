@@ -788,7 +788,7 @@ class RevSliderData {
 					"down":{"content":{"all":[{"rZ":"-20deg",  "o":0,  "y":"-200%", "sY":2, "sX":2},{"d":1000,"e":"power3.inOut","o":1,"y":0,"rZ":0,"rY":0,"sX":1,"sY":1}]}},					
 					"left":{"content":{"all":[{"rZ":"20deg", "o":0, "x":"200%", "sY":2, "sX":2},{"d":1000,"e":"power3.inOut","o":1,"x":0,"rZ":0,"rY":0,"sX":1,"sY":1}]}},
 					"right":{"content":{"all":[{"rZ":"-20deg", "o":0, "x":"-200%", "sY":2, "sX":2},{"d":1000,"e":"power3.inOut","o":1,"x":0,"rZ":0,"rY":0,"sX":1,"sY":1}]}},
-					"center":{"content":{"all":[{"o":1,"rY":"-20deg", "rX":"-20deg", "y":"200%", "sY":2, "sX":2},{"d":1000,"e":"power3.out","o":1,"y":0,"rZ":0,"rY":0,"rX:":"0", "sX":1,"sY":1}]}}
+					"center":{"content":{"all":[{"o":1,"rY":"-20deg", "rX":"-20deg", "y":"200%", "sY":2, "sX":2},{"d":1000,"e":"power3.out","o":1,"y":0,"rZ":0,"rY":0,"rX":"0", "sX":1,"sY":1}]}}
 				},
 				"flip":{
 					"multi":true,

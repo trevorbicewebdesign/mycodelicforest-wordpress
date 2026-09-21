@@ -18,121 +18,118 @@ $dep_translate = 'magnetic#;#attract#;#repel'; // axis only applies to the move 
 	</sr-separator-head>
 	<sr-separator-body class="sr_elements_pointere">
 
-		<!-- Cursor Icon -->
-		<sr-drop wide r="cursor" viewchild="layer_hover" data-v="" class="sr--mb--10">
-			<sr-drop-view>
-				<span class="sr--drop--value">Default</span>
-				<span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
-				<span class="sr--form--otitle"><?php _e('Cursor Icon','revslider'); ?></span>
-			</sr-drop-view>
-			<sr-drops data-v="auto"><?php _e('Auto','revslider'); ?></sr-drops><sr-drops data-v="default"><?php _e('Default','revslider'); ?></sr-drops><sr-drops data-v="cursor"><?php _e('Cursor','revslider'); ?></sr-drops><sr-drops data-v="crosshair"><?php _e('Crosshair','revslider'); ?></sr-drops><sr-drops data-v="pointer"><?php _e('Pointer','revslider'); ?></sr-drops><sr-drops data-v="move"><?php _e('Move','revslider'); ?></sr-drops><sr-drops data-v="text"><?php _e('Text','revslider'); ?></sr-drops><sr-drops data-v="wait"><?php _e('Wait','revslider'); ?></sr-drops><sr-drops data-v="help"><?php _e('Help','revslider'); ?></sr-drops><sr-drops data-v="zoom-in"><?php _e('Zoom-in','revslider'); ?></sr-drops><sr-drops data-v="zoom-out"><?php _e('Zoom-out','revslider'); ?></sr-drops><sr-drops data-v="none"><?php _e('None','revslider'); ?></sr-drops>
-		</sr-drop>
+		<!-- Cursor Icon — the twelve values as a grid instead of a list of their names.
+		     🔴 A CSS cursor cannot be read back out: the browser hands `cursor:` to the OS and gets no picture
+		     in return, and the drawing differs per OS and theme. So the glyph is DRAWN (sprite.svg, Cursor_*),
+		     and each cell also carries its own `cursor:` value — hovering a cell shows the real system cursor,
+		     which is the one preview no artwork can give.
+		     sr-radio is the form system's own picker, so binding, populate and undo come with it; `cursor` is
+		     SR7's own default and resolves to no CSS at all, hence "Inherit" next to the real `default` arrow. -->
+		<sr-wrap class="sr--cursorgrid--wrap">
+			<sr-radio r="cursor" viewchild="layer_hover" class="sr--cursorgrid" data-onset="editor.elements.ix.cursorSync">
+				<sr-radio-item icon value="cursor"    title="<?php _e('Inherit','revslider'); ?>"   style="cursor:auto"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_Inherit"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="auto"      title="<?php _e('Auto','revslider'); ?>"      style="cursor:auto"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_Auto"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="default"   title="<?php _e('Arrow','revslider'); ?>"     style="cursor:default"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_Default"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="pointer"   title="<?php _e('Pointer','revslider'); ?>"   style="cursor:pointer"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_Pointer"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="text"      title="<?php _e('Text','revslider'); ?>"      style="cursor:text"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_Text"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="move"      title="<?php _e('Move','revslider'); ?>"      style="cursor:move"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_Move"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="crosshair" title="<?php _e('Crosshair','revslider'); ?>" style="cursor:crosshair"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_Crosshair"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="help"      title="<?php _e('Help','revslider'); ?>"      style="cursor:help"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_Help"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="wait"      title="<?php _e('Wait','revslider'); ?>"      style="cursor:wait"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_Wait"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="zoom-in"   title="<?php _e('Zoom In','revslider'); ?>"   style="cursor:zoom-in"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_ZoomIn"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="zoom-out"  title="<?php _e('Zoom Out','revslider'); ?>"  style="cursor:zoom-out"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_ZoomOut"></use></svg></sr-radio-item><!--
+			--><sr-radio-item icon value="none"      title="<?php _e('Hidden','revslider'); ?>"    style="cursor:none"><svg class="sr--icon" width="16" height="16"><use xlink:href="#Cursor_None"></use></svg></sr-radio-item>
+			</sr-radio>
+		</sr-wrap>
 
-		<!-- Cursor Motion (reacts to the cursor; composes on top of all other animations) -->
-		<sr-drop wide r="ix.type" viewchild="layer_hover" ignoreredraw data-v="none" data-defval="none" class="sr--mb--10"
-				 data-sh=".sr--ix--dep" data-shdep="#eqvalue"
-				 data-onchange="editor.elements.ix.setType" data-undoredo="editor.elements.ix.setType">
-			<sr-drop-view>
-				<span class="sr--drop--value">None</span>
-				<span class="sr--form--otitle"><?php _e('Cursor Motion','revslider'); ?></span>
-				<span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
-			</sr-drop-view>
-			<sr-drops data-v="none"><?php _e('None','revslider'); ?></sr-drops>
-			<sr-drops-title><?php _e('Move','revslider'); ?></sr-drops-title>
-			<sr-drops data-v="magnetic"><?php _e('Magnetic (follow)','revslider'); ?></sr-drops>
-			<sr-drops data-v="attract"><?php _e('Attract (lean)','revslider'); ?></sr-drops>
-			<sr-drops data-v="repel"><?php _e('Repel / Push','revslider'); ?></sr-drops>
-			<sr-drops-title><?php _e('Scale','revslider'); ?></sr-drops-title>
-			<sr-drops data-v="pop"><?php _e('Pop (grow)','revslider'); ?></sr-drops>
-			<sr-drops data-v="squeeze"><?php _e('Squeeze (shrink)','revslider'); ?></sr-drops>
-			<sr-drops data-v="stretch"><?php _e('Stretch (toward cursor)','revslider'); ?></sr-drops>
-			<sr-drops-title><?php _e('Rotate','revslider'); ?></sr-drops-title>
-			<sr-drops data-v="tilt"><?php _e('Tilt 3D','revslider'); ?></sr-drops>
-			<sr-drops data-v="rotate"><?php _e('Swing (2D)','revslider'); ?></sr-drops>
-		</sr-drop>
+		<!-- Cursor Motion — the catalogue as tiles instead of the dropdown that stood here. Eight modes whose
+		     difference a word cannot carry (a magnet and a lean travel the same direction and feel nothing
+		     alike), and this is the one effect whose tile needs no simulated hand: a tile is only ever looked
+		     at while the pointer is inside it, and that pointer IS the input. Catalogue + tile recipe live in
+		     admin/assets/js/pointer.presets.js, so the Gutenberg Page Effect can read the same list.
+		     Paged behind a dot bar (owner opt-in, see essentials.js), so it stands permanently open at a fixed
+		     two rows — and it needs no heading of its own to say what a grid of cursors is about. -->
+		<sr-wrap id="sr_ix_essentials"></sr-wrap>
 
-		<!-- Style & Transform enable (Disabled / Enabled / Disabled on Mobile) -->
-		<sr-drop wide r="hov.u" viewchild="layer_hover" data-v="" data-defval="false" class="sr--mb--0" data-sh=".sr_elements_hovanims" data-onchange="editor.elements.mouse.reset" data-onchangeparam="enableddisabled" data-shdep="#eqvalue">
-			<sr-drop-view>
-				<span class="sr--drop--value">Default</span>
-				<span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
-				<span class="sr--form--otitle"><?php _e('Style & Transform','revslider'); ?></span>
-			</sr-drop-view>
-			<sr-drops data-v="false"><?php _e('Disabled','revslider'); ?></sr-drops><sr-drops data-v="true"><?php _e('Enabled','revslider'); ?></sr-drops><sr-drops data-v="desktop"><?php _e('Disabled on Mobile','revslider'); ?></sr-drops>
-		</sr-drop>
-		<sr-sp h="20"></sr-sp>
+		<!-- …and its numbers directly underneath, inside the same block rather than in a section of their own
+		     further down the panel. They are what the tile just wrote; a heading and a screen of tiles between
+		     the two made them read as an unrelated Advanced area. -->
+		<sr-sh r="ix.type" viewchild="layer_hover" data-shdep="magnetic#;#attract#;#repel#;#squeeze#;#pop#;#stretch#;#tilt#;#rotate">
+			<sr-input half class="sr--mr--10">
+				<input name="Strength" viewchild="layer_hover" r="ix.strength" ignoreredraw replace data-onset="editor.elements.ix.ensureBrowser" data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update" livevisup autocomplete="off" dragnumber number="true" min="0" max="150" validate="true" type="text">
+				<span noicon class="sr--form--otitle"><?php _e('Strength','revslider'); ?></span>
+			</sr-input><!--
+		--><sr-input half>
+				<input name="Radius" viewchild="layer_hover" r="ix.radius" ignoreredraw replace data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update" livevisup autocomplete="off" dragnumber number="true" min="20" max="800" suffix="px" lastsuffix="px" validate="true" type="text">
+				<span noicon class="sr--form--otitle"><?php _e('Radius','revslider'); ?></span>
+			</sr-input>
+
+			<!-- …and next to Speed the Return ease: how it springs back when the cursor leaves the field -->
+			<sr-input half class="sr--mr--10">
+				<input name="Speed" viewchild="layer_hover" r="ix.speed" ignoreredraw replace data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update" livevisup autocomplete="off" dragnumber number="true" min="2" max="40" validate="true" type="text">
+				<span noicon class="sr--form--otitle"><?php _e('Speed','revslider'); ?></span>
+			</sr-input><!--
+		--><sr-drop half r="ix.returnEase" viewchild="layer_hover" ignoreredraw data-v="smooth" data-defval="smooth"
+					 data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update">
+				<sr-drop-view>
+					<span class="sr--drop--value">Smooth</span>
+					<span class="sr--form--otitle"><?php _e('Return','revslider'); ?></span>
+					<span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
+				</sr-drop-view>
+				<sr-drops data-v="smooth"><?php _e('Smooth','revslider'); ?></sr-drops>
+				<sr-drops data-v="back"><?php _e('Back (overshoot)','revslider'); ?></sr-drops>
+				<sr-drops data-v="elastic"><?php _e('Elastic','revslider'); ?></sr-drops>
+				<sr-drops data-v="bounce"><?php _e('Bounce','revslider'); ?></sr-drops>
+			</sr-drop>
+
+			<!-- Axis lock and Perspective are mutually exclusive (move modes vs tilt), so at most one of the two
+			     ever occupies this row -->
+			<sr-sh r="ix.type" viewchild="layer_hover" data-shdep="<?php echo $dep_translate; ?>">
+				<sr-drop wide r="ix.axis" viewchild="layer_hover" ignoreredraw data-v="both" data-defval="both" class="sr--mb--0"
+						 data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update">
+					<sr-drop-view>
+						<span class="sr--drop--value">Both</span>
+						<span class="sr--form--otitle"><?php _e('Axis','revslider'); ?></span>
+						<span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
+					</sr-drop-view>
+					<sr-drops data-v="both"><?php _e('Both','revslider'); ?></sr-drops>
+					<sr-drops data-v="x"><?php _e('Horizontal','revslider'); ?></sr-drops>
+					<sr-drops data-v="y"><?php _e('Vertical','revslider'); ?></sr-drops>
+				</sr-drop>
+			</sr-sh>
+
+			<sr-sh r="ix.type" viewchild="layer_hover" data-shdep="tilt">
+				<sr-input wide class="sr--mb--0">
+					<input name="Perspective" viewchild="layer_hover" r="ix.perspective" ignoreredraw replace data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update" livevisup autocomplete="off" dragnumber number="true" min="200" max="3000" suffix="px" lastsuffix="px" validate="true" type="text">
+					<span noicon class="sr--form--otitle"><?php _e('Perspective','revslider'); ?></span>
+				</sr-input>
+			</sr-sh>
+			<sr-sp h="15"></sr-sp>
+		</sr-sh>
+
+		<sr-sp h="5"></sr-sp>
 	</sr-separator-body>
 </sr-separator>
 
-<!-- Conditional settings — only rendered once a Cursor Motion type / Style & Transform mode is chosen -->
+<!-- Hover Style & Transform — its own block with its own switch, the way Interaction has one.
+     ⚠ `hov.u` used to be a THREE-value drop (false / true / desktop). "desktop" meant "on, but not on
+     mobile", which is a second decision wearing the first one's clothes — and the engine never read it:
+     _tpt.tf("desktop") hands back the string, which is truthy, so it was on everywhere. It is two flags now,
+     and SR7.D.layerObject rewrites the old value on the way through (public/js/defaults.js). -->
+<sr-separator topborder keepborder class="sr_elements_pointere">
+	<sr-separator-head notoggle>
+		<sr-separator-title><?php _e('Hover Style & Transform','revslider'); ?></sr-separator-title>
+		<sr-onoff r="hov.u" viewchild="layer_hover" default="false" class="sr--mr--0" style="right:0px" data-sh=".sr_elements_hovanims"
+				  data-onchange="editor.elements.mouse.reset" data-onchangeparams="enableddisabled"></sr-onoff>
+	</sr-separator-head>
+</sr-separator>
+
+<!-- Conditional settings — only rendered once a Style & Transform mode is chosen. The Cursor Motion numbers
+     are NOT here any more: they belong to the tile that wrote them and sit directly under it, above. -->
 <sr-wrap class="sr_elements_pointere">
 
-	<!-- Cursor Motion settings -->
-	<sr-wrap wide class="sr--ix--dep" value="magnetic#;#attract#;#repel#;#squeeze#;#pop#;#stretch#;#tilt#;#rotate">
-		<sr-separator topborder keepborder>
-			<sr-separator-head notoggle>
-				<sr-separator-title><?php _e('Cursor Motion','revslider'); ?></sr-separator-title>
-			</sr-separator-head>
-			<sr-separator-body>
-				<sr-input wide class="sr--mb--5">
-					<input name="Strength" viewchild="layer_hover" r="ix.strength" ignoreredraw replace data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update" livevisup autocomplete="off" dragnumber number="true" min="0" max="150" validate="true" type="text">
-					<span noicon class="sr--form--otitle"><?php _e('Strength','revslider'); ?></span>
-				</sr-input>
-
-				<sr-input wide class="sr--mb--5">
-					<input name="Radius" viewchild="layer_hover" r="ix.radius" ignoreredraw replace data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update" livevisup autocomplete="off" dragnumber number="true" min="20" max="800" suffix="px" lastsuffix="px" validate="true" type="text">
-					<span noicon class="sr--form--otitle"><?php _e('Proximity Radius','revslider'); ?></span>
-				</sr-input>
-
-				<sr-input wide class="sr--mb--10">
-					<input name="Speed" viewchild="layer_hover" r="ix.speed" ignoreredraw replace data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update" livevisup autocomplete="off" dragnumber number="true" min="2" max="40" validate="true" type="text">
-					<span noicon class="sr--form--otitle"><?php _e('Follow Speed','revslider'); ?></span>
-				</sr-input>
-
-				<!-- Return ease: how it springs back when the cursor leaves the field -->
-				<sr-drop wide r="ix.returnEase" viewchild="layer_hover" ignoreredraw data-v="smooth" data-defval="smooth" class="sr--mb--10"
-						 data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update">
-					<sr-drop-view>
-						<span class="sr--drop--value">Smooth</span>
-						<span class="sr--form--otitle"><?php _e('Return','revslider'); ?></span>
-						<span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
-					</sr-drop-view>
-					<sr-drops data-v="smooth"><?php _e('Smooth','revslider'); ?></sr-drops>
-					<sr-drops data-v="back"><?php _e('Back (overshoot)','revslider'); ?></sr-drops>
-					<sr-drops data-v="elastic"><?php _e('Elastic','revslider'); ?></sr-drops>
-					<sr-drops data-v="bounce"><?php _e('Bounce','revslider'); ?></sr-drops>
-				</sr-drop>
-
-				<!-- Axis lock: only meaningful for the move modes -->
-				<sr-wrap wide class="sr--ix--dep" value="<?php echo $dep_translate; ?>">
-					<sr-drop wide r="ix.axis" viewchild="layer_hover" ignoreredraw data-v="both" data-defval="both" class="sr--mb--0"
-							 data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update">
-						<sr-drop-view>
-							<span class="sr--drop--value">Both</span>
-							<span class="sr--form--otitle"><?php _e('Axis','revslider'); ?></span>
-							<span class="sr--drop--icon"><svg width="10" height="6" transform="translate(0, -1)"><use xlink:href="#Drop_Down"></use></svg></span>
-						</sr-drop-view>
-						<sr-drops data-v="both"><?php _e('Both','revslider'); ?></sr-drops>
-						<sr-drops data-v="x"><?php _e('Horizontal','revslider'); ?></sr-drops>
-						<sr-drops data-v="y"><?php _e('Vertical','revslider'); ?></sr-drops>
-					</sr-drop>
-				</sr-wrap>
-
-				<!-- Perspective: only for Tilt 3D -->
-				<sr-wrap wide class="sr--ix--dep" value="tilt">
-					<sr-sp h="10"></sr-sp>
-					<sr-input wide class="sr--mb--0">
-						<input name="Perspective" viewchild="layer_hover" r="ix.perspective" ignoreredraw replace data-onchange="editor.elements.ix.update" data-undoredo="editor.elements.ix.update" livevisup autocomplete="off" dragnumber number="true" min="200" max="3000" suffix="px" lastsuffix="px" validate="true" type="text">
-						<span noicon class="sr--form--otitle"><?php _e('Perspective','revslider'); ?></span>
-					</sr-input>
-				</sr-wrap>
-				<sr-sp h="10"></sr-sp>
-			</sr-separator-body>
-		</sr-separator>
-	</sr-wrap>
-
 	<!-- Style & Transform settings -->
-	<sr-separator value="true#;#desktop" class="sr_elements_hovanims" data-menter="editor.elements.mouse.hover" data-mleave="editor.elements.mouse.idle" keepborder>
+	<sr-separator class="sr_elements_hovanims" data-menter="editor.elements.mouse.hover" data-mleave="editor.elements.mouse.idle" noborder>
 		<sr-separator-head notoggle>
 			<sr-separator-title><?php _e('Style','revslider'); ?></sr-separator-title>
 			<sr-wrap wide class="sr--on--par--hover sr--mini--title sr--mb--0" style="float:right" clean=""><sr-button viewchild="layer_hover"  data-action="editor.elements.mouse.reset"><?php _e('Reset Style','revslider'); ?></sr-button></sr-wrap>
@@ -205,14 +202,12 @@ $dep_translate = 'magnetic#;#attract#;#repel'; // axis only applies to the move 
 				<sr-bmp type="border" idpref="sr_layer_border_hov_full_" r="hov.border.w" data-onchange="editor.elements.mouse.rehover" ignoreredraw respshow="f-320middle" viewchild="layer_hover"></sr-bmp>
 			</sr-wrap>
 			<sr-bmp type="radius" idpref="sr_layer_radius_hov_full_" r="hov.radius" data-onchange="editor.elements.mouse.rehover" ignoreredraw viewchild="layer_hover"></sr-bmp>
-			<sr-sp h="5"></sr-sp>
 		</sr-separator-body>
 	</sr-separator>
 
-	<sr-separator value="true#;#desktop" class="sr_elements_hovanims" data-menter="editor.elements.mouse.hover" data-mleave="editor.elements.mouse.idle" keepborder>
-		<sr-separator-head>
+	<sr-separator class="sr_elements_hovanims" data-menter="editor.elements.mouse.hover" data-mleave="editor.elements.mouse.idle" noborder>
+		<sr-separator-head notoggle>
 			<sr-separator-title><?php _e('Filters','revslider'); ?></sr-separator-title>
-			<sr-separator-toggle><svg class="sr--icon" width="20" height="12"><use xlink:href="#General_Expand_Large"></use></svg></sr-separator-toggle>
 		</sr-separator-head>
 		<sr-separator-body>
 			<sr-input onethird class="sr--mr--6">
@@ -237,13 +232,11 @@ $dep_translate = 'magnetic#;#attract#;#repel'; // axis only applies to the move 
 				</sr-drop>
 			</sr-input>
 
-			<sr-sp h="5"></sr-sp>
 		</sr-separator-body>
 	</sr-separator>
-	<sr-separator value="true#;#desktop" class="sr_elements_hovanims" data-menter="editor.elements.mouse.hover" data-mleave="editor.elements.mouse.idle" keepborder>
-	<sr-separator-head>
+	<sr-separator class="sr_elements_hovanims" data-menter="editor.elements.mouse.hover" data-mleave="editor.elements.mouse.idle" noborder>
+	<sr-separator-head notoggle>
 			<sr-separator-title><?php _e('Animation','revslider'); ?></sr-separator-title>
-			<sr-separator-toggle><svg class="sr--icon" width="20" height="12"><use xlink:href="#General_Expand_Large"></use></svg></sr-separator-toggle>
 		</sr-separator-head>
 		<sr-separator-body>
 		<sr-input onethird class="sr--mr--10">
@@ -338,6 +331,10 @@ $dep_translate = 'magnetic#;#attract#;#repel'; // axis only applies to the move 
 			</sr-drop>
 		</sr-input>
 		<sr-wrap wide basic="" class="sr--form--grp"><sr-onoff r="hov.m" viewchild="layer_hover" data-onchange="editor.elements.mouse.reWrap" ignoreredraw class="sr--mr--10"></sr-onoff><span><?php _e('Animation Under Mask','revslider'); ?></span></sr-wrap>
+		<!-- Last, and deliberately so: this is the old "Disabled on Mobile" third value of hov.u, which the
+		     engine never actually read (see the note at the top). It works now, but it is the least-reached-for
+		     switch in the block, so it sits where the least-reached-for switch belongs. -->
+		<sr-wrap wide basic="" class="sr--form--grp"><sr-onoff r="hov.dMo" viewchild="layer_hover" default="false" class="sr--mr--10"></sr-onoff><span><?php _e('Disable on Mobile','revslider'); ?></span></sr-wrap>
 		<sr-sp h="15"></sr-sp>
 		</sr-separator-body>
 	</sr-separator>

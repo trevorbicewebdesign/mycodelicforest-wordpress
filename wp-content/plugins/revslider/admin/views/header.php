@@ -101,6 +101,17 @@ $sr_show_deregister_msg	= $sr_af->get_options(['system', 'deregister-msg']);
 	SR7.E.wp_plugin_url   = '<?php echo str_replace(["\n", "\r"], '', WP_PLUGIN_URL) . "/"; ?>';
 	SR7.E.wp_upload_url	  = '<?php echo str_replace(["\n", "\r"], '', $sr_upload_url) . "/"; ?>';
 	SR7.E.revision		  = '<?php echo RS_REVISION; ?>';
+	<?php
+	// AddOns that ship a <slug>.presets.js next to their admin script: catalogue data (factory presets, preview
+	// recipe) their editor script and their Gutenberg Page Effect BOTH read, so neither keeps a copy of the
+	// other's values. The editor loads AddOn assets by convention, so it has to be told which of those files
+	// exist — asking blind would be one 404 per AddOn on every editor load. See SR7.B.addOnAssets().
+	$sr_addon_presets = [];
+	foreach(glob(WP_PLUGIN_DIR . '/revslider-*-addon/admin/assets/js/*.presets.js') ?: [] as $sr_pfile){
+		$sr_addon_presets[] = basename($sr_pfile, '.presets.js');
+	}
+	?>
+	SR7.E.addon_presets	  = <?php echo wp_json_encode($sr_addon_presets); ?>;
 	// Cache-bust token for dynamically loaded editor scripts (separate from .revision, which is used for version gating).
 	// In WP_DEBUG (dev) it changes every load so JS edits are never served stale; in production it stays on RS_REVISION.
 	SR7.E.assetver		  = '<?php echo (defined('WP_DEBUG') && WP_DEBUG) ? RS_REVISION . '.' . time() : RS_REVISION; ?>';

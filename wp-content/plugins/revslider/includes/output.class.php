@@ -1117,15 +1117,30 @@ class RevSlider7Output extends RevSliderFunctions {
 			}
 		}
 		
-		if($this->slider->get_param(['sbt', 'use'], false) === true && $this->slider->get_param(['sbt', 'f'], false) === true){
+		//get_current_slides() carries the static slide appended at the end. It is shown for the module's whole life
+		//and owns no segment of the story (mirrors the global-slide skip in SR7.F.sbt.story.map), so it must not
+		//count towards the scroll distance either.
+		$static		= $this->slider->get_static_slide();
+		$static_id	= (!empty($static) && is_object($static)) ? $static->get_id() : false;
+		$story_slides = [];
+		foreach($slides ?? [] as $slide){
+			if($static_id !== false && $slide->get_id() === $static_id) continue;
+			$story_slides[] = $slide;
+		}
+		$sbt_story	= ($this->slider->get_param(['sbt', 'mode'], 'slide') === 'module' && $mtype !== 'carousel' && count($story_slides) > 1);
+		if($this->slider->get_param(['sbt', 'use'], false) === true && ($this->slider->get_param(['sbt', 'f'], false) === true || $sbt_story)){
 			$sbt = true;
-			$len = 'default';
-			foreach($slides ?? [] as $slide){
-				$len = $slide->get_param(['slideshow', 'len'], 'default');
-				break;
+			$mlen = $this->slider->get_param(['default', 'len'], 'default');
+			if($mlen === 'default') $mlen = 9000;
+			//A story spends the sum of ALL slide durations on scroll distance, so the pre-JS height has to be the sum
+			//too — otherwise the module resizes under the visitor the moment the engine works the real one out.
+			$len = 0;
+			foreach($story_slides as $slide){
+				$slen = $slide->get_param(['slideshow', 'len'], 'default');
+				$len += ($slen === 'default') ? $mlen : intval($slen);
+				if(!$sbt_story) break;
 			}
-			if($len === 'default') $len = $this->slider->get_param(['default', 'len'], 'default');
-			if($len === 'default') $len = 9000;
+			if($len <= 0) $len = $mlen;
 		}
 		$sticky = $this->slider->get_param('sticky', '');
 		if($sticky !== 'top' && $sticky !== 'bottom'){
@@ -1227,7 +1242,7 @@ class RevSlider7Output extends RevSliderFunctions {
 				
 		$html .= "mh:'".esc_attr($mheight)."',";
 		
-		if($sbt) $html .= "sbt:{use:true},";
+		if($sbt) $html .= "sbt:{use:true".($sbt_story ? ",mode:'module'" : "")."},";
 		
 		if(!is_string($bgcolor)) $bgcolor = json_encode($bgcolor, JSON_HEX_APOS); else $bgcolor = esc_attr($bgcolor);
 		$html .= "onh:".esc_attr($onh).",";

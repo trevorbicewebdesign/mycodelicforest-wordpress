@@ -412,6 +412,18 @@
 <symbol id="Arrange_Row" viewBox="0 0 16 16"><rect x="1" y="5" width="4" height="6" rx="1"/><rect x="6" y="5" width="4" height="6" rx="1"/><rect x="11" y="5" width="4" height="6" rx="1"/></symbol>
 <symbol id="Arrange_Column" viewBox="0 0 16 16"><rect x="5" y="1" width="6" height="4" rx="1"/><rect x="5" y="6" width="6" height="4" rx="1"/><rect x="5" y="11" width="6" height="4" rx="1"/></symbol>
 <symbol id="Arrange_Grid" viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></symbol>
+<symbol id="Cursor_Inherit" viewBox="0 0 16 16"><rect x="3" y="7.2" width="10" height="1.6" rx=".8"/></symbol>
+<symbol id="Cursor_Auto" viewBox="0 0 16 16"><path d="M2.1 1.1v6.9l1.8-1.7 1.1 2.4 1.2-.6-1.1-2.3 2.5-.1z"/><path d="M9.4 7h5.2v1.2h-1.9v4.6h1.9V14H9.4v-1.2h1.9V8.2H9.4z"/></symbol>
+<symbol id="Cursor_Default" viewBox="0 0 16 16"><path d="M3.4 1.7v11.1l2.9-2.7 1.8 3.9 1.9-.9-1.7-3.7 4.1-.2z"/></symbol>
+<symbol id="Cursor_Pointer" viewBox="0 0 16 16"><path d="M6.1 1.2c.7 0 1.3.6 1.3 1.3v4.6h.6V5.9c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v1.3h.6v-.9c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v4.4c0 2.1-1.7 3.8-3.8 3.8h-.7c-1 0-2-.4-2.7-1.2l-2.4-2.6a1.1 1.1 0 0 1 1.5-1.6l1.1 1V2.5c0-.7.6-1.3 1.3-1.3z"/></symbol>
+<symbol id="Cursor_Text" viewBox="0 0 16 16"><path d="M5.2 1.8h5.6V3H9v10h1.8v1.2H5.2V13H7V3H5.2z"/></symbol>
+<symbol id="Cursor_Move" viewBox="0 0 16 16"><path d="M8 .8l2.6 3.1H9.6v2.5h2.5V5.4L15.2 8l-3.1 2.6V9.6H9.6v2.5h1L8 15.2l-2.6-3.1h1V9.6H3.9v1L.8 8l3.1-2.6v1h2.5V3.9h-1z"/></symbol>
+<symbol id="Cursor_Crosshair" viewBox="0 0 16 16"><path d="M7.3 1h1.4v5.2H7.3zM7.3 9.8h1.4V15H7.3zM1 7.3h5.2v1.4H1zM9.8 7.3H15v1.4H9.8z"/><circle cx="8" cy="8" r="1"/></symbol>
+<symbol id="Cursor_Help" viewBox="0 0 16 16"><path d="M2.6 1.3v8.3l2.2-2 1.3 2.9 1.4-.7-1.3-2.8 3.1-.1z"/><path d="M11.4 5.2c1.5 0 2.6.9 2.6 2.2 0 .9-.4 1.4-1.2 1.9-.5.3-.7.5-.7.9v.4h-1.4v-.6c0-.8.3-1.2 1-1.7.6-.4.8-.6.8-1 0-.6-.5-.9-1.1-.9-.7 0-1.1.4-1.2 1l-1.4-.2c.2-1.2 1.1-2 2.6-2z"/><rect x="10.7" y="11.6" width="1.5" height="1.5" rx=".75"/></symbol>
+<symbol id="Cursor_Wait" viewBox="0 0 16 16"><rect x="3.6" y="1.4" width="8.8" height="1.3" rx=".4"/><rect x="3.6" y="13.3" width="8.8" height="1.3" rx=".4"/><path d="M4.9 2.7h6.2L8 7.3z"/><path d="M8 8.7l3.1 4.6H4.9z"/></symbol>
+<symbol id="Cursor_ZoomIn" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M6.8 1.4a5.4 5.4 0 1 0 0 10.8 5.4 5.4 0 0 0 0-10.8zm0 1.6a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6z"/><path d="M10.6 11.7l1.1-1.1 3.6 3.6-1.1 1.1z"/><path d="M6.1 4.1h1.4v1.9h1.9v1.4H7.5v1.9H6.1V7.4H4.2V6h1.9z"/></symbol>
+<symbol id="Cursor_ZoomOut" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M6.8 1.4a5.4 5.4 0 1 0 0 10.8 5.4 5.4 0 0 0 0-10.8zm0 1.6a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6z"/><path d="M10.6 11.7l1.1-1.1 3.6 3.6-1.1 1.1z"/><rect x="4.2" y="6" width="5.2" height="1.4" rx=".4"/></symbol>
+<symbol id="Cursor_None" viewBox="0 0 16 16"><path d="M2.6 1.3v8.3l2.2-2 1.3 2.9 1.4-.7-1.3-2.8 3.1-.1z"/><path fill-rule="evenodd" d="M11.8 8.2a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2zm0 1.4c.4 0 .8.1 1.1.3l-3 3a2.2 2.2 0 0 1 1.9-3.3zm0 4.4c-.4 0-.8-.1-1.1-.3l3-3a2.2 2.2 0 0 1-1.9 3.3z"/></symbol>
 </svg>
 
 <script>

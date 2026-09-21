@@ -83,7 +83,11 @@ class RevSliderAddonTemplates extends RevSliderFunctions {
 		$custom[$new_id]['title']	= $this->get_val($template, ['obj', 'title']);
 		$custom[$new_id]['preset']	= stripslashes($this->get_val($template, ['obj', 'preset']));
 
-		return (update_option($this->option, $custom)) ? $new_id : '';
+		if(update_option($this->option, $custom)) return $new_id;
+		//🔴 update_option() returns false when what is already stored is IDENTICAL. Saving a preset over itself
+		//without having changed anything is a no-op, not a failure — reporting one would tell the user their
+		//preset could not be saved when it is sitting there exactly as they wanted it.
+		return (get_option($this->option, []) == $custom) ? $new_id : '';
 	}
 
 	/** @return bool */

@@ -510,13 +510,13 @@ class GFFormDetail {
 									</select>
 								</div>
 								<div class="percentage_custom_container">
-									<label for="percentage_background_color" style="display:block;">
+									<label for="percentage_background_color" style="display:block;" class="section_label">
 										<?php esc_html_e( 'Text Color', 'gravityforms' ); ?>
 									</label>
 									<?php self::color_picker( 'percentage_style_custom_color', '' ); ?>
 								</div>
 								<div class="percentage_custom_container">
-									<label for="percentage_background_bgcolor" style="display:block;">
+									<label for="percentage_background_bgcolor" style="display:block;" class="section_label">
 										<?php esc_html_e( 'Background Color', 'gravityforms' ); ?>
 									</label>
 									<?php self::color_picker( 'percentage_style_custom_bgcolor', '' ); ?>
@@ -2183,6 +2183,12 @@ class GFFormDetail {
 										<div class="duplicate_setting field_setting">
 											<input type="checkbox" id="field_no_duplicates" onclick="SetFieldProperty('noDuplicates', this.checked);" onkeypress="SetFieldProperty('noDuplicates', this.checked);"/>
 											<label for="field_no_duplicates" class="inline"><?php esc_html_e( 'No Duplicates', 'gravityforms' ); ?><?php gform_tooltip( 'form_field_no_duplicate' ); ?></label>
+										</div>
+									</li>
+									<li>
+										<div class="no_urls_setting field_setting">
+											<input type="checkbox" id="field_no_urls" onclick="SetFieldProperty('noURLs', this.checked);" onkeypress="SetFieldProperty('noURLs', this.checked);"/>
+											<label for="field_no_urls" class="inline"><?php esc_html_e( 'No Links/URLs', 'gravityforms' ); ?><?php gform_tooltip( 'form_field_no_urls' ); ?></label>
 										</div>
 									</li>
 								</ul>
