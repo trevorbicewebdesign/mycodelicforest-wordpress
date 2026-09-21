@@ -1,4 +1,4 @@
-name: Update Wordpress and Plugin Dependencies
+name: Update Plugin Dependencies
 
 on:
   schedule:
@@ -24,20 +24,20 @@ jobs:
         run: rm -rf vendor
 
       - name: Install Composer dependencies
-        run: |
-          composer install --prefer-dist --no-progress
-          git checkout composer.json -f
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}  # read-only GitHub token for the private plugin packages
+        run: composer install --prefer-dist --no-progress
 
       - name: Capture initial plugin versions
         run: |
           composer show --direct --format=json > composer_initial.json
 
       - name: Update Composer dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
         run: |
-          rm -r wp-content
           rm -r vendor
-          composer update
-          git checkout composer.json -f
+          composer update --no-progress
 
       - name: Capture final plugin versions
         run: |
@@ -49,18 +49,10 @@ jobs:
           TMP_PR_BODY=$(mktemp)
           echo "TMP_PR_BODY=$TMP_PR_BODY" >> $GITHUB_ENV
 
-          # Compare WordPress versions
-          INITIAL_VERSION=$(jq -r '.installed[] | select(.name == "johnpbloch/wordpress") | .version' composer_initial.json)
-          FINAL_VERSION=$(jq -r '.installed[] | select(.name == "johnpbloch/wordpress") | .version' composer_final.json)
-          if [[ "$INITIAL_VERSION" != "$FINAL_VERSION" ]]; then
-            echo "**johnpbloch/wordpress** was updated from $INITIAL_VERSION to $FINAL_VERSION" >> "$TMP_PR_BODY"
-            echo '' >> "$TMP_PR_BODY"
-          fi
-
           # Compare plugin versions
           echo '### Plugin updates:' >> "$TMP_PR_BODY"
           PLUGIN_UPDATES=""
-          for ROW in $(jq -r '.installed[] | select(.name != "johnpbloch/wordpress") | .name' composer_final.json); do
+          for ROW in $(jq -r '.installed[] | .name' composer_final.json); do
             INITIAL_VERSION=$(jq -r --arg ROW "$ROW" '.installed[] | select(.name == $ROW) | .version' composer_initial.json)
             FINAL_VERSION=$(jq -r --arg ROW "$ROW" '.installed[] | select(.name == $ROW) | .version' composer_final.json)
             if [[ "$INITIAL_VERSION" != "$FINAL_VERSION" ]]; then
@@ -92,6 +84,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: master
           branch: update-wordpress-and-plugins
-          title: 'Update Wordpress and plugins'
+          title: 'Update plugins'
           body-path: pr_body.txt
           commit-message: 'Update dependencies'

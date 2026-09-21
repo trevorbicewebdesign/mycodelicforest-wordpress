@@ -19,6 +19,7 @@ defaults:
 # Define environment variables to avoid duplication
 env:
   PHP_VERSION: '8.2'  # PHP version to use across jobs
+  WP_VERSION: '7.1.1'  # WordPress core for tests (core is not a Composer package; see deploy.sh / composer.json)
   CACHE_PATHS: |      # Paths to cache composer dependencies
     vendor/
     wp-admin/
@@ -45,7 +46,7 @@ env:
 jobs:
   setup:
     name: Cache Composer Dependencies
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     outputs:
       cache-hit: ${{ steps.cache-hit.outputs.cache-hit }}  # Output for cache status
       cache-key: ${{ steps.cache-key.outputs.key }}        # Output for cache key
@@ -96,7 +97,12 @@ jobs:
       # Install dependencies if cache is missing
       - name: Install Dependencies if no cache hit
         if: steps.cache-hit.outputs.cache-hit != 'true'
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}  # read-only GitHub token for the private plugin packages
         run: composer install --no-interaction --no-progress --optimize-autoloader
+      - name: Download WordPress core if no cache hit
+        if: steps.cache-hit.outputs.cache-hit != 'true'
+        run: wp core download --version="${{ env.WP_VERSION }}" --skip-content --force
 
       # Remove composer files to avoid caching them
       - name: Remove composer files from caching
@@ -117,7 +123,7 @@ jobs:
   run-tests:
     name: Test 
     needs: [setup]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false  # Allow tests to continue even if some fail
       matrix:
@@ -150,6 +156,8 @@ jobs:
             ${{ runner.os }}-composer
 
       # Create .env file for testing
+      - name: Ensure WordPress core is present
+        run: test -f wp-load.php || wp core download --version="${{ env.WP_VERSION }}" --skip-content --force
       - name: Create .env file for tests
         run: |
           cp ./tests/.env.ci ./tests/.env
