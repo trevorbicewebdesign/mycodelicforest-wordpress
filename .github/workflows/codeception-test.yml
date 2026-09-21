@@ -72,7 +72,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          tools: composer:${{ env.COMPOSER_VERSION }}
+          tools: composer:${{ env.COMPOSER_VERSION }}, wp-cli
 
       # Generate a unique cache key based on the `composer.lock` file
       - name: Generate cache key from composer.lock
@@ -157,7 +157,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          tools: composer:${{ env.COMPOSER_VERSION }}, wp
+          tools: composer:${{ env.COMPOSER_VERSION }}, wp-cli
 
       # Restore cached dependencies
       - name: Restore Cached dependencies
