@@ -65,7 +65,7 @@ class ProfileCest
         $I->fillField("#input_6_9_3", "Anytown");
         $I->fillField("#input_6_9_4", "CA");
         $I->fillField("#input_6_9_5", "12345");
-        $I->selectOption("#input_6_9_6", ["value" => "United States"]);
+        $I->selectOption("#input_6_9_6", "United States"); // GF 3 option values are ISO codes; match by visible name
         $I->fillField("#input_6_13", "This is a test.");
         $I->fillField("#input_6_6", "TestBurner");
         $I->click("#choice_6_19_1");
