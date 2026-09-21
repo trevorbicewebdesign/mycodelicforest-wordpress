@@ -2,19 +2,18 @@
 /**
  * CURSOR MOTION PAGE EFFECT — the layer panel's Interaction section, on a native WordPress block.
  *
- * A cursor icon and a pointer motion, both written into one namespaced attribute (sr7PointerIX). The front
- * hands the resolved `ix` object to SR7.F.layerIX; there is no module, no slide and no canvas involved, so
- * the page loads tptools + GSAP + public/js/layerix.js and nothing else.
+ * A cursor icon and a pointer motion in one namespaced attribute (sr7PointerIX). The front hands the resolved
+ * `ix` object to SR7.F.layerIX; no module, no slide, no canvas, so the page loads tptools + GSAP +
+ * public/js/layerix.js and nothing else.
  *
- * ⭐ EXTENSION ONLY. Every sibling effect owns a block (themepunch/sr7-panzoom, -scrollanim) and the
- * framework insists on a block name, so this type carries one — registered with `inserter: false`. A
- * "Cursor Motion" block would be a wrapper you put around content you already have, which says less than
- * switching the effect on for the block itself. Nothing registers it client-side and nothing renders it.
+ * ⭐ EXTENSION ONLY. The framework insists on a block name, so this type carries one, registered with
+ * `inserter: false`: a "Cursor Motion" block would be a wrapper around content you already have, which says
+ * less than switching the effect on for the block itself.
  *
- * ⚠ The preset CATALOGUE is not mirrored here. It lives in admin/assets/js/pointer.presets.js and the
- * editor writes the RESOLVED numbers into the block, the same way Pan & Zoom passes its preset key through
- * unchecked: a second copy in PHP goes stale the moment a preset is added. What this class does check is
- * the shape and the ranges — the cursor keyword is an allowlist because CSS keywords do not go stale.
+ * ⚠ The preset CATALOGUE is not mirrored here. It lives in admin/assets/js/pointer.presets.js and the editor
+ * writes the RESOLVED numbers into the block; a second copy in PHP goes stale the moment a preset is added.
+ * What this class checks is the shape and the ranges - the cursor keyword is an allowlist because CSS
+ * keywords do not go stale.
  *
  * @author    ThemePunch <info@themepunch.com>
  * @copyright 2026 ThemePunch
@@ -84,6 +83,7 @@ class RevSliderPageEffectPointerIX {
 			'supports'		=> ['inserter' => false],
 			'editor'		=> RS_PLUGIN_URL . 'admin/assets/js/pointer.editor.js?mt=' . self::mt('admin/assets/js/pointer.editor.js'),
 			'runtime'		=> RS_PLUGIN_URL . 'public/js/pointerix.pe.js?mt=' . self::mt('public/js/pointerix.pe.js'),
+			'storage'		=> 'attrs',			// config lives in the block attributes, not in post meta — see front_enqueue()
 			'sanitize'		=> [self::class, 'sanitize']
 		]);
 	}

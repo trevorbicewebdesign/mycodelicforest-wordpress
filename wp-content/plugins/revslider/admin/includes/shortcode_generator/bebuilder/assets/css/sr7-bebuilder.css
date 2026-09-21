@@ -64,10 +64,9 @@
     background-repeat: no-repeat;
     margin-bottom: 10px;
 }
-@media (prefers-color-scheme: dark) {
-    .sr--bebuilder--module--info .sr--module--info--logo {
-        background-image: url("../../../../../assets/images/SR7-Logo-Dark.svg");
-    }
+/* the builder's own setting, not the OS: a light builder on a dark desktop was getting the dark logo */
+.mfn-ui-dark .sr--bebuilder--module--info .sr--module--info--logo {
+    background-image: url("../../../../../assets/images/SR7-Logo-Dark.svg");
 }
 
 .sr7--bebuilder--widget--enhanced .sr--block--wrap {

@@ -10,11 +10,10 @@ if(!defined('ABSPATH')) exit();
 /**
  * One slide of a slider.
  *
- * Holds $params (slide settings) and $layers (the elements drawn on it). Slides exist in three flavours:
- * stored slides from the slides table, the slider's single "static" slide that stays visible across all
- * slides, and virtual slides built at render time from a post or a social stream item - the
- * init_by_post_data()/init_by_stream_data() family clones a template slide and fills its layer texts with
- * that item's data.
+ * Holds $params (slide settings) and $layers. Slides exist in three flavours: stored slides from the slides
+ * table, the slider's single "static" slide that stays visible across all slides, and virtual slides built
+ * at render time from a post or a social stream item - init_by_post_data()/init_by_stream_data() clone a
+ * template slide and fill its layer texts with that item's data.
  *
  * Like RevSliderSlider this reads and writes the *_preview tables while the editor shows unsaved drafts.
  */
@@ -2295,11 +2294,10 @@ class RevSliderSlide extends RevSliderFunctions {
 		}
 
 		/**
-		 * front-end only: warm the post + meta cache for every media item referenced by lib_id across
-		 * all slides in a single query, so the per-slide wp_get_attachment_image_src() lookups in
-		 * init_by_data() hit the object cache instead of querying once per attachment (avoids N+1).
-		 * Skipped when only the first slide is needed (no N+1 possible). Priming extra/invalid ids is
-		 * harmless - it only warms cache and never changes output.
+		 * front-end only: warm the post + meta cache for every media item referenced by lib_id across all slides
+		 * in a single query, so the per-slide wp_get_attachment_image_src() lookups hit the object cache instead
+		 * of querying once per attachment. Skipped when only the first slide is needed. Priming extra or invalid
+		 * ids is harmless - it only warms cache.
 		 */
 		if($first === false && !is_admin() && function_exists('_prime_post_caches')){
 			$prime_ids = [];

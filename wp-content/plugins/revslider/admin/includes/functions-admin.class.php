@@ -311,21 +311,38 @@ class RevSliderFunctionsAdmin extends RevSliderFunctions {
 			if(version_compare($wp_version, '5.0', '>=')){ //add gutenberg code
 				$ov_data = $slider->get_overview_data();
 				$title	 = $slider->get_val($ov_data, 'title', '');
-				$img	 = $slider->get_val($ov_data, ['bg', 'src'], '');
-				$wrap_addition	= ($img !== '') ? ',"sliderImage":"'.$img.'"' : '';
-				$div_addition	= ($title !== '') ? ' data-slidertitle="'.$title.'"' : '';
+				//bg used to be an array and is a plain url now, so reading only bg.src returns nothing on
+				//current data - which is why pages made here stopped carrying a preview picture.
+				$img	 = $slider->get_val($ov_data, 'bg', '');
+				if(!is_string($img) || $img === '') $img = (string)$slider->get_val($ov_data, ['bg', 'src'], '');
+				
+				//The block reads its module from these attributes and nowhere else - the shortcode below is
+				//text to it. Without `alias` the card stops before it fetches anything, which is why every
+				//module on a generated page sat there as the empty placeholder.
+				$attrs = [
+					'alias'		=> $alias,
+					'moduleId'	=> (string)$sid,
+					'slides'	=> count((array)$slider->get_val($ov_data, 'children', [])),
+				];
+				if($img !== '')		$attrs['image'] = $img;
+				if($title !== '')	$attrs['title'] = $title;
+				$type = (string)$slider->get_val($ov_data, 'type', '');
+				if($type !== '')	$attrs['type'] = $type;
+				//Character for character what save() writes, empty id and empty style included. Anything else
+				//and WordPress falls back to an older shape of this block and drops the attributes above.
+				$div_addition	= ' id="" data-slidertitle="'.esc_attr($title).'" style="';
 				
 				$zindex_pos = strpos($addition, 'zindex=\"');
 				if($zindex_pos !== false){
 					$zindex = substr($addition, $zindex_pos + 9, strpos($addition, '\"', $zindex_pos + 9) - ($zindex_pos + 9));
-					$div_addition .= ' style="z-index:'.$zindex.';"';
-					$wrap_addition .= ',"zindex":"'.$zindex.'"';
+					$div_addition .= 'z-index:'.$zindex;
+					$attrs['zindex'] = $zindex;
 				}
 
-				$div_addition .= ' data-modal="'.(empty($usage) ? 'false' : 'true').'"';
+				$div_addition .= '"';
 				
-				$content .= '<!-- wp:themepunch/revslider {"checked":true'.$wrap_addition.'} -->'."\n";
-				$content .= '<div class="wp-block-themepunch-revslider revslider" '.$div_addition.'>';
+				$content .= '<!-- wp:themepunch/revslider '.wp_json_encode($attrs).' -->'."\n";
+				$content .= '<div class="wp-block-themepunch-revslider revslider"'.$div_addition.'>';
 			}
 			
 			$content .= '[rev_slider alias="'.$alias.'"'.$usage.$addition.'][/rev_slider]'; //this way we will reorder as last comes first

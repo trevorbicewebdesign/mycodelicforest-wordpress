@@ -2,20 +2,15 @@
 /**
  * Page Effects framework — shared base for "animate existing page content" addons.
  *
- * A Page Effect is a Gutenberg block placed on a page that, on the front end, augments/animates
- * existing content (a scroll-drawn chalk line, a gallery turned into a filmstrip, …) WITHOUT a full
- * Slider Revolution module. This class is the GLOBAL half (the ADDON half lives in each effect addon):
- * it owns block registration, the per-page meta save/load, and front emission; addons register a
- * "type" that supplies the editor tool + the front runtime.
+ * A Page Effect is a Gutenberg block that augments existing content on the front end (a scroll-drawn chalk
+ * line, a gallery turned into a filmstrip) WITHOUT a full Slider Revolution module. This class is the GLOBAL
+ * half: block registration, the per-page meta save/load, and front emission. An addon registers a "type"
+ * supplying the editor tool and the front runtime.
  *
  * Contract (see harmonization/PAGE-EFFECTS.md):
  *   PHP    : RevSliderPageEffects::register_type($type, $args)
  *   Editor : SR7.PE.registerType($type, {card, tool})        // admin/assets/js/page-effects.js
  *   Front  : SR7.PE.registerRuntime($type, {mount, unmount}) // public/js/page-effects.js
- *
- * Data: each effect instance is keyed by a per-block effectId and stored in the host POST's meta
- * (page-scoped, travels with the post) as { type, data }. Front emission scans the queried page's
- * blocks (works on ALL templates, incl. SR full-page templates that never render post_content).
  *
  * @author    ThemePunch <info@themepunch.com>
  * @copyright 2026 ThemePunch
@@ -24,12 +19,10 @@
 if(!defined('ABSPATH')) exit();
 
 /**
- * Framework for "Page Effects" - Gutenberg blocks whose visual effect is rendered by SR7 on the front end.
- *
- * Addons call register_type() to add an effect. Each instance keeps its data in the host post's meta
- * (META_PREFIX + effectId); the block itself renders nothing, front_enqueue() collects the effect ids from
- * the page's blocks and emits them as SR7.E.pageEffects for the runtime to pick up. Unsaved editor state
- * goes through preview_effect() into a short-lived transient instead.
+ * Each instance keeps its data in the host post's meta (META_PREFIX + effectId), keyed by a per-block
+ * effectId. The block renders nothing: front_enqueue() collects the effect ids from the queried page's
+ * blocks and emits them as SR7.E.pageEffects, which also works on templates that never render post_content.
+ * Unsaved editor state goes through preview_effect() into a short-lived transient instead.
  */
 class RevSliderPageEffects {
 
@@ -66,6 +59,18 @@ class RevSliderPageEffects {
 			'version'		=> '',	// optional cache-bust ver for runtime/editor (falls back to RS_REVISION)
 			'sanitize'		=> null,	// callable to whitelist this type's data on save
 			'summary'		=> null,	// callable($data):string → the block card's short label (else generic)
+			// Template Packages (docs/template-packages-v2.md): rewrite this type's own data against the installer's
+			// resolution map. Only the TYPE knows which of its fields are references - a ChalkLine anchor's `bind` is
+			// a CSS selector that may name an id generated from a module, and that module gets a NEW id on the
+			// customer's site. Without this the effect installs cleanly and binds to nothing. callable($data,$map):array
+			'remap'			=> null,
+			// Where an instance's config actually lives, which is what decides how a package has to carry it:
+			//   'meta'  → post meta _sr7_pe_<effectId>; the framework's front_enqueue() emits it (every addon type)
+			//   'attrs' → the block's own attributes, and the type runs its own front_enqueue() (core's
+			//             ScrollAnim / PanZoom / PointerIX, which also ride on arbitrary HOST blocks)
+			//   'both'  → some of each
+			// Default 'meta' so every type registered before packages existed keeps behaving exactly as it did.
+			'storage'		=> 'meta',
 			// Inspector-style effects (e.g. Filmstrip) configure in the block inspector instead of the
 			// on-page Recorder, own their block edit() (custom attributes + InspectorControls) and emit
 			// their own front markup. Recorder-style effects (e.g. ChalkLine) leave these at the defaults.
@@ -98,6 +103,7 @@ class RevSliderPageEffects {
 
 		add_action('init', [self::class, 'register_blocks']);
 		add_filter('block_categories_all', [self::class, 'category']);
+		add_action('send_headers', [self::class, 'workbench_isolation']);
 		add_action('wp_enqueue_scripts', [self::class, 'front_enqueue']);
 		add_action('enqueue_block_editor_assets', [self::class, 'editor_assets']);
 		add_filter('block_editor_settings_all', [self::class, 'badge_canvas_styles']);
@@ -110,24 +116,27 @@ class RevSliderPageEffects {
 	 * @return array
 	 */
 	public static function badge_canvas_styles($settings){
-		// The mark on its own — no purple pill and no caption: it signs itself "Page FX", so a box spelling the
-		// same two words beside it said everything twice. An <img>, because this is portalled INTO the canvas
-		// iframe where a sprite reference would resolve against the outer document and draw nothing.
-		// 🔴 The mark is flat ink and it lands on the author's own picture, which may be black. The white halo
-		// is what the die-cut edge of the old sticker used to do, and the soft dark shadow what the pill did:
-		// between them it reads on a photograph of anything. Doubled, because one drop-shadow is too thin to
-		// carry an outline.
+		// The mark on its own, no purple pill and no caption: it signs itself "Page FX". An <img>, because this is
+		// portalled INTO the canvas iframe where a sprite reference would resolve against the outer document.
+		// 🔴 The mark is flat ink and lands on the author's own picture, which may be black. The white halo does
+		// what the die-cut edge did and the soft dark shadow what the pill did. Doubled: one drop-shadow is too thin.
 		$css = '.has-sr7-pe{position:relative}'
-			. '.sr7pe-badge{position:absolute;top:8px;right:8px;z-index:21;display:block;padding:0;border:0;background:none;line-height:0;cursor:pointer;filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 2px 6px rgba(0,0,0,.3))}'
+			// 🔴 A SHARE of the block's HEIGHT, never 40 flat pixels: a row of thumbnails is 120x42, and a 40px sticker
+			// pinned 8px in covered the picture. Height drives it and `aspect-ratio` gives back the width, so the mark
+			// stays square at every size - a `max-height` on top of a set width does NOT pull the width in, it
+			// flattens the mark. Percentages are safe against an auto-height parent.
+			. '.sr7pe-badge{position:absolute;top:6px;right:6px;z-index:21;display:block;height:clamp(14px,30%,40px);width:auto;aspect-ratio:1;padding:0;border:0;background:none;line-height:0;cursor:pointer;filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 2px 6px rgba(0,0,0,.3))}'
 			. '.sr7pe-badge:hover{filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 3px #5C24FF) drop-shadow(0 2px 8px rgba(0,0,0,.35))}'
 			. '.sr7pe-badge:focus{outline:2px solid #5C24FF;outline-offset:3px;border-radius:6px}'
-			. '.sr7pe-badge svg,.sr7pe-badge img{display:block;width:40px;height:40px}'
-			// The buttons ON a block's card, in ONE language — the same two shapes the panels use, spelled again
-			// here because a card lives in the canvas iframe and the panel stylesheet never reaches it. And at
-			// 28px, the height every SR7 control stands at: an effect card and a module block share a page.
-			// 🔴 SR7 purple, not the shell accent: that one is the SR7 EDITOR's blue, and on a WordPress page a
-			// blue button reads as WordPress's own. And a plain <button>, never WP's <Button>: `is-primary` and
-			// `is-secondary` bring the blue fill and the blue ring, and out-specifying them is a losing game.
+			. '.sr7pe-badge svg,.sr7pe-badge img{display:block;height:100%;width:auto}'
+			// 🔴 A CONTAINER and the block inside it share that corner: a gallery's top right IS the top right of its
+			// last image, so the gallery's own mark landed exactly under the one that image already wore. Only the
+			// block that holds another badged block steps to the left.
+			. '.has-sr7-pe:has(.has-sr7-pe)>.sr7pe-badge{right:auto;left:6px}'
+			// The buttons ON a block's card, in ONE language - the same two shapes the panels use, spelled again because
+			// a card lives in the canvas iframe and the panel stylesheet never reaches it. 28px, the height every SR7
+			// control stands at. 🔴 SR7 purple, not the shell accent, which is the SR7 EDITOR's blue and reads as
+			// WordPress's own on a page. And a plain <button>, never WP's <Button>: `is-primary` brings its own fill.
 			. '.sr7pe-cta{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:28px;padding:0 12px;box-sizing:border-box;border:1px solid #dcdcde;border-radius:4px;background:#fff;color:#1e1e1e;font:600 13px/1 Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;cursor:pointer;box-shadow:none;text-decoration:none}'
 			. '.sr7pe-cta:hover{border-color:#5C24FF;color:#5C24FF}'
 			// 🔴 The focus mark is INSIDE the border, never a second frame around it.
@@ -178,16 +187,13 @@ class RevSliderPageEffects {
 	}
 
 	/**
-	 * Editor: load the shared shell + each type's editor tool, and hand the shell its config
-	 * (the registered types so it can register the blocks client-side).
-	 *
-	 * Save/get run through the shared SR7 _tpt.ajax helper (the same path every other api.class.php
-	 * call uses), so tptools + the SR7.E config it reads in the block editor (ajaxurl + block nonce)
-	 * are seeded here as well.
+	 * Editor: load the shared shell + each type's editor tool, and hand the shell its config. Save/get run
+	 * through the shared SR7 _tpt.ajax helper, so tptools and the SR7.E config it reads in the block editor
+	 * (ajaxurl + block nonce) are seeded here as well.
 	 */
 	/**
-	 * Cache-bust value for a core PE-framework asset = its file mtime, so edits to the shell / colorpicker are
-	 * picked up without an RS_REVISION bump (which stays static across iterations). Falls back to RS_REVISION.
+	 * Cache-bust value for a core PE-framework asset = its file mtime, so edits to the shell are picked up
+	 * without an RS_REVISION bump. Falls back to RS_REVISION.
 	 * @return int|string
 	 */
 	private static function asset_ver($rel){
@@ -230,13 +236,11 @@ class RevSliderPageEffects {
 
 	/**
 	 * The words this screen actually shows. SR7.t reads SR7.LANG, and on the block-editor screen neither the
-	 * admin bundle that defines SR7.t nor the table it reads is enqueued — the strings would render English
-	 * however well they were translated.
+	 * admin bundle that defines SR7.t nor the table it reads is enqueued.
 	 *
-	 * ⚠ The SUBSET, not the editor's table: the full one is 1477 strings / 85 KB, and none of the SR7 editor
-	 * belongs on a page that shows four panels. i18n-strings-pe.php is harvested from the Page-Effect editor
-	 * files alone (tools/i18n/extract-lang.js --roots …page-effects.js,…panzoom.editor.js,…), and each addon
-	 * hands over its own through the filter it already answers for the SR7 editor.
+	 * ⚠ The SUBSET, not the editor's table: the full one is 1477 strings / 85 KB. i18n-strings-pe.php is
+	 * harvested from the Page-Effect editor files alone (tools/i18n/extract-lang.js), and each addon hands over
+	 * its own through the filter it already answers for the SR7 editor.
 	 * @return array
 	 */
 	public static function lang(){
@@ -262,12 +266,10 @@ class RevSliderPageEffects {
 	/**
 	 * The post as the visitor is actually being shown it — the ONE way an effect may read post_content.
 	 *
-	 * 🔴 `get_post(get_queried_object_id())` is wrong on a preview and silently so. WP_Query swaps the
-	 * autosave's content in by mutating ITS OWN post object (class-wp-query.php: the_preview → _set_preview),
-	 * and that mutation never reaches the object cache — while WP_Post::get_instance() ends on
-	 * `return new WP_Post($_post)`, a FRESH object built from the cache on every call. So re-fetching by id
-	 * mid-preview hands back the SAVED blocks: every effect showed the last saved state and the changes only
-	 * appeared after Update. The queried object is the one WP substituted into, so it is what we read.
+	 * 🔴 `get_post(get_queried_object_id())` is wrong on a preview and silently so. WP_Query swaps the autosave's
+	 * content in by mutating ITS OWN post object (the_preview → _set_preview) and that never reaches the object
+	 * cache, while WP_Post::get_instance() ends on `return new WP_Post($_post)`, a fresh object from the cache.
+	 * So re-fetching by id mid-preview hands back the SAVED blocks. The queried object is what WP substituted into.
 	 *
 	 * @return \WP_Post|null
 	 * @since 7.1.7
@@ -280,12 +282,10 @@ class RevSliderPageEffects {
 		}
 		if(!$post) return $post;
 
-		// 🔴 And WP's own substitution cannot be relied on either. `_set_preview()` mutates the post object,
-		// but the very next call is `get_post()` on it — and WP_Post::filter() hands back a FRESH instance
-		// from the cache whenever the object's filter flag is not already 'raw', which drops the mutation
-		// without a word. Measured on a real page: the editor's autosave held pan="breathe" while the
-		// preview served pan="zoompan". So the autosave is read here directly, and nothing depends on which
-		// object WP happened to keep.
+		// 🔴 And WP's own substitution cannot be relied on either: `_set_preview()` mutates the post object, but the
+		// very next call is `get_post()` on it, and WP_Post::filter() hands back a FRESH instance from the cache
+		// whenever the filter flag is not 'raw', dropping the mutation. Measured: the editor's autosave held
+		// pan="breathe" while the preview served pan="zoompan". So the autosave is read here directly.
 		if(is_preview() && current_user_can('edit_post', $post->ID)){
 			$auto = wp_get_post_autosave($post->ID);
 			// A draft is overwritten by its own autosave (wp_autosave), so an older revision may still be
@@ -296,6 +296,25 @@ class RevSliderPageEffects {
 			}
 		}
 		return $post;
+	}
+
+	/**
+	 * The page the workbench frames, saying the same sentence about isolation the editor screen says.
+	 *
+	 * WP 7.1 sends `Document-Isolation-Policy: isolate-and-credentialless` on the block-editor screen, and an
+	 * isolated document refuses to embed a frame without the same policy: the frame loaded, every read of its
+	 * document threw "cross-origin", and the recorder had nothing to draw on. Repeating the header puts the page
+	 * back in the editor's isolated context WITH its cookies.
+	 *
+	 * ⚠ Only on the workbench request. On the live page it would make cross-origin embeds (a YouTube layer, a
+	 * font host) go credentialless for every visitor.
+	 *
+	 * @since 7.1.8
+	 * @return void
+	 */
+	public static function workbench_isolation(){
+		if(is_admin() || !isset($_GET['sr7pe_edit']) || !current_user_can('edit_posts')) return;
+		header('Document-Isolation-Policy: isolate-and-credentialless');
 	}
 
 	/**
@@ -372,14 +391,12 @@ class RevSliderPageEffects {
 	}
 
 	/**
-	 * Tag a host block's OWN root element so the front runtime finds it by [data-sr7pe]. Tagging beats
-	 * wrapping: a wrapper box resets the block's width, alignment and offset.
+	 * Tag a host block's OWN root element so the front runtime finds it by [data-sr7pe]. Tagging beats wrapping:
+	 * a wrapper box resets the block's width, alignment and offset.
 	 *
-	 * SEVERAL effects may share a block — a Scroll Animation moves the block's box while a Pan & Zoom moves
-	 * the picture inside it — so the id is APPENDED to whatever is already there: data-sr7pe="id1 id2".
-	 * 🔴 A second attribute would not work: HTML keeps only the FIRST duplicate, and the loser's
-	 * querySelector then finds nothing — it never mounts, silently, with no error anywhere. That is why the
-	 * runtimes match with [data-sr7pe~="id"] (one word of the list) instead of a plain "=".
+	 * SEVERAL effects may share a block, so the id is APPENDED to whatever is there: data-sr7pe="id1 id2".
+	 * 🔴 A second attribute would not work: HTML keeps only the FIRST duplicate, and the loser's querySelector
+	 * then finds nothing - it never mounts, silently. Hence the runtimes match with [data-sr7pe~="id"].
 	 *
 	 * @param string $html       the block's rendered markup
 	 * @param string $effect_id  the effect instance id
@@ -466,6 +483,150 @@ class RevSliderPageEffects {
 		if(function_exists('sg_cachepress_purge_cache')) sg_cachepress_purge_cache();
 		if(has_action('nitropack_integration_purge_single_post')) do_action('nitropack_integration_purge_single_post', $post_id);
 		do_action('revslider_page_effect_saved', $post_id);
+	}
+
+	/**
+	 * Mint an effectId for a brand-new instance, matching what the editor produces (mintEffectId() in
+	 * page-effects.js: "pe" + 12 chars). Collision-checked against the post it is going onto — two effects
+	 * sharing an id would read each other's meta.
+	 *
+	 * @return string
+	 */
+	public static function mint_effect_id($post_id = 0){
+		$post_id = intval($post_id);
+
+		for($i = 0; $i < 8; $i++){
+			$eid = 'pe' . substr(str_replace('-', '', wp_generate_uuid4()), 0, 12);
+			if($post_id <= 0 || get_post_meta($post_id, self::META_PREFIX . $eid, true) === '') return $eid;
+		}
+
+		//Eight uuid4 draws all colliding does not happen; falling through to a longer id beats returning ''.
+		return 'pe' . substr(str_replace('-', '', wp_generate_uuid4()), 0, 24);
+	}
+
+	/**
+	 * Install one effect instance onto a freshly created post, for the Template Package installer.
+	 *
+	 * Differs from save_effect() because this post was made a moment ago by an installer, not edited by a person:
+	 * the effectId is minted here rather than supplied by an existing block, the type's remap() runs first so the
+	 * data's references point at what this install created, and no cache bust happens (the installer flushes once
+	 * when it is done). Attribute-backed types ('storage' => 'attrs') still come through here for the minted id
+	 * and the remap.
+	 *
+	 * @param int    $post_id host post
+	 * @param string $type    a registered effect type
+	 * @param array  $data    the instance's config, straight from the manifest
+	 * @param array  $map     the installer's resolution map, handed to the type's remap()
+	 * @return array|WP_Error ['effect_id' => string, 'data' => array] on success
+	 */
+	public static function install_effect($post_id, $type, $data, $map = []){
+		$post_id = intval($post_id);
+		$type    = sanitize_key($type);
+
+		if(!$post_id || !isset(self::$types[$type])) return new WP_Error('bad_request', __('Bad Request', 'revslider'));
+		if(!current_user_can('edit_post', $post_id)) return new WP_Error('forbidden', __('Function only available for administrators', 'revslider'));
+		if(!is_array($data)) $data = [];
+
+		$data = self::remap_data($type, $data, $map);
+
+		$sanitize = self::$types[$type]['sanitize'];
+		$clean    = is_callable($sanitize) ? call_user_func($sanitize, $data) : [];
+		if(!is_array($clean)) $clean = [];
+
+		$eid = self::mint_effect_id($post_id);
+
+		//'attrs' types carry everything in the block markup; writing an empty meta row for them would leave
+		//front_enqueue() emitting a payload the type never reads.
+		if(self::$types[$type]['storage'] !== 'attrs'){
+			update_post_meta($post_id, self::META_PREFIX . $eid, wp_slash(wp_json_encode(['type' => $type, 'data' => $clean])));
+		}
+
+		return ['effect_id' => $eid, 'data' => $clean];
+	}
+
+	/**
+	 * Resolve the media references in one of a type's own fields.
+	 *
+	 * The exporter turns every uploads URL into a %%SR7_MEDIA:…%% reference and banks the file with the package;
+	 * the installer resolves those again in MARKUP. A type's own config never passes through markup, and only the
+	 * type knows which of its fields hold a picture, which is why it calls this rather than the other way round.
+	 * The id is rewritten along with the url: it names a different picture on the site the package lands on.
+	 *
+	 * @param mixed $value a url, or a picked image ['id' => int, 'url' => string, …]
+	 * @param array $map   the installer's resolution map
+	 * @return mixed the same shape, pointing at this site's copy
+	 */
+	public static function remap_media($value, $map){
+		if(is_array($value)){
+			if(!isset($value['url'])) return $value;
+
+			$id = self::media_id($value['url'], $map);
+			if($id <= 0) return $value;
+
+			$value['url'] = wp_get_attachment_url($id);
+			$value['id']  = $id;
+
+			return $value;
+		}
+
+		if(!is_string($value) || strpos($value, '%%SR7_MEDIA:') === false) return $value;
+		if(!class_exists('RevSliderPackageInstaller')) return $value;
+
+		return preg_replace_callback(RevSliderPackageInstaller::TOKEN_MEDIA, function($m) use ($map){
+			$id = self::mapped_media($m[1], $map);
+
+			return $id ? wp_get_attachment_url($id) : '';
+		}, $value);
+	}
+
+	/** @return int the attachment this url resolves to, or 0 if it is not a package reference */
+	private static function media_id($url, $map){
+		if(!is_string($url) || !class_exists('RevSliderPackageInstaller')) return 0;
+		if(!preg_match(RevSliderPackageInstaller::TOKEN_MEDIA, $url, $m)) return 0;
+
+		return self::mapped_media($m[1], $map);
+	}
+
+	/** @return int */
+	private static function mapped_media($ref, $map){
+		$media = (isset($map['media']) && is_array($map['media'])) ? $map['media'] : [];
+
+		return isset($media[$ref]) ? intval($media[$ref]) : 0;
+	}
+
+	/**
+	 * Run a type's remap() over an instance's data. Kept separate from install_effect() because attribute-backed
+	 * effects need the same rewrite applied to their BLOCK ATTRIBUTES, which never pass through post meta.
+	 * A type without a remap() gets its data back untouched.
+	 *
+	 * @return array
+	 */
+	public static function remap_data($type, $data, $map){
+		$type = sanitize_key($type);
+		if(!isset(self::$types[$type]) || !is_array($data)) return is_array($data) ? $data : [];
+
+		$remap = self::$types[$type]['remap'];
+		if(!is_callable($remap)) return $data;
+
+		$out = call_user_func($remap, $data, is_array($map) ? $map : []);
+
+		return is_array($out) ? $out : $data;
+	}
+
+	/**
+	 * Which block attribute a type claims on a host block ('sr7Anim', 'sr7PanZoom', …), or '' when the type
+	 * is only ever its own block. The package installer writes the minted effectId into this attribute
+	 * rather than trusting a manifest to name it.
+	 *
+	 * @return string
+	 */
+	public static function claimed_attr($type){
+		$type = sanitize_key($type);
+		if(!isset(self::$types[$type])) return '';
+
+		$claim = self::$types[$type]['claim'];
+
+		return (is_array($claim) && !empty($claim['attr'])) ? (string)$claim['attr'] : '';
 	}
 
 	/**

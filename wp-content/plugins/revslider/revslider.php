@@ -6,7 +6,7 @@ Description: Slider Revolution - More than just a WordPress Slider
 Author: ThemePunch
 Text Domain: revslider
 Domain Path: /languages
-Version: 7.1.7
+Version: 7.1.8
 Author URI: https://themepunch.com/?utm_source=admin&utm_medium=button&utm_campaign=srusers&utm_content=info
 */
 
@@ -17,7 +17,7 @@ if(class_exists('RevSliderFront')){
 	die('ERROR: It looks like you have more than one instance of Slider Revolution installed. Please remove additional instances for this plugin to work again.');
 }
 
-define('RS_REVISION',			'7.1.7');
+define('RS_REVISION',			'7.1.8');
 define('RS_PLUGIN_PATH',		plugin_dir_path(__FILE__));
 define('RS_PLUGIN_SLUG_PATH',	plugin_basename(__FILE__));
 define('RS_PLUGIN_FILE_PATH',	__FILE__);
@@ -53,7 +53,7 @@ $SR_GLOBALS = [
 	'loaded_by_editor'		=> false,
 	'preview_mode'			=> false,
 	'markup_export'			=> false,
-	'modules'				=> ['module','page','slide','layer','layerix','draw','animate','transitions','srtools','canvas','defaults','carousel','navigation','media','modifiers'],
+	'modules'				=> ['module','page','slide','layer','layerix','draw','animate','transitions','srtools','canvas','defaults','carousel','navigation','media','modifiers','story'],
 	'save_post'				=> false,
 	'serial'				=> 0,
 	'sliders'				=> [],
@@ -103,10 +103,13 @@ require_once(RS_PLUGIN_PATH . 'includes/fonts.class.php');
 require_once(RS_PLUGIN_PATH . 'includes/colorpicker.class.php');
 require_once(RS_PLUGIN_PATH . 'includes/navigation.class.php');
 require_once(RS_PLUGIN_PATH . 'includes/object-library.class.php');
+require_once(RS_PLUGIN_PATH . 'includes/builders.class.php'); //Page builder integrations — register via RevSliderBuilders::register()
 require_once(RS_PLUGIN_PATH . 'includes/page-effects.class.php'); //Page Effects framework — addons register via RevSliderPageEffects::register_type()
 require_once(RS_PLUGIN_PATH . 'includes/page-effect-panzoom.class.php'); //Pan & Zoom on native WP image blocks — core's own Page Effect (no addon owns Pan & Zoom)
 require_once(RS_PLUGIN_PATH . 'includes/page-effect-scrollanim.class.php'); //the layer-animation catalogue on native WP blocks — core's own Page Effect as well
 require_once(RS_PLUGIN_PATH . 'includes/page-effect-pointerix.class.php'); //Cursor Motion on native WP blocks — pointer interactions, core's own as well
+require_once(RS_PLUGIN_PATH . 'includes/package-manifest.class.php'); //Template Package manifest schema — see docs/template-packages-v2.md
+require_once(RS_PLUGIN_PATH . 'admin/includes/package-installer.class.php'); //Template Package installer — addons extend it via RevSliderPackageInstaller::register_handler()
 require_once(RS_PLUGIN_PATH . 'admin/includes/loadbalancer.class.php');
 require_once(RS_PLUGIN_PATH . 'admin/includes/widget.class.php');
 require_once(RS_PLUGIN_PATH . 'admin/includes/upgrade_sr6.class.php');
@@ -185,8 +188,36 @@ try{
 			}
 		}
 		
-		$sc		= shortcode_atts(['alias' => '', 'fullheight' => '', 'fullwidth' => '', 'modal' => '', 'offset' => '', 'order' => '', 'settings' => '', 'skin' => '', 'usage' => '', 'zindex' => ''], $args, 'rev_slider');
+		$defaults = ['alias' => '', 'class' => '', 'fullheight' => '', 'fullwidth' => '', 'modal' => '', 'offset' => '', 'order' => '', 'settings' => '', 'skin' => '', 'usage' => '', 'wrapperid' => '', 'zindex' => ''];
+		$sc		= shortcode_atts($defaults, $args, 'rev_slider');
 		$sc		= array_map('wp_kses_post', $sc);
+
+		//Avada's element saves its own dialect of the grammar: yes/no where this reads true, and an id where
+		//it reads wrapperid. Its integration used to rewrite the whole shortcode before it ever got here, but
+		//only for logged in users - so the same page rendered one way for its editor and another for everyone
+		//else. Reading the words that differ settles it for both (CONTRACT R3).
+		foreach(['fullwidth', 'fullheight'] as $key){
+			if($sc[$key] === 'yes')		$sc[$key] = 'true';
+			elseif($sc[$key] === 'no')	$sc[$key] = '';	//"no" meant leave it to the module, not turn it off
+		}
+		if($sc['usage'] !== 'modal') $sc['usage'] = '';
+		if($sc['wrapperid'] === '' && is_array($args) && !empty($args['id'])) $sc['wrapperid'] = wp_kses_post($args['id']);
+
+		/**
+		 * How an embedded module is about to render.
+		 *
+		 * The twelve attributes after defaults, sanitizing and the dialect reading above - so a filter sees
+		 * one grammar whichever builder wrote the shortcode, and does not have to know that Avada says
+		 * yes/no where this reads true. Change the wrapper id a theme needs, force an offset, refuse a
+		 * module in a context of your own.
+		 *
+		 * @param array $sc          alias, class, fullheight, fullwidth, modal, offset, order, settings,
+		 *                           skin, usage, wrapperid, zindex
+		 * @param array $args        the attributes as they were written
+		 * @param string $mid_content anything between the opening and closing tags
+		 */
+		$sc = array_merge($defaults, (array)apply_filters('revslider_builder_shortcode_atts', $sc, $args, $mid_content));
+
 		$output = new RevSlider7Output();
 
 		if(is_admin() && $output->_is_gutenberg_page()) return false;
@@ -219,8 +250,24 @@ try{
 			ob_end_clean(); //close the buffer even if rendering throws, otherwise the partial markup leaks into the page
 		}
 
-		if(!empty($sc['zindex'])){
-			$content = '<div class="wp-block-themepunch-revslider" style="z-index:'.esc_attr($sc['zindex']).';">'. $content .'</div>';
+		//the wrapper the builders each used to add for themselves: an id to link to, classes to style with,
+		//a z-index to lift the module over its neighbours. Only emitted when something asks for it.
+		$wrapper_id		= trim($sc['wrapperid']);
+		$wrapper_class	= trim($sc['class']);
+		$wrapper_zindex	= trim($sc['zindex']);
+
+		if($wrapper_id !== '' || $wrapper_class !== '' || $wrapper_zindex !== ''){
+			$classes = ['wp-block-themepunch-revslider'];
+			foreach(preg_split('/\s+/', $wrapper_class, -1, PREG_SPLIT_NO_EMPTY) as $class){
+				$class = sanitize_html_class($class);
+				if($class !== '') $classes[] = $class;
+			}
+
+			$attributes = ' class="'.esc_attr(implode(' ', $classes)).'"';
+			if($wrapper_id !== '')		$attributes .= ' id="'.esc_attr(sanitize_html_class($wrapper_id)).'"';
+			if($wrapper_zindex !== '')	$attributes .= ' style="z-index:'.esc_attr($wrapper_zindex).';"';
+
+			$content = '<div'.$attributes.'>'. $content .'</div>';
 		}
 
 		if(empty($slider)) return $content;

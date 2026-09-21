@@ -14,7 +14,7 @@ if(!defined('ABSPATH')) exit();
         <sr-modal-close><svg class="sr--icon" width="10" height="10"><use xlink:href="#General_Close"></use></svg></sr-modal-close>
     </sr-modal-header>    
     <sr-options-menu fiveperrow class="sr--left--organised" style="gap:10px 10px">
-        <sr-nav-btn data-sr-tabc="sr_bs_layout" class="sr--tab--call selected"><sr-icon-wrap><svg class="sr--icon" width="18" height="17.91"><use xlink:href="#Preset_Popup"></use></svg></sr-icon-wrap><span><?php echo __('Module Layout','revslider');?></span></sr-nav-btn>
+        <sr-nav-btn data-sr-tabc="sr_bs_layout" class="sr--tab--call selected"><sr-icon-wrap><svg class="sr--icon" width="18" height="17.91"><use xlink:href="#Preset_Popup"></use></svg></sr-icon-wrap><span><?php echo __('Layout','revslider');?></span></sr-nav-btn>
         <sr-nav-btn data-sr-tabc="sr_bs_modal" class="sr--tab--call"><sr-icon-wrap><svg class="sr--icon" width="39" height="20"><use xlink:href="#Modal"></use></svg></sr-icon-wrap><span><?php echo __('Use as Modal','revslider');?></span></sr-nav-btn>
         <sr-nav-btn data-sr-tabc="sr_bs_offset" class="sr--tab--call"><sr-icon-wrap><svg class="sr--icon" width="18" height="18"><use xlink:href="#Toolbar_Content_Flow"></use></svg></sr-icon-wrap><span><?php echo __('Block Offsets','revslider');?></span></sr-nav-btn>
         <sr-nav-btn data-sr-tabc="sr_bs_depth" class="sr--tab--call"><sr-icon-wrap><svg class="sr--icon" width="20" height="20"><use xlink:href="#Top_Bar_Elements"></use></svg></sr-icon-wrap><span><?php echo __('Block Depth','revslider');?></span></sr-nav-btn>
@@ -42,7 +42,7 @@ if(!defined('ABSPATH')) exit();
                 <sr-section-title><?php echo __('Use as Modal','revslider');?></sr-section-title>
                 <sr-sp h="15"></sr-sp>
                 <sr-wrap class="sr--form--grp">
-                    <sr-onoff viewchild="bs_modal" r="modal" class="sr--mr--10" data-sh="#sr_bs_modal_settings" data-shdep="checked"></sr-onoff>
+                    <sr-onoff viewchild="bs_modal" r="modal" class="sr--mr--10" data-sh="#sr_bs_modal_settings" data-shdep="checked" data-disable="#block_settings sr-options-menu sr-nav-btn:not([data-sr-tabc=sr_bs_modal])" data-eddep="checked"></sr-onoff>
                     <span><?php echo __('Insert Module as Modal (Popup)','revslider');?></span>
                 </sr-wrap>
                 <sr-sp h="15"></sr-sp>
@@ -140,27 +140,27 @@ if(!defined('ABSPATH')) exit();
                 <sr-section-title><?php echo __('Block Offsets','revslider');?></sr-section-title>
                 <sr-sp h="15"></sr-sp>
                 <sr-wrap>
-                    <sr-wrap class="bs_offset_w" dropicon><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Wide_Desktop"></use></svg></sr-wrap><!--
+                    <sr-wrap class="bs_offset_w" dropicon><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Wide_Desktop"></use></svg></sr-wrap><span class="sr--offset--device"><?php echo __('Wide Desktop','revslider');?></span><!--
                     --><sr-wrap inline class="sr--ml--10 sr--mr--10"><sr-bmp type="margin" class="bs_offset_w" idpref="" r="offset.w.o" min="-500" max="2000" suffix="px" viewchild="bs_offset"></sr-bmp></sr-wrap><!--
                     --><sr-wrap inline class="sr--form--grp" style="transform:translateY(3px)"><sr-onoff data-ed=".bs_offset_w" data-eddep="checked" r="offset.w.use" viewchild="bs_offset" class="sr--ml--10 checked"></sr-onoff></sr-wrap>
                 </sr-wrap>
                 <sr-wrap>
-                    <sr-wrap class="bs_offset_d" dropicon><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Regular_Desktop"></use></svg></sr-wrap><!--
+                    <sr-wrap class="bs_offset_d" dropicon><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Regular_Desktop"></use></svg></sr-wrap><span class="sr--offset--device"><?php echo __('Desktop','revslider');?></span><!--
                     --><sr-wrap inline class="sr--ml--10 sr--mr--10"><sr-bmp type="margin" class="bs_offset_d" idpref="" r="offset.d.o" min="-500" max="2000" suffix="px" viewchild="bs_offset"></sr-bmp></sr-wrap><!--
                     --><sr-wrap inline class="sr--form--grp" style="transform:translateY(3px)"><sr-onoff data-ed=".bs_offset_d" data-eddep="checked" r="offset.d.use" viewchild="bs_offset" class="sr--ml--10 checked"></sr-onoff></sr-wrap>
                 </sr-wrap>
                 <sr-wrap>
-                    <sr-wrap class="bs_offset_n" dropicon><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Laptop"></use></svg></sr-wrap><!--
+                    <sr-wrap class="bs_offset_n" dropicon><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Laptop"></use></svg></sr-wrap><span class="sr--offset--device"><?php echo __('Notebook','revslider');?></span><!--
                     --><sr-wrap inline class="sr--ml--10 sr--mr--10"><sr-bmp type="margin" class="bs_offset_n" idpref="" r="offset.n.o" min="-500" max="2000" suffix="px" viewchild="bs_offset"></sr-bmp></sr-wrap><!--
                     --><sr-wrap inline class="sr--form--grp" style="transform:translateY(3px)"><sr-onoff data-ed=".bs_offset_n" data-eddep="checked" r="offset.n.use" viewchild="bs_offset" class="sr--ml--10 checked"></sr-onoff></sr-wrap>
                 </sr-wrap>
                 <sr-wrap>
-                    <sr-wrap class="bs_offset_t" dropicon><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Tablet"></use></svg></sr-wrap><!--
+                    <sr-wrap class="bs_offset_t" dropicon><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Tablet"></use></svg></sr-wrap><span class="sr--offset--device"><?php echo __('Tablet','revslider');?></span><!--
                     --><sr-wrap inline class="sr--ml--10 sr--mr--10"><sr-bmp type="margin" class="bs_offset_t" idpref="" r="offset.t.o" min="-500" max="2000" suffix="px" viewchild="bs_offset"></sr-bmp></sr-wrap><!--
                     --><sr-wrap inline class="sr--form--grp" style="transform:translateY(3px)"><sr-onoff data-ed=".bs_offset_t" data-eddep="checked" r="offset.t.use" viewchild="bs_offset" class="sr--ml--10 checked"></sr-onoff></sr-wrap>
                 </sr-wrap>
                 <sr-wrap>
-                    <sr-wrap class="bs_offset_m" dropicon><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Phone"></use></svg></sr-wrap><!--
+                    <sr-wrap class="bs_offset_m" dropicon><svg class="sr--icon" width="24" height="14" transform="translate(0, -1)"><use xlink:href="#Top_Bar_Phone"></use></svg></sr-wrap><span class="sr--offset--device"><?php echo __('Mobile','revslider');?></span><!--
                     --><sr-wrap inline class="sr--ml--10 sr--mr--10"><sr-bmp type="margin" class="bs_offset_m" idpref="" r="offset.m.o" min="-500" max="2000" suffix="px" viewchild="bs_offset"></sr-bmp></sr-wrap><!--
                     --><sr-wrap inline class="sr--form--grp" style="transform:translateY(3px)"><sr-onoff data-ed=".bs_offset_m" data-eddep="checked" r="offset.m.use" viewchild="bs_offset" class="sr--ml--10 checked"></sr-onoff></sr-wrap>
                 </sr-wrap>
@@ -172,7 +172,7 @@ if(!defined('ABSPATH')) exit();
             <sr-wrap class="sr--p--20--15">
                 <sr-section-title><?php echo __('Block Depth','revslider');?></sr-section-title>
                 <sr-sp h="15"></sr-sp>
-                <sr-input twothird class="sr--mr--10"><input replace r="zindex" viewchild="bs_depth" type="text" suffix=""><span noicon class="sr--form--otitle"><?php _e('Z-Index', 'revslider'); ?></span></sr-input>
+                <sr-input wide><input replace r="zindex" viewchild="bs_depth" type="text" suffix=""><span noicon class="sr--form--otitle"><?php _e('Z-Index', 'revslider'); ?></span></sr-input>
                 <sr-sp h="5"></sr-sp>
             </sr-wrap>
         </sr-wrap>
@@ -181,13 +181,16 @@ if(!defined('ABSPATH')) exit();
             <sr-wrap class="sr--p--20--15">
                 <sr-section-title><?php echo __('Advanced','revslider');?></sr-section-title>
                 <sr-sp h="15"></sr-sp>
-                <sr-input twothird class="sr--mr--10"><input replace r="wrapperid" viewchild="bs_depth" type="text" suffix=""><span noicon class="sr--form--otitle"><?php _e('Module Wrapper IDs', 'revslider'); ?></span></sr-input>
-                <sr-tooltip key="blocksettingswrapperid"></sr-tooltip>
+                <sr-wrap class="sr--field--row">
+                    <sr-input wide class="sr--has--tip"><input replace r="wrapperid" viewchild="bs_depth" type="text" suffix=""><span noicon class="sr--form--otitle"><?php _e('Module Wrapper IDs', 'revslider'); ?></span></sr-input>
+                    <sr-tooltip key="blocksettingswrapperid"></sr-tooltip>
+                </sr-wrap>
                 <sr-sp h="5"></sr-sp>
             </sr-wrap>
         </sr-wrap>        
 
         <sr-wrap right class="sr--tab--call">
+            <sr-button data-action="B.shortcode.settings.cancel" class="sr--cta sr--cta--big sr--cancel sr--mr--10" clean=""><?php echo __('Cancel','revslider');?></sr-button>
             <sr-button primary="" data-action="B.shortcode.settings.save" class="sr--cta sr--cta--big sr--mr--10"><?php echo __('Save Module Settings','revslider');?></sr-button>
         </sr-wrap>
     </sr-modal-content>

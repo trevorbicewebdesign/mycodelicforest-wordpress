@@ -33,6 +33,7 @@ update_option('sr_last_launch', current_time('mysql', 1));
             <sr-drops data-v="hero"><?php _e('Hero','revslider');?></sr-drops>
             <sr-drops data-v="carousel"><?php _e('Carousel','revslider');?></sr-drops>
             <sr-drops data-v="standard"><?php _e('Slider','revslider');?></sr-drops>
+            <sr-drops data-v="story"><?php _e('Story Telling','revslider');?></sr-drops>
             <sr-drops data-v="favorites"><?php _e('Favorites','revslider');?></sr-drops>
         </sr-nav-btn>
         <sr-nav-btn id="sr_overview_sort" data-action="B.drop.open" data-onchange="B.library.updateSort" data-onchangeparams="sr_overview" data-onopen="B.library.getSort" data-mode="sort" dropsw="200" dropsh="200" class="sr--j--icon sr--overview--toolbar--normal"><!--

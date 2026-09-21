@@ -375,36 +375,6 @@ class RevSliderNavigation extends RevSliderFunctions {
 
 
 	/**
-	 * Check the CSS for placeholders, replace them with correspinding values
-	 * @since: 5.2.0
-	 * turns the skin's ##placeholder## markers into the values the slider actually configured
-	 * @return string the final CSS for this skin
-	 **/
-	public function add_placeholder_modifications($def_navi, $slider, $output){
-		if(!is_array($def_navi)) $def_navi = json_decode($def_navi, true);
-
-		$css	= $this->get_val($def_navi, 'css');
-		$type	= $this->get_val($def_navi, 'type');
-		$handle	= $this->get_val($def_navi, 'handle');
-
-		if(!in_array($type, ['arrows', 'bullets', 'thumbs', 'tabs', 'scrubber'])) return $css;
-
-		$placeholders = $this->get_val($def_navi, 'placeholders', []);
-
-		if(!is_array($placeholders) || empty($placeholders)) return $css;
-	
-		foreach($placeholders ?? [] as $phandle => $ph){
-			$def	 = $slider->get_param(['nav', $type, 'presets', $phandle.'-def'], false);
-			$replace = ($def === true) ? $slider->get_param(['nav', $type, 'presets', $phandle], $ph['data']) : $ph['data'];
-			$css	 = str_replace('##'.$phandle.'##', $replace, $css);
-		}
-		$css = str_replace('.'.$handle, '#'.$output->get_html_id().'_wrapper .'.$handle, $css);
-
-		return $css;
-	}
-
-
-	/**
 	 * change rgb, rgba and hex to rgba like 120,130,50,0.5 (no () and rgb/rgba)
 	 * parses a CSS string into selector => [property => value]; comments are stripped first
 	 * @since: 3.0.0
@@ -444,54 +414,6 @@ class RevSliderNavigation extends RevSliderFunctions {
 		}
 
 		return $result;
-	}
-
-	/**
-	 * Returns Array CSS modifications
-	 * @since: 5.2.0
-	 * per-slide preset overrides, emitted as extra CSS rules
-	 * @return string
-	 **/
-	public function preset_return_array_css($c, $placeholders, $slide, $handle, $type, $output){
-		if(empty($c)) return '';
-
-		$c_css = '';
-		$array_css = [];
-	
-		foreach($placeholders ?? [] as $k => $d){
-			if($slide->get_param(['nav', $type, 'presets', $k.'-def'], false) !== true) continue; //get from Slide
-			foreach($c ?? [] as $class => $styles){
-				foreach($styles ?? [] as $name => $val){
-					if(strpos($val, '##'.$k.'##') === false) continue;
-
-					$e = $slide->get_param(['nav', $type, 'presets', $k]);
-					$array_css[$class][$name] = str_replace('##'.$k.'##', $e, $val);
-				}
-			}
-		}
-
-		foreach($array_css ?? [] as $class => $styles){
-			if(empty($styles)) continue;
-			//class needs to get current slider and slide id
-			$slide_id = $slide->get_id();
-			$class = str_replace('.'.$handle, '#'.$output->get_html_id().'[data-slideactive="rs-'.$slide_id.'"] .'.$handle, $class);
-
-			$c_css .= $class.'{'."\n";
-			foreach($styles ?? [] as $style => $value){
-				//check if there are still defaults that needs to be replaced
-				if(strpos($value, '##') === false) continue;
-			
-				foreach($placeholders as $k => $d){
-					if(strpos($value, '##'.$k.'##') === false) continue;
-					$value = str_replace('##'.$k.'##', $d['data'], $value);
-				}
-				
-				$c_css .= $style.': '.$value.' !important;'."\n";
-			}
-			$c_css .= '}'."\n";
-		}
-
-		return $c_css;
 	}
 
 	/**

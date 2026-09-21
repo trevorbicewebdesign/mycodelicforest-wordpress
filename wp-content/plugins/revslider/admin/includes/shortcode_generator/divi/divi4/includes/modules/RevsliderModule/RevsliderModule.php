@@ -85,239 +85,25 @@ class RevsliderModule extends ET_Builder_Module {
                 'toggle_slug'     => 'module_info',
             ],            
 
-            'layout_override' => [
-                'label'           => esc_html__( 'Override Module Layout', 'revslider' ),
+            'live_preview' => [
+                'label'           => esc_html__( 'Live Preview Render', 'revslider' ),
+                'description'     => esc_html__( 'Render the selected module on the builder canvas instead of its card.', 'revslider' ),
                 'type'            => 'yes_no_button',
                 'options'         => [
                     'on'  => esc_html__( 'Yes', 'revslider' ),
                     'off' => esc_html__( 'No', 'revslider' ),
                 ],
-                'default'         => 'off',
-                'toggle_slug'     => 'layout',
-                'show_if'         => [
-                    'modal'          => 'off',
-                ],                
-            ],
-            'fullwidth' => [
-                'label'           => esc_html__( 'Full Width', 'revslider' ),
-                'type'            => 'yes_no_button',
-                'options'         => [
-                    'on'  => esc_html__( 'Yes', 'revslider' ),
-                    'off' => esc_html__( 'No', 'revslider' ),
-                ],                
-                'default'         => 'off',
-                'toggle_slug'     => 'layout',
-                'show_if'         => [
-                    'layout_override' => 'on',
-                    'modal'          => 'off',
-                ],
-            ],
-            'fullheight' => [
-                'label'           => esc_html__( 'Full Height', 'revslider' ),
-                'type'            => 'yes_no_button',
-                'options'         => [
-                    'on'  => esc_html__( 'Yes', 'revslider' ),
-                    'off' => esc_html__( 'No', 'revslider' ),
-                ],                
-                'default'         => 'off',
-                'toggle_slug'     => 'layout',
-                'show_if'         => [
-                    'layout_override' => 'on',
-                    'modal'          => 'off',
-                ],
+                'default'         => 'on',
+                'toggle_slug'     => 'module_info',
             ],
 
-            'modal' => [
-                'label'           => esc_html__( 'Insert Module as Modal (Popup)', 'revslider' ),
-                'type'            => 'yes_no_button',
-                'options'         => [
-                    'on'  => esc_html__( 'Yes', 'revslider' ),
-                    'off' => esc_html__( 'No', 'revslider' ),
-                ],
-                'default'         => 'off',
-                'toggle_slug'     => 'popup',
-            ],
-
-            'popup_cookie_use' => [
-                'label'           => esc_html__( '1 Time Per Session', 'revslider' ),
-                'type'            => 'yes_no_button',
-                'options'         => [
-                    'on'  => esc_html__( 'Yes', 'revslider' ),
-                    'off' => esc_html__( 'No', 'revslider' ),
-                ],
-                'default'         => 'off',
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal' => 'on',
-                ],
-            ],
-
-            'popup_cookie_value' => [
-                'label'           => esc_html__( 'Session (hours)', 'revslider' ),
-                'type'            => 'number',
-                'default'         => 24,
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal'             => 'on',
-                    'popup_cookie_use'  => 'on',
-                ],
-            ],
-
-            'popup_time_use' => [
-                'label'           => esc_html__( 'Pop Up after Time', 'revslider' ),
-                'type'            => 'yes_no_button',
-                'options'         => [
-                    'on'  => esc_html__( 'Yes', 'revslider' ),
-                    'off' => esc_html__( 'No', 'revslider' ),
-                ],
-                'default'         => 'off',
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal' => 'on',
-                ],
-            ],
-            'popup_time_value' => [
-                'label'           => esc_html__( 'After (ms)', 'revslider' ),
-                'type'            => 'number',
-                'default'         => 2000,
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal'          => 'on',
-                    'popup_time_use'=> 'on',
-                ],
-            ],
-
-            'popup_scroll_use' => [
-                'label'           => esc_html__( 'Pop Up at Scroll Position', 'revslider' ),
-                'type'            => 'yes_no_button',
-                'options'         => [
-                    'on'  => esc_html__( 'Yes', 'revslider' ),
-                    'off' => esc_html__( 'No', 'revslider' ),
-                ],
-                'default'         => 'off',
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal' => 'on',
-                ],
-            ],
-            'popup_scroll_type' => [
-                'label'           => esc_html__( 'Based On', 'revslider' ),
-                'type'            => 'select',
-                'options'         => [
-                    'offset'    => esc_html__( 'Offset', 'revslider' ),
-                    'container' => esc_html__( 'Container', 'revslider' ),
-                ],
-                'default'         => 'offset',
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal'            => 'on',
-                    'popup_scroll_use'=> 'on',
-                ],
-            ],
-            'popup_scroll_offset' => [
-                'label'           => esc_html__( 'Offset (px)', 'revslider' ),
-                'type'            => 'number',
-                'default'         => 200,
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal'              => 'on',
-                    'popup_scroll_use'  => 'on',
-                    'popup_scroll_type' => 'offset',
-                ],
-            ],
-            'popup_scroll_container' => [
-                'label'           => esc_html__( 'Container Selector', 'revslider' ),
-                'type'            => 'text',
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal'              => 'on',
-                    'popup_scroll_use'  => 'on',
-                    'popup_scroll_type' => 'container',
-                ],
-            ],
-
-            'popup_event_use' => [
-                'label'           => esc_html__( 'Pop Up by Events', 'revslider' ),
-                'type'            => 'yes_no_button',
-                'options'         => [
-                    'on'  => esc_html__( 'Yes', 'revslider' ),
-                    'off' => esc_html__( 'No', 'revslider' ),
-                ],
-                'default'         => 'off',
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal' => 'on',
-                ],
-            ],
-            'popup_event_name' => [
-                'label'           => esc_html__( 'Listen to Event', 'revslider' ),
-                'type'            => 'text',
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal'            => 'on',
-                    'popup_event_use' => 'on',
-                ],
-            ],
-            'popup_event_example' => [
-                'label'           => esc_html__( 'Sample Listener', 'revslider' ),
-                'type'            => 'text',
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal'            => 'on',
-                    'popup_event_use' => 'on',
-                ],
-            ],
-
-            'popup_hash_use' => [
-                'label'           => esc_html__( 'Pop Up on URL Hash', 'revslider' ),
-                'type'            => 'yes_no_button',
-                'options'         => [
-                    'on'  => esc_html__( 'Yes', 'revslider' ),
-                    'off' => esc_html__( 'No', 'revslider' ),
-                ],
-                'default'         => 'off',
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal' => 'on',
-                ]
-            ],
-            'popup_hash_example' => [
-                'label'           => esc_html__( 'Sample Hash URL', 'revslider' ),
-                'type'            => 'text',
-                'toggle_slug'     => 'popup',
-                'show_if'         => [
-                    'modal'            => 'on',
-                    'popup_hash_use' => 'on',
-                ],
-            ],
-
-            'offset' => [
-                'label'           => esc_html__( 'Block Offset', 'revslider' ),
-                'type'            => 'revslider_offset_grid',
-                'toggle_slug'     => 'offset',
-                'default'         => '',
-                'show_if'         => [
-                    'modal'          => 'off',
-                ],                
-            ],
-
-            'zindex' => [
-                'label'           => esc_html__( 'Z-Index', 'revslider' ),
-                'type'            => 'number',
-                'default'         => '',
-                'toggle_slug'     => 'depth',
-                'show_if'         => [
-                    'modal'          => 'off',
-                ],                
-            ],
-
+            //Storage, not a control. A module saved before the grammar gained wrapperid (B3) keeps its id
+            //here, and the module info field folds it into the shortcode the next time it is saved.
             'wrapperid' => [
                 'label'           => esc_html__( 'Module Wrapper ID', 'revslider' ),
-                'type'            => 'text',
-                'toggle_slug'     => 'advanced',
-                'show_if'         => [
-                    'modal'          => 'off',
-                ],                
+                'type'            => 'hidden',
+                'default'         => '',
+                'toggle_slug'     => 'module_info',
             ]
         ];
     }
@@ -329,26 +115,6 @@ class RevsliderModule extends ET_Builder_Module {
                     'module_info' => [
                         'priority' => 1,
                         'title' => esc_html__( 'Module Info', 'revslider' ),
-                    ],
-                    'layout' => [
-                        'priority' => 2,
-                        'title' => esc_html__( 'Module Layout', 'revslider' ),
-                    ],
-                    'popup' => [
-                        'priority' => 3,
-                        'title' => esc_html__( 'Use as Modal', 'revslider' ),
-                    ],
-                    'offset' => [
-                        'priority' => 4,
-                        'title' => esc_html__( 'Block Offset', 'revslider' ),
-                    ],
-                    'depth' => [
-                        'priority' => 5,
-                        'title' => esc_html__( 'Block Depth', 'revslider' ),
-                    ],
-                    'advanced' => [
-                        'priority' => 6,
-                        'title' => esc_html__( 'Advanced', 'revslider' ),
                     ],
                 ],
             ],
@@ -384,9 +150,12 @@ class RevsliderModule extends ET_Builder_Module {
 	/** @return string the rendered slider markup for the Divi 4 module */
 	public function render( $attrs, $content = null, $render_slug = '' ) {
         $shortcode = $this->props['shortcode'] ? $this->props['shortcode'] : $this->props['revslider_divi'];
+
+        //The depth used to be written here too, from a property name that does not exist and under a CSS
+        //property that is not one - so it never applied. The shortcode has always carried it, and core emits
+        //the wrapper for it now (B3), so only the wrapper id is left, and only until the module is saved once.
         $html = '<div class="revslider"';
         $html .= $this->props['wrapperid'] ? ' id="' . esc_attr($this->props['wrapperid']) . '"' : "";
-        $html .= $this->props['zindex'] ? ' style="zindex:' . esc_attr($this->props['wrapzindexerid']) . '"' : "";
         $html .= '>';
         $html .= do_shortcode( et_pb_fix_shortcodes( str_replace( ['&#91;', '&#93;'], ['[', ']'], $shortcode ), true ) );
         $html .= '</div>';

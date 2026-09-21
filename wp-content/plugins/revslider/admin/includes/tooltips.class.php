@@ -146,7 +146,10 @@ class RevSliderTooltips {
 					'desc' => 'Controls how YouTube and Vimeo videos are loaded depending on the active consent management plugin.<br><br>If "none", videos always allowed to play.<br><br>If active, consent is checked in the browser before loading the video.<br><br>While the visitor is deciding, loading waits up to 15 seconds. If no consent is given, the video stays blocked until the next page load.',
 				],			
 			],
-			'layer' => [	
+			'layer' => [
+				'layertabindex' => [
+					'desc' => 'Where this layer sits in the keyboard tab order.<br><br>Leave it on auto unless the layer needs a place of its own. Use -1 to keep a decorative layer out of the tab order entirely.<br><br>A value above 0 is placed ahead of every other element on the page, not just inside the module, so it reorders the whole page.'
+				],
 				'frames_custom_off' => [
 					'desc' => 'Split attribute target<br>onto its own track'
 				],
@@ -162,8 +165,13 @@ class RevSliderTooltips {
 						'desc' => 'Optimization will be used only when new Image Picked. It is stored in the selected Format and will be used as Navigation Thumbnail.',
 					]					
 			],
-			'blocksettingswrapperid' => [
-				'desc' => 'Enter a word or two — without spaces or special characters — to make a unique web address just for this module.'
+			//The Module Settings dialog every builder opens. Handles live one level down from a section - see
+			//get_tooltip_by_handle(), which walks sections and looks inside each; a handle written as a section
+			//of its own is never found, and its tooltip simply never opens.
+			'blocksettings' => [
+				'blocksettingswrapperid' => [
+					'desc' => 'Enter a word or two — without spaces or special characters — to make a unique web address just for this module.'
+				]
 			]
 		]);
 	}	

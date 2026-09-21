@@ -8,12 +8,9 @@
 if(!defined('ABSPATH')) exit();
 
 /**
- * Shared helper base class - almost every class in the plugin extends it.
- *
- * Provides the plugin's option access (get_options/update_option, with the fonts branch split into its own
- * non-autoloaded option), the get_val()/set_val() array accessors used instead of isset() chains
- * throughout the codebase, request variable readers, and a grab bag of image, post type and string
- * utilities.
+ * Shared helper base class - almost every class in the plugin extends it. Option access (with the fonts
+ * branch split into its own non-autoloaded option), the get_val()/set_val() array accessors used instead of
+ * isset() chains throughout the codebase, request variable readers, and image/post type/string utilities.
  */
 class RevSliderFunctions extends RevSliderData {
 
@@ -31,9 +28,8 @@ class RevSliderFunctions extends RevSliderData {
 	/**
 	 * is the given file extension on the import blocklist ($SR_GLOBALS['bad_extensions'])?
 	 *
-	 * this is called once per file inside an imported zip, where in_array() over the ~70 entry list is a linear
-	 * scan every time. the flipped map is built once and only rebuilt when the list itself changed, so an addon
-	 * that adds its own extensions at runtime still takes effect.
+	 * called once per file inside an imported zip, where in_array() over the ~70 entry list is a linear scan.
+	 * The flipped map is rebuilt only when the list itself changed, so a runtime addition still takes effect.
 	 *
 	 * @param string $extension without the dot, case insensitive
 	 * @return bool
@@ -56,12 +52,10 @@ class RevSliderFunctions extends RevSliderData {
 	/**
 	 * raise the PHP runtime limits for a long running job (import, version upgrade, image processing).
 	 *
-	 * plain ini_set()/set_time_limit() calls are a problem on hardened/managed hosting: both are regularly
-	 * listed in disable_functions, where the bare call emits a PHP warning that lands in the middle of an
-	 * AJAX/JSON response body and breaks the client side JSON.parse(). this wrapper
-	 *  - checks that the function is actually callable before using it,
-	 *  - never lowers a limit the host set higher,
-	 *  - leaves an unlimited limit (0 for max_execution_time, -1 for memory_limit) alone.
+	 * ini_set()/set_time_limit() are regularly listed in disable_functions on hardened hosting, where the bare
+	 * call emits a PHP warning that lands in the middle of an AJAX/JSON body and breaks JSON.parse(). So this
+	 * checks the function is callable, never lowers a limit the host set higher, and leaves an unlimited limit
+	 * (0 for max_execution_time, -1 for memory_limit) alone.
 	 *
 	 * @param int    $seconds seconds of runtime that should be available from now on, 0 to skip
 	 * @param string $memory  memory_limit to request, e.g. '1G', '' to skip
@@ -347,10 +341,9 @@ class RevSliderFunctions extends RevSliderData {
 	}
 
 	/**
-	 * maybe_unserialize() for *untrusted* payloads such as remote HTTP response bodies.
-	 * keeps WordPress' pass-through behaviour for plain (non serialized) data, but never lets the payload
-	 * instantiate arbitrary classes: an unrestricted unserialize() on a remote body is a PHP object
-	 * injection surface (gadget chains via __wakeup()/__destruct()).
+	 * maybe_unserialize() for *untrusted* payloads such as remote HTTP response bodies. Keeps WordPress'
+	 * pass-through behaviour for plain data, but never lets the payload instantiate arbitrary classes: an
+	 * unrestricted unserialize() on a remote body is a PHP object injection surface.
 	 *
 	 * @param mixed       $data     raw body
 	 * @param array|false $allowed  classes the payload may instantiate, false = none at all
@@ -434,10 +427,8 @@ class RevSliderFunctions extends RevSliderData {
 	}
 
 	/**
-	 * read the (large, static) admin icon sprite once per request - it is file_get_contents()'d from
-	 * several places (editor/dashboard/markups views + the modal AJAX). NOTE: this only de-duplicates the
-	 * disk read; the ~264KB are still inlined into the page. Cutting that page weight would need serving the
-	 * sprite as a browser-cacheable external resource (an editor-JS change to the <use href> references).
+	 * read the (large, static) admin icon sprite once per request - it is file_get_contents()'d from several
+	 * places. NOTE: this only de-duplicates the disk read; the ~264KB are still inlined into the page.
 	 * @return string
 	 */
 	public static function get_sprite_svg(){
@@ -470,9 +461,7 @@ class RevSliderFunctions extends RevSliderData {
 	 * gets a temporary path where files can be stored
 	 *
 	 * wp_mkdir_p() instead of mkdir($dir, 0777, true): 0777 makes the directory world writable, and imported
-	 * archives are unpacked into it - on shared hosting every other account on the box could then write there.
-	 * wp_mkdir_p() is recursive as well and applies FS_CHMOD_DIR (or the parent's permissions), which is what
-	 * the rest of WordPress uses.
+	 * archives are unpacked into it - on shared hosting every other account could then write there.
 	 * @return string absolute path with a trailing slash; the first writable candidate wins
 	 **/
 	public function get_temp_path($path = 'rstemp'){
@@ -921,8 +910,7 @@ class RevSliderFunctions extends RevSliderData {
 	 *
 	 * a plain copy() on an http(s) URL goes through the PHP stream wrapper: it needs allow_url_fopen, has no
 	 * timeout, does not verify the TLS certificate, follows redirects without a limit and reports nothing but
-	 * false. download_url() routes it through the WP HTTP API instead, which handles all of that and can be
-	 * filtered by the site (proxies, blocked hosts). Local paths keep using copy().
+	 * false. download_url() routes it through the WP HTTP API instead. Local paths keep using copy().
 	 *
 	 * @param string $source
 	 * @param string $destination absolute path
@@ -1963,57 +1951,6 @@ rs-module .material-icons {
 	}
 	
 	/**
-	 * Add Meta Generator Tag in FrontEnd
-	 * @since: 5.4.3
-		//NOT COMPRESSED VERSION
-		function setREVStartSize(e){	
-			//window.requestAnimationFrame(function() {	
-				window.RSIW = window.RSIW===undefined ? window.innerWidth : window.RSIW;	
-				window.RSIH = window.RSIH===undefined ? window.innerHeight : window.RSIH;	
-				try {								
-					var pw = document.getElementById(e.c).parentNode.offsetWidth,
-						newh;
-					pw = pw===0 || isNaN(pw) || (e.l=="fullwidth" || e.layout=="fullwidth") ? window.RSIW : pw;
-					e.tabw = e.tabw===undefined ? 0 : parseInt(e.tabw);
-					e.thumbw = e.thumbw===undefined ? 0 : parseInt(e.thumbw);
-					e.tabh = e.tabh===undefined ? 0 : parseInt(e.tabh);
-					e.thumbh = e.thumbh===undefined ? 0 : parseInt(e.thumbh);
-					e.tabhide = e.tabhide===undefined ? 0 : parseInt(e.tabhide);
-					e.thumbhide = e.thumbhide===undefined ? 0 : parseInt(e.thumbhide);
-					e.mh = e.mh===undefined || e.mh=="" || e.mh==="auto" ? 0 : parseInt(e.mh,0);
-					if(e.layout==="fullscreen" || e.l==="fullscreen")
-						newh = Math.max(e.mh,window.RSIH);
-					else{					
-						e.gw = Array.isArray(e.gw) ? e.gw : [e.gw];
-						for (var i in e.rl) if (e.gw[i]===undefined || e.gw[i]===0) e.gw[i] = e.gw[i-1];
-						e.gh = e.el===undefined || e.el==="" || (Array.isArray(e.el) && e.el.length==0)? e.gh : e.el;
-						e.gh = Array.isArray(e.gh) ? e.gh : [e.gh];
-						for (var i in e.rl) if (e.gh[i]===undefined || e.gh[i]===0) e.gh[i] = e.gh[i-1];
-											
-						var nl = new Array(e.rl.length),
-							ix = 0,
-							sl;
-						e.tabw = e.tabhide>=pw ? 0 : e.tabw;
-						e.thumbw = e.thumbhide>=pw ? 0 : e.thumbw;
-						e.tabh = e.tabhide>=pw ? 0 : e.tabh;
-						e.thumbh = e.thumbhide>=pw ? 0 : e.thumbh;
-						for (var i in e.rl) nl[i] = e.rl[i]<window.RSIW ? 0 : e.rl[i];
-						sl = nl[0];									
-						for (var i in nl) if (sl>nl[i] && nl[i]>0) { sl = nl[i]; ix=i;}
-						var m = pw>(e.gw[ix]+e.tabw+e.thumbw) ? 1 : (pw-(e.tabw+e.thumbw)) / (e.gw[ix]);
-						newh =  (e.gh[ix] * m) + (e.tabh + e.thumbh);
-					}				
-					var el = document.getElementById(e.c);
-					if (el!==null && el) el.style.height = newh+"px";
-					el = document.getElementById(e.c+"_wrapper");
-					if (el!==null && el) el.style.height = newh+"px";
-				} catch(e){
-					console.log("Failure at Presize of Slider:" + e)
-				}
-			//}
-		  };
-	 */
-	/**
 	 * print the inline setREVStartSize() helper once per page.
 	 * It reserves the slider's height before the JS engine loads, so the page does not jump - which is why
 	 * it has to be inline and cannot wait for sr7.js.
@@ -2159,34 +2096,6 @@ rs-module .material-icons {
 		return $result;
 	}
 
-	
-	/**
-	 * Get nested array value by path
-	 */
-	/*public function array_get_path(&$array, $path, $default = false) {
-		$ref = &$array;
-		foreach ($path as $key) {
-			if (!is_array($ref) || !array_key_exists($key, $ref)) {
-				return $default;
-			}
-			$ref = &$ref[$key];
-		}
-		return $ref;
-	}
-
-	/**
-	 * Set nested array value by path
-	 */
-	/*public function array_set_path(&$array, $path, $value) {
-		$ref = &$array;
-		foreach ($path as $key) {
-			if (!isset($ref[$key]) || !is_array($ref[$key])) {
-				$ref[$key] = [];
-			}
-			$ref = &$ref[$key];
-		}
-		$ref = $value;
-	}*/
 
 
 	/**

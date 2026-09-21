@@ -1,5 +1,13 @@
 /**
  * BeBuilder controller for Slider Revolution.
+ *
+ * BeTheme has its own "Slider Plugin" element and we hook it rather than adding one: the element keeps a
+ * single field, a select holding our module's alias, and renders [rev_slider <alias>]. That is the whole
+ * of what it can store - there is nowhere for the modal triggers, offsets or z-index to live - so this
+ * builder offers everything except Module Settings (the surface rule, CONTRACT D4).
+ *
+ * Everything the controls do is shared (CONTRACT B6); what is here is how to read and write BeTheme's
+ * field, and where to put the card.
  */
 (function() {
 	"use strict";
@@ -13,56 +21,209 @@
 
 	const MODULE_TITLE = "Slider Revolution";
 
-    const SR7_ICON = '<svg width="36" height="36" viewBox="0 0 36 36"><g id="NEW_SR_LOGO" data-name="NEW SR LOGO" transform="translate(8 7.493)"><rect id="Rectangle_16" data-name="Rectangle 16" width="36" height="36" rx="5" transform="translate(-8 -7.493)" fill="#5c24ff"/><path id="Path_1" data-name="Path 1" d="M46.311,18.755l2.807,2.81a.2.2,0,0,1-.14.337H40.089a.121.121,0,0,1-.137-.137l-.006-8.912a.188.188,0,0,1,.322-.134l2.938,2.933a.109.109,0,0,0,.185-.006A6.5,6.5,0,0,0,43.9,7.7a6.271,6.271,0,0,0-5.255-2.944q-.123.009-.123-.117l0-3.991a.121.121,0,0,1,.148-.137c5.283.394,9.36,3.746,10.293,8.929a10.885,10.885,0,0,1-2.231,8.781.516.516,0,0,1-.168.145l-.211.114Q46.146,18.589,46.311,18.755Z" transform="translate(-28.331 -0.8)" fill="#fff"/><path id="Path_2" data-name="Path 2" d="M0,1.745V1.46l8.975.014a.124.124,0,0,1,.14.14l0,8.627a.251.251,0,0,1-.431.177L5.974,7.688a.133.133,0,0,0-.225.009C2.037,12.144,5,18.126,10.521,18.714a.168.168,0,0,1,.148.168v3.766a.123.123,0,0,1-.145.14A10.328,10.328,0,0,1,3.94,20.36Q-1.717,15.456.79,7.893A9.566,9.566,0,0,1,2.844,4.8a.151.151,0,0,0-.006-.234Z" transform="translate(-0.8 -1.481)" fill="#fff"/></g></svg>';
-    const SELECT_ICON = '<svg width="20" height="14.884" viewBox="0 0 20 14.884"><path d="M81.86-785.116a1.791,1.791,0,0,1-1.314-.547A1.791,1.791,0,0,1,80-786.977V-798.14a1.792,1.792,0,0,1,.547-1.314A1.792,1.792,0,0,1,81.86-800h5.581l1.86,1.86h7.442a1.792,1.792,0,0,1,1.314.547,1.792,1.792,0,0,1,.547,1.314H88.535l-1.86-1.86H81.86v11.163l2.233-7.442H100l-2.4,7.977a1.814,1.814,0,0,1-.686.965,1.846,1.846,0,0,1-1.1.36Zm1.953-1.86h12l1.674-5.581h-12Zm0,0,1.674-5.581Zm-1.953-9.3v0Z" transform="translate(-80 800)"></path></svg>';
-    const EDIT_ICON = '<svg width="24" height="16.076" viewBox="0 0 24 16.076"><path d="M70.12-722.121l9.609-9.609a.257.257,0,0,0,.078-.189.257.257,0,0,0-.078-.189L78.6-733.234a.257.257,0,0,0-.189-.078.257.257,0,0,0-.189.078l-9.609,9.609Zm-7.258,2.093a6.921,6.921,0,0,1-3.875-1.148,3.381,3.381,0,0,1-1.295-2.838,3.39,3.39,0,0,1,1.475-2.85,7.982,7.982,0,0,1,4.1-1.325,4.944,4.944,0,0,0,1.892-.456,1.063,1.063,0,0,0,.631-.961,1.408,1.408,0,0,0-.853-1.3,8.2,8.2,0,0,0-2.8-.644l.158-1.724a8.373,8.373,0,0,1,3.947,1.15,2.9,2.9,0,0,1,1.28,2.518,2.6,2.6,0,0,1-1.058,2.183,5.794,5.794,0,0,1-3.071.969,6.949,6.949,0,0,0-2.976.774,1.869,1.869,0,0,0-.992,1.666,1.771,1.771,0,0,0,.826,1.6,5.9,5.9,0,0,0,2.679.646Zm7.529.091L66.432-723.9l10.8-10.79a1.618,1.618,0,0,1,1.2-.506,1.676,1.676,0,0,1,1.2.506l1.557,1.557a1.644,1.644,0,0,1,.512,1.2,1.644,1.644,0,0,1-.512,1.2Zm-3.864.8a.694.694,0,0,1-.69-.2.694.694,0,0,1-.2-.689l.8-3.864,3.959,3.959Z" transform="translate(-57.693 735.192)"></path></svg>';
-
-	const escapeHtml = value => String(value ?? '')
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;')
-		.replace(/'/g, '&#039;');
-
-	const escapeAttr = value => escapeHtml(value).replace(/`/g, '&#96;');
+	//What this element can honour. No settings: BeTheme's element has one field and it holds the alias.
+	const ACTIONS = ["select", "template", "editor", "quick"];
 
 	SR7.B.beBuilderShortcode = {
 		inited: false,
 		cache: {},
+
+		//The card writes its colours inline, which outranks any stylesheet, so the theme has to reach it
+		//through these. They are BeTheme's own tokens, redefined under .mfn-ui-dark on the builder root the
+		//card sits inside, so it follows whatever the builder is set to - Auto included - without asking.
+		ink: {
+			border:         "var(--mfn-ui-input-border)",
+			disabledBorder: "var(--mfn-ui-input-disabled-bg)",
+			text:           "var(--mfn-ui-btn-color)",
+			surface:        "var(--mfn-ui-btn-bg)",
+			hover:          "var(--mfn-ui-btn-bg-hover)",
+			off:            "var(--mfn-ui-input-disabled-color)"
+		},
+
 		init() {
 			if (this.inited || !document.body) return;
 			this.inited = true;
+			//Registered here when the shared module is already in, and again from render() when it is not.
+			//shortcode.js is enqueued without being declared a dependency of this file, so on a cold load it
+			//can still be arriving - and reaching for SR7.Builders then threw before the observer was set up,
+			//which left the panel with no card at all rather than a late one.
+			this.register();
 			this.observeSliderSelector();
 		},
+
+		//idempotent: SR7.Builders.register overwrites its own entry
+		register() {
+			if (!window.SR7?.Builders?.register) return false;
+			SR7.Builders.register("bebuilder", this.adapter);
+			return true;
+		},
+
+		//BeTheme keeps the module in a select of its own, and everything we know about that module in a
+		//cache beside it - the element itself has nowhere to put a title or a cover.
+		adapter: {
+			read(ctx) {
+				const alias = (ctx.select.value && ctx.select.value !== "0") ? ctx.select.value : "";
+				const known = SR7.B.beBuilderShortcode.cache[alias] || {};
+				return SR7.Block.normalize({
+					alias,
+					moduleId: known.id,
+					title: known.title,
+					type: known.type,
+					slides: known.slides,
+					cover: known.cover,
+					premium: known.premium,
+					notFound: known.notFound
+				});
+			},
+			write(ctx, model) {
+				const self = SR7.B.beBuilderShortcode;
+				const alias = model.alias || "";
+
+				if (alias) {
+					//BeTheme fills this list server side, when it builds the panel, so a module it has not seen -
+					//a template imported a moment ago - has no option to select and the assignment below would be
+					//a silent no-op.
+					if (!Array.from(ctx.select.options).some(o => o.value === alias)) {
+						ctx.select.add(new Option(model.title || alias, alias));
+					}
+					self.cache[alias] = {
+						id: model.moduleId, title: model.title, type: model.type,
+						slides: model.slides, cover: model.cover, premium: model.premium,
+						notFound: model.notFound
+					};
+				}
+
+				ctx.select.value = alias;
+				ctx.select.dispatchEvent(new Event("change", {bubbles: true}));
+
+				self.render(ctx);
+				if (alias && !model.notFound) self.showInCanvas(ctx, model);
+			},
+			//Quick Edit is scoped to the post being edited, which BeBuilder keeps on the body
+			postId() {
+				return document.body?.dataset?.postId || SR7.E.post_id || "";
+			}
+		},
+
 		observeSliderSelector() {
-			setInterval(() => {
+			//The settings panel is rebuilt every time an element is opened, so watch for it instead of polling for it
+			const check = () => {
 				const sliderSelector = document.querySelector(".mfn-form-row.mfn-field-select.slider_plugin.rev");
 				if (sliderSelector && !sliderSelector.classList.contains("sr7--bebuilder--enhanced")) {
 					this.enhanceSliderSelector(sliderSelector);
 				}
-			}, 100);
+			};
+			new MutationObserver(check).observe(document.body, {childList: true, subtree: true});
+			check();
 		},
+
 		enhanceSliderSelector(sliderSelector) {
-			sliderSelector.classList.add("sr7--bebuilder--enhanced");
-			sliderSelector.insertAdjacentHTML("beforeend", this.getEnhancedMarkup());
-
 			const select = sliderSelector.querySelector("select.mfn-field-value");
-			const selectButton = sliderSelector.querySelector("button[data-sr7-bebuilder-action='select']");
+			if (!select) return; //Half built row - leave it unmarked so it can still be enhanced once BeBuilder has finished it
 
-			if (select.value != "0") {
-				this.loadDetails(sliderSelector, select.value);
-			}
+			sliderSelector.classList.add("sr7--bebuilder--enhanced");
 
-			selectButton.addEventListener("click", e => {
-				SR7.B.shortcode.openSelectModule(data => {
-					if (!data?.alias) return;
-					select.value = data.alias;
-					select.dispatchEvent(new Event("change", {bubbles: true}));
-					this.loadDetails(sliderSelector, select.value);
-					selectButton.disabled = false;
-				});
+			const host = document.createElement("div");
+			host.className = "sr--bebuilder--module--info";
+			sliderSelector.append(host);
+
+			const ctx = {select, sliderSelector, host};
+			this.render(ctx);
+
+			//What the field already holds, filled in from the module itself
+			if (select.value && select.value !== "0") this.loadDetails(ctx, select.value);
+
+			//BeTheme's own select still works: follow it when it is used directly
+			select.addEventListener("change", () => {
+				const alias = select.value;
+				if (alias && alias !== "0" && !this.cache[alias]) this.loadDetails(ctx, alias);
+				else this.render(ctx);
 			});
 		},
+
+		//The panel card, with the actions this element can honour
+		render(ctx) {
+			if (!this.register()) return;
+			ctx.host.innerHTML = "";
+			ctx.host.append(SR7.Builders.card("bebuilder", ctx, {variant: "panel", actions: ACTIONS, ink: this.ink}));
+		},
+
+		//Fill in everything about a module the field alone cannot say, then redraw
+		loadDetails(ctx, alias) {
+			const known = this.cache[alias];
+			if (known) {
+				this.render(ctx);
+				this.showInCanvas(ctx, this.adapter.read(ctx));
+				return;
+			}
+			SR7.B.shortcode.checkDepsLoaded(false)
+				.then(() => SR7.B.shortcode.loadModule(alias))
+				.then(data => {
+					this.cache[alias] = {
+						id: data.id, title: data.title, type: data.type, slides: data.slides,
+						cover: data.cover, premium: data.premium, notFound: false
+					};
+					this.render(ctx);
+					this.showInCanvas(ctx, this.adapter.read(ctx));
+				})
+				.catch(() => {
+					this.cache[alias] = {notFound: true};
+					this.render(ctx);
+				});
+		},
+
+		//--- the builder's canvas, which is an iframe of its own ---------------------------------------
+		showInCanvas(ctx, model) {
+			const element = ctx.sliderSelector.closest(".mfn-element-fields-wrapper")?.dataset.element;
+			if (element) this.observeWidget(element, model);
+		},
+
+		observeWidget(element, model) {
+			const iframe = document.getElementById('mfn-vb-ifr');
+			const iframeDocument = iframe?.contentDocument || iframe?.contentWindow?.document;
+			if (!iframeDocument?.body) return;
+			if (!iframeDocument.body.classList.contains("sr7--bebuilder--widget--enhanced")) {
+				iframeDocument.body.classList.add("sr7--bebuilder--widget--enhanced");
+				const previewStyle = document.getElementById('sr7-bebuilder-css-css');
+				if (previewStyle) {
+					iframeDocument.head.appendChild(previewStyle.cloneNode(true));
+				}
+			}
+			//Wait for the widget to appear in the builder iframe, then stop watching. Only the newest selection is waited on
+			this.widgetObserver?.disconnect();
+			this.widgetObserver = null;
+			const find = () => {
+				const widget = iframeDocument.querySelector(`.${element}`);
+				if (!widget) return false;
+				this.widgetObserver?.disconnect();
+				this.widgetObserver = null;
+				this.enhanceWidget(widget, model, iframeDocument);
+				return true;
+			};
+			if (find()) return;
+			this.widgetObserver = new MutationObserver(find);
+			this.widgetObserver.observe(iframeDocument.body, {childList: true, subtree: true});
+		},
+
+		enhanceWidget(widget, model, iframeDocument) {
+			const widgetInner = widget.querySelector(".mcb-column-inner");
+			if (!widgetInner) return;
+			const widgetReplacedSlider = widgetInner.querySelector(".mfn-rev-slider");
+
+			//The theme's wrapper is there as soon as the widget renders, but it only holds an sr7-module once
+			//a module has actually been resolved - an unset or unknown alias leaves it empty
+			if (widgetReplacedSlider?.querySelector('sr7-module')?.dataset.alias == model.alias) {
+				if (widgetReplacedSlider.style.display == "none") widgetReplacedSlider.style.display = "block";
+				widgetInner.querySelector(".sr--block--wrap")?.remove();
+				return;
+			}
+
+			//the card standing in for a module the theme has not rendered, drawn in the canvas's own document
+			widgetInner.querySelector(".sr--block--wrap")?.remove();
+			widgetInner.append(SR7.Block.card(model, {actions: [], document: iframeDocument}));
+			if (widgetReplacedSlider) widgetReplacedSlider.style.display = "none";
+		},
+
 		injectIntoItemsList(sourceItem) {
 			const newItem = sourceItem.cloneNode(true);
 			newItem.dataset.title = MODULE_TITLE;
@@ -71,98 +232,6 @@
 			newItem.classList.remove("mfn-item-slider_plugin");
 			newItem.querySelector("span.title").textContent = MODULE_TITLE;
 			sourceItem.parentNode.insertBefore(newItem, sourceItem);
-		},
-		getEnhancedMarkup() {
-			let content = '';
-			content += '<div class="sr--bebuilder--module--info">';
-			content += '<div class="sr--module--info--logo"></div>';
-			content += '<div class="sr--module--info--details"></div>';
-			content += '<div class="sr--bebuilder--module--info--buttons">';
-			content += '<button class="sr--module--info--button sr--module--info--primary mfn-btn mfn-btn-green btn-copy-text" type="button" data-sr7-bebuilder-action="select">' + SELECT_ICON + "Select Module</button>";
-			content += '<button class="sr--module--info--button mfn-btn" type="button" data-sr7-bebuilder-action="edit">' + EDIT_ICON + "Edit</button>";
-			content += '</div>';
-			content += '</div>';
-			return content;
-		},
-		loadDetails(sliderSelector, alias) {
-			if (this.cache[alias]) {
-				this.updateDetails(sliderSelector, this.cache[alias]);
-			} else {
-				SR7.B.shortcode.checkDepsLoaded()
-					.then(() => SR7.B.shortcode.loadModule(alias))
-					.then(data => {
-						this.cache[alias] = data;
-						this.updateDetails(sliderSelector, data);
-					});
-			}
-		},
-		updateDetails(sliderSelector, data) {
-			const info = sliderSelector.querySelector(".sr--module--info--details");
-			info.innerHTML = this.getDetailsMarkup(data);
-
-			const element = sliderSelector.closest(".mfn-element-fields-wrapper").dataset.element;
-			this.observeWidget(element, data);
-
-			const editButton = sliderSelector.querySelector("button[data-sr7-bebuilder-action='edit']");
-			editButton.style.display = "inline-block";
-			editButton.onclick = () => SR7.B.shortcode.editModule(data.id);
-		},
-		getDetailsMarkup(data) {
-			const backgroundImage = data.cover?.image ? data.cover.image : SR7.E.plugin_url + "admin/assets/images/sr7placeholder.webp";
-			let content = '';
-			content += '<div class="sr--module--info--thumb" style="background-image: url(\'' + escapeAttr(backgroundImage) + '\')"></div>';
-			content += '<div class="sr--module--info--title"><h6>' + escapeHtml(data.title) + '</h6></div>';
-			content += '<div class="sr--module--info--title"><label>Alias:</label> ' + escapeHtml(data.alias) + '</div>';
-			content += '<div class="sr--module--info--title"><label>Type:</label> ' + escapeHtml(data.moduleType) + '</div>';
-			return content;
-		},
-		observeWidget(element, data) {
-			const iframe = document.getElementById('mfn-vb-ifr');
-			const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-			if (!iframeDocument.body.classList.contains("sr7--bebuilder--widget--enhanced")) {
-				iframeDocument.body.classList.add("sr7--bebuilder--widget--enhanced");
-				const previewStyle = document.getElementById('sr7-bebuilder-css-css');
-				if (previewStyle) {
-					iframeDocument.head.appendChild(previewStyle.cloneNode(true));
-				}
-			}
-			let h = setInterval(() => {
-				const widget = iframeDocument.querySelector(`.${element}`);
-				if (widget) {
-					clearInterval(h);
-					this.enhanceWidget(widget, data);
-				}
-			}, 100);
-		},
-		enhanceWidget(widget, data) {
-			const widgetInner = widget.querySelector(".mcb-column-inner");
-			const widgetReplacedSlider = widgetInner.querySelector(".mfn-rev-slider");
-			let shouldInsert = true;
-			if (widgetReplacedSlider && widgetReplacedSlider.querySelector('sr7-module').dataset.alias == data.alias) {
-				shouldInsert = false;
-				if (widgetReplacedSlider.style.display == "none") widgetReplacedSlider.style.display = "block";
-			}
-			if (shouldInsert) {
-				widgetInner.insertAdjacentHTML("beforeend", this.getWidgetMarkup(data));
-				if (widgetReplacedSlider) widgetReplacedSlider.style.display = "none";
-			}
-		},
-		getWidgetMarkup(data) {
-			let coverStyle = '';
-			coverStyle += 'background-image: url(' + (data.cover?.image ? escapeAttr(data.cover.image) : SR7.E.plugin_url + "admin/assets/images/sr7placeholder.webp") + ');';
-			coverStyle += 'background-color: ' + (data.cover?.color ? escapeAttr(data.cover.color) : 'inherit') + ';';
-
-			let content = '';
-			content += '<div class="sr--block--wrap">';
-			content += '	<div class="sr--block--head">';
-			content += '		<div class="sr--block--logo">' + SR7_ICON + '</div>';
-			content += '		<div class="sr--block--title">' + escapeHtml(data.title) + '</div>';
-			content += '	</div>';
-			content += '	<div class="revslider sr--block--preview" style="' + coverStyle + '">';
-			content += '		<div class="sr--block--thumb" style="' + coverStyle + '"></div>';
-			content += '	</div>';
-			content += '</div>';
-			return content;
 		}
 	};
 

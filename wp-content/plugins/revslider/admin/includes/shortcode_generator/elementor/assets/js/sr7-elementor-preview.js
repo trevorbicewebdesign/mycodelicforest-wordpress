@@ -31,8 +31,26 @@ class WidgetHandlerClass extends elementorModules.frontend.handlers.Base {
 	}
 }
 
+function checkElementorModule($element) {
+	const id = $element.attr('data-id');
+	if (!elementorFrontend.isEditMode() || !id || window.parent === window) return;
+
+	const parent = window.parent;
+	parent.SR7 ??= {};
+	parent.SR7.E ??= {};
+	const controller = parent.SR7.B?.elementorShortcode;
+	if (controller?.checkModule) {
+		controller.checkModule(id);
+	} else {
+		parent.SR7.E.elementorChecks ??= [];
+		if (!parent.SR7.E.elementorChecks.includes(id)) parent.SR7.E.elementorChecks.push(id);
+	}
+}
+
 window.addEventListener('elementor/frontend/init', () => {
 	elementorFrontend.hooks.addAction('frontend/element_ready/slider_revolution.default', $element => {
+		checkElementorModule($element);
+
 		// Post upgrade force reload preview
 		if ($element.find(".sr--block--force--reload").length !== 0) {
 			$element.trigger("click");

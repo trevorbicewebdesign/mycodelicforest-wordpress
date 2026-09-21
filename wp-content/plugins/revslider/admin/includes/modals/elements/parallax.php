@@ -170,6 +170,9 @@ if(!defined('ABSPATH')) exit();
 	</sr-separator>
 </sr-sh>
 
+<?php /* In einer Story laeuft JEDER Layer am Scroll (animate.js entscheidet das ueber storyMode, nicht ueber
+       sbt.u), also gibt es hier nichts anzumelden. sr-sh kennt nur EINE Bedingung, daher der zweite Rahmen. */ ?>
+<sr-sh r="#MODULE#.type" data-shdep="standard#;#hero#;#carousel" viewchild="layer_parallax">
 <sr-sh r="#MODULE#.sbt.use" data-shdep="true" data-sh="#layer_sbt_t_settings" viewchild="layer_parallax">
 	<sr-separator keepborder>
 		<sr-separator-head notoggle>
@@ -177,13 +180,9 @@ if(!defined('ABSPATH')) exit();
 			<sr-onoff style="right:0px" data-sh=".sr_elements_sbtsettings" r="sbt.u" viewchild="layer_parallax"></sr-onoff>		
 		</sr-separator-head>
 		<sr-separator-body class="sr_elements_sbtsettings">
-			<sr-sp h="5"></sr-sp>	
-			<sr-input wide class="sr--mr--0">
-				<input name="Time Offset" replace r="sbt.so" viewchild="layer_parallax" type="text" number="true" suffix="ms" min="0" max="100000" fallback="0" ignoreredraw validate="true"><!--
-				--><span noicon="" class="sr--form--otitle"><?php _e('Time Offset','revslider'); ?></span>
-			</sr-input>
 			<sr-sp h="5"></sr-sp>
 	</sr-separator>
+</sr-sh>
 </sr-sh>
 <sr-sp h="15"></sr-sp>
 <sr-wrap style="text-align:center" basic wide><sr-button clean="" class="sr--cta" data-action="editor.module.openParallax"><svg class="sr--icon" width="12" height="11"><use xlink:href="#Dashboard_Global"></use></svg><?php _e('Module Parallax Settings','revslider'); ?></sr-button></sr-wrap>

@@ -91,8 +91,11 @@ class RevSliderElementorWidget extends \Elementor\Widget_Shortcode {
 				'collapsed' => false,
 			]
 		);
-		// Hidden fields to store module data
-		$fields = ['alias', 'shortcode', 'title', 'moduleId', 'slideId', 'slides', 'type',  'image', 'color', 'popup', 'offset', 'layoutOverride', 'notFound', 'premium', 'registered'];
+
+		// Where the widget keeps what it knows. The shortcode is the record of how the module is embedded -
+		// its layout, whether it opens as a modal, its offsets and depth - and the rest is what the card
+		// shows about the module itself. None of it is edited here: Module Settings owns that (CONTRACT D1).
+		$fields = ['alias', 'shortcode', 'title', 'moduleId', 'slideId', 'slides', 'type', 'image', 'color', 'notFound', 'premium', 'registered'];
 		foreach($fields as $field) {
 			$this->add_control(
 				$field,
@@ -102,30 +105,16 @@ class RevSliderElementorWidget extends \Elementor\Widget_Shortcode {
 				]
 			);
 		};
+
+		// the panel card is drawn into this by sr7-elementor-editor.js
 		$this->add_control(
-			'sr_module_logo',
+			'sr_card',
 			[
 				'type' => Controls_Manager::RAW_HTML,
-				'raw'  => '<div class="sr--elementor--module--logo"></div>',
+				'raw'  => '<div class="sr--elementor--card"></div>',
 			]
 		);
-		$this->add_control(
-			'sr_module_info_html',
-			[
-				'type' => Controls_Manager::RAW_HTML,
-				'raw'  => '<div class="sr--elementor--module--info"></div>',
-			]
-		);
-		$this->add_control(
-			'sr_buttons',
-			[
-				'type' => Controls_Manager::RAW_HTML,
-				'raw'  => '<div class="sr--elementor--buttons">'
-					.'<button type="button" class="elementor-button elementor-button-default" data-event="sr7.selectModule">' . self::SVG['SelectIcon'] . __('Select Module', 'revslider') . '</button>'
-					.'<button type="button" class="elementor-button elementor-button-default" data-event="sr7.editModule">' . self::SVG['EditIcon'] . __('Edit', 'revslider') . '</button>'
-					.'</div>',
-			]
-		);
+
 		$this->add_control(
 			'live_preview',
 			[
@@ -136,239 +125,6 @@ class RevSliderElementorWidget extends \Elementor\Widget_Shortcode {
 		);
 		$this->end_controls_section();
 
-		$this->start_controls_section(
-			'sr_module_layout',
-			[
-				'label'     => __('Module Layout', 'revslider'),
-				'tab'       => Controls_Manager::TAB_CONTENT,
-				'collapsed' => true,
-			]
-		);
-		$this->add_control(
-			'layout_override',
-			[
-				'label' => __('Override Module Layout', 'revslider'),
-				'type'  => Controls_Manager::SWITCHER,
-			]
-		);
-		$this->add_control(
-			'fullwidth',
-			[
-				'label'     => __('Full Width', 'revslider'),
-				'type'      => Controls_Manager::SWITCHER,
-				'condition' => [
-					'layout_override' => 'yes',
-				],
-			]
-		);
-		$this->add_control(
-			'fullheight',
-			[
-				'label'     => __('Full Height', 'revslider'),
-				'type'      => Controls_Manager::SWITCHER,
-				'condition' => [
-					'layout_override' => 'yes',
-				],
-			]
-		);
-		$this->end_controls_section();
-
-		$this->start_controls_section(
-			'sr_popup',
-			[
-				'label'     => __('Use as Modal', 'revslider'),
-				'tab'       => Controls_Manager::TAB_CONTENT,
-				'collapsed' => true,
-			]
-		);
-		$this->add_control(
-			'modal',
-			[
-				'label' => __('Insert Module as Modal (Popup)', 'revslider'),
-				'type'  => Controls_Manager::SWITCHER,
-			]
-		);
-		$this->add_control(
-			'popup_cookie_use',
-			[
-				'label' => __('1 Time Per Session', 'revslider'),
-				'type'  => Controls_Manager::SWITCHER,
-			]
-		);
-		$this->add_control(
-			'popup_cookie_value',
-			[
-				'label' => __('Session (hours)', 'revslider'),
-				'type'  => Controls_Manager::NUMBER,
-				'min'   => 0,
-				'max'   => 1000,
-				'default' => 24,
-				'description' => __('Relating on Pop Up after Time and Scroll Position', 'revslider')
-			]
-		);
-		$this->add_control(
-			'popup_time_use',
-			[
-				'label' => __('Pop Up after Time', 'revslider'),
-				'type'  => Controls_Manager::SWITCHER,
-			]
-		);
-		$this->add_control(
-			'popup_time_value',
-			[
-				'label' => __('After (ms)', 'revslider'),
-				'type'  => Controls_Manager::NUMBER,
-				'min'   => 0,
-				'max'   => 200000,
-				'default' => '2000ms',
-				'description' => __('Relating on Pop Up after Time and Scroll Position', 'revslider')
-			]
-		);
-		$this->add_control(
-			'popup_scroll_use',
-			[
-				'label' => __('Pop Up at Scroll Position', 'revslider'),
-				'type'  => Controls_Manager::SWITCHER,
-			]
-		);
-		$this->add_control(
-			'popup_scroll_type',
-			[
-				'label'   => __('Based On', 'revslider'),
-				'type'    => Controls_Manager::SELECT,
-				'options' => [
-					'offset'    => __('Offset', 'revslider'),
-					'container' => __('Container', 'revslider'),
-				],
-				'default' => 'offset',
-			]
-		);
-		$this->add_control(
-			'popup_scroll_offset',
-			[
-				'label' => __('Offset', 'revslider'),
-				'type'  => Controls_Manager::NUMBER,
-				'min'   => -1000,
-				'max'   => 200000,
-				'default' => '2000px',
-			]
-		);
-		$this->add_control(
-			'popup_scroll_container',
-			[
-				'label' => __('Container', 'revslider'),
-				'type'  => Controls_Manager::TEXT,
-			]
-		);
-		$this->add_control(
-			'popup_event_use',
-			[
-				'label' => __('Pop Up by Events', 'revslider'),
-				'type'  => Controls_Manager::SWITCHER,
-			]
-		);
-		$this->add_control(
-			'popup_event_name',
-			[
-				'label' => __('Listen to', 'revslider'),
-				'type'  => Controls_Manager::TEXT,
-				'description' => __('i.e.:', 'revslider') . '<code></code>'
-			]
-		);
-		$this->add_control(
-			'popup_hash_use',
-			[
-				'label' => __('Pop Up on URL Hash', 'revslider'),
-				'type'  => Controls_Manager::SWITCHER,
-			]
-		);
-		$this->add_control(
-			'popup_hash_info',
-			[
-				'type' => Controls_Manager::RAW_HTML,
-				'raw'  => '<div class="sr--popup--hash--preview"></div>',
-			]
-		);
-		$this->add_control(
-			'popup_note',
-			[
-				'type' => Controls_Manager::RAW_HTML,
-				'raw'  => __("Modals can also be triggered by Layer Actions. See more details in ", 'revslider')
-            		. '<a href="https://www.themepunch.com/slider-revolution/lightbox-modal/" target="_blank">' . __("Modal Documentation", 'revslider') . '</a>',
-			]
-		);
-		$this->end_controls_section();
-/*
-		$this->start_controls_section(
-			'sr_offsets',
-			[
-				'label'     => __('Block Offsets', 'revslider'),
-				'tab'       => Controls_Manager::TAB_CONTENT,
-				'collapsed' => true,
-			]
-		);
-		$offsetMatrixHTML = '';
-		foreach(self::DEVICES as $device) {
-			$offsetMatrixHTML .= '<div class="sr--offset--row">';
-			$offsetMatrixHTML .= self::SVG[self::DEVICE_ICONS[$device]];
-			$offsetMatrixHTML .= '<div class="sr--offset--inputs">';
-			foreach(self::SIDES as $side) {
-				$offsetMatrixHTML .= '<input type="text" class="sr--offset--input sr--offset--' . $side . '" data-device="' . esc_attr($device) . '" data-side="' . esc_attr($side) . '" name="offset[' . esc_attr($device) . '][' . esc_attr($side) . ']" placeholder="0" value="0" disabled="disabled" />';
-			}
-			$offsetMatrixHTML .= '</div>';
-			$offsetMatrixHTML .= '<input type="checkbox" class="sr--offset--toggle" data-device="' . esc_attr($device) . '" name="offset[' . esc_attr($device) . '].use" />';
-			$offsetMatrixHTML .= '</div>';
-		}
-		$this->add_control(
-			'offset_ui',
-			[
-				'type' => Controls_Manager::RAW_HTML,
-				'raw'  => '<div class="sr--elementor--module--offset sr--offset--panel">' . $offsetMatrixHTML . '</div>',
-			]
-		);
-		$this->end_controls_section();
-*/
-		$this->start_controls_section(
-			'sr_depth',
-			[
-				'label'     => __('Block Depth', 'revslider'),
-				'tab'       => Controls_Manager::TAB_CONTENT,
-				'collapsed' => true,
-			]
-		);
-		$this->add_control(
-			'zindex',
-			[
-				'label' => __('Z-Index', 'revslider'),
-				'type'  => Controls_Manager::NUMBER,
-			]
-		);
-		$this->end_controls_section();
-
-		$this->start_controls_section(
-			'sr_advanced',
-			[
-				'label'     => __('Advanced', 'revslider'),
-				'tab'       => Controls_Manager::TAB_CONTENT,
-				'collapsed' => true,
-			]
-		);
-		$this->add_control(
-			'cssclasses',
-			[
-				'label' => __('Additional CSS class', 'revslider'),
-				'type'  => Controls_Manager::TEXT
-			]
-		);
-		$this->add_control(
-			'wrapperid',
-			[
-				'label' => __('Module Wrapper IDs', 'revslider'),
-				'type'  => Controls_Manager::TEXT
-			]
-		);
-		$this->end_controls_section();
-		
 	}
 
 	/** @return void */
@@ -383,13 +139,23 @@ class RevSliderElementorWidget extends \Elementor\Widget_Shortcode {
 		$livePreview = $this->get_settings_for_display( 'live_preview' );
 		$alias = $this->get_settings_for_display( 'alias' );
 
-		if (strpos($shortcode, 'alias="' . esc_attr($alias) . '"') === false && $alias) {
+		//A widget saved before the shortcode setting existed - or one whose shortcode was never rebuilt - has
+		//the module only in its alias. Without this there is nothing to run and the canvas shows an empty
+		//widget until the panel is opened, which is what rewrote the setting.
+		if($shortcode === '' && $alias !== ''){
+			$shortcode = '[sr7 alias="' . esc_attr($alias) . '"][/sr7]';
+		}elseif(strpos($shortcode, 'alias="' . esc_attr($alias) . '"') === false && $alias){
 			$shortcode = preg_replace('/alias="[^"]*"/', 'alias="' . esc_attr($alias) . '"', $shortcode);
 		}
 
-		if (\Elementor\Plugin::$instance->editor->is_edit_mode() && $livePreview != "yes") {
+		//A module used as a modal has nothing to show in place: it renders hidden and waits for its trigger.
+		//Left to run in the editor a timed one opens over the canvas after its delay, on top of everything,
+		//with nothing to dismiss it. So the card stands in for it there however live preview is set.
+		$isModal = strpos($shortcode, 'usage="modal"') !== false;
+		$notFound = $this->get_settings_for_display('notFound') == "yes";
+
+		if (\Elementor\Plugin::$instance->editor->is_edit_mode() && ($livePreview != "yes" || $isModal || $notFound)) {
 			
-			$notFound = $this->get_settings_for_display('notFound') == "yes";
 			$premium = $this->get_settings_for_display('premium') == "yes";
 			$registered = $this->get_settings_for_display('registered') == "yes";
 
@@ -435,17 +201,15 @@ class RevSliderElementorWidget extends \Elementor\Widget_Shortcode {
 
 		} else {
 
-			$className = $this->get_settings_for_display('cssclasses');
-			$className = "wp-block-themepunch-revslider revslider" . ($className ? " " . esc_attr($className) : "");
-
-			$wrapperid = $this->get_settings_for_display('wrapperid');
-			$wrapperid = $wrapperid ? ' id="' . esc_attr($wrapperid) . '"' : "";
-
-			$zindex = $this->get_settings_for_display( 'zindex' );
-			$style = $zindex ? ' style="z-index:'.esc_attr($zindex).';"' : '';
+			// the wrapper's id, classes and depth ride in the shortcode now and rev_slider_shortcode() emits
+			// them; this keeps only the base classes the front end has always styled against
+			$className = "wp-block-themepunch-revslider revslider";
+			$wrapperid = "";
+			$style = "";
 
 			if (\Elementor\Plugin::$instance->editor->is_edit_mode() && $livePreview == "yes") {
-				$m = "SR7.M['SR7_" . $this->get_settings_for_display('moduleId') . "_1']";
+				//module id goes straight into a script tag - it is always a numeric id, so let nothing else through
+				$m = "SR7.M['SR7_" . intval($this->get_settings_for_display('moduleId')) . "_1']";
 				echo "<script>if (SR7?.M && $m) delete $m;</script>";
 			}
 

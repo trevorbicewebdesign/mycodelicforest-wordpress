@@ -1,0 +1,10 @@
+{
+  "_comment": "!!! THIS IS AN AUTOMATICALLY GENERATED FILE - DO NOT EDIT !!!",
+  "module": {
+    "meta": "meta.innerContent.*",
+    "alias": "alias.innerContent.*",
+    "shortcode": "shortcode.innerContent.*",
+    "wrapperid": "wrapperid.innerContent.*",
+    "live_preview": "livePreview.innerContent.*"
+  }
+}

@@ -27,10 +27,12 @@
         </sr-wrap>
     </sr-tl-left><!--
 --><sr-tl-resizer></sr-tl-resizer><!--
+--><sr-tl-storyhandler data-action="editor.timeline.storyView.toggle" title="<?php _e('Read this slide as scroll distance','revslider'); ?>"><sr-wrap class="sr--emarkerinner"><svg class="sr--icon" width="16" height="12.36"><use xlink:href="#Module_Story"></use></svg></sr-wrap></sr-tl-storyhandler><!--
 --><sr-tl-emarkerhandler data-action="editor.timeline.state.add"><sr-wrap class="sr--emarkerinner"><svg style="display:block; position:absolute;top:8px;left:12px" class="sr--icon" width="8" height="8"><use xlink:href="#Dashboard_Add_Mini"></use></svg><svg style="display:block; position:absolute;top:20px;left:9px" class="sr--icon sr--icon--second" width="12" height="7" transform="translate(1, -1)"><use xlink:href="#Emarker"></use></svg></sr-wrap></sr-tl-emarkerhandler><!--
---><sr-tl-right id="sr-tl-ruler"><sr-marker><span>IDLE</span></sr-marker><sr-quickmarker><span>IDLE</span></sr-quickmarker><sr-endmarker><span data-action="editor.scene.select" data-aparams="out"><?php _e('Slide End','revslider'); ?></span></sr-endmarker></sr-tl-right>
-    <sr-back-to-idle data-action="editor.scene.select" data-aparams="in"><svg class="sr--icon" width="14" height="10.889"><use xlink:href="#TLBack"></use></svg><span><?php _e('Edit In Animation','revslider'); ?></span></sr-back-to-idle>
+--><sr-tl-right id="sr-tl-ruler"><sr-intromarker><span><b></b></span></sr-intromarker><sr-marker><span>IDLE</span></sr-marker><sr-quickmarker><span>IDLE</span></sr-quickmarker><sr-endmarker><span><b></b><i data-action="editor.scene.select" data-aparams="out"><svg class="sr--icon" width="10" height="7.778"><use xlink:href="#TLBack"></use></svg><sr--tl--tooltip><?php _e('Edit Out Animation','revslider'); ?></sr--tl--tooltip></i></span></sr-endmarker></sr-tl-right>
+    <sr-back-to-idle data-action="editor.scene.select" data-aparams="in"><svg class="sr--icon" width="10" height="7.778"><use xlink:href="#TLBack"></use></svg><sr--tl--tooltip><?php _e('Edit In Animation','revslider'); ?></sr--tl--tooltip></sr-back-to-idle>
 </sr-tl-ruler-container>
+<sr-tl-story-band></sr-tl-story-band>
 <sr-tl-content>    
     <sr-tl-left id="sr-tl-content-left"></sr-tl-left><!--
 --><sr-tl-right id="sr-tl-content-right"></sr-tl-right>

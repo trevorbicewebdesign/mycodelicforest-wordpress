@@ -39,6 +39,25 @@ class RevSliderGutenberg {
 				filemtime($css)
 			);
 		});
+
+		//block.json registers this same file twice more, and WP versions those copies with its OWN version
+		//(?ver=7.1), which does not change when the file does - so an edited block stylesheet stayed invisible
+		//until WordPress itself was updated. Stamping the file's own time on every copy also collapses the
+		//three links to one request, since they then share an address.
+		add_filter('style_loader_src', [$this, 'version_block_css'], 10, 1);
+	}
+
+	/**
+	 * The block stylesheet, versioned by the file rather than by whoever registered it.
+	 *
+	 * @since    7.1.8
+	 */
+	public function version_block_css($src){
+		if(strpos($src, 'shortcode_generator/gutenberg/build/index') === false) return $src;
+		$name = (strpos($src, 'index-rtl.css') !== false) ? 'index-rtl.css' : 'index.css';
+		$file = RS_PLUGIN_PATH . 'admin/includes/shortcode_generator/gutenberg/build/' . $name;
+		if(!file_exists($file)) return $src;
+		return add_query_arg('ver', filemtime($file), remove_query_arg('ver', $src));
 	}
 	
 	/**

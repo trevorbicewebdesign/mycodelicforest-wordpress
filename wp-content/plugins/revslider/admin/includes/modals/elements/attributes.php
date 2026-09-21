@@ -18,10 +18,11 @@ if(!defined('ABSPATH')) exit();
 			<sr-input wide><input name="Internal Class" replace r="attr.iClass" viewchild="layer_attr" type="text" style="padding-right:90px"><span noicon="" class="sr--form--otitle"><?php _e('Internal Classes','revslider'); ?></span></sr-input>	
 			<sr-wrap-dep dep="not[slidebg]">
 				<sr-input wide>
-					<input id="sr_layer_tabindex" replace r="attr.tabIndex" viewchild="layer_basics" livevisup autocomplete="off" type="text" number="true" min="0" max="5000" suffix="auto" lastsuffix="" validate="true" style="padding-right:90px"><span noicon="" class="sr--form--otitle"><?php _e('Tab Index','revslider'); ?></span>
+					<input id="sr_layer_tabindex" replace r="attr.tabIndex" viewchild="layer_basics" livevisup autocomplete="off" type="text" number="true" min="-1" max="5000" dec="0" suffix="|auto" lastsuffix="" fallback="auto" validate="true" style="padding-right:104px"><span noicon="" class="sr--form--otitle"><?php _e('Tab Index','revslider'); ?></span>
+					<sr-tooltip key="layertabindex"></sr-tooltip>
 					<sr-drop class="sr--drop--only--icon" tr="sibling" dropsw="92" dropsh="200" data-pver="bottom" data-phor="rightmatch">            
 						<svg style="display:inline-block" class="sr--icon" width="3px" height="13px" transform="translate(0, 0)"><use xlink:href="#Top_Bar_More"></use></svg>            
-						<sr-drops data-v="0">0</sr-drops>
+						<sr-drops data-v="-1">-1</sr-drops>
 						<sr-drops data-v="1">1</sr-drops>
 						<sr-drops data-v="5">5</sr-drops>
 						<sr-drops data-v="20">20</sr-drops>

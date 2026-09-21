@@ -67,12 +67,6 @@ class RevSliderShortcodeWizard extends RevSliderFunctions {
 			// checks for old plugin version
 			if(!$is_gutenberg) $is_gutenberg = function_exists('is_gutenberg_page') && is_gutenberg_page();
 
-			// gutenberg
-			if(!$is_gutenberg){
-				add_filter('mce_external_plugins', ['RevSliderShortcodeWizard', 'add_tinymce_shortcode_editor_plugin']);
-				add_filter('mce_buttons', ['RevSliderShortcodeWizard', 'add_tinymce_shortcode_editor_button']);
-			}
-
 			if($pagenow !== 'site-editor.php') self::add_styles(); //the styles need to be added through the block editor filter in site editor
 		}
 		
@@ -183,29 +177,6 @@ class RevSliderShortcodeWizard extends RevSliderFunctions {
 		<?php
 		return ob_get_clean();
 	}	
-
-	/**
-	 * add script tinymce shortcode script
-	 * @since: 5.1.1
-	 * @return array
-	 */
-	public static function add_tinymce_shortcode_editor_plugin($plugin_array){
-		//this is an OLD js from sr6. needs to be updated or removed
-		//$plugin_array['revslider_sc_button'] = RS_PLUGIN_URL . 'admin-sr6/assets/js/shortcode_generator/tinymce.js';
-
-		return $plugin_array;
-	}
-
-	/**
-	 * Add button to tinymce
-	 * @since: 5.1.1
-	 * @return array
-	 */
-	public static function add_tinymce_shortcode_editor_button($buttons){
-		array_push($buttons, 'revslider_sc_button');
-
-		return $buttons;
-	}
 
 	/**
 	 * add wildcards metabox variables to posts

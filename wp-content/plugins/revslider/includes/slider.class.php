@@ -11,12 +11,11 @@ if(!defined('ABSPATH')) exit();
  * One slider ("module").
  *
  * Loaded from the sliders table via init_by_id()/init_by_alias() into $params (the editor's settings tree)
- * and $settings (internal flags). Beyond the plain record it also resolves the slider's *source*: a slider
- * can draw its slides from the database (gallery), from posts/products, or from a social stream - the
- * get_slides_data_from_* and streamline_* methods turn each of those into the same slide structure.
+ * and $settings (internal flags). It also resolves the slider's *source*: slides can come from the database
+ * (gallery), from posts/products, or from a social stream, and the get_slides_data_from_* / streamline_*
+ * methods turn each of those into the same slide structure.
  *
- * In preview mode the class transparently reads and writes the *_preview tables instead of the live ones
- * (see set_special_table_mode()).
+ * In preview mode it transparently reads and writes the *_preview tables (set_special_table_mode()).
  */
 class RevSliderSlider extends RevSliderFunctions {
 	

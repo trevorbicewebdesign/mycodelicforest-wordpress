@@ -2,19 +2,16 @@
 /**
  * Pan & Zoom PAGE EFFECT — the Ken Burns move from the SR7 editor, on a native WordPress image.
  *
- * INSPECTOR-style, self_block page effect (modelled on the Filmstrip / Hover Morph page effects), but
- * this one is CORE's own: Pan & Zoom is a core effect, so no addon owns it. Two ways in:
- *   1. a dedicated block themepunch/sr7-panzoom — pick an image, pick a preset;
- *   2. a block EXTENSION on core/image + core/cover — the author keeps their block and just switches
- *      the effect on; the front runs on the <img> the block already rendered.
+ * INSPECTOR-style, self_block page effect (modelled on the Filmstrip / Hover Morph page effects) but CORE's
+ * own. Two ways in: a dedicated block themepunch/sr7-panzoom, or a block EXTENSION on core/image + core/cover,
+ * where the front runs on the <img> the block already rendered.
  *
- * Unlike its siblings this effect does NOT pull the SR7 module engine: a pan IS a transform on the
- * image (see public/js/panzoom.js), so the front loads only tptools + GSAP + the shared catalogue.
- * That is why there is no 'revslider_include_libraries' filter here.
+ * Unlike its siblings it does NOT pull the SR7 module engine: a pan IS a transform on the image (see
+ * public/js/panzoom.js), so the front loads only tptools + GSAP + the shared catalogue. That is why there is
+ * no 'revslider_include_libraries' filter here.
  *
- * The core RevSliderPageEffects framework owns the type registry, the block category, the editor skin
- * and the front runtime bootstrap. This class supplies the Pan & Zoom specifics: block registration
- * args, the front markup + config emission, and the settings sanitizer.
+ * The core framework owns the type registry, the block category, the editor skin and the front bootstrap;
+ * this class supplies the Pan & Zoom specifics.
  *
  * @author    ThemePunch <info@themepunch.com>
  * @copyright 2026 ThemePunch
@@ -77,6 +74,7 @@ class RevSliderPageEffectPanZoom {
 			'render'		=> [self::class, 'render'],
 			'editor'		=> RS_PLUGIN_URL . 'admin/assets/js/panzoom.editor.js?mt=' . self::mt('admin/assets/js/panzoom.editor.js'),
 			'runtime'		=> RS_PLUGIN_URL . 'public/js/panzoom.pe.js?mt=' . self::mt('public/js/panzoom.pe.js'),
+			'storage'		=> 'attrs',			// config lives in the block attributes, not in post meta — see front_enqueue()
 			'sanitize'		=> [self::class, 'sanitize']
 		]);
 	}

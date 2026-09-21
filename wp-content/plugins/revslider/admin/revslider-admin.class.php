@@ -195,19 +195,42 @@ class RevSliderAdmin extends RevSliderFunctionsAdmin {
 		return is_rtl() && $this->_truefalse($this->get_val($this->global_settings, 'editorForceLTR', false)) !== true;
 	}
 
-	/** @return void */
+	/**
+	 * The admin stylesheets, and which of them every OTHER admin screen has to carry.
+	 *
+	 * Three of them describe furniture that only exists on page=revslider: the preset browser, the animation
+	 * timeline (sr-tl-*) and the library (lib-item, sr-library-*). Nothing else in wp-admin draws any of it,
+	 * so nothing else needs to download 127 KB describing it.
+	 *
+	 * The rest stay unguarded, and each for a reason. base.css carries the whole --sr-* palette, which Page
+	 * Effects read in the block editor. forms.css styles the controls those panels are built from. editor.css
+	 * is what the dialogs SR7 opens on a builder's screen are drawn with, and colorpicker.css is small.
+	 *
+	 * What makes the three safe is that everything off this page which DOES open one of them already asks for
+	 * its stylesheet: shortcode.js registers library_css before it opens the module or template picker, and
+	 * Quick Edit registers base, editor, forms and colorpicker for its own overlay. Quick Edit also loads
+	 * presets.js and timeline.js, but only because the release build concatenates the whole editor/* tree into
+	 * one file - it renders neither a preset browser nor a timeline, and emits no sr-tl-* markup at all.
+	 *
+	 * @return void
+	 */
 	public function enqueue_admin_styles(){
+		$sr_page = $this->get_val($_GET, 'page') === 'revslider';
+
+		// The order is the cascade, so the gated three keep the places they had.
 		wp_enqueue_style('revslider-base-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/base.css', [], $this->asset_time('admin/assets/css/base.css'));
 		wp_enqueue_style('revslider-editor-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/editor.css', [], $this->asset_time('admin/assets/css/editor.css'));
-		wp_enqueue_style('revslider-timeline-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/timeline.css', [], $this->asset_time('admin/assets/css/timeline.css'));
-		wp_enqueue_style('revslider-preset-browser-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/preset-browser.css', [], $this->asset_time('admin/assets/css/preset-browser.css'));
-		wp_enqueue_style('revslider-library-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/library.css', [], $this->asset_time('admin/assets/css/library.css'));
+		if($sr_page){
+			wp_enqueue_style('revslider-timeline-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/timeline.css', [], $this->asset_time('admin/assets/css/timeline.css'));
+			wp_enqueue_style('revslider-preset-browser-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/preset-browser.css', [], $this->asset_time('admin/assets/css/preset-browser.css'));
+			wp_enqueue_style('revslider-library-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/library.css', [], $this->asset_time('admin/assets/css/library.css'));
+		}
 		wp_enqueue_style('revslider-toolbars-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/forms.css', [], $this->asset_time('admin/assets/css/forms.css'));
 		wp_enqueue_style('revslider-colorpicker-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/colorpicker.css', [], $this->asset_time('admin/assets/css/colorpicker.css'));
 		if(is_rtl()){
 			wp_enqueue_style('revslider-base-rtl-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/base-rtl.css', [], $this->asset_time('admin/assets/css/base-rtl.css'));
 			wp_enqueue_style('revslider-editor-rtl-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/editor-rtl.css', [], $this->asset_time('admin/assets/css/editor-rtl.css'));
-			wp_enqueue_style('revslider-library-rtl-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/library-rtl.css', [], $this->asset_time('admin/assets/css/library-rtl.css'));
+			if($sr_page) wp_enqueue_style('revslider-library-rtl-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/library-rtl.css', [], $this->asset_time('admin/assets/css/library-rtl.css'));
 			wp_enqueue_style('revslider-forms-rtl-css', RS_PLUGIN_URL_CLEAN . 'admin/assets/css/forms-rtl.css', [], $this->asset_time('admin/assets/css/forms-rtl.css'));
 		}
 	}
@@ -482,18 +505,6 @@ class RevSliderAdmin extends RevSliderFunctionsAdmin {
 
 	
 
-	/**
-	 * Add Classes to the WordPress body
-	 * @since    6.0
-	 * @param string $classes
-	 * @return string
-	 */
-	/*function modify_admin_body_class($classes){
-		$classes .= ($this->get_val($_GET, 'page') == 'revslider' && $this->get_val($_GET, 'view') == 'slide') ? ' rs-builder-mode' : '';
-		$classes .= ($this->_truefalse($this->get_val($this->global_settings, 'highContrast', false)) === true && $this->get_val($_GET, 'page') === 'revslider') ? ' rs-high-contrast' : '';
-		
-		return $classes;
-	}*/
 	
 	/**
 	 * Change the language of the Slider Backend even if WordPress is set to be a different language
@@ -546,17 +557,6 @@ class RevSliderAdmin extends RevSliderFunctionsAdmin {
 		//if($SR_GLOBALS['addon_notice_merged'] > 0) add_action('admin_notices', [$this, 'add_addon_plugins_page_notices']);
 	}
 	
-	/**
-	 * add addon merged notices
-	 * @since: 6.2.0
-	 **/
-	/*public function add_addon_plugins_page_notices(){
-		?>
-		<div class="error below-h2 soc-notice-wrap revaddon-notice" style="display: none;">
-			<p><?php echo __('Action required for Slider Revolution AddOns: Please <a href="https://www.sliderrevolution.com/manual-section/manual/getting-started/quick-setup/" target="_blank" rel="noopener">install</a>/<a href="https://www.sliderrevolution.com/manual-section/manual/getting-started/quick-setup/register-plugin/" target="_blank" rel="noopener">activate</a>/<a href="https://www.sliderrevolution.com/manual-section/manual/getting-started/quick-setup/update-plugin/" target="_blank" rel="noopener">update</a> Slider Revolution</a>', 'revslider'); ?><span data-addon="rs-addon-notice" data-noticeid="rs-addon-merged-notices" style="float: right; cursor: pointer" class="revaddon-dismiss-notice dashicons dashicons-dismiss"></span></p>
-		</div>
-		<?php
-	}*/
 
 	/**
 	 * add plugin notices to the Slider Revolution Plugin at the overview page of plugins
