@@ -71,7 +71,7 @@
 							"fontFamily": "ALITIDE",
 							"fontStyle": "normal",
 							"fontWeight": "400",
-							"src": "http://mycodelicforest.local/wp-content/uploads/fonts/ALITIDE.otf"
+							"src": "file:./assets/fonts/ALITIDE.otf"
 						}
 					],
 					"fontFamily": "ALITIDE",
@@ -84,7 +84,7 @@
 							"fontFamily": "Megrim",
 							"fontStyle": "normal",
 							"fontWeight": "400",
-							"src": "http://mycodelicforest.local/wp-content/uploads/fonts/46kulbz5WjvLqJZlaGXgd0RY1g.woff2"
+							"src": "file:./assets/fonts/megrim.woff2"
 						}
 					],
 					"fontFamily": "Megrim, system-ui",
