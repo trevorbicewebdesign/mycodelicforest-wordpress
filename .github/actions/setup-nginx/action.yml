@@ -5,18 +5,28 @@ inputs:
   php-version:
     description: 'PHP version'
     required: false
-    default: 8.2
+    default: '8.4'
 
 runs:
   using: 'composite'
   steps:
     - name: Setup PHP-FPM
       run: |
+        set -euo pipefail
+        V="${{ inputs.php-version }}"
+        # Ubuntu's own archive only ships one PHP series (8.3 on 24.04); the ondrej PPA
+        # provides every supported version, with the same /run/php/php${V}-fpm.sock layout.
+        if ! apt-cache show "php${V}-fpm" >/dev/null 2>&1; then
+          sudo add-apt-repository -y ppa:ondrej/php
+        fi
         sudo apt-get update
-        sudo apt-get install -y --no-upgrade php${{ inputs.php-version }}-fpm
-        sudo chmod 644 /var/log/php${{ inputs.php-version }}-fpm.log
-        sudo systemctl start php${{ inputs.php-version }}-fpm
-        sudo systemctl enable php${{ inputs.php-version }}-fpm
+        sudo apt-get install -y --no-install-recommends \
+          "php${V}-fpm" "php${V}-mysql" "php${V}-mbstring" "php${V}-xml" "php${V}-curl" \
+          "php${V}-zip" "php${V}-gd" "php${V}-intl" "php${V}-bcmath"
+        sudo touch "/var/log/php${V}-fpm.log"
+        sudo chmod 644 "/var/log/php${V}-fpm.log"
+        sudo systemctl enable --now "php${V}-fpm"
+        sudo systemctl is-active "php${V}-fpm"
       shell: bash
 
     - name: Build Nginx config 
@@ -30,7 +40,7 @@ runs:
     
     - name: Setup NGINX
       run: |
-        sudo rm /etc/nginx/sites-enabled/default
+        sudo rm -f /etc/nginx/sites-enabled/default
         sudo ln -sfv ${GITHUB_WORKSPACE}/nginx-test-admin.conf /etc/nginx/sites-enabled/admintest 
         sudo nginx -t
         sudo systemctl restart nginx

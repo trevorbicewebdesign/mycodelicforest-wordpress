@@ -18,7 +18,7 @@ defaults:
 
 # Define environment variables to avoid duplication
 env:
-  PHP_VERSION: '8.2'  # PHP version to use across jobs
+  PHP_VERSION: '8.4'  # must match composer.json config.platform.php and production
   WP_VERSION: '7.1.1'  # WordPress core for tests (core is not a Composer package; see deploy.sh / composer.json)
   CACHE_PATHS: |      # Paths to cache composer dependencies
     vendor/
