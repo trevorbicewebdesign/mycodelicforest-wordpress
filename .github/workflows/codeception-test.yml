@@ -54,7 +54,7 @@ jobs:
     steps:
       # Step to check out the code repository
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Step to prepare the workspace by removing unnecessary files
       - name: Prepare workspace for caching composer dependencies
@@ -82,7 +82,7 @@ jobs:
       # Look up cache based on the generated key
       - name: Lookup Composer cache
         id: cache-hit
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ steps.cache-key.outputs.key }}
@@ -112,7 +112,7 @@ jobs:
       # Cache dependencies if they were not previously cached
       - name: Cache Composer dependencies
         if: steps.cache-hit.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
@@ -135,7 +135,7 @@ jobs:
     steps:
       # Check out repository for tests
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.head_ref || github.ref }}
 
@@ -148,7 +148,7 @@ jobs:
 
       # Restore cached dependencies
       - name: Restore Cached dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATHS }}
           key: ${{ needs.setup.outputs.cache-key }}
@@ -204,7 +204,7 @@ jobs:
       # Upload artifacts if any tests fail
       - name: Upload Artifacts on Failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.test-type }}-test-artifacts-${{ github.sha }}
           path: |
