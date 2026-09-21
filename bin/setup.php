@@ -214,8 +214,17 @@ class SetupScript
      */
     private function prompt(string $message): string
     {
+        if (!stream_isatty(STDIN)) {
+            fwrite(STDERR, "setup.php is interactive and needs a terminal (stdin is not a TTY). Aborting.\n");
+            exit(1);
+        }
         echo $message;
-        return trim(fgets(STDIN));
+        $line = fgets(STDIN);
+        if ($line === false) {
+            fwrite(STDERR, "No input available. Aborting.\n");
+            exit(1);
+        }
+        return trim($line);
     }
 }
 

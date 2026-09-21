@@ -187,8 +187,15 @@ jobs:
           mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS seed;"
           mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS test;"
           
-      - name: Run Setup
-        run: make setup
+      # bin/setup.php is an interactive local-dev reset (prompts, git clean -fdx of the
+      # very folders the cache just restored, its own composer install). CI does the
+      # two things the suites actually need: an uploads dir and a populated seed DB
+      # (functional populates itself via WPDb; acceptance expects it pre-loaded).
+      - name: Prepare test fixtures
+        run: |
+          mkdir -p wp-content/uploads
+          mysql -u root -proot -h localhost seed < tests/_support/Data/db/dump.sql
+          mysql -u root -proot -h localhost -e "SELECT option_value FROM wp_options WHERE option_name IN ('siteurl','home')" seed
 
       # Restart Chromedriver for acceptance tests
       - name: Restart Chromedriver
