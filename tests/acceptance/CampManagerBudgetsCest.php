@@ -176,7 +176,7 @@ class CampManagerBudgetsCest
         // Add a test item to update
         $id = $I->haveInDatabase("wp_mf_budget_items", [
             "name" => "Test Budget Item",
-            "category_id" => 0,
+            "category_id" => 1,
             "price" => 100,
             "quantity" => 2,
             "subtotal" => 200,
@@ -325,7 +325,7 @@ class CampManagerBudgetsCest
         ]);
 
         // Navigate to the edit budget category page
-        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-edit-budget-category&id=$id");
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-budget-category&id=$id");
         $I->see("Edit Budget Category", "h1");
 
         // Check that the form fields are pre-filled with the existing data

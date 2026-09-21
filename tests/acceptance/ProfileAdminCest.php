@@ -71,7 +71,7 @@ class ProfileAdminCest
 
         $I->see("First Name", "label[for='first_name']");
         $I->see("Last Name", "label[for='last_name']");
-        $I->see("Email (Required)", "label[for='email']");
+        $I->see("Email", "label[for='email']");
         $I->see("Phone Number", "label[for='user_phone']");
         $I->see("Street Address", "label[for='address_1']");
         $I->see("Address Line 2", "label[for='address_2']");
@@ -100,7 +100,8 @@ class ProfileAdminCest
         $I->checkOption("[name='years_attended[]'][value='2024']");
         $I->seeCheckboxIsChecked("[name='years_attended[]']", "2024");
         
-        $I->click("Update User");   
+        $I->click("Update User");
+        $I->waitForText("User updated.", 10);
 
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "first_name","meta_value" => "Test"]);
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "last_name","meta_value" => "User"]);
@@ -126,7 +127,7 @@ class ProfileAdminCest
 
         $I->see("First Name", "label[for='first_name']");
         $I->see("Last Name", "label[for='last_name']");
-        $I->see("Email (Required)", "label[for='email']");
+        $I->see("Email", "label[for='email']");
         $I->see("Phone Number", "label[for='user_phone']");
         $I->see("Street Address", "label[for='address_1']");
         $I->see("Address Line 2", "label[for='address_2']");

@@ -202,6 +202,8 @@ jobs:
           # The dump predates the core version under test; without this WordPress
           # bounces every wp-admin request (and logins) to /wp-admin/upgrade.php.
           wp core update-db
+          # Never show the "verify your admin e-mail" interstitial on admin logins.
+          wp option update admin_email_lifespan 2533080438
           # Cloudflare Turnstile always-pass test keys, so the registration form can be
           # submitted by a headless browser (production keys only work on the real domain).
           wp option update gravityformsaddon_ss88-gravity-forms-turnstile_settings \

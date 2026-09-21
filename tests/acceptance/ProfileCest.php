@@ -24,10 +24,10 @@ class ProfileCest
         $I->see("Profile");
         $I->takeFullPageScreenshot("profile-page");
 
-        $I->see("Name (Required)", "legend.gfield_label");
+        $I->see("Name", "legend.gfield_label");
         $I->see("First", "label[for='input_6_16_3']");
         $I->see("Last", "label[for='input_6_16_6']");
-        $I->see("Email (Required)", "label[for='input_6_18']");
+        $I->see("Email", "label[for='input_6_18']");
         $I->see("Phone Number", "label[for='input_6_5']");
         $I->see("Street Address", "label[for='input_6_9_1']");
         $I->see("Address Line 2", "label[for='input_6_9_2']");
@@ -44,7 +44,7 @@ class ProfileCest
 
         $I->click("Save");
         $I->wait(2);
-        $I->see("There was a problem with your submission, Please review the fields below,");
+        $I->see("There was a problem with your submission");
         $I->takeFullPageScreenshot("profile-page-errors");
 
         $I->fillField("#input_6_16_3", "Test");

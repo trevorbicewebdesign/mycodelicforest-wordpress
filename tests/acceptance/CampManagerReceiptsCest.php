@@ -78,6 +78,11 @@ class CampManagerReceiptsCest
 
     public function AddNewReceipt(AcceptanceTester $I)
     {
+        // The purchaser <select> is built from the roster; the CI seed DB has no members.
+        $I->haveInDatabase("wp_mf_roster", [
+            "wpid" => 0, "season" => 2025, "fname" => "Trevor", "lname" => "Bice", "playaname" => "TB",
+            "email" => "trevor@example.com", "low_income" => 0, "fully_paid" => 1, "status" => "Confirmed",
+        ]);
         $budget_item_id = $I->haveInDatabase("wp_mf_budget_items", [
             "name" => "Test Budget Item",
             "category_id" => 1,
