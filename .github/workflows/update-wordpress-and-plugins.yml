@@ -23,9 +23,10 @@ jobs:
       - name: Remove vendor folder
         run: rm -rf vendor
 
+      - name: Authenticate Composer with GitHub (private plugin packages)
+        # Secret COMPOSER_AUTH holds the bare read-only GitHub token (not Composer's JSON format).
+        run: composer config -g github-oauth.github.com "${{ secrets.COMPOSER_AUTH }}"
       - name: Install Composer dependencies
-        env:
-          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}  # read-only GitHub token for the private plugin packages
         run: composer install --prefer-dist --no-progress
 
       - name: Capture initial plugin versions
@@ -33,8 +34,6 @@ jobs:
           composer show --direct --format=json > composer_initial.json
 
       - name: Update Composer dependencies
-        env:
-          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
         run: |
           rm -r vendor
           composer update --no-progress
