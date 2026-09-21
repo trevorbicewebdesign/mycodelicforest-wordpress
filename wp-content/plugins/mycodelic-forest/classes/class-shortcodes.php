@@ -11,7 +11,6 @@ class MycodelicForestShortcodes
     public function init()
     {
         add_shortcode('civi_group_contacts', array($this, 'my_civicrm_group_shortcode'));
-        add_shortcode('mycodelic_profile_form', [$this, 'render_profile_form']);
     }
 
     /**
@@ -28,33 +27,41 @@ class MycodelicForestShortcodes
         ), $atts, 'civi_group_contacts');
 
         // 2. Basic validation
-        $group_id = trim($atts['group_id']);
+        $group_id = (int) trim($atts['group_id']);
         if (empty($group_id)) {
             return '<p>No group_id specified in shortcode.</p>';
         }
 
+        if (!function_exists('civicrm_api3')) {
+            return '<p>CiviCRM is not available.</p>';
+        }
+
         try {
-            $contacts = $this->MycodelicForestCiviCRM->getGroupContacts($group_id);
+            $contacts   = $this->MycodelicForestCiviCRM->getGroupContacts($group_id);
+            $group_name = $this->MycodelicForestCiviCRM->getGroupName($group_id);
         } catch (Exception $e) {
-            return '<p>Error fetching contacts: ' . $e->getMessage() . '</p>';
+            return '<p>Error fetching contacts: ' . esc_html($e->getMessage()) . '</p>';
         }
 
         // 5. Construct output HTML
         $html = '<div class="civi-group-contacts">';
-        $group_name = $this->MycodelicForestCiviCRM->getGroupName($group_id);
         $html .= '<h3>' . esc_html($group_name) . '</h3>';
 
-        $html .= '<ul>';
-        foreach ($contacts as $contact) {
-            $display_name = isset($contact['display_name']) ? $contact['display_name'] : '(No Name)';
-            $email = isset($contact['email']) ? $contact['email'] : '(No Email)';
+        if (empty($contacts)) {
+            $html .= '<p>No contacts found in this group.</p>';
+        } else {
+            $html .= '<ul>';
+            foreach ($contacts as $contact) {
+                $display_name = !empty($contact['display_name']) ? $contact['display_name'] : '(No Name)';
+                $email = !empty($contact['email']) ? $contact['email'] : '(No Email)';
 
-            $html .= '<li>';
-            $html .= '<strong>' . esc_html($display_name) . '</strong>';
-            $html .= ' &ndash; ' . esc_html($email);
-            $html .= '</li>';
+                $html .= '<li>';
+                $html .= '<strong>' . esc_html($display_name) . '</strong>';
+                $html .= ' &ndash; ' . esc_html($email);
+                $html .= '</li>';
+            }
+            $html .= '</ul>';
         }
-        $html .= '</ul>';
 
         $html .= '</div>'; // .civi-group-contacts
 

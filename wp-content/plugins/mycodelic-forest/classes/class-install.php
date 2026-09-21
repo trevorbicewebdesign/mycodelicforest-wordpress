@@ -4,12 +4,12 @@ class MycodelicForestInstall
 {
     public function __construct()
     {
-        $this->init();
+
     }
 
     public function init()
     {
-        register_activation_hook( __FILE__, 'myplugin_install' );
+        register_activation_hook( MYCO_CORE_PLUGIN_FILE, [ $this, 'myplugin_install' ] );
     }
 
     public function myplugin_install() 
@@ -22,20 +22,6 @@ class MycodelicForestInstall
         // Get the proper character set and collation for the table.
         $charset_collate = $wpdb->get_charset_collate();
 
-        // Name
-        // Email
-        // Playa Name
-        // Address 1
-        // Address 2
-        // City
-        // State/Province
-        // Zip/Postal Code
-        // Country
-        // Phone
-        // About Me
-        // Attended Burning Man
-        // Years Attended
-        
         // SQL statement to create the table.
         $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,

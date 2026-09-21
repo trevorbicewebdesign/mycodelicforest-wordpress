@@ -12,27 +12,35 @@ class MycodelicForestDiscord
       
     }
 
-    public function sendMessage($message, $channel = null)
+    /**
+     * Post a message to a Discord webhook.
+     *
+     * @param string $message
+     * @param string $channel  'announcements' or 'announcement-test' (default).
+     * @return string|WP_Error Response body, or WP_Error on failure / missing webhook.
+     */
+    public function sendMessage($message, $channel = 'announcement-test')
     {
-
         $channels = [
-            'announcements' => getenv('DISCORD_CHANNEL_ANNOUNCEMENT'),
+            'announcements'     => getenv('DISCORD_CHANNEL_ANNOUNCEMENT'),
             'announcement-test' => getenv('DISCORD_CHANNEL_ANNOUNCEMENT_TEST'),
         ];
 
-        codecept_debug($channels);
+        $url = $channels[$channel] ?? '';
+        if (empty($url)) {
+            return new WP_Error('discord_no_webhook', 'No Discord webhook configured for channel: ' . $channel);
+        }
 
-        $url = $channels['announcement-test'];
-        $data = array('content' => $message);
-        $options = array(
-            'http' => array(
-                'header'  => "Content-type: application/json\r\n",
-                'method'  => 'POST',
-                'content' => json_encode($data)
-            )
-        );
-        $context  = stream_context_create($options);
-        $result = file_get_contents($url, false, $context);
-        return $result;
+        $response = wp_remote_post($url, [
+            'headers' => ['Content-Type' => 'application/json'],
+            'body'    => wp_json_encode(['content' => $message]),
+            'timeout' => 10,
+        ]);
+
+        if (is_wp_error($response)) {
+            return $response;
+        }
+
+        return wp_remote_retrieve_body($response);
     }
 }

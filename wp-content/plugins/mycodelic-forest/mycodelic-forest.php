@@ -2,14 +2,16 @@
 /**
  * Plugin Name: Mycodelic Forest Core Plugin
  * Plugin URI: 
- * Version: 0.0.1
+ * Version: 0.0.11
  * Description: Plugin for handling custom functionality for Mycodelic Forest
  * Author: Trevor Bice
  * Author URI: https://webdesign.trevorbice.com
  */
 
 
-define('MYCO_CORE_ABS_PATH', WP_CONTENT_DIR . "/plugins/mycodelic-forest/");
+define('MYCO_CORE_PLUGIN_FILE', __FILE__);
+define('MYCO_CORE_ABS_PATH', plugin_dir_path(__FILE__));
+define('MYCO_CORE_VERSION', '0.0.11');
 
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-core.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-discord.php');
@@ -23,7 +25,7 @@ require_once(MYCO_CORE_ABS_PATH . 'classes/class-messages.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-shortcodes.php');
  
 class MycodelicForestInit {
-    public $version = '0.0.10';
+    public $version = MYCO_CORE_VERSION;
     public $MycodelicForestCore;
     public $MycodelicForestDiscord;
     public $MycodelicForestForms;
