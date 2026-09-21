@@ -1,0 +1,127 @@
+{
+	"$schema": "https://schemas.wp.org/wp/7.1/theme.json",
+	"version": 3,
+	"settings": {
+		"typography": {
+			"fontFamilies": [
+				{
+					"fontFace": [
+						{
+							"fontFamily": "Inter",
+							"fontStretch": "",
+							"fontStyle": "normal",
+							"fontWeight": "100",
+							"src": [
+								"file:./assets/fonts/inter/Inter-Thin.woff2"
+							]
+						},
+						{
+							"fontFamily": "Inter",
+							"fontStretch": "",
+							"fontStyle": "normal",
+							"fontWeight": "300",
+							"src": [
+								"file:./assets/fonts/inter/Inter-Light.woff2"
+							]
+						},
+						{
+							"fontFamily": "Inter",
+							"fontStretch": "",
+							"fontStyle": "normal",
+							"fontWeight": "400",
+							"src": [
+								"file:./assets/fonts/inter/Inter-Regular.woff2"
+							]
+						},
+						{
+							"fontFamily": "Inter",
+							"fontStretch": "",
+							"fontStyle": "normal",
+							"fontWeight": "500",
+							"src": [
+								"file:./assets/fonts/inter/Inter-Medium.woff2"
+							]
+						},
+						{
+							"fontFamily": "Inter",
+							"fontStretch": "",
+							"fontStyle": "normal",
+							"fontWeight": "600",
+							"src": [
+								"file:./assets/fonts/inter/Inter-SemiBold.woff2"
+							]
+						},
+						{
+							"fontFamily": "Inter",
+							"fontStretch": "",
+							"fontStyle": "normal",
+							"fontWeight": "700",
+							"src": [
+								"file:./assets/fonts/inter/Inter-Bold.woff2"
+							]
+						}
+					],
+					"fontFamily": "\"Inter\", sans-serif",
+					"name": "Inter",
+					"slug": "inter"
+				},
+				{
+					"fontFace": [
+						{
+							"fontFamily": "ALITIDE",
+							"fontStyle": "normal",
+							"fontWeight": "400",
+							"src": "http://mycodelicforest.local/wp-content/uploads/fonts/ALITIDE.otf"
+						}
+					],
+					"fontFamily": "ALITIDE",
+					"name": "ALITIDE",
+					"slug": "alitide"
+				},
+				{
+					"fontFace": [
+						{
+							"fontFamily": "Megrim",
+							"fontStyle": "normal",
+							"fontWeight": "400",
+							"src": "http://mycodelicforest.local/wp-content/uploads/fonts/46kulbz5WjvLqJZlaGXgd0RY1g.woff2"
+						}
+					],
+					"fontFamily": "Megrim, system-ui",
+					"name": "Megrim",
+					"slug": "megrim"
+				}
+			]
+		}
+	},
+	"styles": {
+		"color": {
+			"background": "var(--wp--preset--color--black)"
+		},
+		"elements": {
+			"h1": {
+				"typography": {
+					"fontFamily": "var(--wp--preset--font-family--alitide)",
+					"fontSize": "var(--wp--preset--font-size--xxx-large)",
+					"fontStyle": "normal",
+					"fontWeight": "400",
+					"letterSpacing": "0px"
+				}
+			},
+			"h2": {
+				"typography": {
+					"fontStyle": "normal",
+					"fontWeight": "100"
+				}
+			},
+			"heading": {
+				"typography": {
+					"fontFamily": "var(--wp--preset--font-family--megrim)"
+				}
+			}
+		},
+		"spacing": {
+			"blockGap": "var(--wp--preset--spacing--xxx-small)"
+		}
+	}
+}
