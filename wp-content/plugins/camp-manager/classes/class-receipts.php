@@ -210,7 +210,7 @@ class CampManagerReceipts
         foreach ($items as $item) {
             $name = trim($item['name'] ?? '');
             $item_subtotal = floatval($item['subtotal'] ?? 0);
-            if ($name === '' || $item_subtotal === 0) {
+            if ($name === '' || abs($item_subtotal) < 0.00001) {
                 continue;
             }
 

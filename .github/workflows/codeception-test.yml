@@ -219,7 +219,7 @@ jobs:
 
       # Run the tests based on matrix test-type
       - name: Run ${{ matrix.test-type }} tests
-        run: ./vendor/bin/codecept run ${{ matrix.test-type }} -d -f --no-interaction --skip-group=skipCI --html
+        run: ./vendor/bin/codecept run ${{ matrix.test-type }} -d --no-interaction --skip-group=skipCI --html
 
       # Upload artifacts if any tests fail
       - name: Upload Artifacts on Failure
