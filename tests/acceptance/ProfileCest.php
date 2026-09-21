@@ -20,6 +20,7 @@ class ProfileCest
     public function profilePageIsVisible(AcceptanceTester $I)
     {
         $I->loginAs("testuser", "password123!test");
+        $I->waitForElement("#wpadminbar, body.logged-in", 10);
         $I->amOnPage("/profile/");
         $I->see("Profile");
         $I->takeFullPageScreenshot("profile-page");
@@ -49,6 +50,7 @@ class ProfileCest
 
         $I->fillField("#input_6_16_3", "Test");
         $I->fillField("#input_6_16_6", "User");
+        $I->fillField("#input_6_18", "testuser@example.com");
         $I->fillField("#input_6_5", "555-555-5555");
         $I->fillField("#input_6_9_1", "123 Main St");
         $I->fillField("#input_6_9_3", "Anytown");
@@ -98,6 +100,7 @@ class ProfileCest
     public function profileIncompleteFrontEndRedirect(AcceptanceTester $I)
     {
         $I->loginAs("testuser", "password123!test");
+        $I->waitForElement("#wpadminbar, body.logged-in", 10);
         $I->amOnPage("/");
         $I->wait(1);
         $I->seeInCurrentUrl("/profile");

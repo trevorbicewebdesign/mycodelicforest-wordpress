@@ -99,16 +99,17 @@ class CampManagerRosterCest
 
         // Submit the form
         $I->click("Save Member");
-        $I->wait(1);
+        // Saving a new member lands on that member's edit form.
+        $I->waitForText("Edit Member", 10, "h1");
 
         $I->seeInDatabase("wp_mf_roster", [
             "fname" => "John",
             "lname" => "Doe",
             "playaname" => "BurnerJohn",
             'season' => 2025,
-            "low_income" => NULL,
-            "fully_paid" => NULL,
-            "wpid" => NULL,
+            "low_income" => 1,   // both boxes were ticked above
+            "fully_paid" => 1,
+            "wpid" => 0,         // no WordPress user selected
             "email" => "john.doe@example.com"
         ]);
     }
