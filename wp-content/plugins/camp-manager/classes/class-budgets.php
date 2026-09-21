@@ -21,17 +21,21 @@ class CampManagerBudgets {
             wp_die('Unauthorized');
         }
 
+        // The edit form posts the id as budget_id (older markup used budget_category_id). Without
+        // this, editing a category silently inserted a new one instead of updating.
+        $posted_id = $_POST['budget_category_id'] ?? $_POST['budget_id'] ?? null;
+        $category_id = !empty($posted_id) ? (int)$posted_id : null;
         try {
             $this->upsertBudgetCategory(
                 sanitize_text_field($_POST['budget_category_name']),
                 isset($_POST['budget_category_description']) ? sanitize_textarea_field($_POST['budget_category_description']) : '',
-                isset($_POST['budget_category_id']) ? (int)$_POST['budget_category_id'] : null
+                $category_id
             );
         } catch (\Exception $e) {
-            wp_redirect(admin_url('admin.php?page=camp-manager-budget&error=' . urlencode($e->getMessage())));
+            wp_redirect(admin_url('admin.php?page=camp-manager-budget-categories&error=' . urlencode($e->getMessage())));
             exit;
         }
-        wp_redirect(admin_url('admin.php?page=camp-manager-budget-categories&success=category_added'));
+        wp_redirect(admin_url('admin.php?page=camp-manager-budget-categories&success=' . ($category_id ? 'category_updated' : 'category_added')));
         exit;
     }
 

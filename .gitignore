@@ -114,10 +114,9 @@ local-xdebuginfo.php
 !/wp-content/plugins/civicrm/**
 !/wp-content/plugins/test/
 !/wp-content/plugins/test/**
-!/wp-content/plugins/gravityforms/
 !/wp-content/plugins/mycodelic-forest/
 !/wp-content/plugins/camp-manager/
-!/wp-content/plugins/revslider/
+!/wp-content/plugins/house-ledger/
 
 
 !/wp-content/themes/mycodelic-forest-child/
@@ -130,3 +129,5 @@ auth.json
 pr_body.txt
 wp-config.php
 wp-content/mysql.sql
+# macOS metadata anywhere (must come AFTER the plugin re-include rules above, which would otherwise re-include it)
+**/.DS_Store

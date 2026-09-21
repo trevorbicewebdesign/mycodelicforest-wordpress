@@ -709,6 +709,23 @@ class MycodelicForestProfile
         return '';
     }
 
+    /**
+     * Gravity Forms 3 submits the address field's country as an ISO 3166-1 alpha-2 code
+     * ("US"); older versions, this plugin's admin profile fields and all existing user
+     * meta use the country name ("United States"). Store the name consistently.
+     */
+    public function normalize_country($country)
+    {
+        $country = trim((string) $country);
+        if (strlen($country) === 2 && class_exists('GF_Field_Address')) {
+            $name = (new \GF_Field_Address())->get_country_name(strtoupper($country));
+            if (is_string($name) && $name !== '' && strtoupper($name) !== strtoupper($country)) {
+                return $name;
+            }
+        }
+        return $country;
+    }
+
     public function update_user_profile_from_gravity($entry, $form)
     {
         // Get current user ID
@@ -731,7 +748,7 @@ class MycodelicForestProfile
             'city' => rgar($entry, '9.3'),
             'state' => rgar($entry, '9.4'),
             'zip' => rgar($entry, '9.5'),
-            'country' => rgar($entry, '9.6'),
+            'country' => $this->normalize_country(rgar($entry, '9.6')),
             'user_about_me' => rgar($entry, '13'),
             'has_attended_burning_man' => rgar($entry, '19'),
         ];

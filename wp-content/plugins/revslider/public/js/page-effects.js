@@ -1,7 +1,0 @@
-/**
- * @preserve
- * @author    ThemePunch <info@themepunch.com>
- * @link      http://www.themepunch.com/
- * @copyright 2026 ThemePunch
- */
-!function(){"use strict";window.SR7??={},SR7.PE??={},SR7.PE.runtimes??={},SR7.PE._mounted??={},SR7.PE.devices??=SR7.D&&Array.isArray(SR7.D.devices)?SR7.D.devices:["wdesktop","desktop","notebook","tablet","mobile"],SR7.PE.deviceWidths??=[1600,1240,1024,778,480],SR7.PE.levelForWidth=t=>{const e=SR7.PE.deviceWidths;for(let r=e.length-1;r>=0;r--)if(t<=e[r])return r;return 0},SR7.PE.lev=(t,e)=>{if(!Array.isArray(t))return t;let r=t[e];if(null!=r&&"#a"!==r&&""!==r)return r;for(let n=e-1;n>=0;n--)if(r=t[n],null!=r&&"#a"!==r&&""!==r)return r;for(let n=e+1;n<5;n++)if(r=t[n],null!=r&&"#a"!==r&&""!==r)return r;return 0},SR7.PE.registerRuntime=(t,e)=>{SR7.PE.runtimes[t]=e,SR7.PE.boot()},SR7.PE.boot=()=>{if(SR7.E&&SR7.E.backend)return;const t=SR7.E&&SR7.E.pageEffects;if(t)for(const e in t){if(!Object.prototype.hasOwnProperty.call(t,e))continue;const r=t[e],n=r&&SR7.PE.runtimes[r.type];if(r&&n&&!SR7.PE._mounted[e])try{SR7.PE._mounted[e]=n.mount(r.data,e)||!0}catch(t){}}},"loading"===document.readyState?document.addEventListener("DOMContentLoaded",SR7.PE.boot):SR7.PE.boot()}();

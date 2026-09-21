@@ -9,6 +9,14 @@ class CampManagerBudgetsCest
     protected $adminId;
     public function _before(AcceptanceTester $I)
     {
+         // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
+         // duplicates make wp_signon() log in the oldest one, so start clean.
+         foreach (["testadmin", "testuser"] as $login) {
+             // dontHaveUserInDatabase($login) removes only the first match; remove every row.
+             foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
+                 $I->dontHaveUserInDatabase((int) $staleId);
+             }
+         }
          $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
             "first_name" => "Test",
             "last_name" => "Admin",
@@ -62,14 +70,16 @@ class CampManagerBudgetsCest
         $I->wait(1);
 
         $I->loginAs("testadmin", "password123!test");
+        // Let the login redirect finish before the test navigates, or the redirect wins and lands on the Dashboard.
+        $I->waitForElement("#wpadminbar", 10);
     }
     public function ViewBudgetItems(AcceptanceTester $I)
     {
         
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budgets");
-        $I->see("Budget Items", "h1");
+        $I->waitForText("Budget Items", 10, "h1");
 
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-budget-item"]);
+        $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-budget-item']");
 
         $I->see("ID", "th#id");
         $I->see("Name", "th#name");
@@ -101,7 +111,7 @@ class CampManagerBudgetsCest
     public function AddNewBudgetItem(AcceptanceTester $I)
     {
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-budget-item");
-        $I->see("Add New Budget Item", "h1"); 
+        $I->waitForText("Add New Budget Item", 10, "h1"); 
 
         // Check that the form fields and labels are present
         $I->see("Name", "label[for='budget_item_name']");
@@ -176,8 +186,7 @@ class CampManagerBudgetsCest
         // Add a test item to update
         $id = $I->haveInDatabase("wp_mf_budget_items", [
             "name" => "Test Budget Item",
-            "category_id" => 0,
-            "receipt_item_id" => NULL,
+            "category_id" => 1,
             "price" => 100,
             "quantity" => 2,
             "subtotal" => 200,
@@ -192,7 +201,7 @@ class CampManagerBudgetsCest
 
         // Navigate to the edit budget item page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-budget-item&id=$id");
-        $I->see("Edit Budget Item", "h1");
+        $I->waitForText("Edit Budget Item", 10, "h1");
 
         // Check that the form fields are pre-filled with the existing data
         $I->seeInField("input#budget_item_name", "Test Budget Item");
@@ -249,7 +258,7 @@ class CampManagerBudgetsCest
         ]);
         // Navigate to the budget items page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budgets");
-        $I->see("Budget Items", "h1");
+        $I->waitForText("Budget Items", 10, "h1");
 
         // Delete is a bulk action, so we need to select an item first
         $I->checkOption("input[name=\"budget-item[]\"][value=\"$id\"]");
@@ -268,10 +277,10 @@ class CampManagerBudgetsCest
     {
         // Navigate to the budget categories page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budget-categories");
-        $I->see("Budget Categories", "h1");
+        $I->waitForText("Budget Categories", 10, "h1");
 
         // Assert that the `Add New` button is present
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-budget-category"]);
+        $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-budget-category']");
 
         // Assert that each table header is present
         $I->see("ID", "th#id");
@@ -288,7 +297,7 @@ class CampManagerBudgetsCest
     {
         // Navigate to the add budget category page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-budget-category");
-        $I->see("Add New Budget Category", "h1");
+        $I->waitForText("Add New Budget Category", 10, "h1");
 
         // Check that the form fields and labels are present
         $I->see("Name", "label[for='budget_category_name']");
@@ -326,8 +335,8 @@ class CampManagerBudgetsCest
         ]);
 
         // Navigate to the edit budget category page
-        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-edit-budget-category&id=$id");
-        $I->see("Edit Budget Category", "h1");
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-budget-category&id=$id");
+        $I->waitForText("Edit Budget Category", 10, "h1");
 
         // Check that the form fields are pre-filled with the existing data
         $I->seeInField("input#budget_category_name", "Test Category");
@@ -364,7 +373,7 @@ class CampManagerBudgetsCest
 
         // Navigate to the budget categories page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budget-categories");
-        $I->see("Budget Categories", "h1");
+        $I->waitForText("Budget Categories", 10, "h1");
 
         // Delete is a bulk action, so we need to select an item first
         $I->checkOption("input[name=\"budget-categories[]\"][value=\"$id\"]");

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Support\Helper;
+namespace Tests\Support;
 use \lucatume\WPBrowser\Module\WPWebDriver;
 
 /**

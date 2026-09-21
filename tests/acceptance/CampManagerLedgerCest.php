@@ -9,6 +9,14 @@ class CampManagerLedgerCest
     protected $adminId;
     public function _before(AcceptanceTester $I)
     {
+         // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
+         // duplicates make wp_signon() log in the oldest one, so start clean.
+         foreach (["testadmin", "testuser"] as $login) {
+             // dontHaveUserInDatabase($login) removes only the first match; remove every row.
+             foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
+                 $I->dontHaveUserInDatabase((int) $staleId);
+             }
+         }
          $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
             "first_name" => "Test",
             "last_name" => "Admin",
@@ -57,14 +65,16 @@ class CampManagerLedgerCest
         $I->wait(1);
 
         $I->loginAs("testadmin", "password123!test");
+        // Let the login redirect finish before the test navigates, or the redirect wins and lands on the Dashboard.
+        $I->waitForElement("#wpadminbar", 10);
     }
     public function ViewLedgerItems(AcceptanceTester $I)
     {
 
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-ledger");
-        $I->see("Ledger", "h1");
+        $I->waitForText("Ledger", 10, "h1");
 
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-ledger"]);
+        $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-ledger']");
 
         $I->see("ID", "th#id");
         $I->see("Note", "th#note");
@@ -88,7 +98,7 @@ class CampManagerLedgerCest
     public function AddLedger(AcceptanceTester $I)
     {
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-ledger");
-        $I->see("Add Ledger Entry", "h1");
+        $I->waitForText("Add Ledger Entry", 10, "h1");
 
         $I->see("Note", "label[for='ledger_note']");
         $I->see("Amount", "label[for='ledger_amount']");
@@ -114,6 +124,8 @@ class CampManagerLedgerCest
 
         // Submit the form
         $I->click("Save Ledger");
+        // The handler redirects to the entry's edit form; wait for it before reading the DB.
+        $I->waitForText("Edit Ledger Entry", 10, "h1");
 
         // Verify the item was added
         $I->seeInDatabase("wp_mf_ledger", [
@@ -158,7 +170,7 @@ class CampManagerLedgerCest
         
         // Navigate to the ledger page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-ledger");
-        $I->see("Ledger", "h1");
+        $I->waitForText("Ledger", 10, "h1");
 
         // Delete is a bulk action, so we need to select an item first
         $I->checkOption("input[name=\"ledger[]\"][value=\"$ledger_id\"]");

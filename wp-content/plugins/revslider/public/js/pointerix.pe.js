@@ -1,7 +1,0 @@
-/**
- * @preserve
- * @author    ThemePunch <info@themepunch.com>
- * @link      http://www.themepunch.com/
- * @copyright 2026 ThemePunch
- */
-(()=>{"use strict";const e=window.SR7PointerPE||{},t=(e,r=0)=>{if(window._tpt&&_tpt.regResource&&_tpt.checkResources)return e();r>400||setTimeout(()=>t(e,r+1),50)};let r=null;const s=()=>!!(window.SR7&&SR7.PE&&SR7.PE.registerRuntime)&&(SR7.PE.registerRuntime("pointerix",{mount:(s,n)=>{const i='[data-sr7pe~="'+(window.CSS&&CSS.escape?CSS.escape(n):n)+'"]',c=document.querySelector(i);if(!c)return!1;const o={eid:n};return(r??=new Promise(r=>{t(()=>{window.SR7??={},SR7.E??={},SR7.F??={},_tpt.R??={};const t=[];if(!_tpt.gsap&&e.gsap&&(_tpt.regResource({id:"tpgsap",url:e.gsap}),t.push("tpgsap")),!SR7.F.layerIX&&e.engine&&(_tpt.regResource({id:"layerix",url:e.engine}),t.push("layerix")),!t.length)return r();_tpt.checkResources(t).then(r).catch(r)})})).then(()=>{try{((e,t,r)=>{if(!e)return;const s=e.cursor;s&&"cursor"!==s&&(r.hadCursor=t.style.cursor,t.style.cursor=s);const n=e.ix;n&&n.type&&"none"!==n.type&&SR7.F.layerIX&&(r.id="sr7pe-"+r.eid,SR7.F.layerIX.register(t,r.id,n))})(s,c,o)}catch(e){}}),o},unmount:e=>{try{e&&e.id&&SR7.F.layerIX?.unregister(e.id)}catch(e){}}}),!0);if(!s()){let e=0;const t=setInterval(()=>{(s()||++e>200)&&clearInterval(t)},16)}})();

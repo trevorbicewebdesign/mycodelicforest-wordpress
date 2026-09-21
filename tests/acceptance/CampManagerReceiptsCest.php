@@ -9,6 +9,14 @@ class CampManagerReceiptsCest
     protected $adminId;
     public function _before(AcceptanceTester $I)
     {
+         // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
+         // duplicates make wp_signon() log in the oldest one, so start clean.
+         foreach (["testadmin", "testuser"] as $login) {
+             // dontHaveUserInDatabase($login) removes only the first match; remove every row.
+             foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
+                 $I->dontHaveUserInDatabase((int) $staleId);
+             }
+         }
          $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
             "first_name" => "Test",
             "last_name" => "Admin",
@@ -48,15 +56,17 @@ class CampManagerReceiptsCest
             ]
         ]);
         $I->loginAs("testadmin", "password123!test");
+        // Let the login redirect finish before the test navigates, or the redirect wins and lands on the Dashboard.
+        $I->waitForElement("#wpadminbar", 10);
     }
     public function ViewReceipts(AcceptanceTester $I)
     {
         // Navigate to the receipts page (not the add form, to see the table)
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-actuals");
-        $I->see("Receipts", "h1"); // Adjust if needed to match page title
+        $I->waitForText("Receipts", 10, "h1"); // Adjust if needed to match page title
 
         // Assert that the `Add New` button is present
-        $I->seeElement("a.page-title-action", ["href" => "https://local.mycodelicforest.org/wp-admin/admin.php?page=camp-manager-add-receipt"]);
+        $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-receipt']");
 
         // Assert that each table header is present
         $I->see("ID", "th#id");
@@ -78,6 +88,11 @@ class CampManagerReceiptsCest
 
     public function AddNewReceipt(AcceptanceTester $I)
     {
+        // The purchaser <select> is built from the roster; the CI seed DB has no members.
+        $I->haveInDatabase("wp_mf_roster", [
+            "wpid" => 0, "season" => 2025, "fname" => "Trevor", "lname" => "Bice", "playaname" => "TB",
+            "email" => "trevor@example.com", "low_income" => 0, "fully_paid" => 1, "status" => "Confirmed",
+        ]);
         $budget_item_id = $I->haveInDatabase("wp_mf_budget_items", [
             "name" => "Test Budget Item",
             "category_id" => 1,
@@ -85,12 +100,11 @@ class CampManagerReceiptsCest
             "quantity" => 2,
             "subtotal" => 200.00,
             "tax" => 10.00,
-            "shipping" => 20.00,
             "total" => 230.00,
         ]);
         
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-receipt");
-        $I->see("Add New Receipt", "h1");
+        $I->waitForText("Add New Receipt", 10, "h1");
 
         // Check that the form fields and labels are present
         $I->see("Store", "label[for='store']");
@@ -212,7 +226,7 @@ class CampManagerReceiptsCest
         ]);
         // Navigate to the receipts page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-actuals");
-        $I->see("Receipts", "h1");
+        $I->waitForText("Receipts", 10, "h1");
 
         // Delete is a bulk action, so we need to select an item first
         $I->checkOption("input[name=\"receipt[]\"][value=\"$id\"]");

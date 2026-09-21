@@ -60,7 +60,7 @@ class BasicCest
         $I->see("Email", "#gform_4 label");
         $I->see("Subject", "#gform_4 label");
         $I->see("Message", "#gform_4 label");
-        $I->seeElement("#gform_4 input[type=submit]");
+        $I->seeElement("#gform_4 button[type=submit]");
 
         $I->click("Submit");
         $I->takeFullPageScreenshot("contact-page-errors");

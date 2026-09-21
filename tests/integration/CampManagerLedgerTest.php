@@ -75,7 +75,8 @@ class CampManagerLedgerTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $ledger = $CampManagerLedger->getLedger($ledger_id);
         $this->assertEquals('Update Test', $ledger->note);
         $this->assertEquals(222.22, $ledger->amount);
-        $this->assertEquals('2025-08-01', $ledger->date);
+        // mf_ledger.date is a DATETIME column, so a bare date comes back with a midnight time.
+        $this->assertStringStartsWith('2025-08-01', $ledger->date);
         $this->assertEquals('https://camp.org/doc/222', $ledger->link);
     }
 
@@ -166,8 +167,14 @@ class CampManagerLedgerTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         // Starting balance
         $this->assertEquals(2037.80, $CampManagerLedger->startingBalance());
 
+        // The totals are whole-table sums, and other tests in this suite COMMIT rows
+        // (e.g. testGetLedger's 50.00 entry), so start from empty tables.
+        global $wpdb;
+        $wpdb->query("DELETE FROM {$wpdb->prefix}mf_ledger_line_items");
+        $wpdb->query("DELETE FROM {$wpdb->prefix}mf_ledger");
+
         // Add money in/out, various types
-        $this->tester->haveInDatabase('mf_ledger', [
+        $ledger_in = $this->tester->haveInDatabase('mf_ledger', [
             'amount' => 500.00,
             'note' => 'Money In',
             'date' => '2025-07-16',
@@ -178,30 +185,29 @@ class CampManagerLedgerTest extends \lucatume\WPBrowser\TestCase\WPTestCase
             'date' => '2025-07-16',
         ]);
         $this->tester->haveInDatabase('mf_ledger_line_items', [
-            'ledger_id' => 1,
+            'ledger_id' => $ledger_in,
             'amount' => 150.00,
             'note' => 'Donation',
             'type' => 'Donation'
         ]);
         $this->tester->haveInDatabase('mf_ledger_line_items', [
-            'ledger_id' => 1,
+            'ledger_id' => $ledger_in,
             'amount' => 200.00,
             'note' => 'Sold Asset',
             'type' => 'Sold Asset'
         ]);
         $this->tester->haveInDatabase('mf_ledger_line_items', [
-            'ledger_id' => 1,
+            'ledger_id' => $ledger_in,
             'amount' => 250.00,
             'note' => 'Camp Dues',
             'type' => 'Camp Dues'
         ]);
         $this->tester->haveInDatabase('mf_ledger_line_items', [
-            'ledger_id' => 1,
+            'ledger_id' => $ledger_in,
             'amount' => 80.00,
             'note' => 'Partial Camp Dues',
             'type' => 'Partial Camp Dues'
         ]);
-        global $wpdb;
         $wpdb->query('COMMIT');
 
         $this->assertEquals(500.00, $CampManagerLedger->totalMoneyIn());
