@@ -30,7 +30,7 @@ class CampManagerRoster
                 'lname' => isset($_POST['member_lname']) ? sanitize_text_field($_POST['member_lname']) : '',
                 'playaname' => isset($_POST['member_playaname']) ? sanitize_text_field($_POST['member_playaname']) : '',
                 'email' => isset($_POST['member_email']) ? sanitize_email($_POST['member_email']) : '',
-                //'wpid' => get_current_user_id(),
+                'wpid' => !empty($_POST['wpid']) ? (int)$_POST['wpid'] : null,
                 'low_income' => isset($_POST['member_low_income']) ? (int)$_POST['member_low_income'] : null,
                 'fully_paid' => isset($_POST['member_fully_paid']) ? (int)$_POST['member_fully_paid'] : null,
                 'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
@@ -60,7 +60,7 @@ class CampManagerRoster
             'lname' => isset($_POST['member_lname']) ? sanitize_text_field($_POST['member_lname']) : '',
             'playaname' => isset($_POST['member_playaname']) ? sanitize_text_field($_POST['member_playaname']) : '',
             'email' => isset($_POST['member_email']) ? sanitize_email($_POST['member_email']) : '',
-            //'wpid' => get_current_user_id(),
+            'wpid' => !empty($_POST['wpid']) ? (int)$_POST['wpid'] : null,
             'low_income' => isset($_POST['member_low_income']) ? (int)$_POST['member_low_income'] : null,
             'fully_paid' => isset($_POST['member_fully_paid']) ? (int)$_POST['member_fully_paid'] : null,
             'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
@@ -236,7 +236,7 @@ class CampManagerRoster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
         $data = [
-            // 'wpid' => $memberData['wpid'],
+            'wpid' => (int)($memberData['wpid'] ?? 0),
             'low_income' => isset($memberData['low_income']) ? (int)$memberData['low_income'] : null,
             'fully_paid' => isset($memberData['fully_paid']) ? (int)$memberData['fully_paid'] : null,
             'fname' => sanitize_text_field($memberData['fname']),
