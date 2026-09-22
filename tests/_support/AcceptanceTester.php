@@ -54,8 +54,13 @@ class AcceptanceTester extends \Codeception\Actor
                 $I->waitForElement($readySelector, 20);
                 return;
             } catch (\Throwable $e) {
-                if ($I->tryToSeeElement($readySelector)) {
+                // The element may have appeared in the instant between the timeout firing
+                // and this catch running; give it one short grace check before giving up.
+                try {
+                    $I->waitForElement($readySelector, 5);
                     return;
+                } catch (\Throwable $e2) {
+                    // fall through to retry below
                 }
                 if ($attempt >= $attempts) {
                     throw $e;

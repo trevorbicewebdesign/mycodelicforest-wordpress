@@ -95,7 +95,12 @@ class CampManagerRosterCest
     {
         // Navigate to the add member page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member");
-        $I->waitForText("Add New Member", 10, "h1"); 
+        $I->waitForText("Add New Member", 10, "h1");
+
+        // The season field is prefilled from CampManagerSeason::selected(), which depends on
+        // ambient roster data (it falls back to the current year when the table is empty) -
+        // read whatever it actually shows rather than assuming a fixed year.
+        $season = (int) $I->grabValueFrom("#season");
 
         // Fill in the form fields
         $I->fillField("#member_fname", "John");
@@ -114,7 +119,7 @@ class CampManagerRosterCest
             "fname" => "John",
             "lname" => "Doe",
             "playaname" => "BurnerJohn",
-            'season' => 2025,
+            'season' => $season,
             "low_income" => 1,   // both boxes were ticked above
             "fully_paid" => 1,
             "wpid" => 0,         // no WordPress user selected
