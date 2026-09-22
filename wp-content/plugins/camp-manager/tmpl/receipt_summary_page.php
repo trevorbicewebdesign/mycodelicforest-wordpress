@@ -16,6 +16,7 @@ $form_action = admin_url('admin-post.php');
 ?>
 <div class="wrap">
     <h1 class="wp-heading-inline">Receipt Summary</h1>
+    <?php CampManagerSeason::renderSwitcher(); ?>
 
     <h3>Total Receipts: $<?php echo esc_html(number_format($this->receipts->get_total_receipts(), 2)); ?></h3>
     <h3>Total Money In: $<?php echo esc_html(number_format($this->ledger->totalMoneyIn(), 2)); ?></h3>

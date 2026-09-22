@@ -199,6 +199,7 @@ class CampManagerReceipts
             // Clear existing items
             $wpdb->delete($items_table, ['receipt_id' => $receipt_id]);
         } else {
+            $data['season'] = CampManagerSeason::selected();
             $result = $wpdb->insert($table, $data);
             if (!$result) {
                 throw new \Exception("Failed to insert receipt: " . $wpdb->last_error);
@@ -267,18 +268,18 @@ class CampManagerReceipts
         return (int) $wpdb->get_var($wpdb->prepare($sql, $category_id));
     }
 
-    public function get_total_receipts()
+    public function get_total_receipts(?int $season = null)
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_receipts';
-        $sql = "SELECT SUM(total) FROM $table_name";
+        $sql = $wpdb->prepare("SELECT SUM(total) FROM $table_name WHERE season = %d", $season ?? CampManagerSeason::selected());
         return (int) $wpdb->get_var($sql);
     }
-    public function get_receipts()
+    public function get_receipts(?int $season = null)
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_receipts';
-        $sql = "SELECT * FROM $table_name ORDER BY date DESC";
+        $sql = $wpdb->prepare("SELECT * FROM $table_name WHERE season = %d ORDER BY date DESC", $season ?? CampManagerSeason::selected());
         $receipts = $wpdb->get_results($sql);
         return $receipts;
     }
@@ -291,7 +292,7 @@ class CampManagerReceipts
         return (float) $wpdb->get_var($sql);
     }
 
-    public function get_receipt_items($receipt_id = null)
+    public function get_receipt_items($receipt_id = null, ?int $season = null)
     {
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_receipt_items";
@@ -309,10 +310,14 @@ class CampManagerReceipts
         } else {
             // Join with receipts table to order by receipt date for all items
             $receipts_table = "{$wpdb->prefix}mf_receipts";
-            $sql = "SELECT items.* 
-                    FROM {$table_name} AS items
-                    INNER JOIN {$receipts_table} AS receipts ON items.receipt_id = receipts.id
-                    ORDER BY receipts.date DESC, items.id ASC";
+            $sql = $wpdb->prepare(
+                "SELECT items.* 
+                 FROM {$table_name} AS items
+                 INNER JOIN {$receipts_table} AS receipts ON items.receipt_id = receipts.id
+                 WHERE receipts.season = %d
+                 ORDER BY receipts.date DESC, items.id ASC",
+                $season ?? CampManagerSeason::selected()
+            );
         }
         $items = $wpdb->get_results($sql);
         return $items;

@@ -164,25 +164,28 @@ class CampManagerLedgerTest extends \lucatume\WPBrowser\TestCase\WPTestCase
     {
         $CampManagerLedger = $this->make('CampManagerLedger', []);
 
-        // Starting balance
-        $this->assertEquals(2037.80, $CampManagerLedger->startingBalance());
-
-        // The totals are whole-table sums, and other tests in this suite COMMIT rows
+        // The totals are per-season sums, and other tests in this suite COMMIT rows
         // (e.g. testGetLedger's 50.00 entry), so start from empty tables.
         global $wpdb;
         $wpdb->query("DELETE FROM {$wpdb->prefix}mf_ledger_line_items");
         $wpdb->query("DELETE FROM {$wpdb->prefix}mf_ledger");
+
+        // With no earlier seasons the starting balance is the opening balance.
+        $this->assertEquals(2037.80, $CampManagerLedger->startingBalance());
+        $season = CampManagerSeason::selected();
 
         // Add money in/out, various types
         $ledger_in = $this->tester->haveInDatabase('mf_ledger', [
             'amount' => 500.00,
             'note' => 'Money In',
             'date' => '2025-07-16',
+            'season' => $season,
         ]);
         $this->tester->haveInDatabase('mf_ledger', [
             'amount' => -100.00,
             'note' => 'Money Out',
             'date' => '2025-07-16',
+            'season' => $season,
         ]);
         $this->tester->haveInDatabase('mf_ledger_line_items', [
             'ledger_id' => $ledger_in,

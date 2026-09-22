@@ -24,6 +24,7 @@ $table->prepare_items();
     <h1 class="wp-heading-inline">Receipts</h1>
     <a href="<?php echo admin_url('admin.php?page=camp-manager-add-receipt'); ?>" class="page-title-action">Add New</a>
     <hr class="wp-header-end">
+    <?php CampManagerSeason::renderSwitcher(); ?>
     <h3>Total Receipts: $<?php echo esc_html(number_format($this->receipts->get_total_receipts(), 2)); ?></h3>
     <form method="post">
         <?php

@@ -148,6 +148,7 @@ class CampManagerLedger
                 'note'   => $data['note'],
                 'date'   => $data['date'],
                 'link'   => $data['link'],
+                'season' => CampManagerSeason::selected(),
             ]);
 
             if (!$result) {
@@ -235,37 +236,56 @@ class CampManagerLedger
         return $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}mf_ledger_line_items WHERE ledger_id = %d", $ledger_id));
     }
 
-    public function startingBalance() { return 2037.80; }
+    // The camp's funds when the first season on record began. Each later season starts with
+    // whatever the earlier seasons left in the account, so the money carries over.
+    const OPENING_BALANCE = 2037.80;
+
+    public function startingBalance(?int $season = null)
+    {
+        global $wpdb;
+        $season = $season ?? CampManagerSeason::selected();
+        $earlier = $wpdb->get_var($wpdb->prepare("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger WHERE season < %d", $season));
+        return self::OPENING_BALANCE + (float) $earlier;
+    }
 
     public function totalMoneyIn()
     {
         global $wpdb;
-        return $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger WHERE amount > 0") ?: 0;
+        return $wpdb->get_var($wpdb->prepare("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger WHERE amount > 0 AND season = %d", CampManagerSeason::selected())) ?: 0;
     }
 
 
     public function totalMoneyOut()
     {
         global $wpdb;
-        return abs($wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger WHERE amount < 0") ?: 0);
+        return abs($wpdb->get_var($wpdb->prepare("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger WHERE amount < 0 AND season = %d", CampManagerSeason::selected())) ?: 0);
+    }
+
+    /** Sum of the line items of one type (or several) on this season's ledger entries. */
+    private function sumLineItems(array $types)
+    {
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($types), '%s'));
+        $sql = "SELECT SUM(li.amount)
+                FROM {$wpdb->prefix}mf_ledger_line_items li
+                INNER JOIN {$wpdb->prefix}mf_ledger l ON l.id = li.ledger_id
+                WHERE l.season = %d AND li.type IN ($placeholders)";
+        return $wpdb->get_var($wpdb->prepare($sql, array_merge([CampManagerSeason::selected()], $types))) ?: 0;
     }
 
     public function totalDonations()
     {
-        global $wpdb;
-        return $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger_line_items WHERE type = 'Donation'") ?: 0;
+        return $this->sumLineItems(['Donation']);
     }
 
     public function totalAssetsSold()
     {
-        global $wpdb;
-        return $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger_line_items WHERE type = 'Sold Asset'") ?: 0;
+        return $this->sumLineItems(['Sold Asset']);
     }
 
     public function totalCampDues()
     {
-        global $wpdb;
-        return $wpdb->get_var("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger_line_items WHERE type = 'Camp Dues' OR type = 'Partial Camp Dues'") ?: 0;
+        return $this->sumLineItems(['Camp Dues', 'Partial Camp Dues']);
     }
 
     public function sumUserCampDues($cmid)

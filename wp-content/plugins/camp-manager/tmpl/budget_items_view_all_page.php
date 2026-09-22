@@ -16,6 +16,7 @@ $table->prepare_items();
     <h1 class="wp-heading-inline">Budget Items</h1>
     <a href="<?php echo admin_url('admin.php?page=camp-manager-add-budget-item'); ?>" class="page-title-action">Add New</a>
     <hr class="wp-header-end">
+    <?php CampManagerSeason::renderSwitcher(); ?>
     <form method="post">
         <?php
         $table->display();

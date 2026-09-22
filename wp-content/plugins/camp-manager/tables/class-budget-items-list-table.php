@@ -181,12 +181,19 @@ class CampManagerBudgetItemsTable extends WP_List_Table
              FROM $table AS bi
              LEFT JOIN $categories_table AS c ON bi.category_id = c.id
              $join_receipt_items
+             WHERE c.season = %d
              GROUP BY bi.id
              ORDER BY $order_by $order
              LIMIT %d OFFSET %d",
+            CampManagerSeason::selected(),
             $per_page,
             $offset
             );
+            // Items belong to a season through their category.
+            $total_items = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM $table AS bi INNER JOIN $categories_table AS c ON bi.category_id = c.id WHERE c.season = %d",
+                CampManagerSeason::selected()
+            ));
         }
 
         $this->data = $wpdb->get_results($sql, ARRAY_A);

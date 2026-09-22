@@ -36,12 +36,9 @@ class CampManagerShortcodes
 
         global $wpdb;
         $table_name = $wpdb->prefix . 'mf_roster';
-        // Build query with optional season filter, only include Confirmed members
-        if (!empty($atts['season'])) {
-            $query = $wpdb->prepare("SELECT * FROM $table_name WHERE season = %s AND status = %s", $atts['season'], 'Confirmed');
-        } else {
-            $query = $wpdb->prepare("SELECT * FROM $table_name WHERE status = %s", 'Confirmed');
-        }
+        // Confirmed members of the given season (the current season when none is given)
+        $season = !empty($atts['season']) ? (int) $atts['season'] : CampManagerSeason::current();
+        $query = $wpdb->prepare("SELECT * FROM $table_name WHERE season = %d AND status = %s", $season, 'Confirmed');
 
         $roster = $wpdb->get_results($query, ARRAY_A);
 
@@ -128,12 +125,9 @@ class CampManagerShortcodes
             'season' => ''
         ], $atts, 'camp_manager_expenses');
 
-        $receipt_items = "";
+        $season = !empty($atts['season']) ? (int) $atts['season'] : CampManagerSeason::current();
+        $receipt_items = $this->receipts->get_receipt_items(null, $season);
 
-        // Pass the season attribute if get_receipt_items supports it
-       
-        $receipt_items = $this->receipts->get_receipt_items();
-        
 
         if (empty($receipt_items)) {
             return '<p>No expenses found.</p>';

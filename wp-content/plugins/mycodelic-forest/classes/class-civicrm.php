@@ -13,6 +13,39 @@ class MycodelicForestCiviCRM
     }
 
     /**
+     * Retrieves the yearly roster groups ("2024 Camp Roster", "2022 Roster", ...).
+     *
+     * @return array Group titles keyed by group ID, ordered newest year first.
+     * @throws Exception on API error.
+     */
+    public function getRosterGroups()
+    {
+        try {
+            $result = civicrm_api3('Group', 'get', [
+                'title'     => ['LIKE' => '%Roster%'],
+                'is_active' => 1,
+                'return'    => ['id', 'title'],
+                'options'   => ['limit' => 0],
+            ]);
+        } catch ( \CiviCRM_API3_Exception $e ) {
+            throw new Exception( 'Error fetching roster groups: ' . $e->getMessage() );
+        }
+
+        // Only titles that start with a year are yearly rosters.
+        $groups = [];
+        foreach ($result['values'] as $group_id => $group) {
+            if (preg_match('/^\d{4}\b/', $group['title'])) {
+                $groups[(int) $group_id] = $group['title'];
+            }
+        }
+
+        // Newest year first: titles start with the year, so a reverse string sort does it.
+        arsort($groups, SORT_STRING);
+
+        return $groups;
+    }
+
+    /**
      * Retrieves the name of a CiviCRM group based on the provided group ID.
      *
      * @param int $group_id The ID of the CiviCRM group.

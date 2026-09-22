@@ -25,6 +25,7 @@ require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-inventory.php');
 // Tables
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-receipt-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-ledger-list-table.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-season.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-roster-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budget-items-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budget-categories-list-table.php');
@@ -65,6 +66,7 @@ class CampManagerInit {
 
     public function init()
     {
+        (new CampManagerSeason())->init();
         $this->CampManagerCore->init();
         $this->CampManagerReceipts->init();
         $this->CampManagerChatGPT->init();

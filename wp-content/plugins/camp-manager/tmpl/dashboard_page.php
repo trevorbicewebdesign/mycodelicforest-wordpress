@@ -36,6 +36,8 @@ $estimated_funds_remaining = $estimated_revenue - $total_expenses;
 <div class="wrap">
     <h1 class="wp-heading-inline">Camp Manager Dashboard</h1>
     <hr class="wp-header-end">
+    <?php CampManagerSeason::renderSwitcher(); ?>
+    <?php CampManagerSeason::renderStartSeason(); ?>
 
     <div class="notice notice-info inline" style="margin-bottom: 20px;">
         <p><strong>Quick Overview</strong>: See all camp financials, dues, and membership at a glance.</p>

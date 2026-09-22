@@ -26,6 +26,7 @@ $table->prepare_items();
     <h1 class="wp-heading-inline">Roster</h1>
     <a href="<?php echo admin_url('admin.php?page=camp-manager-add-member'); ?>" class="page-title-action">Add New</a>
     <hr class="wp-header-end">
+    <?php CampManagerSeason::renderSwitcher(); ?>
     <h3>Total Camp Members: <?php echo $this->roster->countRosterMembers(); ?></h3>
     <h3>Confirmed Camp Members: <?php echo $this->roster->countConfirmedRosterMembers(); ?></h3>
     <h4>Unpaid Camp Members: <?php echo $this->roster->countUnpaidMembers(); ?></h4>

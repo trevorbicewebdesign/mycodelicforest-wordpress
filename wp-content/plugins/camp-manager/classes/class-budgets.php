@@ -12,6 +12,7 @@ class CampManagerBudgets {
         // add action camp_manager_save_budget_item
         add_action('admin_post_camp_manager_save_budget_item', [$this, 'handle_budget_item_save']);
         add_action('admin_post_camp_manager_save_budget_category', [$this, 'handle_budget_category_save']);
+        add_action('admin_post_camp_manager_copy_categories', [$this, 'handle_copy_categories']);
     }
 
     public function handle_budget_category_save()
@@ -69,6 +70,42 @@ class CampManagerBudgets {
         exit;
     }   
 
+    /** Most recent earlier season that has budget categories, or 0. */
+    public function previousSeasonWithCategories(): int
+    {
+        global $wpdb;
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT MAX(season) FROM {$wpdb->prefix}mf_budget_category WHERE season < %d",
+            CampManagerSeason::selected()
+        ));
+    }
+
+    public function handle_copy_categories()
+    {
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+        check_admin_referer('camp_manager_copy_categories');
+
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_budget_category";
+        $to = CampManagerSeason::selected();
+        $from = isset($_POST['from_season']) ? (int) $_POST['from_season'] : 0;
+
+        // Only into a season that has no categories yet, so a double click can't duplicate them.
+        $existing = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE season = %d", $to));
+        if ($from && $from < $to && !$existing) {
+            $wpdb->query($wpdb->prepare(
+                "INSERT INTO $table (name, description, season) SELECT name, description, %d FROM $table WHERE season = %d",
+                $to,
+                $from
+            ));
+        }
+
+        wp_safe_redirect(admin_url('admin.php?page=camp-manager-budget-categories'));
+        exit;
+    }
+
     public function getBudgetCategory($category_id): ?object
     {
         // Should get a budget category from the database
@@ -92,9 +129,16 @@ class CampManagerBudgets {
         // Should get all budget items for a category or all if no category is specified
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
-        $query = "SELECT * FROM $table";
         if ($category_id !== null) {
-            $query .= $wpdb->prepare(" WHERE category_id = %d", $category_id);
+            $query = $wpdb->prepare("SELECT * FROM $table WHERE category_id = %d", $category_id);
+        } else {
+            // Items belong to a season through their category.
+            $query = $wpdb->prepare(
+                "SELECT bi.* FROM $table AS bi
+                 INNER JOIN {$wpdb->prefix}mf_budget_category AS c ON bi.category_id = c.id
+                 WHERE c.season = %d",
+                CampManagerSeason::selected()
+            );
         }
         return $wpdb->get_results($query, ARRAY_A);
     }
@@ -161,6 +205,7 @@ class CampManagerBudgets {
             return (int)$category_id;
         } else {
             // Insert new category
+            $data['season'] = CampManagerSeason::selected();
             $wpdb->insert($table, $data);
             return (int)$wpdb->insert_id;
         }

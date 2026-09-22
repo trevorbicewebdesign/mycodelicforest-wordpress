@@ -171,7 +171,8 @@ class CampManagerReceiptsTable extends WP_List_Table
         $offset       = ($current_page - 1) * $per_page;
         $table        = "{$wpdb->prefix}mf_receipts";
 
-        $total_items = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+        $season = CampManagerSeason::selected();
+        $total_items = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE season = %d", $season));
 
         $order_by = $_GET['orderby'] ?? 'date';
         $order    = (isset($_GET['order']) && strtolower($_GET['order']) === 'asc') ? 'ASC' : 'DESC';
@@ -185,7 +186,8 @@ class CampManagerReceiptsTable extends WP_List_Table
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
         $sql = $wpdb->prepare(
-            "SELECT id, date, total, store, subtotal, shipping, tax, reimbursed, cmid, link FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT id, date, total, store, subtotal, shipping, tax, reimbursed, cmid, link FROM $table WHERE season = %d ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            $season,
             $per_page,
             $offset
         );

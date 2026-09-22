@@ -98,7 +98,8 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         $offset       = ($current_page - 1) * $per_page;
         $table        = "{$wpdb->prefix}mf_budget_category";
 
-        $total_items = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+        $season = CampManagerSeason::selected();
+        $total_items = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE season = %d", $season));
 
         $order_by = $_GET['orderby'] ?? 'id';
         $order    = (isset($_GET['order']) && strtolower($_GET['order']) === 'asc') ? 'ASC' : 'DESC';
@@ -112,7 +113,8 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         $order    = ($order === 'ASC') ? 'ASC' : 'DESC';
 
         $sql = $wpdb->prepare(
-            "SELECT id, name, description FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT id, name, description FROM $table WHERE season = %d ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            $season,
             $per_page,
             $offset
         );
@@ -145,12 +147,24 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
 
 
 
+    /** Sum of budget item totals for the viewed season's categories; $condition is the original filter. */
+    private function sumSeasonItems($condition)
+    {
+        global $wpdb;
+        $items = "{$wpdb->prefix}mf_budget_items";
+        $categories = "{$wpdb->prefix}mf_budget_category";
+        return $wpdb->get_var($wpdb->prepare(
+            "SELECT SUM(total) FROM $items WHERE category_id IN (SELECT id FROM $categories WHERE season = %d) AND ($condition)",
+            CampManagerSeason::selected()
+        ));
+    }
+
     public function get_must_have_total()
     {
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
         // Assuming there is a 'priority' column and '1' means "must have"
-        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 1 AND purchased != 1");
+        $total = $this->sumSeasonItems("priority = 1 AND purchased != 1");
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
@@ -159,7 +173,7 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
         // Assuming there is a 'priority' column and '2' means "should have"
-        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 2 OR priority = 1 AND purchased != 1");
+        $total = $this->sumSeasonItems("priority = 2 OR priority = 1 AND purchased != 1");
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
@@ -168,7 +182,7 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
         // Assuming there is a 'priority' column and '3' means "could have"
-        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 3 OR priority = 2 OR priority = 1 AND purchased != 1");
+        $total = $this->sumSeasonItems("priority = 3 OR priority = 2 OR priority = 1 AND purchased != 1");
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
@@ -177,7 +191,7 @@ class CampManagerBudgetCategoriesTable extends WP_List_Table
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_items";
         // Assuming there is a 'priority' column and '4' means "nice to have"
-        $total = $wpdb->get_var("SELECT SUM(total) FROM $table WHERE priority = 4 OR priority = 3 OR priority = 2 OR priority = 1 AND purchased != 1");
+        $total = $this->sumSeasonItems("priority = 4 OR priority = 3 OR priority = 2 OR priority = 1 AND purchased != 1");
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 

@@ -133,7 +133,8 @@ class CampManagerRosterTable extends WP_List_Table
         $offset       = ($current_page - 1) * $per_page;
         $table        = "{$wpdb->prefix}mf_roster";
 
-        $total_items = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+        $season = CampManagerSeason::selected();
+        $total_items = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table WHERE season = %d", $season));
 
         $order_by = $_GET['orderby'] ?? 'id';
         $order    = (isset($_GET['order']) && strtolower($_GET['order']) === 'asc') ? 'ASC' : 'DESC';
@@ -149,10 +150,12 @@ class CampManagerRosterTable extends WP_List_Table
         // Always put Dropped at the end
         $sql = $wpdb->prepare(
             "SELECT * FROM $table 
+             WHERE season = %d
              ORDER BY 
                 (status = %s) ASC, 
                 $order_by $order 
              LIMIT %d OFFSET %d",
+            $season,
             'Dropped',
             $per_page,
             $offset

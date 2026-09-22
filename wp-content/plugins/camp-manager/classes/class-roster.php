@@ -77,11 +77,17 @@ class CampManagerRoster
         }
     }
 
+    /** Season every roster count and list is scoped to (what the admin is viewing). */
+    private function season(): int
+    {
+        return CampManagerSeason::selected();
+    }
+
     public function countRosterMembers()
     {
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name";
+        $query = $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE season = %d", $this->season());
         return $wpdb->get_var($query);
     }
 
@@ -90,7 +96,7 @@ class CampManagerRoster
         // Get all members from mf_roster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT * FROM $table_name ORDER BY lname, fname";
+        $query = $wpdb->prepare("SELECT * FROM $table_name WHERE season = %d ORDER BY lname, fname", $this->season());
         $members = $wpdb->get_results($query, ARRAY_A);
         return $members ?: [];
     }
@@ -109,7 +115,7 @@ class CampManagerRoster
     {
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name WHERE status = 'Confirmed'";
+        $query = $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE status = 'Confirmed' AND season = %d", $this->season());
         return $wpdb->get_var($query);
     }
 
@@ -118,7 +124,7 @@ class CampManagerRoster
         // Get all confirmed members from mf_roster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT * FROM $table_name WHERE status = 'Confirmed' ORDER BY lname, fname";
+        $query = $wpdb->prepare("SELECT * FROM $table_name WHERE status = 'Confirmed' AND season = %d ORDER BY lname, fname", $this->season());
         $members = $wpdb->get_results($query, ARRAY_A);
         return $members ?: [];
     }
@@ -127,7 +133,7 @@ class CampManagerRoster
     {
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid = 1";
+        $query = $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE fully_paid = 1 AND season = %d", $this->season());
         return $wpdb->get_var($query);
     }
 
@@ -136,7 +142,7 @@ class CampManagerRoster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
         // Count where fully_paid is NULL or 0 and status is 'confirmed'
-        $query = "SELECT COUNT(*) FROM $table_name WHERE (fully_paid IS NULL OR fully_paid = 0) AND status = 'Confirmed'";
+        $query = $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE (fully_paid IS NULL OR fully_paid = 0) AND status = 'Confirmed' AND season = %d", $this->season());
         return $wpdb->get_var($query);
     }
 
@@ -153,15 +159,15 @@ class CampManagerRoster
                 ELSE 0
             END
             ) 
-            FROM $table_name";
-        return $wpdb->get_var($query);
+            FROM $table_name WHERE season = %d";
+        return $wpdb->get_var($wpdb->prepare($query, $this->season()));
     }
     
     public function countLowIncomeMembers()
     {
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name WHERE low_income = 1 AND status = 'confirmed'";
+        $query = $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE low_income = 1 AND status = 'confirmed' AND season = %d", $this->season());
         return $wpdb->get_var($query);
     }
 
@@ -170,7 +176,7 @@ class CampManagerRoster
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
         // Count where fully_paid is NULL or 0 and status is 'confirmed'
-        $query = "SELECT COUNT(*) FROM $table_name WHERE (fully_paid IS NULL OR fully_paid = 0) AND status = 'Confirmed'";
+        $query = $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE (fully_paid IS NULL OR fully_paid = 0) AND status = 'Confirmed' AND season = %d", $this->season());
         return $wpdb->get_var($query);
     }
 
@@ -183,7 +189,7 @@ class CampManagerRoster
     {
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name WHERE low_income = 1 AND (fully_paid IS NULL OR fully_paid = 0)";
+        $query = $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE low_income = 1 AND (fully_paid IS NULL OR fully_paid = 0) AND season = %d", $this->season());
         return $wpdb->get_var($query);
     }
 
@@ -191,7 +197,7 @@ class CampManagerRoster
     {
         global $wpdb;
         $table_name = "{$wpdb->prefix}mf_roster";
-        $query = "SELECT COUNT(*) FROM $table_name WHERE fully_paid = 1 AND low_income = 1";
+        $query = $wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE fully_paid = 1 AND low_income = 1 AND season = %d", $this->season());
         return $wpdb->get_var($query);
     }   
 
@@ -233,7 +239,6 @@ class CampManagerRoster
             // 'wpid' => $memberData['wpid'],
             'low_income' => isset($memberData['low_income']) ? (int)$memberData['low_income'] : null,
             'fully_paid' => isset($memberData['fully_paid']) ? (int)$memberData['fully_paid'] : null,
-            'season' => 2025,
             'fname' => sanitize_text_field($memberData['fname']),
             'lname' => sanitize_text_field($memberData['lname']),
             'playaname' => sanitize_text_field($memberData['playaname']),
@@ -241,13 +246,21 @@ class CampManagerRoster
             'status' => isset($memberData['member_status']) ? sanitize_text_field($memberData['member_status']) : '',
         ];
 
+        // An existing member keeps their season unless a new one is given; a new member
+        // defaults to the season being viewed.
+        $season = !empty($memberData['season']) ? (int)$memberData['season'] : null;
+
         if (isset($memberData['id']) && !empty($memberData['id'])) {
+            if ($season) {
+                $data['season'] = $season;
+            }
             $result = $wpdb->update($table_name, $data, ['id' => (int)$memberData['id']]);
             if ($result === false) {
                 throw new \Exception("Failed to update member in roster: {$wpdb->last_error}");
             }
             return $memberData['id'];
         } else {
+            $data['season'] = $season ?: $this->season();
             $result = $wpdb->insert($table_name, $data);
             if ($result === false) {
                 throw new \Exception("Failed to insert member in roster: {$wpdb->last_error}");

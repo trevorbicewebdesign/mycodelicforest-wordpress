@@ -39,10 +39,16 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
         <?php if ($is_edit): ?>
             <input type="hidden" name="id" value="<?php echo esc_attr($id); ?>">
         <?php endif; ?>
-        <input type="hidden" name="season" value="2025">
         <div class="row">
             <div class="col-md-6">
                 <table class="form-table">
+                    <tr>
+                        <th><label for="season">Season</label></th>
+                        <td>
+                            <input type="number" name="season" id="season" class="small-text" min="2000" max="2100" required
+                                value="<?php echo esc_attr($is_edit && !empty($member->season) ? $member->season : CampManagerSeason::selected()); ?>">
+                        </td>
+                    </tr>
                     <tr>
                         <th><label for="member_fname">First Name</label></th>
                         <td>

@@ -6,6 +6,9 @@
  * Schema is kept identical to production (generated from SHOW CREATE TABLE on
  * 2026-09-21). dbDelta() is idempotent: it adds missing tables and columns and
  * leaves existing data alone, so this runs safely on activation every time.
+ *
+ * `season` on the roster, ledger, receipts and budget category tables was added after that
+ * snapshot (see CampManagerSeason::upgrade(), which also runs this and backfills old rows).
  */
 class CampManagerInstall
 {
@@ -49,6 +52,7 @@ class CampManagerInstall
             id int NOT NULL AUTO_INCREMENT,
             name varchar(255) DEFAULT NULL,
             description varchar(255) DEFAULT NULL,
+            season int DEFAULT NULL,
             PRIMARY KEY  (id)
         ) $charset_collate;";
         dbDelta($sql);
@@ -131,6 +135,7 @@ class CampManagerInstall
             date datetime DEFAULT NULL,
             note text,
             link varchar(255) DEFAULT NULL,
+            season int DEFAULT NULL,
             PRIMARY KEY  (id)
         ) $charset_collate;";
         dbDelta($sql);
@@ -198,6 +203,7 @@ class CampManagerInstall
             store varchar(255) DEFAULT NULL,
             raw longtext,
             link varchar(255) DEFAULT NULL,
+            season int DEFAULT NULL,
             PRIMARY KEY  (id),
             CONSTRAINT {$table}_chk_raw_json CHECK (json_valid(raw))
         ) $charset_collate;";

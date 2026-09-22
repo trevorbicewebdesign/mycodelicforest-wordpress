@@ -23,21 +23,29 @@ class CampManagerLedgerTable extends WP_List_Table
 
     public function get_columns()
     {
-        return [
+        $columns = [
             'cb'    => '<input type="checkbox" />', // For bulk actions
             'id'    => 'ID',
+            'season' => 'Season',
             'note' => 'Note',
             'amount' => 'Amount',
             'date'  => 'Date',      
             'receipts' => 'Receipts',
             'link' => 'Link',
         ];
+
+        // The season only tells rows apart when several seasons are listed together.
+        if (!CampManagerSeason::viewingAll()) {
+            unset($columns['season']);
+        }
+        return $columns;
     }
 
     public function get_sortable_columns()
     {
         return [
             'id'    => ['id', true],
+            'season' => ['season', false],
             'amount' => ['amount', false],
             'date'  => ['date', false],
             'note'   => ['note', false],
@@ -89,7 +97,7 @@ class CampManagerLedgerTable extends WP_List_Table
     {
         global $wpdb;
         $table = "{$wpdb->prefix}mf_ledger";
-        $total = $wpdb->get_var("SELECT SUM(amount) FROM $table");
+        $total = $wpdb->get_var("SELECT SUM(amount) FROM $table WHERE " . CampManagerSeason::whereSeason());
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
@@ -130,7 +138,7 @@ class CampManagerLedgerTable extends WP_List_Table
     {
         global $wpdb;
         $table = "{$wpdb->prefix}mf_ledger";
-        $total = $wpdb->get_var("SELECT SUM(amount) FROM $table WHERE amount > 0");
+        $total = $wpdb->get_var("SELECT SUM(amount) FROM $table WHERE amount > 0 AND " . CampManagerSeason::whereSeason());
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
@@ -138,7 +146,7 @@ class CampManagerLedgerTable extends WP_List_Table
     {
         global $wpdb;
         $table = "{$wpdb->prefix}mf_ledger";
-        $total = $wpdb->get_var("SELECT SUM(amount) FROM $table WHERE amount < 0");
+        $total = $wpdb->get_var("SELECT SUM(amount) FROM $table WHERE amount < 0 AND " . CampManagerSeason::whereSeason());
         return $total ? '$' . number_format((float) $total, 2) : '$0.00';
     }
 
@@ -159,7 +167,8 @@ class CampManagerLedgerTable extends WP_List_Table
         $offset       = ($current_page - 1) * $per_page;
         $table        = "{$wpdb->prefix}mf_ledger";
 
-        $total_items = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+        $where = CampManagerSeason::whereSeason();
+        $total_items = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE $where");
 
         $order_by = $_GET['orderby'] ?? 'id';
         $order    = (isset($_GET['order']) && strtolower($_GET['order']) === 'asc') ? 'ASC' : 'DESC';
@@ -179,7 +188,7 @@ class CampManagerLedgerTable extends WP_List_Table
         
 
         $sql = $wpdb->prepare(
-            "SELECT id, amount, date, note, link FROM $table ORDER BY $order_by $order LIMIT %d OFFSET %d",
+            "SELECT id, season, amount, date, note, link FROM $table WHERE $where ORDER BY $order_by $order LIMIT %d OFFSET %d",
             $per_page,
             $offset
         );

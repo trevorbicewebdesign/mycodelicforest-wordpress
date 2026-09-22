@@ -23,7 +23,7 @@ class CampManagerCore {
         // Need to get the categories from the database
         global $wpdb;
         $table = "{$wpdb->prefix}mf_budget_category";
-        $query = "SELECT * FROM $table";
+        $query = $wpdb->prepare("SELECT * FROM $table WHERE season = %d", CampManagerSeason::selected());
         $categories = $wpdb->get_results($query, ARRAY_A);
         return $categories ? $categories : [];
     }
