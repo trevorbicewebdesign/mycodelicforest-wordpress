@@ -55,9 +55,7 @@ class CampManagerRosterCest
                 // "years_attended" => '["2024"]',
             ]
         ]);
-        $I->loginAs("testadmin", "password123!test");
-        // Let the login redirect finish before the test navigates, or the redirect wins and lands on the Dashboard.
-        $I->waitForElement("#wpadminbar", 10);
+        $I->signInAs("testadmin", "password123!test");
     }
     public function ViewRoster(AcceptanceTester $I)
     {

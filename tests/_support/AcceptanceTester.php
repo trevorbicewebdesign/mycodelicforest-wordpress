@@ -28,6 +28,43 @@ class AcceptanceTester extends \Codeception\Actor
      * Define custom actions here
      */
 
+    /**
+     * Logs in through wp-login.php and waits until the session is really established.
+     *
+     * The first admin login of a run can be slow on a cold CI runner, and a login whose
+     * submit never completes leaves the login form on screen. Rather than a single
+     * fixed wait, allow each attempt a generous window and retry the login once; if the
+     * first attempt was merely slow and has since succeeded, keep that session.
+     *
+     * @param string $login         User login.
+     * @param string $password      User password.
+     * @param string $readySelector Element that only exists once logged in.
+     * @param int    $attempts      Maximum login attempts.
+     */
+    public function signInAs(string $login, string $password, string $readySelector = '#wpadminbar', int $attempts = 2): void
+    {
+        $I = $this;
+
+        for ($attempt = 1; ; $attempt++) {
+            $I->loginAs($login, $password);
+
+            try {
+                // Let the login redirect finish before the test navigates, or the
+                // redirect wins and lands on the Dashboard.
+                $I->waitForElement($readySelector, 20);
+                return;
+            } catch (\Throwable $e) {
+                if ($I->tryToSeeElement($readySelector)) {
+                    return;
+                }
+                if ($attempt >= $attempts) {
+                    throw $e;
+                }
+                $I->comment("Login as {$login} did not complete (attempt {$attempt}/{$attempts}); retrying.");
+            }
+        }
+    }
+
      /**
      * Captures a full-page screenshot by resizing the browser to the entire page height, 
      * taking the screenshot, then restoring the original window size.
