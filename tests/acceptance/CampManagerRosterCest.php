@@ -137,6 +137,9 @@ class CampManagerRosterCest
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member&id=$member_id");
         $I->waitForText("Edit Member", 10, "h1");
 
+        // The wpid select should already reflect the member's stored WordPress user.
+        $I->assertEquals((string) $this->userId, $I->grabValueFrom("#wpid"));
+
         // Fill in the form fields
         $I->fillField("#member_fname", "Same");
         $I->fillField("#member_lname", "Smith");
@@ -151,8 +154,43 @@ class CampManagerRosterCest
             "fname" => "Same",
             "lname" => "Smith",
             "playaname" => "SamSmith",
-            "email" => "sam.smith@example.com"
+            "email" => "sam.smith@example.com",
+            // Editing unrelated fields must not wipe out the previously selected WordPress user.
+            "wpid" => $this->userId,
         ]);
+    }
+
+    public function UpdateMemberWpid(AcceptanceTester $I)
+    {
+        $member_id = $I->haveInDatabase("wp_mf_roster", [
+            "wpid" => 0,
+            "low_income" => 0,
+            "fully_paid" => 0,
+            "season" => 2025,
+            "fname" => "Wanda",
+            "lname" => "Ward",
+            "playaname" => "Wander",
+            "email" => "wanda.ward@example.com"
+        ]);
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member&id=$member_id");
+        $I->waitForText("Edit Member", 10, "h1");
+
+        // No WordPress user selected yet.
+        $I->assertEquals("", $I->grabValueFrom("#wpid"));
+
+        $I->selectOption("#wpid", (string) $this->userId);
+        $I->click("Save Member");
+        $I->wait(1);
+
+        $I->seeInDatabase("wp_mf_roster", [
+            "id" => $member_id,
+            "wpid" => $this->userId,
+        ]);
+
+        // Reload and confirm the selection survived the round trip.
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member&id=$member_id");
+        $I->waitForText("Edit Member", 10, "h1");
+        $I->assertEquals((string) $this->userId, $I->grabValueFrom("#wpid"));
     }
 
 }
