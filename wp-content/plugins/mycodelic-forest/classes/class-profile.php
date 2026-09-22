@@ -882,7 +882,16 @@ class MycodelicForestProfile
             case 'roster_list':
                 $contact_id = $this->civicrm->getContactIdForUser($user->ID);
                 $rosters = $contact_id ? $this->civicrm->getContactRosterGroups($contact_id) : [];
-                return $rosters ? implode(', ', $rosters) : __('No roster history yet.', 'textdomain');
+                if (!$rosters) {
+                    return __('No roster history yet.', 'textdomain');
+                }
+                $links = [];
+                foreach ($rosters as $title) {
+                    $year = preg_match('/^\d{4}/', $title, $m) ? $m[0] : null;
+                    $url = $year ? home_url('/roster/?roster_year=' . $year) : home_url('/roster/');
+                    $links[] = '<a href="' . esc_url($url) . '">' . esc_html($title) . '</a>';
+                }
+                return implode(', ', $links);
 
             case 'posts_count':
                 $count = (int) count_user_posts($user->ID, 'post');
