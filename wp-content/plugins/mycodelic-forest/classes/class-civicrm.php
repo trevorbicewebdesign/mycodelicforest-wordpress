@@ -64,11 +64,11 @@ class MycodelicForestCiviCRM
     }
 
     /**
-     * The /profile/{nicename}/ URL for a contact's linked WordPress account, or
-     * null if the contact has no account, or its UFMatch row is a stale
+     * A contact's linked WordPress account details (profile URL + playa name),
+     * or null if the contact has no account, or its UFMatch row is a stale
      * leftover pointing at a since-deleted user (get_user_by() then fails).
      */
-    public function getProfileUrlForContact($contact_id)
+    public function getWpProfileForContact($contact_id)
     {
         try {
             $result = civicrm_api3('UFMatch', 'get', [
@@ -86,7 +86,14 @@ class MycodelicForestCiviCRM
         }
 
         $user = get_user_by('id', $uf_id);
-        return $user ? home_url('/profile/' . $user->user_nicename . '/') : null;
+        if (!$user) {
+            return null;
+        }
+
+        return [
+            'url'        => home_url('/profile/' . $user->user_nicename . '/'),
+            'playa_name' => get_user_meta($user->ID, 'playa_name', true),
+        ];
     }
 
     /**

@@ -140,12 +140,17 @@ class MycodelicForestShortcodes
                 $display_name = !empty($contact['display_name']) ? $contact['display_name'] : '(No Name)';
                 $email = !empty($contact['email']) ? $contact['email'] : '(No Email)';
 
-                $name_html = esc_html($display_name);
-                $profile_url = !empty($contact['contact_id'])
-                    ? $this->MycodelicForestCiviCRM->getProfileUrlForContact($contact['contact_id'])
+                $profile = !empty($contact['contact_id'])
+                    ? $this->MycodelicForestCiviCRM->getWpProfileForContact($contact['contact_id'])
                     : null;
-                if ($profile_url) {
-                    $name_html = '<a href="' . esc_url($profile_url) . '">' . $name_html . '</a>';
+
+                $label = !empty($profile['playa_name'])
+                    ? $profile['playa_name'] . ' (' . $display_name . ')'
+                    : $display_name;
+
+                $name_html = esc_html($label);
+                if (!empty($profile['url'])) {
+                    $name_html = '<a href="' . esc_url($profile['url']) . '">' . $name_html . '</a>';
                 }
 
                 $html .= '<li>';
