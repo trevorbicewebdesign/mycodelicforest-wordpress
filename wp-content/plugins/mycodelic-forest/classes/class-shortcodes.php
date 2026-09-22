@@ -140,8 +140,16 @@ class MycodelicForestShortcodes
                 $display_name = !empty($contact['display_name']) ? $contact['display_name'] : '(No Name)';
                 $email = !empty($contact['email']) ? $contact['email'] : '(No Email)';
 
+                $name_html = esc_html($display_name);
+                $profile_url = !empty($contact['contact_id'])
+                    ? $this->MycodelicForestCiviCRM->getProfileUrlForContact($contact['contact_id'])
+                    : null;
+                if ($profile_url) {
+                    $name_html = '<a href="' . esc_url($profile_url) . '">' . $name_html . '</a>';
+                }
+
                 $html .= '<li>';
-                $html .= '<strong>' . esc_html($display_name) . '</strong>';
+                $html .= '<strong>' . $name_html . '</strong>';
                 if (!empty($atts['show_email'])) {
                     $html .= ' &ndash; ' . esc_html($email);
                 }

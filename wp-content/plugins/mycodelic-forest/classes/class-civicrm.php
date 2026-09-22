@@ -64,6 +64,32 @@ class MycodelicForestCiviCRM
     }
 
     /**
+     * The /profile/{nicename}/ URL for a contact's linked WordPress account, or
+     * null if the contact has no account, or its UFMatch row is a stale
+     * leftover pointing at a since-deleted user (get_user_by() then fails).
+     */
+    public function getProfileUrlForContact($contact_id)
+    {
+        try {
+            $result = civicrm_api3('UFMatch', 'get', [
+                'sequential' => 1,
+                'contact_id' => $contact_id,
+                'return'     => ['uf_id'],
+            ]);
+        } catch (\CiviCRM_API3_Exception $e) {
+            return null;
+        }
+
+        $uf_id = $result['values'][0]['uf_id'] ?? null;
+        if (!$uf_id) {
+            return null;
+        }
+
+        $user = get_user_by('id', $uf_id);
+        return $user ? home_url('/profile/' . $user->user_nicename . '/') : null;
+    }
+
+    /**
      * Which yearly roster groups a contact belongs to.
      *
      * @return array Group titles keyed by group ID, newest year first.
