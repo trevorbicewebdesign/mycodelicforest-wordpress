@@ -59,10 +59,14 @@ class CampManagerRosterCest
     }
     public function ViewRoster(AcceptanceTester $I)
     {
-        // Seed two members so the list has known content (the CI seed DB has an empty roster).
+        // Seed two members so the list has known content (the CI seed DB has an empty
+        // roster). getRosterMembers() filters `WHERE season = <viewed season>`, so a fixed
+        // year would only work by coincidence - use whatever season this environment
+        // actually resolves to.
+        $season = $I->currentCampManagerSeason();
         foreach ([['Alice', 'Anders', 'Ally'], ['Bob', 'Baker', 'Bobcat']] as $m) {
             $I->haveInDatabase("wp_mf_roster", [
-                "wpid" => 0, "season" => 2025, "fname" => $m[0], "lname" => $m[1], "playaname" => $m[2],
+                "wpid" => 0, "season" => $season, "fname" => $m[0], "lname" => $m[1], "playaname" => $m[2],
                 "email" => strtolower($m[0]) . "@example.com", "low_income" => 0, "fully_paid" => 1, "status" => "Confirmed",
             ]);
         }
@@ -95,7 +99,12 @@ class CampManagerRosterCest
     {
         // Navigate to the add member page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member");
-        $I->waitForText("Add New Member", 10, "h1"); 
+        $I->waitForText("Add New Member", 10, "h1");
+
+        // The season field is prefilled from CampManagerSeason::selected(), which depends on
+        // ambient roster data (it falls back to the current year when the table is empty) -
+        // read whatever it actually shows rather than assuming a fixed year.
+        $season = (int) $I->grabValueFrom("#season");
 
         // Fill in the form fields
         $I->fillField("#member_fname", "John");
@@ -114,7 +123,7 @@ class CampManagerRosterCest
             "fname" => "John",
             "lname" => "Doe",
             "playaname" => "BurnerJohn",
-            'season' => 2025,
+            'season' => $season,
             "low_income" => 1,   // both boxes were ticked above
             "fully_paid" => 1,
             "wpid" => 0,         // no WordPress user selected
@@ -137,6 +146,9 @@ class CampManagerRosterCest
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member&id=$member_id");
         $I->waitForText("Edit Member", 10, "h1");
 
+        // The wpid select should already reflect the member's stored WordPress user.
+        $I->assertEquals((string) $this->userId, $I->grabValueFrom("#wpid"));
+
         // Fill in the form fields
         $I->fillField("#member_fname", "Same");
         $I->fillField("#member_lname", "Smith");
@@ -151,8 +163,43 @@ class CampManagerRosterCest
             "fname" => "Same",
             "lname" => "Smith",
             "playaname" => "SamSmith",
-            "email" => "sam.smith@example.com"
+            "email" => "sam.smith@example.com",
+            // Editing unrelated fields must not wipe out the previously selected WordPress user.
+            "wpid" => $this->userId,
         ]);
+    }
+
+    public function UpdateMemberWpid(AcceptanceTester $I)
+    {
+        $member_id = $I->haveInDatabase("wp_mf_roster", [
+            "wpid" => 0,
+            "low_income" => 0,
+            "fully_paid" => 0,
+            "season" => 2025,
+            "fname" => "Wanda",
+            "lname" => "Ward",
+            "playaname" => "Wander",
+            "email" => "wanda.ward@example.com"
+        ]);
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member&id=$member_id");
+        $I->waitForText("Edit Member", 10, "h1");
+
+        // No WordPress user selected yet.
+        $I->assertEquals("", $I->grabValueFrom("#wpid"));
+
+        $I->selectOption("#wpid", (string) $this->userId);
+        $I->click("Save Member");
+        $I->wait(1);
+
+        $I->seeInDatabase("wp_mf_roster", [
+            "id" => $member_id,
+            "wpid" => $this->userId,
+        ]);
+
+        // Reload and confirm the selection survived the round trip.
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member&id=$member_id");
+        $I->waitForText("Edit Member", 10, "h1");
+        $I->assertEquals((string) $this->userId, $I->grabValueFrom("#wpid"));
     }
 
 }

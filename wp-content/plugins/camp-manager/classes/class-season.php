@@ -88,23 +88,52 @@ class CampManagerSeason
         return $seasons;
     }
 
-    /** Adds the season columns (dbDelta) and files pre-season data under the legacy season, once. */
+    /**
+     * Adds the season columns and files pre-season data under the legacy season, once.
+     *
+     * Only the missing columns are added (no dbDelta over every table), and a database lock
+     * lets exactly one request do it: right after a deploy WP-CLI and web requests all hit
+     * init at once, and concurrent ALTER TABLEs would queue up on metadata locks. The lock is
+     * released by MySQL if the process dies, so it can't get stuck.
+     */
     public static function upgrade()
     {
-        if ((int) get_option(self::OPTION_DB_VERSION) >= self::DB_VERSION) {
+        if (self::upgraded()) {
             return;
         }
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        require_once __DIR__ . '/class-install.php';
-        (new CampManagerInstall())->install();
-
         global $wpdb;
-        foreach (self::$season_tables as $table) {
-            $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}$table SET season = %d WHERE season IS NULL", self::LEGACY_SEASON));
+        $lock = $wpdb->prefix . 'camp_manager_upgrade';
+        if (!(int) $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', $lock))) {
+            return; // another request is upgrading; the tables are usable once it finishes
         }
 
-        update_option(self::OPTION_DB_VERSION, self::DB_VERSION);
+        try {
+            // Someone else may have finished while we were waiting for the lock.
+            wp_cache_delete(self::OPTION_DB_VERSION, 'options');
+            if (self::upgraded()) {
+                return;
+            }
+
+            foreach (['mf_ledger', 'mf_receipts', 'mf_budget_category'] as $table) {
+                $name = $wpdb->prefix . $table;
+                if (!$wpdb->get_var("SHOW COLUMNS FROM $name LIKE 'season'")) {
+                    $wpdb->query("ALTER TABLE $name ADD COLUMN season int DEFAULT NULL");
+                }
+            }
+            foreach (self::$season_tables as $table) {
+                $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}$table SET season = %d WHERE season IS NULL", self::LEGACY_SEASON));
+            }
+
+            update_option(self::OPTION_DB_VERSION, self::DB_VERSION);
+        } finally {
+            $wpdb->query($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock));
+        }
+    }
+
+    private static function upgraded(): bool
+    {
+        return (int) get_option(self::OPTION_DB_VERSION) >= self::DB_VERSION;
     }
 
     public static function handleSwitch()

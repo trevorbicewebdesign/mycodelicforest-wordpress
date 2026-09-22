@@ -7,6 +7,7 @@ class CampManagerBudgetsCest
 {
     protected $userId;
     protected $adminId;
+    protected $season;
     public function _before(AcceptanceTester $I)
     {
          // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
@@ -55,6 +56,15 @@ class CampManagerBudgetsCest
                 // "years_attended" => '["2024"]',
             ]
         ]);
+
+        // Both getItemCategories() (the category select and the categories list page) and
+        // getBudgetItems() join/filter on `season = <viewed season>`. The CI fixture's raw-SQL
+        // seed of these two categories doesn't set one (see codeception-test.yml), so pin them
+        // to whatever season this environment will actually display - otherwise "Power"/
+        // "Sojourner" silently don't exist anywhere a page renders them.
+        $this->season = $I->currentCampManagerSeason();
+        $I->updateInDatabase("wp_mf_budget_category", ["season" => $this->season], ["id" => 1]);
+        $I->updateInDatabase("wp_mf_budget_category", ["season" => $this->season], ["id" => 2]);
 
         $I->haveInDatabase("wp_mf_budget_items", [
             "name" => "Test Budget Item",
@@ -330,6 +340,7 @@ class CampManagerBudgetsCest
         $id = $I->haveInDatabase("wp_mf_budget_category", [
             "name" => "Test Category",
             "description" => "This is a test budget category description.",
+            "season" => $this->season,
         ]);
 
         // Navigate to the edit budget category page
@@ -367,6 +378,7 @@ class CampManagerBudgetsCest
         $id = $I->haveInDatabase("wp_mf_budget_category", [
             "name" => "Test Category",
             "description" => "This is a test budget category description.",
+            "season" => $this->season,
         ]);
 
         // Navigate to the budget categories page

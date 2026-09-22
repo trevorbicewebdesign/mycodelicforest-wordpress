@@ -28,6 +28,22 @@ class CampManagerSeasonTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $this->assertSame(2027, CampManagerSeason::selected());
     }
 
+    public function testCurrentSeasonFallsBackToLatestRosterDataOrThisYear()
+    {
+        delete_option(CampManagerSeason::OPTION_CURRENT);
+
+        // No season has been started and no roster data exists yet: falls back to the
+        // current year (this is what tripped up CampManagerRosterCest::AddMember in CI,
+        // since it assumed a fixed year rather than reading the season the form actually showed).
+        $this->assertSame((int) gmdate('Y'), CampManagerSeason::current());
+
+        // Once there's roster data, the latest season on file wins over the current year.
+        $this->tester->haveInDatabase('mf_roster', [
+            'wpid' => 0, 'fname' => 'Old', 'lname' => 'Camper', 'status' => 'Confirmed', 'season' => 2025,
+        ]);
+        $this->assertSame(2025, CampManagerSeason::current());
+    }
+
     public function testAvailableListsEverySeasonWithData()
     {
         $this->tester->haveInDatabase('mf_ledger', ['amount' => 1, 'note' => 'old', 'date' => '2025-01-01', 'season' => 2025]);
