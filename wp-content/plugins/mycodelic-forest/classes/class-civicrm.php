@@ -46,6 +46,62 @@ class MycodelicForestCiviCRM
     }
 
     /**
+     * @return int|null The CiviCRM contact ID linked to a WordPress user, or null if unlinked.
+     */
+    public function getContactIdForUser($user_id)
+    {
+        try {
+            $result = civicrm_api3('UFMatch', 'get', [
+                'sequential' => 1,
+                'uf_id'      => $user_id,
+                'return'     => ['contact_id'],
+            ]);
+        } catch (\CiviCRM_API3_Exception $e) {
+            return null;
+        }
+
+        return !empty($result['values'][0]['contact_id']) ? (int) $result['values'][0]['contact_id'] : null;
+    }
+
+    /**
+     * Which yearly roster groups a contact belongs to.
+     *
+     * @return array Group titles keyed by group ID, newest year first.
+     */
+    public function getContactRosterGroups($contact_id)
+    {
+        $roster_groups = $this->getRosterGroups();
+        if (empty($roster_groups) || empty($contact_id)) {
+            return [];
+        }
+
+        try {
+            // NOTE: passing group_id => ['IN' => [...]] alongside contact_id crashes
+            // CRM_Contact_BAO_GroupContact::getContactGroup() (htmlentities() on an
+            // array) in this CiviCRM version — fetch all of the contact's groups and
+            // intersect with the roster list in PHP instead.
+            $result = civicrm_api3('GroupContact', 'get', [
+                'contact_id' => $contact_id,
+                'status'     => 'Added',
+                'return'     => ['group_id'],
+                'options'    => ['limit' => 0],
+            ]);
+        } catch (\CiviCRM_API3_Exception $e) {
+            return [];
+        }
+
+        $member_of = [];
+        foreach ($result['values'] as $row) {
+            $gid = (int) $row['group_id'];
+            if (isset($roster_groups[$gid])) {
+                $member_of[$gid] = $roster_groups[$gid];
+            }
+        }
+
+        return $member_of;
+    }
+
+    /**
      * Retrieves the name of a CiviCRM group based on the provided group ID.
      *
      * @param int $group_id The ID of the CiviCRM group.

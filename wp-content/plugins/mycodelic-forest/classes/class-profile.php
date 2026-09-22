@@ -1,7 +1,6 @@
 <?php
 class MycodelicForestProfile
 {
-
     protected $messages;
     protected $civicrm;
     public function __construct(MycodelicForestMessages $messages, MycodelicForestCiviCRM $civicrm)
@@ -20,6 +19,34 @@ class MycodelicForestProfile
 
         // Other hooks (recaptcha, redirection, etc.) remain the same.
         add_action('template_redirect', [$this, 'mycodelic_redirect_incomplete_profile']);
+
+        // Members-only per-user profile page at /profile/{user_nicename}/, built on
+        // WordPress's native author archive machinery (author.html template in the
+        // child theme), not a virtual page. The rewrite just points that URL at the
+        // same query WP already uses for /author/{nicename}/.
+        add_action('init', [$this, 'mycodelic_add_rewrite_rules']);
+        // Canonicalize to /profile/ first, so an anonymous visit to /author/
+        // ends up sent to login with the nicer /profile/ redirect_to target.
+        add_action('template_redirect', [$this, 'redirect_author_archive_to_profile']);
+        add_action('template_redirect', [$this, 'require_login_for_author_archive']);
+
+        // Expose the profile fields with no native block equivalent (playa name,
+        // about me, years attended, location, roles, roster history, avatar) to
+        // the Block Bindings API, so the author.html template can bind ordinary
+        // Heading/Paragraph/Image blocks straight to them in the Site Editor —
+        // no shortcodes, no PHP in the template itself.
+        add_action('init', [$this, 'register_profile_meta']);
+        add_action('init', [$this, 'register_profile_binding_source']);
+        add_filter('render_block', [$this, 'maybe_hide_edit_profile_button'], 10, 2);
+
+        // Flat "Roles" taxonomy on users (loosely Holacracy-inspired — org roles,
+        // not WP capability roles). Admin-assignable from the user-edit screen;
+        // terms themselves are managed at Users -> Roles in wp-admin.
+        add_action('init', [$this, 'register_roles_taxonomy']);
+        add_action('show_user_profile', [$this, 'show_roles_field']);
+        add_action('edit_user_profile', [$this, 'show_roles_field']);
+        add_action('personal_options_update', [$this, 'save_roles_field']);
+        add_action('edit_user_profile_update', [$this, 'save_roles_field']);
 
         add_action('gform_after_submission_6', [$this, 'update_user_profile_from_gravity'], 10, 2);
 
@@ -181,8 +208,10 @@ class MycodelicForestProfile
             return;
         }
 
-        // Prevent redirect if already on the profile page
-        if (is_page('profile')) {
+        // Prevent redirect if already on the profile page, or a member profile
+        // view at /profile/{nicename}/ (a native author archive under the hood,
+        // so is_author() is what actually flags it — not is_page()).
+        if (is_page('profile') || is_author()) {
             return;
         }
 
@@ -314,6 +343,8 @@ class MycodelicForestProfile
                 'label' => __('Years attended', 'textdomain'),
                 'type' => 'checkbox',
                 'options' => [
+                    '2026' => __('2026', 'textdomain'),
+                    '2025' => __('2025', 'textdomain'),
                     '2024' => __('2024', 'textdomain'),
                     '2023' => __('2023', 'textdomain'),
                     '2022' => __('2022', 'textdomain'),
@@ -604,17 +635,281 @@ class MycodelicForestProfile
         $this->update_extra_fields($user_id, $_POST);
     }
 
-    public function mycodelic_add_rewrite_rules()
+    /**
+     * Flat "Roles" taxonomy on users — loosely Holacracy-inspired (a role someone
+     * fills in the org, e.g. "Roster Steward"), distinct from WP capability roles.
+     * No circles/purpose/accountabilities yet — just named roles.
+     */
+    public function register_roles_taxonomy()
     {
-        // Add a rewrite rule for the URL /profile/
-        add_rewrite_rule('^profile/?$', 'index.php?profile_page=1', 'top');
+        register_taxonomy('mycodelic_role', ['user'], [
+            'labels' => [
+                'name'          => __('Roles', 'textdomain'),
+                'singular_name' => __('Role', 'textdomain'),
+                'menu_name'     => __('Roles', 'textdomain'),
+                'all_items'     => __('All Roles', 'textdomain'),
+                'edit_item'     => __('Edit Role', 'textdomain'),
+                'add_new_item'  => __('Add New Role', 'textdomain'),
+                'search_items'  => __('Search Roles', 'textdomain'),
+            ],
+            'public'            => false,
+            'hierarchical'      => false,
+            'show_ui'           => true,
+            'show_in_menu'      => 'users.php',
+            'show_admin_column' => false,
+            'show_in_rest'      => false,
+        ]);
     }
 
-
-    public function mycodelic_query_vars($query_vars)
+    /**
+     * Admin-side: checklist of existing role terms on the user-edit screen.
+     */
+    public function show_roles_field($user)
     {
-        $query_vars[] = 'profile_page';
-        return $query_vars;
+        if (!current_user_can('edit_user', $user->ID)) {
+            return;
+        }
+
+        $all_roles = get_terms(['taxonomy' => 'mycodelic_role', 'hide_empty' => false]);
+        $assigned = wp_get_object_terms($user->ID, 'mycodelic_role', ['fields' => 'ids']);
+        $manage_url = admin_url('edit-tags.php?taxonomy=mycodelic_role');
+        ?>
+        <h3><?php esc_html_e('Roles', 'textdomain'); ?></h3>
+        <table class="form-table">
+            <tr>
+                <th><?php esc_html_e('Roles', 'textdomain'); ?></th>
+                <td>
+                    <?php if (empty($all_roles) || is_wp_error($all_roles)) : ?>
+                        <p>
+                            <?php esc_html_e('No roles defined yet.', 'textdomain'); ?>
+                            <a href="<?php echo esc_url($manage_url); ?>"><?php esc_html_e('Add one', 'textdomain'); ?></a>
+                        </p>
+                    <?php else : ?>
+                        <?php foreach ($all_roles as $role) : ?>
+                            <label style="display:block;">
+                                <input type="checkbox" name="mycodelic_roles[]" value="<?php echo esc_attr($role->term_id); ?>"
+                                    <?php checked(is_array($assigned) && in_array($role->term_id, $assigned, true)); ?> />
+                                <?php echo esc_html($role->name); ?>
+                            </label>
+                        <?php endforeach; ?>
+                        <p><a href="<?php echo esc_url($manage_url); ?>"><?php esc_html_e('Manage roles', 'textdomain'); ?></a></p>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+        <?php
+    }
+
+    public function save_roles_field($user_id)
+    {
+        if (!current_user_can('edit_user', $user_id)) {
+            return;
+        }
+
+        $term_ids = isset($_POST['mycodelic_roles']) ? array_map('intval', (array) $_POST['mycodelic_roles']) : [];
+        wp_set_object_terms($user_id, $term_ids, 'mycodelic_role', false);
+    }
+
+    public function mycodelic_add_rewrite_rules()
+    {
+        // /profile/ — the current user's own profile (existing GF page).
+        add_rewrite_rule('^profile/?$', 'index.php?profile_page=1', 'top');
+
+        // /profile/{user_nicename}/ — the SAME query WordPress uses natively for
+        // /author/{nicename}/, so is_author()/get_queried_object() and the
+        // author.html template (child theme) all just work, unmodified.
+        add_rewrite_rule('^profile/([^/]+)/?$', 'index.php?author_name=$matches[1]', 'top');
+    }
+
+    /**
+     * Members-only: anyone not logged in is sent to log in first, then back here.
+     */
+    public function require_login_for_author_archive()
+    {
+        if (!is_author() || is_user_logged_in()) {
+            return;
+        }
+        wp_safe_redirect(wp_login_url(home_url($_SERVER['REQUEST_URI'] ?? '/profile/')));
+        exit;
+    }
+
+    /**
+     * WordPress's default author archive (/author/{nicename}/, ?author={id}) is
+     * public by default. Send it to the members-only /profile/ URL instead —
+     * but /profile/{nicename}/ resolves to that SAME is_author() query, so only
+     * redirect requests that didn't already come in through /profile/ (otherwise
+     * this loops).
+     */
+    public function redirect_author_archive_to_profile()
+    {
+        if (!is_author()) {
+            return;
+        }
+
+        $path = (string) wp_parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+        if (strpos($path, '/profile/') === 0) {
+            return;
+        }
+
+        $user = get_queried_object();
+        if ($user instanceof WP_User) {
+            wp_safe_redirect(home_url('/profile/' . $user->user_nicename . '/'), 301);
+            exit;
+        }
+    }
+
+    /**
+     * Registers the profile fields as first-class WP user meta (REST-visible),
+     * separate from whether they're also exposed to Block Bindings below.
+     */
+    public function register_profile_meta()
+    {
+        foreach (['playa_name', 'user_about_me', 'city', 'state', 'country'] as $key) {
+            register_meta('user', $key, [
+                'type'         => 'string',
+                'single'       => true,
+                'show_in_rest' => true,
+            ]);
+        }
+    }
+
+    /**
+     * A custom Block Bindings source ("Member Profile") for the author.html
+     * template — exposes the profile fields that have no native WP block
+     * equivalent (playa name, about me, years, location, roles, roster
+     * history, avatar, edit-profile link), so ordinary Heading/Paragraph/Image
+     * blocks in the Site Editor can bind straight to them. No shortcodes, no
+     * PHP inside the template itself.
+     */
+    public function register_profile_binding_source()
+    {
+        if (!function_exists('register_block_bindings_source')) {
+            return; // WP < 6.5.
+        }
+
+        register_block_bindings_source('mycodelic/profile-field', [
+            'label'               => __('Member Profile', 'textdomain'),
+            'get_value_callback'  => [$this, 'resolve_profile_binding'],
+        ]);
+    }
+
+    /**
+     * Resolves a mycodelic/profile-field binding against whichever member's
+     * /profile/{nicename}/ (author archive) is currently being viewed. Only
+     * fields a member would reasonably share with other members are exposed
+     * here — never address/phone/email.
+     */
+    public function resolve_profile_binding($source_args)
+    {
+        $user = get_queried_object();
+        if (!($user instanceof WP_User)) {
+            return '';
+        }
+
+        switch ($source_args['key'] ?? '') {
+            case 'display_name':
+                return $user->display_name;
+
+            case 'playa_name':
+                return get_user_meta($user->ID, 'playa_name', true);
+
+            case 'avatar_url':
+                return get_avatar_url($user->ID, ['size' => 192]);
+
+            case 'edit_profile_url':
+                return home_url('/profile/');
+
+            case 'location':
+                $city = get_user_meta($user->ID, 'city', true);
+                $state = get_user_meta($user->ID, 'state', true);
+                $country = get_user_meta($user->ID, 'country', true);
+                if (!$city && !$state) {
+                    return '';
+                }
+                $is_us = in_array($country, ['United States', 'US', 'USA'], true);
+                return implode(', ', array_filter([$city, $is_us ? $state : $country]));
+
+            case 'about_me':
+                $about_me = get_user_meta($user->ID, 'user_about_me', true);
+                if ($about_me) {
+                    return $about_me;
+                }
+                return (get_current_user_id() === $user->ID)
+                    ? __('Add a little about yourself from your profile settings.', 'textdomain')
+                    : __('No bio yet.', 'textdomain');
+
+            case 'years_summary':
+                $years = $this->getProfileYears($user->ID);
+                if (empty($years)) {
+                    return '';
+                }
+                $count = count($years);
+                /* translators: %d: number of burns attended */
+                return sprintf(_n('%d burn', '%d burns', $count, 'textdomain'), $count)
+                    . ' — ' . sprintf(__('first burn %s', 'textdomain'), $years[0]);
+
+            case 'years_list':
+                $years = array_reverse($this->getProfileYears($user->ID));
+                return $years ? implode(', ', $years) : __('No years recorded yet.', 'textdomain');
+
+            case 'roles_list':
+                $roles = wp_get_object_terms($user->ID, 'mycodelic_role');
+                if (empty($roles) || is_wp_error($roles)) {
+                    return __('No roles yet.', 'textdomain');
+                }
+                return implode(', ', wp_list_pluck($roles, 'name'));
+
+            case 'roster_list':
+                $contact_id = $this->civicrm->getContactIdForUser($user->ID);
+                $rosters = $contact_id ? $this->civicrm->getContactRosterGroups($contact_id) : [];
+                return $rosters ? implode(', ', $rosters) : __('No roster history yet.', 'textdomain');
+
+            case 'posts_count':
+                $count = (int) count_user_posts($user->ID, 'post');
+                /* translators: %d: number of posts */
+                return sprintf(_n('%d post', '%d posts', $count, 'textdomain'), $count);
+        }
+
+        return '';
+    }
+
+    /**
+     * This user's years_attended as a sorted (ascending) array of strings.
+     */
+    protected function getProfileYears($user_id)
+    {
+        $years = json_decode(get_user_meta($user_id, 'years_attended', true), true);
+        if (empty($years) || !is_array($years)) {
+            return [];
+        }
+        $years = array_map('strval', $years);
+        sort($years);
+        return $years;
+    }
+
+    /**
+     * The "Edit profile" button (className mf-edit-profile-button, set on the
+     * block in the Site Editor) only makes sense on your OWN profile — hide it
+     * everywhere else. There's no native block-level "only show to X"
+     * condition, so this is the one place server logic still reaches into the
+     * template's rendered output.
+     */
+    public function maybe_hide_edit_profile_button($block_content, $block)
+    {
+        if (empty($block['attrs']['className']) || strpos($block['attrs']['className'], 'mf-edit-profile-button') === false) {
+            return $block_content;
+        }
+
+        if (!is_author()) {
+            return $block_content;
+        }
+
+        $user = get_queried_object();
+        if (!($user instanceof WP_User) || get_current_user_id() !== $user->ID) {
+            return '';
+        }
+
+        return $block_content;
     }
 
 
