@@ -208,11 +208,21 @@ class MycodelicForestProfile
             return;
         }
 
-        // Prevent redirect if already on the profile page, or a member profile
-        // view at /profile/{nicename}/ (a native author archive under the hood,
-        // so is_author() is what actually flags it — not is_page()).
-        if (is_page('profile') || is_author()) {
+        // Prevent redirect if already on the profile edit page, or on YOUR OWN
+        // member profile view at /profile/{your-nicename}/ (a native author
+        // archive under the hood, so is_author() is what flags it — not
+        // is_page()). Someone else's /profile/{nicename}/ still counts as
+        // "the logged in portion of the site" and stays gated, otherwise an
+        // incomplete profile could browse forever by visiting other members'
+        // pages instead of finishing their own.
+        if (is_page('profile')) {
             return;
+        }
+        if (is_author()) {
+            $viewed = get_queried_object();
+            if ($viewed instanceof WP_User && $viewed->ID === get_current_user_id()) {
+                return;
+            }
         }
 
         // Check if the user has completed their profile
@@ -717,7 +727,14 @@ class MycodelicForestProfile
 
         // /profile/{user_nicename}/ — the SAME query WordPress uses natively for
         // /author/{nicename}/, so is_author()/get_queried_object() and the
-        // author.html template (child theme) all just work, unmodified.
+        // author.html template (child theme) all just work, unmodified. Mirrors
+        // WP core's own author-archive rewrite rules, including pagination and
+        // feeds, since the Recent Posts query loop paginates past 10 posts and
+        // without these WP still generates /profile/{nicename}/page/2/-style
+        // links that would otherwise 404.
+        add_rewrite_rule('^profile/([^/]+)/feed/(feed|rdf|rss|rss2|atom)/?$', 'index.php?author_name=$matches[1]&feed=$matches[2]', 'top');
+        add_rewrite_rule('^profile/([^/]+)/(feed|rdf|rss|rss2|atom)/?$', 'index.php?author_name=$matches[1]&feed=$matches[2]', 'top');
+        add_rewrite_rule('^profile/([^/]+)/page/?([0-9]{1,})/?$', 'index.php?author_name=$matches[1]&paged=$matches[2]', 'top');
         add_rewrite_rule('^profile/([^/]+)/?$', 'index.php?author_name=$matches[1]', 'top');
     }
 
