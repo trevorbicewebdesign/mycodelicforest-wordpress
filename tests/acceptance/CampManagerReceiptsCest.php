@@ -7,6 +7,7 @@ class CampManagerReceiptsCest
 {
     protected $userId;
     protected $adminId;
+    protected $season;
     public function _before(AcceptanceTester $I)
     {
          // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
@@ -55,6 +56,14 @@ class CampManagerReceiptsCest
                 // "years_attended" => '["2024"]',
             ]
         ]);
+        // getRosterMembers(), the "Power"/"Sojourner" categories and the all-items branch of
+        // getBudgetItems() all filter/join on `season = <viewed season>` - pin the two seeded
+        // categories to it here too (AddNewReceipt's item picker depends on them, and this
+        // Cest can't assume CampManagerBudgetsCest already fixed them up this run).
+        $this->season = $I->currentCampManagerSeason();
+        $I->updateInDatabase("wp_mf_budget_category", ["season" => $this->season], ["id" => 1]);
+        $I->updateInDatabase("wp_mf_budget_category", ["season" => $this->season], ["id" => 2]);
+
         $I->signInAs("testadmin", "password123!test");
     }
     public function ViewReceipts(AcceptanceTester $I)
@@ -86,9 +95,10 @@ class CampManagerReceiptsCest
 
     public function AddNewReceipt(AcceptanceTester $I)
     {
-        // The purchaser <select> is built from the roster; the CI seed DB has no members.
+        // The purchaser <select> is built from the roster (season-scoped); the CI seed DB
+        // has no members.
         $I->haveInDatabase("wp_mf_roster", [
-            "wpid" => 0, "season" => 2025, "fname" => "Trevor", "lname" => "Bice", "playaname" => "TB",
+            "wpid" => 0, "season" => $this->season, "fname" => "Trevor", "lname" => "Bice", "playaname" => "TB",
             "email" => "trevor@example.com", "low_income" => 0, "fully_paid" => 1, "status" => "Confirmed",
         ]);
         $budget_item_id = $I->haveInDatabase("wp_mf_budget_items", [
@@ -212,6 +222,7 @@ class CampManagerReceiptsCest
             "tax" => 10.00,
             "shipping" => 0.00,
             "total" => 110.00,
+            "season" => $this->season,
         ]);
         $item_id = $I->haveInDatabase("wp_mf_receipt_items", [
             "receipt_id" => $id,

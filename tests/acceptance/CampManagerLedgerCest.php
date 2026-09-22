@@ -7,6 +7,7 @@ class CampManagerLedgerCest
 {
     protected $userId;
     protected $adminId;
+    protected $season;
     public function _before(AcceptanceTester $I)
     {
          // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
@@ -56,11 +57,15 @@ class CampManagerLedgerCest
             ]
         ]);
 
+        // getLedger()/totals filter `WHERE season = <viewed season>`; a season-less fixture
+        // row would be invisible everywhere the app actually renders ledger data.
+        $this->season = $I->currentCampManagerSeason();
         $I->haveInDatabase("wp_mf_ledger", [
             "note" => "Test Ledger Item",
             "amount" => 200.00,
             "date" => date("Y-m-d H:i:s"),
             "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
+            "season" => $this->season,
         ]);
         $I->wait(1);
 
@@ -154,6 +159,7 @@ class CampManagerLedgerCest
             "amount" => 200.00,
             "date" => date("Y-m-d H:i:s"),
             "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
+            "season" => $this->season,
         ]);
 
         $ledger_line_item_id = $I->haveInDatabase("wp_mf_ledger_line_items", [

@@ -59,10 +59,14 @@ class CampManagerRosterCest
     }
     public function ViewRoster(AcceptanceTester $I)
     {
-        // Seed two members so the list has known content (the CI seed DB has an empty roster).
+        // Seed two members so the list has known content (the CI seed DB has an empty
+        // roster). getRosterMembers() filters `WHERE season = <viewed season>`, so a fixed
+        // year would only work by coincidence - use whatever season this environment
+        // actually resolves to.
+        $season = $I->currentCampManagerSeason();
         foreach ([['Alice', 'Anders', 'Ally'], ['Bob', 'Baker', 'Bobcat']] as $m) {
             $I->haveInDatabase("wp_mf_roster", [
-                "wpid" => 0, "season" => 2025, "fname" => $m[0], "lname" => $m[1], "playaname" => $m[2],
+                "wpid" => 0, "season" => $season, "fname" => $m[0], "lname" => $m[1], "playaname" => $m[2],
                 "email" => strtolower($m[0]) . "@example.com", "low_income" => 0, "fully_paid" => 1, "status" => "Confirmed",
             ]);
         }
