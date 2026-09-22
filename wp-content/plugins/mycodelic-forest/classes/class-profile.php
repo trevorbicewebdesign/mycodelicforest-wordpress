@@ -722,8 +722,11 @@ class MycodelicForestProfile
 
     public function mycodelic_add_rewrite_rules()
     {
-        // /profile/ — the current user's own profile (existing GF page).
-        add_rewrite_rule('^profile/?$', 'index.php?profile_page=1', 'top');
+        // /profile/ (bare) is a real WP Page (slug "profile") — WordPress's own
+        // default page rewrite rules already route it correctly with no custom
+        // rule needed. (A previous custom rule here mapped it to an unregistered
+        // "profile_page" query var, which WordPress silently drops, resulting in
+        // an effectively empty query that redirected to the homepage — removed.)
 
         // /profile/{user_nicename}/ — the SAME query WordPress uses natively for
         // /author/{nicename}/, so is_author()/get_queried_object() and the
