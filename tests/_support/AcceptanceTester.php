@@ -52,9 +52,15 @@ class AcceptanceTester extends \Codeception\Actor
 
         for ($attempt = 1; ; $attempt++) {
             // Start from no session: a cookie left by an earlier test (whose user has since
-            // been deleted) would send wp-login.php somewhere other than the form.
+            // been deleted) would send wp-login.php somewhere other than the form. Only the
+            // WordPress cookies go; the suite's webdriver_test_request cookie is what routes
+            // every request to the seed database and must stay.
             $I->executeInSelenium(function ($webDriver) {
-                $webDriver->manage()->deleteAllCookies();
+                foreach ($webDriver->manage()->getCookies() as $cookie) {
+                    if (strpos($cookie->getName(), 'wordpress') === 0 || strpos($cookie->getName(), 'wp-settings') === 0) {
+                        $webDriver->manage()->deleteCookieNamed($cookie->getName());
+                    }
+                }
             });
             $I->amOnPage('/wp-login.php');
             $I->waitForElement('#loginform', 20);
