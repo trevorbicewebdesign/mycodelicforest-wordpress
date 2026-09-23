@@ -36,7 +36,7 @@ class CampManagerRoster
                 'season' => isset($_POST['season']) ? (int)$_POST['season'] : null,
                 'member_status' => isset($_POST['member_status']) ? sanitize_text_field($_POST['member_status']) : '',
             ]);
-            
+            $this->saveSubmittedRoles((int) $member_id);
         } catch (\Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-add-member&error=' . urlencode($e->getMessage())));
             exit;
@@ -68,13 +68,27 @@ class CampManagerRoster
         ];
 
         try {
-            $this->updateMember($data);
+            $member_id = $this->updateMember($data);
+            $this->saveSubmittedRoles((int) $member_id);
             wp_redirect(admin_url('admin.php?page=camp-manager-members&success=1'));
             exit;
         } catch (\Exception $e) {
             wp_redirect(admin_url('admin.php?page=camp-manager-add-member&error=' . urlencode($e->getMessage())));
             exit;
         }
+    }
+
+    /**
+     * Roles submitted from the member form. Only admins may assign them (a role can grant
+     * Camp Manager access), and only when the form actually carried the field, so a form
+     * without it leaves the member's roles alone.
+     */
+    private function saveSubmittedRoles(int $member_id)
+    {
+        if (!$member_id || empty($_POST['member_roles_submitted']) || !current_user_can('manage_options')) {
+            return;
+        }
+        (new CampManagerRoles())->setMemberRoles($member_id, isset($_POST['member_roles']) ? (array) $_POST['member_roles'] : []);
     }
 
     /** Season every roster count and list is scoped to (what the admin is viewing). */

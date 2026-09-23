@@ -306,6 +306,42 @@ class CampManagerRoles
         self::flushCache();
     }
 
+    /** Ids of the roles one roster member holds. */
+    public function getMemberRoleIds(int $roster_id): array
+    {
+        global $wpdb;
+        return array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT role_id FROM {$wpdb->prefix}mf_role_members WHERE roster_id = %d",
+            $roster_id
+        )) ?: []);
+    }
+
+    /**
+     * Replaces one roster member's roles: the other direction of setRoleMembers(), for the
+     * member edit page. Only roles from the member's own season are kept.
+     */
+    public function setMemberRoles(int $roster_id, array $role_ids)
+    {
+        global $wpdb;
+        $members = "{$wpdb->prefix}mf_role_members";
+        $wpdb->delete($members, ['roster_id' => $roster_id]);
+
+        $role_ids = array_values(array_unique(array_filter(array_map('intval', $role_ids))));
+        if ($role_ids) {
+            $placeholders = implode(',', array_fill(0, count($role_ids), '%d'));
+            $wpdb->query($wpdb->prepare(
+                "INSERT INTO $members (role_id, roster_id)
+                 SELECT r.id, %d FROM {$wpdb->prefix}mf_roles r
+                 JOIN {$wpdb->prefix}mf_roster ro ON ro.id = %d AND ro.season = r.season
+                 WHERE r.id IN ($placeholders)",
+                $roster_id,
+                $roster_id,
+                ...$role_ids
+            ));
+        }
+        self::flushCache();
+    }
+
     public function deleteRoles(array $role_ids)
     {
         $role_ids = array_map('intval', $role_ids);

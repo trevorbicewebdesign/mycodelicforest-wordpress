@@ -108,6 +108,29 @@ class CampManagerRolesTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $this->assertContains(2025, CampManagerSeason::available());
     }
 
+    public function testMemberRolesCanBeSetFromTheMemberSide()
+    {
+        $lead = $this->roles->upsertRole(['name' => 'Camp Lead', 'sort_order' => 10, 'season' => 2027]);
+        $firelord = $this->roles->upsertRole(['name' => 'Firelord', 'sort_order' => 20, 'season' => 2027]);
+        $last_year = $this->roles->upsertRole(['name' => 'Firelord', 'season' => 2025]);
+        $member = $this->rosterMember(0, 2027, 'Confirmed', 'Ember');
+        $other = $this->rosterMember(0, 2027);
+        $this->roles->setRoleMembers($lead, [$other]);
+
+        // Only roles from the member's own season stick; the other holder of Camp Lead is untouched.
+        $this->roles->setMemberRoles($member, [$lead, $firelord, $last_year, 0]);
+
+        $this->assertSame([$lead, $firelord], $this->roles->getMemberRoleIds($member));
+        $this->assertSame([$other, $member], array_map('intval', array_column($this->roles->getRole($lead)['members'], 'id')));
+        $this->assertSame(['Camp Lead', 'Firelord'], $this->roles->getRoleNamesByMember([$member])[$member]);
+
+        // An empty selection clears them.
+        $this->roles->setMemberRoles($member, []);
+
+        $this->assertSame([], $this->roles->getMemberRoleIds($member));
+        $this->assertSame([$other], array_map('intval', array_column($this->roles->getRole($lead)['members'], 'id')));
+    }
+
     public function testDeletingRolesRemovesTheirHolders()
     {
         global $wpdb;
