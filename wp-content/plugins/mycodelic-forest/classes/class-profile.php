@@ -39,6 +39,11 @@ class MycodelicForestProfile
         add_action('init', [$this, 'register_profile_binding_source']);
         add_filter('render_block', [$this, 'maybe_hide_edit_profile_button'], 10, 2);
 
+        // The profile hero's background photo can't be driven by Block Bindings
+        // (see set_profile_hero_background() for why) — same class of exception
+        // as the edit-profile-button visibility, just for a background-image.
+        add_filter('render_block', [$this, 'set_profile_hero_background'], 10, 2);
+
         // Flat "Roles" taxonomy on users (loosely Holacracy-inspired — org roles,
         // not WP capability roles). Admin-assignable from the user-edit screen;
         // terms themselves are managed at Users -> Roles in wp-admin.
@@ -784,13 +789,54 @@ class MycodelicForestProfile
      */
     public function register_profile_meta()
     {
-        foreach (['playa_name', 'user_about_me', 'city', 'state', 'country'] as $key) {
+        foreach (['playa_name', 'user_about_me', 'city', 'state', 'country', 'profile_photo_url', 'header_photo_url'] as $key) {
             register_meta('user', $key, [
                 'type'         => 'string',
                 'single'       => true,
                 'show_in_rest' => true,
             ]);
         }
+    }
+
+    /**
+     * core/cover's "url" attribute only re-renders dynamically when
+     * useFeaturedImage is true (WP core's render_block_core_cover() returns
+     * the static content unchanged otherwise); for a plain custom image URL
+     * like ours, its block.json also declares no "source" for "url", so the
+     * static-HTML replacement path can't reach it either. Block Bindings
+     * genuinely cannot drive Cover's background image for this case — same
+     * situation as the edit-profile-button visibility, so it gets the same
+     * fix: a small, targeted render_block filter.
+     */
+    public function set_profile_hero_background($block_content, $block)
+    {
+        if (empty($block['attrs']['className']) || strpos($block['attrs']['className'], 'mf-profile-hero') === false) {
+            return $block_content;
+        }
+
+        if (!is_author()) {
+            return $block_content;
+        }
+
+        $user = get_queried_object();
+        if (!($user instanceof WP_User)) {
+            return $block_content;
+        }
+
+        $url = get_user_meta($user->ID, 'header_photo_url', true);
+        if (!$url) {
+            return $block_content;
+        }
+
+        $tags = new WP_HTML_Tag_Processor($block_content);
+        if (!$tags->next_tag(['class_name' => 'wp-block-cover__background'])) {
+            return $block_content;
+        }
+
+        $existing_style = (string) $tags->get_attribute('style');
+        $tags->set_attribute('style', $existing_style . 'background-image:url(' . esc_url($url) . ');background-size:cover;background-position:center;');
+
+        return $tags->get_updated_html();
     }
 
     /**
@@ -834,7 +880,8 @@ class MycodelicForestProfile
                 return get_user_meta($user->ID, 'playa_name', true);
 
             case 'avatar_url':
-                return get_avatar_url($user->ID, ['size' => 192]);
+                $photo = get_user_meta($user->ID, 'profile_photo_url', true);
+                return $photo ?: plugins_url('assets/images/default-avatar.png', MYCO_CORE_PLUGIN_FILE);
 
             case 'edit_profile_url':
                 return home_url('/profile/');
@@ -1115,6 +1162,18 @@ class MycodelicForestProfile
         // Keep the registration-time phone key in sync for the duplicate check.
         if (!empty($fields['user_phone'])) {
             update_user_meta($user_id, 'phone', sanitize_text_field($fields['user_phone']));
+        }
+
+        // File uploads (fields 22, 23): unlike the fields above, an empty
+        // submission here just means "didn't pick a new file this time", not
+        // "clear it" — only overwrite when something was actually uploaded.
+        $profile_photo = esc_url_raw(rgar($entry, '22'));
+        if (!empty($profile_photo)) {
+            update_user_meta($user_id, 'profile_photo_url', $profile_photo);
+        }
+        $header_photo = esc_url_raw(rgar($entry, '23'));
+        if (!empty($header_photo)) {
+            update_user_meta($user_id, 'header_photo_url', $header_photo);
         }
 
         update_user_meta($user_id, 'profile_updated', current_time('mysql'));
