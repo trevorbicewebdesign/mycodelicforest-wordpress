@@ -164,3 +164,19 @@
     break-inside: avoid;
     padding: 3px 0;
 }
+
+/* Theme art isn't always 16:9 (2013/2014 are portrait posters, 2015 is square): letterbox it
+   on the archive cards instead of cropping off the title, and keep it to a screen's height
+   on the year page. */
+.mf-burn-year-card .wp-block-post-featured-image img {
+    object-fit: contain !important;
+    background: #111;
+}
+
+.single-camp_year .wp-block-post-featured-image img {
+    max-height: 80vh;
+    width: auto;
+    max-width: 100%;
+    margin: 0 auto;
+    display: block;
+}

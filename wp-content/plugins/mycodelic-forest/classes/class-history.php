@@ -106,6 +106,23 @@ class MycodelicForestHistory {
         return (bool) get_post_meta($post_id, 'did_not_burn', true);
     }
 
+    // "$350 · $200 low income" (either may be blank).
+    private function dues($post_id) {
+        $money = function ($value) {
+            return '$' . number_format((float) $value, fmod((float) $value, 1) ? 2 : 0);
+        };
+        $regular = $this->field($post_id, 'dues_regular');
+        $low     = $this->field($post_id, 'dues_low_income');
+        $parts   = [];
+        if ($regular !== '') {
+            $parts[] = $money($regular);
+        }
+        if ($low !== '') {
+            $parts[] = $money($low) . ' low income';
+        }
+        return implode(' · ', $parts);
+    }
+
     // "3:00 & E · Avenue": the address plus what the camp fronts on (either may be blank).
     private function placement($post_id) {
         $parts = array_filter([
@@ -155,6 +172,7 @@ class MycodelicForestHistory {
             'Placement'   => $this->placement($post_id),
             'Lot size'    => $this->field($post_id, 'lot_size'),
             'Camp size'   => $this->field($post_id, 'camp_population') ?: (string) (count($this->rosterMembers($post_id)) ?: ''),
+            'Dues'        => $this->dues($post_id),
             'Listed as'   => $this->field($post_id, 'guide_camp_name'),
         ];
 
