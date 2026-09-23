@@ -23,6 +23,68 @@ class MycodelicForestHistory {
         add_action('pre_get_posts', [$this, 'showAllYearsOnArchive']);
         add_action('acf/save_post', [$this, 'syncPostDateToYear'], 20);
         add_action('admin_bar_menu', [$this, 'addEditRosterLink'], 81);
+
+        // Members only: pages, REST, search and the core sitemap.
+        add_action('template_redirect', [$this, 'restrictToMembers']);
+        add_filter('rest_pre_dispatch', [$this, 'restrictRest'], 10, 3);
+        add_filter('register_post_type_args', [$this, 'hideFromSearch'], 10, 2);
+        add_filter('wp_sitemaps_post_types', [$this, 'removeFromSitemap']);
+        add_filter('sgg_sitemap_exclude_post_ids', [$this, 'excludeFromSitemapPlugin']);
+    }
+
+    // Camp history is for members: the Mycodelic Forest Member role (as on the members-only
+    // roster pages) or anyone who can edit content.
+    public function isMember() {
+        if (!is_user_logged_in()) {
+            return false;
+        }
+        $user = wp_get_current_user();
+        return in_array('mycodelic_forest_member', (array) $user->roles, true) || current_user_can('edit_posts');
+    }
+
+    public function restrictToMembers() {
+        if (!is_singular('camp_year') && !is_post_type_archive('camp_year')) {
+            return;
+        }
+        if ($this->isMember()) {
+            nocache_headers();
+            return;
+        }
+        if (!is_user_logged_in()) {
+            wp_safe_redirect(wp_login_url(home_url(add_query_arg([]))));
+            exit;
+        }
+        wp_die(
+            'The camp history is only available to Mycodelic Forest members.',
+            'Members only',
+            ['response' => 403, 'back_link' => true]
+        );
+    }
+
+    public function restrictRest($result, $server, $request) {
+        if (strpos($request->get_route(), '/wp/v2/camp_year') === 0 && !$this->isMember()) {
+            return new WP_Error('rest_forbidden', 'Members only.', ['status' => is_user_logged_in() ? 403 : 401]);
+        }
+        return $result;
+    }
+
+    public function hideFromSearch($args, $post_type) {
+        if ($post_type === 'camp_year') {
+            $args['exclude_from_search'] = true;
+        }
+        return $args;
+    }
+
+    public function removeFromSitemap($post_types) {
+        unset($post_types['camp_year']);
+        return $post_types;
+    }
+
+    // "XML Sitemap Generator for Google" lists every public custom post type unless it is
+    // switched off in its settings; keep the Burn Year URLs out of it regardless.
+    public function excludeFromSitemapPlugin($ids) {
+        $years = get_posts(['post_type' => 'camp_year', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids']);
+        return array_merge((array) $ids, $years);
     }
 
     // Toolbar "Edit Roster" on a Burn Year page: opens camp-manager's roster with that

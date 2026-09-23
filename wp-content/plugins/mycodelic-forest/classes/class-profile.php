@@ -917,7 +917,15 @@ class MycodelicForestProfile
 
             case 'years_list':
                 $years = array_reverse($this->getProfileYears($user->ID));
-                return $years ? implode(', ', $years) : __('No years recorded yet.', 'textdomain');
+                if (!$years) {
+                    return __('No years recorded yet.', 'textdomain');
+                }
+                $pills = '';
+                foreach ($years as $y) {
+                    $url = home_url('/history/' . $y . '/');
+                    $pills .= '<a href="' . esc_url($url) . '" style="' . $this->pillStyle() . 'text-decoration:none;">' . esc_html($y) . '</a>';
+                }
+                return $pills;
 
             case 'roles_list':
                 $roles = wp_get_object_terms($user->ID, 'mycodelic_role');
@@ -932,13 +940,13 @@ class MycodelicForestProfile
                 if (!$rosters) {
                     return __('No roster history yet.', 'textdomain');
                 }
-                $links = [];
+                $pills = '';
                 foreach ($rosters as $title) {
                     $year = preg_match('/^\d{4}/', $title, $m) ? $m[0] : null;
                     $url = $year ? home_url('/roster/?roster_year=' . $year) : home_url('/roster/');
-                    $links[] = '<a href="' . esc_url($url) . '">' . esc_html($title) . '</a>';
+                    $pills .= '<a href="' . esc_url($url) . '" style="' . $this->pillStyle() . 'text-decoration:none;">' . esc_html($title) . '</a>';
                 }
-                return implode(', ', $links);
+                return $pills;
 
             case 'posts_count':
                 $count = (int) count_user_posts($user->ID, 'post');
@@ -961,6 +969,16 @@ class MycodelicForestProfile
         $years = array_map('strval', $years);
         sort($years);
         return $years;
+    }
+
+    /**
+     * Inline style for a small pill/badge (years attended, roster history) —
+     * no native "badge" block exists, so this stays inline rather than a class.
+     */
+    protected function pillStyle()
+    {
+        return 'display:inline-block;background:var(--wp--preset--color--tertiary);color:var(--wp--preset--color--primary);'
+            . 'border-radius:6px;padding:4px 10px;margin:0 6px 6px 0;font-weight:600;';
     }
 
     /**
