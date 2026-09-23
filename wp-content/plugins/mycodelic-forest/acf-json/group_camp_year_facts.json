@@ -1,0 +1,354 @@
+{
+    "menu_order": 0,
+    "position": "side",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 1,
+    "key": "group_camp_year_facts",
+    "title": "Burn Year Facts",
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "camp_year"
+            }
+        ]
+    ],
+    "fields": [
+        {
+            "key": "field_cy_burn_year",
+            "label": "Year",
+            "name": "burn_year",
+            "type": "number",
+            "instructions": "The Burning Man year. Same value as the camp-manager season, so year pages can pull roster/budget data.",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "min": 1986,
+            "max": 2100,
+            "step": 1
+        },
+        {
+            "key": "field_cy_theme",
+            "label": "Burn Theme",
+            "name": "theme",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            }
+        },
+        {
+            "key": "field_cy_burn_start",
+            "label": "Burn Start",
+            "name": "burn_start",
+            "type": "date_picker",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "F j, Y",
+            "return_format": "Y-m-d",
+            "first_day": 0
+        },
+        {
+            "key": "field_cy_burn_end",
+            "label": "Burn End",
+            "name": "burn_end",
+            "type": "date_picker",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "F j, Y",
+            "return_format": "Y-m-d",
+            "first_day": 0
+        },
+        {
+            "type": "date_picker",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "F j, Y",
+            "return_format": "Y-m-d",
+            "first_day": 0,
+            "key": "field_cy_playa_start",
+            "label": "On Playa From",
+            "name": "playa_start",
+            "instructions": "First day anyone from camp was on playa (build crew / early arrival)."
+        },
+        {
+            "type": "date_picker",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "F j, Y",
+            "return_format": "Y-m-d",
+            "first_day": 0,
+            "key": "field_cy_playa_end",
+            "label": "On Playa Until",
+            "name": "playa_end",
+            "instructions": "Last day anyone from camp was on playa (strike / MOOP sweep)."
+        },
+        {
+            "key": "field_cy_did_not_burn",
+            "label": "No Event",
+            "name": "did_not_burn",
+            "type": "true_false",
+            "instructions": "e.g. 2020 and 2021. Hides dates on the site.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "ui": 0,
+            "message": "No burn this year / camp didn't go",
+            "default_value": 0
+        },
+        {
+            "key": "field_cy_address",
+            "label": "Placement Address",
+            "name": "placement_address",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "7:30 & E"
+        },
+        {
+            "key": "field_cy_street_type",
+            "label": "Street Type",
+            "name": "placement_street_type",
+            "type": "select",
+            "instructions": "What the camp fronts on.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "street": "Street",
+                "avenue": "Avenue",
+                "portal": "Portal"
+            },
+            "default_value": false,
+            "return_format": "label",
+            "multiple": 0,
+            "allow_null": 1,
+            "ui": 0,
+            "placeholder": ""
+        },
+        {
+            "key": "field_cy_frontage",
+            "label": "Lot Size / Frontage",
+            "name": "lot_size",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "100 x 150"
+        },
+        {
+            "key": "field_cy_placement_notes",
+            "label": "Placement Notes",
+            "name": "placement_notes",
+            "type": "textarea",
+            "instructions": "Neighborhood, village, plaza, neighbors, anything notable about the spot.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "rows": 3,
+            "new_lines": "wpautop"
+        },
+        {
+            "key": "field_cy_placement_map",
+            "label": "Placement Map",
+            "name": "placement_map",
+            "type": "image",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "return_format": "id",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_cy_neighbor_camps",
+            "label": "Neighbor Camps",
+            "name": "neighbor_camps",
+            "type": "repeater",
+            "instructions": "Camps next to us that year.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "layout": "block",
+            "min": 0,
+            "max": 0,
+            "collapsed": "field_cy_neighbor_name",
+            "button_label": "Add Neighbor",
+            "pagination": 0,
+            "rows_per_page": 20,
+            "sub_fields": [
+                {
+                    "key": "field_cy_neighbor_name",
+                    "label": "Camp Name",
+                    "name": "camp_name",
+                    "type": "text",
+                    "instructions": "",
+                    "required": 1,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "parent_repeater": "field_cy_neighbor_camps"
+                },
+                {
+                    "key": "field_cy_neighbor_url",
+                    "label": "Link",
+                    "name": "camp_url",
+                    "type": "url",
+                    "instructions": "Optional (camp site or directory listing).",
+                    "required": 0,
+                    "conditional_logic": 0,
+                    "wrapper": {
+                        "width": "",
+                        "class": "",
+                        "id": ""
+                    },
+                    "parent_repeater": "field_cy_neighbor_camps"
+                }
+            ]
+        },
+        {
+            "key": "field_cy_population",
+            "label": "Camp Population",
+            "name": "camp_population",
+            "type": "number",
+            "instructions": "Manual headcount. Leave blank for years camp-manager has a roster for.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "min": 0,
+            "step": 1
+        },
+        {
+            "type": "number",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "min": 0,
+            "max": "",
+            "step": 1,
+            "prepend": "$",
+            "append": "",
+            "placeholder": "",
+            "key": "field_cy_dues_regular",
+            "label": "Regular Dues",
+            "name": "dues_regular"
+        },
+        {
+            "type": "number",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "min": 0,
+            "max": "",
+            "step": 1,
+            "prepend": "$",
+            "append": "",
+            "placeholder": "",
+            "key": "field_cy_dues_low_income",
+            "label": "Low Income Dues",
+            "name": "dues_low_income"
+        },
+        {
+            "key": "field_cy_guide_name",
+            "label": "Listed Camp Name",
+            "name": "guide_camp_name",
+            "type": "text",
+            "instructions": "Name as printed in the What Where When guide, if it differed.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            }
+        }
+    ],
+    "modified": 1790135380
+}

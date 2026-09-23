@@ -1,0 +1,182 @@
+/* Camp history (Burn Year) blocks. Colors and spacing come from Spectra One's presets. */
+
+.mf-burn-summary {
+    margin: 0;
+    font-size: var(--wp--preset--font-size--small);
+    letter-spacing: 0.04em;
+}
+
+.swt-block-page-banner-group .mf-burn-summary {
+    color: #fff;
+    text-align: center;
+    margin-bottom: var(--wp--preset--spacing--large);
+}
+
+/* Facts panel */
+.mf-burn-facts {
+    /* Rows are subgrids, so the label column is as wide as the longest label. */
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: var(--wp--preset--spacing--small);
+    margin: 0;
+    padding: var(--wp--preset--spacing--small);
+    background: var(--wp--preset--color--surface);
+    border: 1px solid var(--wp--preset--color--outline);
+    border-radius: 8px;
+}
+
+.mf-burn-facts__row {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: baseline;
+    padding: var(--wp--preset--spacing--xx-small) 0;
+    border-bottom: 1px solid var(--wp--preset--color--outline);
+}
+
+.mf-burn-facts__row:last-child {
+    border-bottom: 0;
+}
+
+.mf-burn-facts dt {
+    font-size: var(--wp--preset--font-size--x-small);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    color: var(--wp--preset--color--body);
+}
+
+.mf-burn-facts dd {
+    margin: 0;
+    color: var(--wp--preset--color--heading);
+}
+
+@media (min-width: 782px) {
+    .wp-block-mycodelic-burn-year-facts {
+        position: sticky;
+        top: var(--wp--preset--spacing--medium);
+    }
+}
+
+/* Details */
+.mf-burn-details__section + .mf-burn-details__section {
+    margin-top: var(--wp--preset--spacing--medium);
+}
+
+.mf-burn-details__map {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin-bottom: var(--wp--preset--spacing--small);
+    border-radius: 8px;
+}
+
+/* Older / all / newer */
+.mf-burn-nav {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--wp--preset--spacing--small);
+    padding-top: var(--wp--preset--spacing--small);
+    border-top: 1px solid var(--wp--preset--color--outline);
+}
+
+.mf-burn-nav a {
+    text-decoration: none;
+}
+
+.mf-burn-nav__older,
+.mf-burn-nav__newer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mf-burn-nav__newer {
+    text-align: right;
+}
+
+.mf-burn-nav__older span,
+.mf-burn-nav__newer span {
+    font-size: var(--wp--preset--font-size--x-small);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--wp--preset--color--body);
+}
+
+@media (max-width: 600px) {
+    .mf-burn-nav {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .mf-burn-nav__all {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        text-align: center;
+    }
+}
+
+/* Spectra One swaps a missing featured image for a placeholder graphic; years without a
+   photo should just have no image. */
+.single-camp_year .wp-block-image.is-placeholder,
+.post-type-archive-camp_year a:has(> .wp-block-image.is-placeholder),
+.post-type-archive-camp_year .wp-block-image.is-placeholder {
+    display: none;
+}
+
+/* Archive cards */
+.mf-burn-year-card .wp-block-post-featured-image {
+    margin-bottom: var(--wp--preset--spacing--xx-small);
+}
+
+.mf-burn-year-card .wp-block-post-featured-image img {
+    border-radius: 8px;
+}
+
+.mf-burn-placeholder {
+    padding: var(--wp--preset--spacing--x-small);
+    border: 1px dashed var(--wp--preset--color--outline);
+    font-size: var(--wp--preset--font-size--x-small);
+}
+
+/* Roster */
+.mf-burn-roster__title {
+    margin: 0 0 var(--wp--preset--spacing--small);
+    font-size: var(--wp--preset--font-size--xx-large);
+}
+
+.mf-burn-roster__title span {
+    font-size: var(--wp--preset--font-size--small);
+    color: var(--wp--preset--color--body);
+    vertical-align: middle;
+}
+
+.mf-burn-roster__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    columns: 3 14rem;
+    column-gap: var(--wp--preset--spacing--medium);
+}
+
+.mf-burn-roster__list li {
+    break-inside: avoid;
+    padding: 3px 0;
+}
+
+/* Theme art isn't always 16:9 (2013/2014 are portrait posters, 2015 is square): letterbox it
+   on the archive cards instead of cropping off the title, and keep it to a screen's height
+   on the year page. */
+.mf-burn-year-card .wp-block-post-featured-image img {
+    object-fit: contain !important;
+    background: #111;
+}
+
+.single-camp_year .wp-block-post-featured-image img {
+    max-height: 80vh;
+    width: auto;
+    max-width: 100%;
+    margin: 0 auto;
+    display: block;
+}
