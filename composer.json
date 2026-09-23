@@ -56,7 +56,8 @@
         "wpackagist-plugin/members": "*",
         "wpackagist-plugin/loginpress": "*",
         "wpackagist-plugin/svg-support": "*",
-        "wpackagist-theme/spectra-one": "*"
+        "wpackagist-theme/spectra-one": "*",
+        "wpackagist-plugin/advanced-custom-fields": "*"
     },
     "require-dev": {
         "lucatume/wp-browser": "^4.0",

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "07659f92effc472e3f1e0f7a7b27be4a",
+    "content-hash": "bcaf4ebc288357731d6ea81823090070",
     "packages": [
         {
             "name": "composer/installers",
@@ -207,6 +207,24 @@
                 "issues": "https://github.com/trevorbicewebdesign/revslider/issues"
             },
             "time": "2026-09-21T19:09:19+00:00"
+        },
+        {
+            "name": "wpackagist-plugin/advanced-custom-fields",
+            "version": "6.8.10",
+            "source": {
+                "type": "svn",
+                "url": "https://plugins.svn.wordpress.org/advanced-custom-fields/",
+                "reference": "tags/6.8.10"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://downloads.wordpress.org/plugin/advanced-custom-fields.6.8.10.zip"
+            },
+            "require": {
+                "composer/installers": "^1.0 || ^2.0"
+            },
+            "type": "wordpress-plugin",
+            "homepage": "https://wordpress.org/plugins/advanced-custom-fields/"
         },
         {
             "name": "wpackagist-plugin/email-address-obfuscation",

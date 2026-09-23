@@ -1,0 +1,185 @@
+{
+    "menu_order": 0,
+    "position": "acf_after_title",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 1,
+    "key": "group_camp_story_details",
+    "title": "Camp Story Details",
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "camp_story"
+            }
+        ]
+    ],
+    "fields": [
+        {
+            "key": "field_cs_year",
+            "label": "Burn Year",
+            "name": "camp_year",
+            "type": "post_object",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "post_type": [
+                "camp_year"
+            ],
+            "taxonomy": "",
+            "allow_null": 0,
+            "multiple": 0,
+            "return_format": "id",
+            "ui": 1
+        },
+        {
+            "key": "field_cs_type",
+            "label": "Type",
+            "name": "story_type",
+            "type": "select",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "hosted_event": "Hosted Event",
+                "story": "Story",
+                "milestone": "Milestone",
+                "build": "Build / Art",
+                "lore": "Lore"
+            },
+            "default_value": "story",
+            "return_format": "value",
+            "multiple": 0,
+            "allow_null": 0,
+            "ui": 0
+        },
+        {
+            "key": "field_cs_date",
+            "label": "Date",
+            "name": "story_date",
+            "type": "date_picker",
+            "instructions": "Optional. When it happened, if known.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "F j, Y",
+            "return_format": "Y-m-d",
+            "first_day": 0
+        },
+        {
+            "key": "field_cs_event_start",
+            "label": "Starts",
+            "name": "event_start",
+            "type": "time_picker",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_cs_type",
+                        "operator": "==",
+                        "value": "hosted_event"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "g:i a",
+            "return_format": "H:i"
+        },
+        {
+            "key": "field_cs_event_end",
+            "label": "Ends",
+            "name": "event_end",
+            "type": "time_picker",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_cs_type",
+                        "operator": "==",
+                        "value": "hosted_event"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "g:i a",
+            "return_format": "H:i"
+        },
+        {
+            "key": "field_cs_event_location",
+            "label": "Location",
+            "name": "event_location",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_cs_type",
+                        "operator": "==",
+                        "value": "hosted_event"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "At camp"
+        },
+        {
+            "key": "field_cs_event_listing",
+            "label": "Event Guide Listing",
+            "name": "event_listing",
+            "type": "textarea",
+            "instructions": "Event description as submitted to / printed in the event calendar. The post body is for the story of how it went.",
+            "required": 0,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_cs_type",
+                        "operator": "==",
+                        "value": "hosted_event"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "rows": 4,
+            "new_lines": "wpautop"
+        }
+    ],
+    "modified": 1790128904
+}

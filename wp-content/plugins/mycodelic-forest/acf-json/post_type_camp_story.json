@@ -1,0 +1,50 @@
+{
+    "key": "post_type_camp_story",
+    "title": "Camp Stories",
+    "menu_order": 0,
+    "active": true,
+    "post_type": "camp_story",
+    "advanced_configuration": true,
+    "labels": {
+        "name": "Camp Stories",
+        "singular_name": "Camp Story",
+        "menu_name": "Camp Stories",
+        "all_items": "All Camp Stories",
+        "add_new_item": "Add New Camp Story",
+        "edit_item": "Edit Camp Story",
+        "new_item": "New Camp Story",
+        "view_item": "View Camp Story",
+        "view_items": "View Camp Stories",
+        "search_items": "Search Camp Stories",
+        "not_found": "No camp stories found",
+        "not_found_in_trash": "No camp stories found in Trash"
+    },
+    "description": "Events we hosted, stories, milestones, builds and lore, each tied to a Burn Year.",
+    "public": true,
+    "hierarchical": false,
+    "show_in_rest": true,
+    "menu_icon": {
+        "type": "dashicons",
+        "value": "dashicons-book-alt"
+    },
+    "menu_position": 22,
+    "supports": [
+        "title",
+        "editor",
+        "thumbnail",
+        "excerpt",
+        "revisions",
+        "author"
+    ],
+    "taxonomies": [],
+    "has_archive": true,
+    "has_archive_slug": "stories",
+    "rewrite": {
+        "permalink_rewrite": "custom_permalink",
+        "slug": "stories",
+        "feeds": false,
+        "pages": true,
+        "with_front": false
+    },
+    "modified": 1790128904
+}

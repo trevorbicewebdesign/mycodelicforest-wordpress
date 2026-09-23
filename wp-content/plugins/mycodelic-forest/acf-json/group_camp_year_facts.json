@@ -1,0 +1,324 @@
+{
+    "menu_order": 0,
+    "position": "acf_after_title",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 1,
+    "key": "group_camp_year_facts",
+    "title": "Burn Year Facts",
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "camp_year"
+            }
+        ]
+    ],
+    "fields": [
+        {
+            "key": "field_cy_tab_burn",
+            "label": "The Burn",
+            "name": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0
+        },
+        {
+            "key": "field_cy_burn_year",
+            "label": "Year",
+            "name": "burn_year",
+            "type": "number",
+            "instructions": "The Burning Man year. Same value as the camp-manager season, so year pages can pull roster/budget data.",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "25",
+                "class": "",
+                "id": ""
+            },
+            "min": 1986,
+            "max": 2100,
+            "step": 1
+        },
+        {
+            "key": "field_cy_theme",
+            "label": "Burn Theme",
+            "name": "theme",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "75",
+                "class": "",
+                "id": ""
+            }
+        },
+        {
+            "key": "field_cy_burn_start",
+            "label": "Burn Start",
+            "name": "burn_start",
+            "type": "date_picker",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "F j, Y",
+            "return_format": "Y-m-d",
+            "first_day": 0
+        },
+        {
+            "key": "field_cy_burn_end",
+            "label": "Burn End",
+            "name": "burn_end",
+            "type": "date_picker",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "display_format": "F j, Y",
+            "return_format": "Y-m-d",
+            "first_day": 0
+        },
+        {
+            "key": "field_cy_did_not_burn",
+            "label": "No Event / Camp Didn't Go",
+            "name": "did_not_burn",
+            "type": "true_false",
+            "instructions": "e.g. 2020/2021, or a year the camp sat out. Keeps the timeline continuous.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "ui": 1,
+            "message": "",
+            "default_value": 0
+        },
+        {
+            "key": "field_cy_tab_place",
+            "label": "Placement",
+            "name": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0
+        },
+        {
+            "key": "field_cy_address",
+            "label": "Placement Address",
+            "name": "placement_address",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "7:30 & E"
+        },
+        {
+            "key": "field_cy_frontage",
+            "label": "Lot Size / Frontage",
+            "name": "lot_size",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "placeholder": "100 x 150"
+        },
+        {
+            "key": "field_cy_placement_notes",
+            "label": "Placement Notes",
+            "name": "placement_notes",
+            "type": "textarea",
+            "instructions": "Neighborhood, village, plaza, neighbors, anything notable about the spot.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "rows": 3,
+            "new_lines": "wpautop"
+        },
+        {
+            "key": "field_cy_placement_map",
+            "label": "Placement Map",
+            "name": "placement_map",
+            "type": "image",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "return_format": "id",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_cy_tab_camp",
+            "label": "Camp",
+            "name": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0
+        },
+        {
+            "key": "field_cy_population",
+            "label": "Camp Population",
+            "name": "camp_population",
+            "type": "number",
+            "instructions": "Manual headcount. Leave blank for years camp-manager has a roster for.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "33",
+                "class": "",
+                "id": ""
+            },
+            "min": 0,
+            "step": 1
+        },
+        {
+            "key": "field_cy_leads",
+            "label": "Camp Leads",
+            "name": "camp_leads",
+            "type": "text",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "67",
+                "class": "",
+                "id": ""
+            }
+        },
+        {
+            "key": "field_cy_offerings",
+            "label": "What We Offered",
+            "name": "camp_offerings",
+            "type": "textarea",
+            "instructions": "Bar, sound, shade, art car... the camp's gift that year.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "rows": 3,
+            "new_lines": "wpautop"
+        },
+        {
+            "key": "field_cy_tab_guide",
+            "label": "Guide",
+            "name": "",
+            "type": "tab",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "placement": "top",
+            "endpoint": 0
+        },
+        {
+            "key": "field_cy_guide_name",
+            "label": "Listed Camp Name",
+            "name": "guide_camp_name",
+            "type": "text",
+            "instructions": "Name as printed in the What Where When guide, if it differed.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            }
+        },
+        {
+            "key": "field_cy_guide_listing",
+            "label": "Guide Listing",
+            "name": "guide_listing",
+            "type": "textarea",
+            "instructions": "Camp description as printed in the WWW guide / Playa Events directory.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "rows": 5,
+            "new_lines": "wpautop"
+        },
+        {
+            "key": "field_cy_guide_url",
+            "label": "Directory Link",
+            "name": "guide_url",
+            "type": "url",
+            "instructions": "Link to the camp's listing in the Playa Events directory, if any.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            }
+        }
+    ],
+    "modified": 1790128904
+}
