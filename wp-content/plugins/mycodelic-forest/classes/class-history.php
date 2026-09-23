@@ -1,6 +1,6 @@
 <?php
 
-// Camp history: the `camp_year` and `camp_story` post types and their fields are defined in ACF
+// Camp history: the `camp_year` post type and its fields are defined in ACF
 // while the model is still settling. ACF reads/writes them as local JSON in this plugin's
 // acf-json/ folder so every change made in the ACF admin UI is versioned with the plugin.
 class MycodelicForestHistory {
