@@ -3,7 +3,7 @@
  * Burn Year Summary (ACF block). Variables from ACF: $block, $is_preview, $post_id, $context.
  */
 $history_post_id = !empty($context['postId']) ? (int) $context['postId'] : (int) $post_id;
-$html = get_post_type($history_post_id) !== 'camp_year' ? '' : $GLOBALS['MycodelicForestInit']->MycodelicForestHistory->renderSummary($history_post_id);
+$html = get_post_type($history_post_id) !== 'camp_year' ? '' : MycodelicForestHistory::$instance->renderSummary($history_post_id);
 
 if ($html === '' && $is_preview) {
     $html = '<p class="mf-burn-placeholder">Burn Year Summary: shows the current Burn Year&rsquo;s fields.</p>';

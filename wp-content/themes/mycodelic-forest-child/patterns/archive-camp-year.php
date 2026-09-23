@@ -17,7 +17,7 @@
 <main class="wp-block-group has-background-background-color has-background" style="padding-top:var(--wp--preset--spacing--x-large);padding-bottom:var(--wp--preset--spacing--x-large)"><!-- wp:query {"queryId":21,"query":{"perPage":100,"pages":0,"offset":0,"postType":"camp_year","order":"desc","orderBy":"date","inherit":true},"align":"wide"} -->
 <div class="wp-block-query alignwide"><!-- wp:post-template {"style":{"spacing":{"blockGap":"var:preset|spacing|large"}},"layout":{"type":"grid","columnCount":3,"minimumColumnWidth":"16rem"}} -->
 <!-- wp:group {"className":"mf-burn-year-card","style":{"spacing":{"blockGap":"var:preset|spacing|xx-small"}},"layout":{"type":"flex","orientation":"vertical","justifyContent":"stretch"}} -->
-<div class="wp-block-group mf-burn-year-card"><!-- wp:post-featured-image {"isLink":true,"aspectRatio":"4/3"} /-->
+<div class="wp-block-group mf-burn-year-card"><!-- wp:post-featured-image {"isLink":true,"aspectRatio":"16/9"} /-->
 
 <!-- wp:post-title {"level":3,"isLink":true,"style":{"spacing":{"margin":{"top":"0","bottom":"0"}}},"fontSize":"large"} /-->
 

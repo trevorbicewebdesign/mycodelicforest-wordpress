@@ -28,6 +28,12 @@
 <!-- /wp:column --></div>
 <!-- /wp:columns -->
 
+<!-- wp:mycodelic/burn-year-neighbors {"name":"mycodelic/burn-year-neighbors","mode":"preview","align":"wide"} /-->
+
+<!-- wp:mycodelic/burn-year-leads {"name":"mycodelic/burn-year-leads","mode":"preview","align":"wide"} /-->
+
+<!-- wp:mycodelic/burn-year-roster {"name":"mycodelic/burn-year-roster","mode":"preview","align":"wide"} /-->
+
 <!-- wp:mycodelic/burn-year-nav {"name":"mycodelic/burn-year-nav","mode":"preview","align":"wide"} /--></main>
 <!-- /wp:group -->
 

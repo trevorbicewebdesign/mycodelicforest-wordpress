@@ -1,9 +1,9 @@
 {
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 3,
-    "name": "mycodelic/burn-year-details",
-    "title": "Burn Year Details",
-    "description": "Placement notes and map. Reads the current Burn Year post.",
+    "name": "mycodelic/burn-year-roster",
+    "title": "Burn Year Roster",
+    "description": "Confirmed members from the camp-manager roster for this year. Reads the current Burn Year post.",
     "category": "theme",
     "icon": "calendar-alt",
     "keywords": [

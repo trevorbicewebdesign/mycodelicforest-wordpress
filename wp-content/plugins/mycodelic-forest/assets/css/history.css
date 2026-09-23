@@ -14,6 +14,10 @@
 
 /* Facts panel */
 .mf-burn-facts {
+    /* Rows are subgrids, so the label column is as wide as the longest label. */
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: var(--wp--preset--spacing--small);
     margin: 0;
     padding: var(--wp--preset--spacing--small);
     background: var(--wp--preset--color--surface);
@@ -23,8 +27,9 @@
 
 .mf-burn-facts__row {
     display: grid;
-    grid-template-columns: 5.5rem 1fr;
-    gap: var(--wp--preset--spacing--xx-small);
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: baseline;
     padding: var(--wp--preset--spacing--xx-small) 0;
     border-bottom: 1px solid var(--wp--preset--color--outline);
 }
@@ -38,6 +43,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
+    white-space: nowrap;
     color: var(--wp--preset--color--body);
 }
 
@@ -64,13 +70,6 @@
     height: auto;
     margin-bottom: var(--wp--preset--spacing--small);
     border-radius: 8px;
-}
-
-.mf-burn-details__listing {
-    margin: 0;
-    padding-left: var(--wp--preset--spacing--small);
-    border-left: 3px solid var(--wp--preset--color--primary);
-    font-style: italic;
 }
 
 /* Older / all / newer */
@@ -139,4 +138,29 @@
     padding: var(--wp--preset--spacing--x-small);
     border: 1px dashed var(--wp--preset--color--outline);
     font-size: var(--wp--preset--font-size--x-small);
+}
+
+/* Roster */
+.mf-burn-roster__title {
+    margin: 0 0 var(--wp--preset--spacing--small);
+    font-size: var(--wp--preset--font-size--xx-large);
+}
+
+.mf-burn-roster__title span {
+    font-size: var(--wp--preset--font-size--small);
+    color: var(--wp--preset--color--body);
+    vertical-align: middle;
+}
+
+.mf-burn-roster__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    columns: 3 14rem;
+    column-gap: var(--wp--preset--spacing--medium);
+}
+
+.mf-burn-roster__list li {
+    break-inside: avoid;
+    padding: 3px 0;
 }
