@@ -19,7 +19,7 @@ class CampManagerLedger
     {
         global $wpdb;
 
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('finances'))) {
             wp_die(__('You do not have permission.'));
         }
 
@@ -59,7 +59,7 @@ class CampManagerLedger
     {
         global $wpdb;
 
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('finances'))) {
             wp_die(__('You do not have permission.'));
         }
 

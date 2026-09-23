@@ -8,7 +8,8 @@
  * leaves existing data alone, so this runs safely on activation every time.
  *
  * `season` on the roster, ledger, receipts and budget category tables was added after that
- * snapshot (see CampManagerSeason::upgrade(), which also runs this and backfills old rows).
+ * snapshot (see CampManagerSeason::upgrade(), which also runs this and backfills old rows),
+ * as were the mf_roles / mf_role_members tables (created by upgrade() for db version 3).
  */
 class CampManagerInstall
 {
@@ -27,6 +28,42 @@ class CampManagerInstall
         $this->create_mf_ledger_line_items_table();
         $this->create_mf_receipts_table();
         $this->create_mf_receipt_items_table();
+        $this->create_mf_roles_table();
+        $this->create_mf_role_members_table();
+    }
+
+    public function create_mf_roles_table()
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_roles';
+        $charset_collate = $wpdb->get_charset_collate();
+        $sql = "CREATE TABLE $table (
+            id int NOT NULL AUTO_INCREMENT,
+            season int NOT NULL,
+            name varchar(255) NOT NULL DEFAULT '',
+            description text,
+            permissions varchar(255) NOT NULL DEFAULT '',
+            sort_order int NOT NULL DEFAULT '0',
+            PRIMARY KEY  (id),
+            KEY season (season)
+        ) $charset_collate;";
+        dbDelta($sql);
+    }
+
+    public function create_mf_role_members_table()
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'mf_role_members';
+        $charset_collate = $wpdb->get_charset_collate();
+        $sql = "CREATE TABLE $table (
+            id int NOT NULL AUTO_INCREMENT,
+            role_id int NOT NULL,
+            roster_id int NOT NULL,
+            PRIMARY KEY  (id),
+            UNIQUE KEY role_roster (role_id,roster_id),
+            KEY roster_id (roster_id)
+        ) $charset_collate;";
+        dbDelta($sql);
     }
 
     public function create_mf_budget_table()

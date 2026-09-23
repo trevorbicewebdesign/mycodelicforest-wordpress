@@ -19,7 +19,7 @@ class CampManagerRoster
     {
         
         // Handle saving a member from the admin post request
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('roster'))) {
             wp_die('Unauthorized');
         }
 
@@ -48,7 +48,7 @@ class CampManagerRoster
     }
 
     public function handle_member_save_close(){
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('roster'))) {
             wp_die('Unauthorized');
         }
 

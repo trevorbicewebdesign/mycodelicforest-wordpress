@@ -9,12 +9,13 @@
  *               an archived season with the switcher, and the choice sticks (user meta) so
  *               list pages and the forms that save from them agree.
  *
- * Older seasons are never deleted. Every roster, ledger, receipt and budget category row
- * carries a season; budget items follow their category and ledger line items their ledger row.
+ * Older seasons are never deleted. Every roster, ledger, receipt, budget category and camp role
+ * row carries a season; budget items follow their category, ledger line items their ledger row
+ * and role holders their role.
  */
 class CampManagerSeason
 {
-    const DB_VERSION = 2;
+    const DB_VERSION = 3;
     // Everything recorded before seasons existed belongs to the 2025 season.
     const LEGACY_SEASON = 2025;
     const OPTION_CURRENT = 'camp_manager_season';
@@ -25,6 +26,8 @@ class CampManagerSeason
     const VIEW_ALL_PARAM = 'season_view';
 
     private static $season_tables = ['mf_roster', 'mf_ledger', 'mf_receipts', 'mf_budget_category'];
+    // Tables that only contribute to available(); they never had pre-season rows to backfill.
+    private static $newer_season_tables = ['mf_roles'];
 
     public function init()
     {
@@ -75,7 +78,7 @@ class CampManagerSeason
     {
         global $wpdb;
         $seasons = [self::current()];
-        foreach (self::$season_tables as $table) {
+        foreach (array_merge(self::$season_tables, self::$newer_season_tables) as $table) {
             $name = $wpdb->prefix . $table;
             // Skips tables that don't exist yet, or don't have the column until upgrade() has run.
             if (!$wpdb->get_var("SHOW COLUMNS FROM $name LIKE 'season'")) {
@@ -89,7 +92,8 @@ class CampManagerSeason
     }
 
     /**
-     * Adds the season columns and files pre-season data under the legacy season, once.
+     * Brings the tables up to DB_VERSION, once: version 2 adds the season columns and files
+     * pre-season data under the legacy season; version 3 adds the camp role tables.
      *
      * Only the missing columns are added (no dbDelta over every table), and a database lock
      * lets exactly one request do it: right after a deploy WP-CLI and web requests all hit
@@ -114,15 +118,30 @@ class CampManagerSeason
             if (self::upgraded()) {
                 return;
             }
+            $version = (int) get_option(self::OPTION_DB_VERSION);
 
-            foreach (['mf_ledger', 'mf_receipts', 'mf_budget_category'] as $table) {
-                $name = $wpdb->prefix . $table;
-                if (!$wpdb->get_var("SHOW COLUMNS FROM $name LIKE 'season'")) {
-                    $wpdb->query("ALTER TABLE $name ADD COLUMN season int DEFAULT NULL");
+            if ($version < 2) {
+                foreach (['mf_ledger', 'mf_receipts', 'mf_budget_category'] as $table) {
+                    $name = $wpdb->prefix . $table;
+                    if (!$wpdb->get_var("SHOW COLUMNS FROM $name LIKE 'season'")) {
+                        $wpdb->query("ALTER TABLE $name ADD COLUMN season int DEFAULT NULL");
+                    }
+                }
+                foreach (self::$season_tables as $table) {
+                    $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}$table SET season = %d WHERE season IS NULL", self::LEGACY_SEASON));
                 }
             }
-            foreach (self::$season_tables as $table) {
-                $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}$table SET season = %d WHERE season IS NULL", self::LEGACY_SEASON));
+
+            if ($version < 3) {
+                // Camp roles: new tables, started off with the roles from the old /camp-roles/ page.
+                require_once CAMPMANAGER_CORE_ABS_PATH . 'classes/class-install.php';
+                require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+                $installer = new CampManagerInstall();
+                $installer->create_mf_roles_table();
+                $installer->create_mf_role_members_table();
+                if (!$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}mf_roles")) {
+                    (new CampManagerRoles())->seedDefaultRoles(self::current());
+                }
             }
 
             update_option(self::OPTION_DB_VERSION, self::DB_VERSION);
@@ -138,7 +157,7 @@ class CampManagerSeason
 
     public static function handleSwitch()
     {
-        if (!isset($_GET[self::SWITCH_PARAM]) || !current_user_can('manage_options')) {
+        if (!isset($_GET[self::SWITCH_PARAM]) || !current_user_can(CampManagerRoles::CAP_ACCESS)) {
             return;
         }
 

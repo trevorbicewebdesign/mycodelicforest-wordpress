@@ -38,6 +38,7 @@ class CampManagerRosterTable extends WP_List_Table
             'fully_paid' => 'Fully Paid',
             'wpid'  => 'WordPress ID',
             'status' => 'Status',
+            'roles' => 'Camp Roles',
             'sponsor' => 'Sponsor',
         ];
     }
@@ -78,6 +79,8 @@ class CampManagerRosterTable extends WP_List_Table
                 return !empty($item['low_income']) ? 'Yes' : '';
             case 'fully_paid':
                 return !empty($item['fully_paid']) ? 'Yes' : '';
+            case 'roles':
+                return esc_html(implode(', ', $item['roles'] ?? []));
             default:
                 return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
         }
@@ -162,6 +165,11 @@ class CampManagerRosterTable extends WP_List_Table
         );
 
         $this->data = $wpdb->get_results($sql, ARRAY_A);
+        $roles = (new CampManagerRoles())->getRoleNamesByMember(array_column($this->data, 'id'));
+        foreach ($this->data as &$member) {
+            $member['roles'] = $roles[$member['id']] ?? [];
+        }
+        unset($member);
         $this->items = $this->data;
 
         // Set required column headers

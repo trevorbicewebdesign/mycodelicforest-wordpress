@@ -1,7 +1,7 @@
 <?php
 
 // Check if the user has permission to manage options
-if (!current_user_can('manage_options')) {
+if (!current_user_can(CampManagerRoles::cap('roster'))) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
 

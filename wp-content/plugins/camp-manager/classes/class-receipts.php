@@ -25,7 +25,7 @@ class CampManagerReceipts
 
     public function handle_get_receipt_total()
     {
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('finances'))) {
             wp_send_json_error('Unauthorized');
         }
 
@@ -241,7 +241,7 @@ class CampManagerReceipts
 
     public function handle_receipt_analyze()
     {
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('finances'))) {
             wp_die('Unauthorized');
         }
 

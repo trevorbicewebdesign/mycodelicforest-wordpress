@@ -18,7 +18,7 @@ class CampManagerBudgets {
     public function handle_budget_category_save()
     {
         // Handle saving a budget category from the admin post request
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('budgets'))) {
             wp_die('Unauthorized');
         }
 
@@ -43,7 +43,7 @@ class CampManagerBudgets {
     public function handle_budget_item_save()
     {
         // Handle saving a budget item from the admin post request
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('budgets'))) {
             wp_die('Unauthorized');
         }
 
@@ -82,7 +82,7 @@ class CampManagerBudgets {
 
     public function handle_copy_categories()
     {
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('budgets'))) {
             wp_die('Unauthorized');
         }
         check_admin_referer('camp_manager_copy_categories');

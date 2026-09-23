@@ -21,6 +21,7 @@ require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-pages.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-roster.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-shortcodes.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-inventory.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-roles.php');
 
 // Tables
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-receipt-list-table.php');
@@ -32,6 +33,7 @@ require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-budget-categories-list-ta
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-inventory-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-totes-list-table.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-tote-inventory-list-table.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'tables/class-roles-list-table.php');
  
 register_activation_hook(__FILE__, function () {
     require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-install.php');
@@ -51,6 +53,7 @@ class CampManagerInit {
     public $CampManagerPages;
     public $CampManagerShortcodes;
     public $CampManagerInventory;
+    public $CampManagerRoles;
     public function __construct() {
         $this->CampManagerCore = new CampManagerCore();
         $this->CampManagerChatGPT = new CampManagerChatGPT($this->CampManagerCore);
@@ -60,8 +63,9 @@ class CampManagerInit {
         $this->CampManagerBudgets = new CampManagerBudgets();
         $this->CampManagerRoster = new CampManagerRoster();
         $this->CampManagerInventory = new CampManagerInventory();
-        $this->CampManagerPages = new CampManagerPages($this->CampManagerReceipts, $this->CampManagerBudgets, $this->CampManagerRoster, $this->CampManagerLedger, $this->CampManagerCore, $this->CampManagerInventory);
-        $this->CampManagerShortcodes = new CampManagerShortcodes($this->CampManagerCore, $this->CampManagerReceipts, $this->CampManagerRoster, $this->CampManagerInventory);
+        $this->CampManagerRoles = new CampManagerRoles();
+        $this->CampManagerPages = new CampManagerPages($this->CampManagerReceipts, $this->CampManagerBudgets, $this->CampManagerRoster, $this->CampManagerLedger, $this->CampManagerCore, $this->CampManagerInventory, $this->CampManagerRoles);
+        $this->CampManagerShortcodes = new CampManagerShortcodes($this->CampManagerCore, $this->CampManagerReceipts, $this->CampManagerRoster, $this->CampManagerInventory, $this->CampManagerRoles);
     }
 
     public function init()
@@ -76,6 +80,7 @@ class CampManagerInit {
         $this->CampManagerRoster->init();
         $this->CampManagerShortcodes->init();
         $this->CampManagerInventory->init();
+        $this->CampManagerRoles->init();
     }
 }
 

@@ -8,8 +8,10 @@ class CampManagerShortcodes
 
     private $inventory;
     private $core;
-    public function __construct( CampManagerCore $CampManagerCore, CampManagerReceipts $CampManagerReceipts, CampManagerRoster $CampManagerRoster, CampManagerInventory $CampManagerInventory)
+    private $roles;
+    public function __construct( CampManagerCore $CampManagerCore, CampManagerReceipts $CampManagerReceipts, CampManagerRoster $CampManagerRoster, CampManagerInventory $CampManagerInventory, ?CampManagerRoles $CampManagerRoles = null)
     {
+        $this->roles = $CampManagerRoles ?: new CampManagerRoles();
         $this->core = $CampManagerCore;
         $this->receipts = $CampManagerReceipts;
         $this->roster = $CampManagerRoster;
@@ -25,6 +27,45 @@ class CampManagerShortcodes
 
         add_shortcode('camp_manager_financial_summary', [$this, 'displayFinancialSummary']);
         add_shortcode('camp_manager_actuals_chart', [$this, 'displayActualsChart']);
+        add_shortcode('camp_manager_roles', [$this, 'displayRoles']);
+    }
+
+    /**
+     * Camp roles for a season (the current one by default) with who holds them.
+     * [camp_manager_roles season="2027" holders="no"]
+     */
+    public function displayRoles($atts = [])
+    {
+        $atts = shortcode_atts([
+            'season'  => '',
+            'holders' => 'yes',
+        ], $atts, 'camp_manager_roles');
+
+        $season = !empty($atts['season']) ? (int) $atts['season'] : CampManagerSeason::current();
+        $roles = $this->roles->getRoles($season);
+        if (!$roles) {
+            return '<p>Camp roles for ' . (int) $season . ' haven\'t been set yet.</p>';
+        }
+
+        $show_holders = !in_array(strtolower($atts['holders']), ['no', 'false', '0'], true);
+        $output = '<div class="camp-manager-roles">';
+        foreach ($roles as $role) {
+            $output .= '<div class="camp-manager-role">';
+            $output .= '<h3 class="camp-manager-role-name">' . esc_html($role['name']) . '</h3>';
+            if ($show_holders) {
+                // Dropped holders are no longer doing the job.
+                $holders = array_filter($role['members'], function ($member) {
+                    return !in_array($member['status'], ['Dropped', 'No'], true);
+                });
+                $names = array_filter(array_map([CampManagerRoles::class, 'displayName'], $holders));
+                $output .= '<p class="camp-manager-role-holders"><em>' . ($names ? esc_html(implode(', ', $names)) : 'Open — ask a camp lead if you\'re interested') . '</em></p>';
+            }
+            $output .= '<div class="camp-manager-role-description">' . wpautop(wp_kses_post($role['description'])) . '</div>';
+            $output .= '</div>';
+        }
+        $output .= '</div>';
+
+        return $output;
     }
 
     public function displayRoster($atts = [], $content = null)

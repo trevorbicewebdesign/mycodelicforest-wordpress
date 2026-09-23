@@ -9,9 +9,11 @@ class CampManagerPages
     private $ledger;
 
     private $inventory;
+    private $roles;
 
-    public function __construct(CampManagerReceipts $receipts, CampManagerBudgets $budgets, CampManagerRoster $roster, CampManagerLedger $ledger, CampManagerCore $core, CampManagerInventory $inventory)
+    public function __construct(CampManagerReceipts $receipts, CampManagerBudgets $budgets, CampManagerRoster $roster, CampManagerLedger $ledger, CampManagerCore $core, CampManagerInventory $inventory, ?CampManagerRoles $roles = null)
     {
+        $this->roles = $roles ?: new CampManagerRoles();
         $this->receipts = $receipts;
         $this->budgets = $budgets;
         $this->roster = $roster;
@@ -75,7 +77,7 @@ class CampManagerPages
             add_menu_page(
                 'Camp Manager',
                 'Camp Manager',
-                'manage_options',
+                CampManagerRoles::cap('finances'),
                 'camp-manager',
                 array($this, 'render_dashboard_page'),
                 'dashicons-admin-site',
@@ -84,11 +86,42 @@ class CampManagerPages
         });
 
         add_action('admin_menu', function () {
+            // Roles live under the Camp Manager menu; managing them (and the access they grant)
+            // stays admin-only.
+            add_submenu_page(
+                'camp-manager',
+                'Dashboard',
+                'Dashboard',
+                CampManagerRoles::cap('finances'),
+                'camp-manager',
+                array($this, 'render_dashboard_page')
+            );
+
+            add_submenu_page(
+                'camp-manager',
+                'Camp Roles',
+                'Camp Roles',
+                'manage_options',
+                'camp-manager-roles',
+                [$this, 'render_roles_view_all_page']
+            );
+
+            add_submenu_page(
+                'camp-manager',
+                'Add a Role',
+                'Add a Role',
+                'manage_options',
+                'camp-manager-add-role',
+                [$this, 'render_role_add_page']
+            );
+        });
+
+        add_action('admin_menu', function () {
             // Top-level menu
             add_menu_page(
                 'View All Items',       // Page title
                 'Budgets',                // Menu title in the sidebar
-                'manage_options',
+                CampManagerRoles::cap('budgets'),
                 'camp-manager-budgets',
                 [$this, 'render_budget_items_view_all_page'],
                 'dashicons-admin-site',
@@ -100,7 +133,7 @@ class CampManagerPages
                 'camp-manager-budgets',
                 'View All Budgets',       // Page title
                 'View All Budgets',       // Submenu label
-                'manage_options',
+                CampManagerRoles::cap('budgets'),
                 'camp-manager-budgets',   // Same slug as top-level
                 [$this, 'render_budget_items_view_all_page']
             );
@@ -110,7 +143,7 @@ class CampManagerPages
                 'camp-manager-budgets',
                 'Add New Item',
                 'Add New Item',
-                'manage_options',
+                CampManagerRoles::cap('budgets'),
                 'camp-manager-add-budget-item',
                 [$this, 'render_budget_item_add_page']
             );
@@ -119,7 +152,7 @@ class CampManagerPages
                 'camp-manager-budgets',
                 'Categories',
                 'Categories',
-                'manage_options',
+                CampManagerRoles::cap('budgets'),
                 'camp-manager-budget-categories',
                 [$this, 'render_budget_category_view_all_page']
             );
@@ -128,7 +161,7 @@ class CampManagerPages
                 'camp-manager-budgets',
                 'Add New Category',
                 'Add New Category',
-                'manage_options',
+                CampManagerRoles::cap('budgets'),
                 'camp-manager-add-budget-category',
                 [$this, 'render_budget_category_add_page']
             );
@@ -140,7 +173,7 @@ class CampManagerPages
             add_menu_page(
                 'View All Members',     // Page title (shows in browser tab)
                 'Roster',               // Menu title (shows in sidebar)
-                'manage_options',
+                CampManagerRoles::cap('roster'),
                 'camp-manager-members',
                 [$this, 'render_members_view_all_page'],
                 'dashicons-admin-site',
@@ -152,7 +185,7 @@ class CampManagerPages
                 'camp-manager-members',
                 'View All Members',     // Page title
                 'View All Members',     // Submenu title
-                'manage_options',
+                CampManagerRoles::cap('roster'),
                 'camp-manager-members', // Must match parent slug to override default
                 [$this, 'render_members_view_all_page']
             );
@@ -162,7 +195,7 @@ class CampManagerPages
                 'camp-manager-members',
                 'Add a Member',
                 'Add a Member',
-                'manage_options',
+                CampManagerRoles::cap('roster'),
                 'camp-manager-add-member',
                 [$this, 'render_members_add_page']
             );
@@ -173,7 +206,7 @@ class CampManagerPages
             add_menu_page(
                 'View Ledger',     // Page title (shows in browser tab)
                 'Ledger',               // Menu title (shows in sidebar)
-                'manage_options',
+                CampManagerRoles::cap('finances'),
                 'camp-manager-ledger',
                 [$this, 'render_ledger_view_all_page'],
                 'dashicons-admin-site',
@@ -185,7 +218,7 @@ class CampManagerPages
                 'camp-manager-ledger',
                 'View Ledger',     // Page title
                 'View Ledger',     // Submenu title
-                'manage_options',
+                CampManagerRoles::cap('finances'),
                 'camp-manager-ledger', // Must match parent slug to override default
                 [$this, 'render_ledger_view_all_page']
             );
@@ -195,7 +228,7 @@ class CampManagerPages
                 'camp-manager-ledger',
                 'Add a Ledger Entry',
                 'Add a Ledger Entry',
-                'manage_options',
+                CampManagerRoles::cap('finances'),
                 'camp-manager-add-ledger',
                 [$this, 'render_ledger_add_page']
             );
@@ -206,7 +239,7 @@ class CampManagerPages
             add_menu_page(
                 'View Actuals',     // Page title (shows in browser tab)
                 'Actuals',               // Menu title (shows in sidebar)
-                'manage_options',
+                CampManagerRoles::cap('finances'),
                 'camp-manager-actuals',
                 [$this, 'render_receipts_view_all_page'],
                 'dashicons-admin-site',
@@ -218,7 +251,7 @@ class CampManagerPages
                 'camp-manager-actuals',
                 'View Actuals',     // Page title
                 'View Actuals',     // Submenu title
-                'manage_options',
+                CampManagerRoles::cap('finances'),
                 'camp-manager-actuals', // Must match parent slug to override default
                 [$this, 'render_receipts_view_all_page']
             );
@@ -228,7 +261,7 @@ class CampManagerPages
                 'camp-manager-actuals',
                 'Summary',     // Page title
                 'Summary',     // Submenu title
-                'manage_options',
+                CampManagerRoles::cap('finances'),
                 'camp-manager-actuals-summary', // Must match parent slug to override default
                 function() {
                     include plugin_dir_path(__FILE__) . '../tmpl/receipt_summary_page.php';
@@ -240,7 +273,7 @@ class CampManagerPages
                 'camp-manager-actuals',
                 'Add a Receipt',
                 'Add a Receipt',
-                'manage_options',
+                CampManagerRoles::cap('finances'),
                 'camp-manager-add-receipt',
                 function() {
                     include plugin_dir_path(__FILE__) . '../tmpl/receipt_add_page.php';
@@ -253,7 +286,7 @@ class CampManagerPages
             add_menu_page(
                 'View Inventory', 
                 'Inventory',
-                'manage_options',
+                CampManagerRoles::cap('inventory'),
                 'camp-manager-inventory',
                 function() {
                     include(plugin_dir_path(__FILE__) . '../tmpl/inventory_view_all_page.php');
@@ -265,7 +298,7 @@ class CampManagerPages
                 'camp-manager-inventory',
                 'Add Inventory',
                 'Add Inventory',
-                'manage_options',
+                CampManagerRoles::cap('inventory'),
                 'camp-manager-add-inventory',
                 function() {
                     include plugin_dir_path(__FILE__) . '../tmpl/inventory_add_page.php';
@@ -276,7 +309,7 @@ class CampManagerPages
                 'camp-manager-inventory',
                 'View Totes',
                 'View Totes',
-                'manage_options',
+                CampManagerRoles::cap('inventory'),
                 'camp-manager-totes',
                 function() {
                     include plugin_dir_path(__FILE__) . '../tmpl/totes_view_all_page.php';
@@ -287,7 +320,7 @@ class CampManagerPages
                 'camp-manager-inventory',
                 'Add a Tote',
                 'Add a Tote',
-                'manage_options',
+                CampManagerRoles::cap('inventory'),
                 'camp-manager-add-tote',
                 function() {
                     include plugin_dir_path(__FILE__) . '../tmpl/totes_add_page.php';
@@ -298,7 +331,7 @@ class CampManagerPages
                 'camp-manager-inventory',
                 'Add Tote Inventory',
                 'Add Tote Inventory',
-                'manage_options',
+                CampManagerRoles::cap('inventory'),
                 'camp-manager-add-tote-inventory',
                 function() {
                     include plugin_dir_path(__FILE__) . '../tmpl/tote_inventory_add_page.php';
@@ -309,7 +342,7 @@ class CampManagerPages
                 'camp-manager-inventory',
                 'View Tote Inventory',
                 'View Tote Inventory',
-                'manage_options',
+                CampManagerRoles::cap('inventory'),
                 'camp-manager-view-tote-inventory',
                 function() {
                     include plugin_dir_path(__FILE__) . '../tmpl/tote_inventory_view_all_page.php';
@@ -378,6 +411,16 @@ class CampManagerPages
          include plugin_dir_path(__FILE__) . '../tmpl/receipt_add_page.php';
     }
     
+    public function render_roles_view_all_page()
+    {
+        include plugin_dir_path(__FILE__) . '../tmpl/roles_view_all_page.php';
+    }
+
+    public function render_role_add_page()
+    {
+        include plugin_dir_path(__FILE__) . '../tmpl/role_add_page.php';
+    }
+
     public function render_dashboard_page() {
         include plugin_dir_path(__FILE__) . '../tmpl/dashboard_page.php';
     }
