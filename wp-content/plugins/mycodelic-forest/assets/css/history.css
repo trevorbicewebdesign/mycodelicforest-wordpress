@@ -165,6 +165,11 @@
     padding: 3px 0;
 }
 
+.mf-burn-leads__empty {
+    margin: 0;
+    color: var(--wp--preset--color--neutral);
+}
+
 /* Theme art isn't always 16:9 (2013/2014 are portrait posters, 2015 is square): letterbox it
    on the archive cards instead of cropping off the title, and keep it to a screen's height
    on the year page. */

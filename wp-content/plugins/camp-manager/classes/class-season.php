@@ -15,7 +15,7 @@
  */
 class CampManagerSeason
 {
-    const DB_VERSION = 3;
+    const DB_VERSION = 4;
     // Everything recorded before seasons existed belongs to the 2025 season.
     const LEGACY_SEASON = 2025;
     const OPTION_CURRENT = 'camp_manager_season';
@@ -93,7 +93,8 @@ class CampManagerSeason
 
     /**
      * Brings the tables up to DB_VERSION, once: version 2 adds the season columns and files
-     * pre-season data under the legacy season; version 3 adds the camp role tables.
+     * pre-season data under the legacy season; version 3 adds the camp role tables; version 4
+     * gives every past season a Camp Lead role.
      *
      * Only the missing columns are added (no dbDelta over every table), and a database lock
      * lets exactly one request do it: right after a deploy WP-CLI and web requests all hit
@@ -142,6 +143,12 @@ class CampManagerSeason
                 if (!$wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}mf_roles")) {
                     (new CampManagerRoles())->seedDefaultRoles(self::current());
                 }
+            }
+
+            if ($version < 4) {
+                // The camp has always had a Camp Lead: give every season one so Burn Year
+                // pages can name that year's leads. Holders are assigned by hand.
+                (new CampManagerRoles())->ensureLeadRoleEverySeason();
             }
 
             update_option(self::OPTION_DB_VERSION, self::DB_VERSION);

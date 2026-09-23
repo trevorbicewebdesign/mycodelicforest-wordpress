@@ -131,6 +131,50 @@ class CampManagerRolesTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $this->assertSame([$other], array_map('intval', array_column($this->roles->getRole($lead)['members'], 'id')));
     }
 
+    public function testEverySeasonWithARosterGetsACampLeadRole()
+    {
+        $this->rosterMember(0, 2013);
+        $this->rosterMember(0, 2015);
+        $this->roles->upsertRole(['name' => 'camp lead', 'season' => 2015]); // already there, any case
+        $this->roles->upsertRole(['name' => 'Treasurer', 'sort_order' => 20, 'season' => 2019]);
+
+        $added = $this->roles->ensureLeadRoleEverySeason();
+
+        $this->assertSame([2013, 2019, 2027], $added);
+        $this->assertSame(['Camp Lead'], array_column($this->roles->getRoles(2013), 'name'));
+        $this->assertSame(['camp lead'], array_column($this->roles->getRoles(2015), 'name'));
+        $this->assertSame(['Camp Lead', 'Treasurer'], array_column($this->roles->getRoles(2019), 'name'));
+        $this->assertSame(array_keys(CampManagerRoles::AREAS), $this->roles->getRoles(2013)[0]['permissions']);
+        $this->assertSame([], $this->roles->ensureLeadRoleEverySeason(), 'running it again adds nothing');
+    }
+
+    public function testBurnYearPageListsThatSeasonsCampLeads()
+    {
+        $user = self::factory()->user->create(['role' => 'subscriber', 'user_nicename' => 'sparkle']);
+        $lead_2024 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2024]);
+        $lead_2025 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2025]);
+        $this->roles->setRoleMembers($lead_2024, [
+            $this->rosterMember($user, 2024, 'Confirmed', 'Sparkle'),
+            $this->rosterMember(0, 2024, 'Dropped', 'Gone'),
+        ]);
+        $this->roles->setRoleMembers($lead_2025, [$this->rosterMember(0, 2025, 'Confirmed', 'NextYear')]);
+
+        $this->assertSame(['Sparkle'], array_column($this->roles->leadsForSeason(2024), 'playaname'));
+
+        $history = MycodelicForestHistory::$instance ?: new MycodelicForestHistory();
+        $post = self::factory()->post->create(['post_type' => 'camp_year', 'meta_input' => ['burn_year' => 2024]]);
+        $html = $history->renderLeads($post);
+
+        $this->assertStringContainsString('Camp Leads', $html);
+        $this->assertStringContainsString('href="' . home_url('/profile/sparkle/') . '"', $html);
+        $this->assertStringContainsString('Sparkle (Camper' . $user . ' Test)', $html);
+        $this->assertStringNotContainsString('Gone', $html);
+        $this->assertStringNotContainsString('NextYear', $html);
+
+        $empty = self::factory()->post->create(['post_type' => 'camp_year', 'meta_input' => ['burn_year' => 2019]]);
+        $this->assertStringContainsString('Not recorded for this year', $history->renderLeads($empty));
+    }
+
     public function testDeletingRolesRemovesTheirHolders()
     {
         global $wpdb;

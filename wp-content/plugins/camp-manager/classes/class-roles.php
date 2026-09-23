@@ -22,6 +22,8 @@ class CampManagerRoles
     ];
     // Held by anyone with at least one area; lets them into wp-admin and use the season switcher.
     const CAP_ACCESS = 'camp_manager_access';
+    // The one role every season has had since the camp began; Burn Year pages list its holders.
+    const LEAD_ROLE = 'Camp Lead';
 
     /** Per-request cache of the areas each user's current roles grant. */
     private static $areasByUser = [];
@@ -304,6 +306,64 @@ class CampManagerRoles
             ));
         }
         self::flushCache();
+    }
+
+    /**
+     * Active holders of the Camp Lead role in a season (roster rows), for the Burn Year
+     * "Camp Leads" section. Matched by name, since each season has its own role rows.
+     */
+    public function leadsForSeason(int $season): array
+    {
+        if ((int) get_option(CampManagerSeason::OPTION_DB_VERSION) < 3) {
+            return [];
+        }
+        global $wpdb;
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT ro.*
+             FROM {$wpdb->prefix}mf_roles r
+             JOIN {$wpdb->prefix}mf_role_members m ON m.role_id = r.id
+             JOIN {$wpdb->prefix}mf_roster ro ON ro.id = m.roster_id
+             WHERE r.season = %d AND LOWER(r.name) = %s
+               AND (ro.status IS NULL OR ro.status NOT IN ('Dropped', 'No'))
+             ORDER BY ro.playaname, ro.fname",
+            $season,
+            strtolower(self::LEAD_ROLE)
+        ), ARRAY_A) ?: [];
+    }
+
+    /**
+     * Makes sure every season that has a roster (or roles, or is current) has a Camp Lead
+     * role, since the camp has always had one. Holders are not guessed. Returns the seasons
+     * a role was added to. Runs from CampManagerSeason::upgrade() (db version 4); safe to
+     * run again.
+     */
+    public function ensureLeadRoleEverySeason(): array
+    {
+        global $wpdb;
+        $seasons = array_map('intval', $wpdb->get_col(
+            "SELECT DISTINCT season FROM {$wpdb->prefix}mf_roster WHERE season IS NOT NULL
+             UNION SELECT DISTINCT season FROM {$wpdb->prefix}mf_roles"
+        ));
+        $seasons[] = CampManagerSeason::current();
+        $have = array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT season FROM {$wpdb->prefix}mf_roles WHERE LOWER(name) = %s",
+            strtolower(self::LEAD_ROLE)
+        )));
+
+        [$name, $description, $permissions] = self::defaultRoles()[0];
+        $added = [];
+        foreach (array_unique(array_filter($seasons)) as $season) {
+            if (in_array($season, $have, true)) {
+                continue;
+            }
+            $this->upsertRole([
+                'name' => $name, 'description' => $description, 'permissions' => $permissions,
+                'sort_order' => 10, 'season' => $season,
+            ]);
+            $added[] = $season;
+        }
+        sort($added);
+        return $added;
     }
 
     /** Ids of the roles one roster member holds. */
