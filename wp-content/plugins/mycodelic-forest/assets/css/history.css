@@ -1,0 +1,142 @@
+/* Camp history (Burn Year) blocks. Colors and spacing come from Spectra One's presets. */
+
+.mf-burn-summary {
+    margin: 0;
+    font-size: var(--wp--preset--font-size--small);
+    letter-spacing: 0.04em;
+}
+
+.swt-block-page-banner-group .mf-burn-summary {
+    color: #fff;
+    text-align: center;
+    margin-bottom: var(--wp--preset--spacing--large);
+}
+
+/* Facts panel */
+.mf-burn-facts {
+    margin: 0;
+    padding: var(--wp--preset--spacing--small);
+    background: var(--wp--preset--color--surface);
+    border: 1px solid var(--wp--preset--color--outline);
+    border-radius: 8px;
+}
+
+.mf-burn-facts__row {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: var(--wp--preset--spacing--xx-small);
+    padding: var(--wp--preset--spacing--xx-small) 0;
+    border-bottom: 1px solid var(--wp--preset--color--outline);
+}
+
+.mf-burn-facts__row:last-child {
+    border-bottom: 0;
+}
+
+.mf-burn-facts dt {
+    font-size: var(--wp--preset--font-size--x-small);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--wp--preset--color--body);
+}
+
+.mf-burn-facts dd {
+    margin: 0;
+    color: var(--wp--preset--color--heading);
+}
+
+@media (min-width: 782px) {
+    .wp-block-mycodelic-burn-year-facts {
+        position: sticky;
+        top: var(--wp--preset--spacing--medium);
+    }
+}
+
+/* Details */
+.mf-burn-details__section + .mf-burn-details__section {
+    margin-top: var(--wp--preset--spacing--medium);
+}
+
+.mf-burn-details__map {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin-bottom: var(--wp--preset--spacing--small);
+    border-radius: 8px;
+}
+
+.mf-burn-details__listing {
+    margin: 0;
+    padding-left: var(--wp--preset--spacing--small);
+    border-left: 3px solid var(--wp--preset--color--primary);
+    font-style: italic;
+}
+
+/* Older / all / newer */
+.mf-burn-nav {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--wp--preset--spacing--small);
+    padding-top: var(--wp--preset--spacing--small);
+    border-top: 1px solid var(--wp--preset--color--outline);
+}
+
+.mf-burn-nav a {
+    text-decoration: none;
+}
+
+.mf-burn-nav__older,
+.mf-burn-nav__newer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mf-burn-nav__newer {
+    text-align: right;
+}
+
+.mf-burn-nav__older span,
+.mf-burn-nav__newer span {
+    font-size: var(--wp--preset--font-size--x-small);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--wp--preset--color--body);
+}
+
+@media (max-width: 600px) {
+    .mf-burn-nav {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .mf-burn-nav__all {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        text-align: center;
+    }
+}
+
+/* Spectra One swaps a missing featured image for a placeholder graphic; years without a
+   photo should just have no image. */
+.single-camp_year .wp-block-image.is-placeholder,
+.post-type-archive-camp_year a:has(> .wp-block-image.is-placeholder),
+.post-type-archive-camp_year .wp-block-image.is-placeholder {
+    display: none;
+}
+
+/* Archive cards */
+.mf-burn-year-card .wp-block-post-featured-image {
+    margin-bottom: var(--wp--preset--spacing--xx-small);
+}
+
+.mf-burn-year-card .wp-block-post-featured-image img {
+    border-radius: 8px;
+}
+
+.mf-burn-placeholder {
+    padding: var(--wp--preset--spacing--x-small);
+    border: 1px dashed var(--wp--preset--color--outline);
+    font-size: var(--wp--preset--font-size--x-small);
+}

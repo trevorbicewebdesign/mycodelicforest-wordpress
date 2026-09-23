@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bcaf4ebc288357731d6ea81823090070",
+    "content-hash": "0f1edfad13a08422e2e88e062242f034",
     "packages": [
         {
             "name": "composer/installers",
@@ -153,6 +153,34 @@
             "time": "2024-06-24T20:46:46+00:00"
         },
         {
+            "name": "trevorbicewebdesign/advanced-custom-fields-pro",
+            "version": "v6.8.10",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:trevorbicewebdesign/advanced-custom-fields-pro.git",
+                "reference": "a06ed825c998873042e54dbdb82de2b2bfd992f0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/trevorbicewebdesign/advanced-custom-fields-pro/zipball/a06ed825c998873042e54dbdb82de2b2bfd992f0",
+                "reference": "a06ed825c998873042e54dbdb82de2b2bfd992f0",
+                "shasum": ""
+            },
+            "require": {
+                "composer/installers": "^1.0 || ^2.0"
+            },
+            "type": "wordpress-plugin",
+            "license": [
+                "proprietary"
+            ],
+            "description": "Advanced Custom Fields PRO (licensed copy, private distribution for mycodelicforest.org). Update: drop in the new release, keep this composer.json, commit, tag with the plugin version (vX.Y.Z).",
+            "support": {
+                "source": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro/tree/v6.8.10",
+                "issues": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro/issues"
+            },
+            "time": "2026-09-23T02:52:24+00:00"
+        },
+        {
             "name": "trevorbicewebdesign/gravityforms",
             "version": "v3.1.2",
             "source": {
@@ -207,24 +235,6 @@
                 "issues": "https://github.com/trevorbicewebdesign/revslider/issues"
             },
             "time": "2026-09-21T19:09:19+00:00"
-        },
-        {
-            "name": "wpackagist-plugin/advanced-custom-fields",
-            "version": "6.8.10",
-            "source": {
-                "type": "svn",
-                "url": "https://plugins.svn.wordpress.org/advanced-custom-fields/",
-                "reference": "tags/6.8.10"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/advanced-custom-fields.6.8.10.zip"
-            },
-            "require": {
-                "composer/installers": "^1.0 || ^2.0"
-            },
-            "type": "wordpress-plugin",
-            "homepage": "https://wordpress.org/plugins/advanced-custom-fields/"
         },
         {
             "name": "wpackagist-plugin/email-address-obfuscation",

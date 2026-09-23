@@ -1,0 +1,31 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "mycodelic/burn-year-facts",
+    "title": "Burn Year Facts",
+    "description": "At-a-glance panel: year, theme, dates, placement, camp size, leads. Reads the current Burn Year post.",
+    "category": "theme",
+    "icon": "calendar-alt",
+    "keywords": [
+        "burning man",
+        "history",
+        "camp year"
+    ],
+    "usesContext": [
+        "postId",
+        "postType"
+    ],
+    "supports": {
+        "html": false,
+        "mode": false,
+        "align": [
+            "wide",
+            "full"
+        ]
+    },
+    "style": "mycodelic-forest-history",
+    "acf": {
+        "mode": "preview",
+        "renderTemplate": "render.php"
+    }
+}

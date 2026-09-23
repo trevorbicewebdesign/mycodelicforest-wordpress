@@ -36,6 +36,10 @@
         },
         {
             "type": "vcs",
+            "url": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro.git"
+        },
+        {
+            "type": "vcs",
             "url": "https://github.com/trevorbicewebdesign/codeception-mailpit"
         }
     ],
@@ -57,7 +61,7 @@
         "wpackagist-plugin/loginpress": "*",
         "wpackagist-plugin/svg-support": "*",
         "wpackagist-theme/spectra-one": "*",
-        "wpackagist-plugin/advanced-custom-fields": "*"
+        "trevorbicewebdesign/advanced-custom-fields-pro": "^6.8"
     },
     "require-dev": {
         "lucatume/wp-browser": "^4.0",
