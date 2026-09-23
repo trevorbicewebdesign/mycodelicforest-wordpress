@@ -296,6 +296,14 @@ class MycodelicForestHistory {
             'Confirmed'
         ), ARRAY_A);
 
+        return $cache[$year] = $this->namedMembers($rows);
+    }
+
+    /**
+     * Roster rows as ['name' => "Playa (Real Name)", 'url' => profile link or null], sorted
+     * by the name shown.
+     */
+    private function namedMembers(array $rows) {
         $members = [];
         foreach ($rows as $row) {
             $real  = preg_replace('/\s+/', ' ', trim($row['fname'] . ' ' . $row['lname']));
@@ -313,8 +321,19 @@ class MycodelicForestHistory {
         usort($members, function ($a, $b) {
             return strcasecmp($a['name'], $b['name']);
         });
+        return $members;
+    }
 
-        return $cache[$year] = $members;
+    /**
+     * Who held camp-manager's Camp Lead role in the post's Burn Year (mf_roles is per season,
+     * so the year is the season). Same shape as rosterMembers().
+     */
+    public function leads($post_id) {
+        $year = (int) $this->field($post_id, 'burn_year');
+        if (!$year || !class_exists('CampManagerRoles')) {
+            return [];
+        }
+        return $this->namedMembers((new CampManagerRoles())->leadsForSeason($year));
     }
 
     /**
@@ -340,10 +359,20 @@ class MycodelicForestHistory {
         return $html . '</section>';
     }
 
-    // Camp Leads section. Intentionally empty for now: leads will come from camp-manager's
-    // season roles (feat/role-management), not a typed-in field.
+    // Camp Leads section: the year's Camp Lead role holders, assigned in Camp Manager
+    // (Camp Roles, or a roster member's Camp Roles field) for that season.
     public function renderLeads($post_id) {
-        return '<section class="mf-burn-leads"><h2 class="mf-burn-roster__title">Camp Leads</h2></section>';
+        $leads = $this->leads($post_id);
+        $html  = '<section class="mf-burn-leads"><h2 class="mf-burn-roster__title">Camp Leads</h2>';
+        if (!$leads) {
+            return $html . '<p class="mf-burn-leads__empty">Not recorded for this year.</p></section>';
+        }
+        $html .= '<ul class="mf-burn-roster__list">';
+        foreach ($leads as $lead) {
+            $name  = esc_html($lead['name']);
+            $html .= '<li>' . ($lead['url'] ? '<a href="' . esc_url($lead['url']) . '">' . $name . '</a>' : $name) . '</li>';
+        }
+        return $html . '</ul></section>';
     }
 
     public function renderRoster($post_id) {

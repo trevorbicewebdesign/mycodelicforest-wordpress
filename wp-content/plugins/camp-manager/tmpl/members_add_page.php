@@ -1,7 +1,7 @@
 <?php
 
 // Check if the user has permission to manage options
-if (!current_user_can('manage_options')) {
+if (!current_user_can(CampManagerRoles::cap('roster'))) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
 
@@ -19,6 +19,14 @@ $lname = $is_edit && isset($member->lname) ? esc_attr($member->lname) : '';
 $playaname = $is_edit && isset($member->playaname) ? esc_attr($member->playaname) : '';
 $email = $is_edit && isset($member->email) ? esc_attr($member->email) : '';
 $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
+
+// Camp roles for the member's season. Assigning them grants Camp Manager access, so like the
+// role pages this stays admin-only; roster editors just see who holds what.
+$roles_obj = new CampManagerRoles();
+$member_season = $is_edit && !empty($member->season) ? (int) $member->season : CampManagerSeason::selected();
+$season_roles = $roles_obj->getRoles($member_season);
+$member_role_ids = $is_edit ? $roles_obj->getMemberRoleIds($id) : [];
+$can_assign_roles = current_user_can('manage_options');
 
 ?>
 <style>
@@ -123,6 +131,35 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
                         </td>
                     </tr>
                     <tr>
+                        <th><label for="member_roles">Camp Roles</label></th>
+                        <td>
+                            <?php if ($can_assign_roles): ?>
+                                <input type="hidden" name="member_roles_submitted" value="1">
+                                <select name="member_roles[]" id="member_roles" multiple style="min-width: 25em;">
+                                    <?php foreach ($season_roles as $role): ?>
+                                        <option value="<?php echo esc_attr($role['id']); ?>" <?php selected(in_array((int) $role['id'], $member_role_ids, true)); ?>>
+                                            <?php echo esc_html($role['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <?php if (!$season_roles): ?>
+                                    <p class="description">No roles are set up for <?php echo (int) $member_season; ?> yet.
+                                        <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-roles')); ?>">Manage camp roles</a></p>
+                                <?php else: ?>
+                                    <p class="description">Roles for the <?php echo (int) $member_season; ?> season. Holders can also be set from each role's edit page.</p>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <?php
+                                $held = array_filter($season_roles, function ($role) use ($member_role_ids) {
+                                    return in_array((int) $role['id'], $member_role_ids, true);
+                                });
+                                ?>
+                                <?php echo $held ? esc_html(implode(', ', array_column($held, 'name'))) : '<em>None</em>'; ?>
+                                <p class="description">Only administrators can assign camp roles.</p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr>
                         <th><label for="member_sponsor">Sponsor</label></th>
                         <td>
                             <?php
@@ -165,6 +202,10 @@ $wpid = $is_edit && isset($member->wpid) ? esc_attr($member->wpid) : '';
 </div>
 <script type="text/javascript">
 jQuery(document).ready(function ($) {
+    if ($.fn.select2 && $('#member_roles').length) {
+        $('#member_roles').select2({ placeholder: 'Choose camp roles', width: '25em' });
+    }
+
     // Set correct action on button click
     $('#save-btn').on('click', function() {
         $('#action-field').val('camp_manager_save_member');

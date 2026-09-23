@@ -106,7 +106,9 @@ class ProfileAdminCest
         $I->seeOptionIsSelected("[name=has_attended_burning_man]", "No");
         $I->selectOption("[name=has_attended_burning_man]", "Yes");
         $I->checkOption("[name='years_attended[]'][value='2024']");
-        $I->seeCheckboxIsChecked("[name='years_attended[]']", "2024");
+        // seeCheckboxIsChecked() takes one selector and checks the first match, so name the
+        // 2024 box itself rather than whichever year happens to come first in the list.
+        $I->seeCheckboxIsChecked("[name='years_attended[]'][value='2024']");
         
         $I->click("Update User");
         $I->waitForText("User updated.", 10);
@@ -161,7 +163,9 @@ class ProfileAdminCest
         $I->seeOptionIsSelected("[name=has_attended_burning_man]", "No");
         $I->selectOption("[name=has_attended_burning_man]", "Yes");
         $I->checkOption("[name='years_attended[]'][value='2024']");
-        $I->seeCheckboxIsChecked("[name='years_attended[]']", "2024");
+        // seeCheckboxIsChecked() takes one selector and checks the first match, so name the
+        // 2024 box itself rather than whichever year happens to come first in the list.
+        $I->seeCheckboxIsChecked("[name='years_attended[]'][value='2024']");
         
         $I->click("Update Profile");
         $I->waitForText("Profile updated.", 10);

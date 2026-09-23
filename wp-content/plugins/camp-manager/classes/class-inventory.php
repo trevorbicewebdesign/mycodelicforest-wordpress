@@ -23,7 +23,7 @@ class CampManagerInventory
 
     public function handle_inventory_save_close()
     {
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('inventory'))) {
             wp_die('Unauthorized');
         }
 
@@ -54,7 +54,7 @@ class CampManagerInventory
 
     public function handle_tote_inventory_save_close()
     {
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('inventory'))) {
             wp_die('Unauthorized');
         }
 
@@ -106,7 +106,7 @@ class CampManagerInventory
 
     public function handle_tote_inventory_save()
     {
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('inventory'))) {
             wp_die('Unauthorized');
         }
 
@@ -141,7 +141,7 @@ class CampManagerInventory
     public function handle_tote_save()
     {
         // Handle saving a tote from the admin post request
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('inventory'))) {
             wp_die('Unauthorized');
         }
 
@@ -162,7 +162,7 @@ class CampManagerInventory
     public function handle_inventory_save()
     {
         // Handle saving an inventory item from the admin post request
-        if (!current_user_can('manage_options')) {
+        if (!current_user_can(CampManagerRoles::cap('inventory'))) {
             wp_die('Unauthorized');
         }
 

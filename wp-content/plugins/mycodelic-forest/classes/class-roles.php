@@ -17,8 +17,9 @@ class MycodelicForestRoles {
     }
 
     public function blockAdminForSubscribers() {
-        // Only redirect in admin area and not during AJAX requests.
-        if ( is_admin() && ! wp_doing_ajax() && current_user_can('subscriber') && ! current_user_can('edit_posts') ) {
+        // Only redirect in admin area and not during AJAX requests. Subscribers holding a
+        // Camp Manager role this season (see CampManagerRoles) still get into their parts of it.
+        if ( is_admin() && ! wp_doing_ajax() && current_user_can('subscriber') && ! current_user_can('edit_posts') && ! current_user_can('camp_manager_access') ) {
             wp_redirect( home_url() );
             exit;
         }
