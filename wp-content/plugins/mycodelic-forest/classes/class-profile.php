@@ -917,7 +917,16 @@ class MycodelicForestProfile
 
             case 'years_list':
                 $years = array_reverse($this->getProfileYears($user->ID));
-                return $years ? implode(', ', $years) : __('No years recorded yet.', 'textdomain');
+                if (!$years) {
+                    return __('No years recorded yet.', 'textdomain');
+                }
+                $pill_style = 'display:inline-block;background:var(--wp--preset--color--tertiary);color:var(--wp--preset--color--primary);'
+                    . 'border-radius:6px;padding:4px 10px;margin:0 6px 6px 0;font-weight:600;';
+                $pills = '';
+                foreach ($years as $y) {
+                    $pills .= '<span style="' . $pill_style . '">' . esc_html($y) . '</span>';
+                }
+                return $pills;
 
             case 'roles_list':
                 $roles = wp_get_object_terms($user->ID, 'mycodelic_role');
