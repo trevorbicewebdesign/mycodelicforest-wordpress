@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "07659f92effc472e3f1e0f7a7b27be4a",
+    "content-hash": "0f1edfad13a08422e2e88e062242f034",
     "packages": [
         {
             "name": "composer/installers",
@@ -151,6 +151,34 @@
                 }
             ],
             "time": "2024-06-24T20:46:46+00:00"
+        },
+        {
+            "name": "trevorbicewebdesign/advanced-custom-fields-pro",
+            "version": "v6.8.10",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:trevorbicewebdesign/advanced-custom-fields-pro.git",
+                "reference": "a06ed825c998873042e54dbdb82de2b2bfd992f0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/trevorbicewebdesign/advanced-custom-fields-pro/zipball/a06ed825c998873042e54dbdb82de2b2bfd992f0",
+                "reference": "a06ed825c998873042e54dbdb82de2b2bfd992f0",
+                "shasum": ""
+            },
+            "require": {
+                "composer/installers": "^1.0 || ^2.0"
+            },
+            "type": "wordpress-plugin",
+            "license": [
+                "proprietary"
+            ],
+            "description": "Advanced Custom Fields PRO (licensed copy, private distribution for mycodelicforest.org). Update: drop in the new release, keep this composer.json, commit, tag with the plugin version (vX.Y.Z).",
+            "support": {
+                "source": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro/tree/v6.8.10",
+                "issues": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro/issues"
+            },
+            "time": "2026-09-23T02:52:24+00:00"
         },
         {
             "name": "trevorbicewebdesign/gravityforms",

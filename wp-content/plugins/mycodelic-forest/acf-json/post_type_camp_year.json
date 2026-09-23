@@ -1,0 +1,50 @@
+{
+    "key": "post_type_camp_year",
+    "title": "Burn Years",
+    "menu_order": 0,
+    "active": true,
+    "post_type": "camp_year",
+    "advanced_configuration": true,
+    "labels": {
+        "name": "Burn Years",
+        "singular_name": "Burn Year",
+        "menu_name": "Burn Years",
+        "all_items": "All Burn Years",
+        "add_new_item": "Add New Burn Year",
+        "edit_item": "Edit Burn Year",
+        "new_item": "New Burn Year",
+        "view_item": "View Burn Year",
+        "view_items": "View Burn Years",
+        "search_items": "Search Burn Years",
+        "not_found": "No burn years found",
+        "not_found_in_trash": "No burn years found in Trash"
+    },
+    "description": "One post per Burning Man year: the facts (theme, placement, guide listing) plus a written recap.",
+    "public": true,
+    "hierarchical": false,
+    "show_in_rest": true,
+    "menu_icon": {
+        "type": "dashicons",
+        "value": "dashicons-calendar-alt"
+    },
+    "menu_position": 21,
+    "supports": [
+        "title",
+        "editor",
+        "thumbnail",
+        "excerpt",
+        "revisions"
+    ],
+    "taxonomies": [],
+    "has_archive": true,
+    "has_archive_slug": "history",
+    "rewrite": {
+        "permalink_rewrite": "custom_permalink",
+        "slug": "history",
+        "feeds": false,
+        "pages": true,
+        "with_front": false
+    },
+    "enter_title_here": "Year, e.g. 2024",
+    "modified": 1790128904
+}

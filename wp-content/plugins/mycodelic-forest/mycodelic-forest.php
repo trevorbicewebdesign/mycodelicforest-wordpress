@@ -16,6 +16,7 @@ define('MYCO_CORE_VERSION', '0.0.11');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-core.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-discord.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-forms.php');
+require_once(MYCO_CORE_ABS_PATH . 'classes/class-history.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-install.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-profile.php');
 require_once(MYCO_CORE_ABS_PATH . 'classes/class-roles.php');
@@ -29,6 +30,7 @@ class MycodelicForestInit {
     public $MycodelicForestCore;
     public $MycodelicForestDiscord;
     public $MycodelicForestForms;
+    public $MycodelicForestHistory;
     public $MycodelicForestInstall;
     public $MycodelicForestProfile;
     public $MycodelicForestRoles;
@@ -42,6 +44,7 @@ class MycodelicForestInit {
         $this->MycodelicForestCore = new MycodelicForestCore();
         $this->MycodelicForestDiscord = new MycodelicForestDiscord();
         $this->MycodelicForestForms = new MycodelicForestForms();
+        $this->MycodelicForestHistory = new MycodelicForestHistory();
         $this->MycodelicForestInstall = new MycodelicForestInstall();
         $this->MycodelicForestCiviCRM = new MycodelicForestCiviCRM();
         $this->MycodelicForestProfile = new MycodelicForestProfile($this->MycodelicForestMessages, $this->MycodelicForestCiviCRM);
@@ -55,6 +58,7 @@ class MycodelicForestInit {
         $this->MycodelicForestCore->init();
         $this->MycodelicForestDiscord->init();
         $this->MycodelicForestForms->init();
+        $this->MycodelicForestHistory->init();
         $this->MycodelicForestInstall->init();
         $this->MycodelicForestProfile->init();
         $this->MycodelicForestRoles->init();
