@@ -89,9 +89,18 @@ $can_assign_roles = current_user_can('manage_options');
                         <th><label for="wpid">wpid</label></th>
                         <td>
                             <?php
-                            // Every WordPress user, alphabetical, carrying the profile fields the form
-                            // can be filled from ('all_with_meta' primes the user meta in one query).
+                            // WordPress users, alphabetical, carrying the profile fields the form can be
+                            // filled from ('all_with_meta' primes the user meta in one query). Only members
+                            // with a complete profile (mycodelic-forest's check: address, phone, years
+                            // attended, ...) are offered, plus whoever this row is already linked to.
                             $users = get_users(['orderby' => 'display_name', 'order' => 'ASC', 'fields' => 'all_with_meta']);
+                            global $MycodelicForestInit;
+                            $profile = $MycodelicForestInit->MycodelicForestProfile ?? null;
+                            if ($profile && method_exists($profile, 'profileComplete')) {
+                                $users = array_filter($users, function ($user) use ($profile, $wpid) {
+                                    return (int) $wpid === (int) $user->ID || $profile->profileComplete($user->ID);
+                                });
+                            }
                             ?>
                             <select name="wpid" id="wpid" class="regular-text" data-placeholder="Search for a WordPress user">
                                 <option value="">Select a WordPress user</option>
@@ -105,7 +114,7 @@ $can_assign_roles = current_user_can('manage_options');
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <p class="description">Type to search by name, login or e-mail. Choosing a user offers to fill in the name, playa name and e-mail from their profile.</p>
+                            <p class="description">Only members with a complete profile are listed. Type to search by name, login or e-mail. Choosing a user offers to fill in the name, playa name and e-mail from their profile.</p>
                         </td>
                     <tr>
                         <th><label for="member_low_income">Low Income</label></th>

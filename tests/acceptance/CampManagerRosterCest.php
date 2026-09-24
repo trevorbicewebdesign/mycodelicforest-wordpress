@@ -11,7 +11,7 @@ class CampManagerRosterCest
     {
          // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
          // duplicates make wp_signon() log in the oldest one, so start clean.
-         foreach (["testadmin", "testuser"] as $login) {
+         foreach (["testadmin", "testuser", "halfdone"] as $login) {
              // dontHaveUserInDatabase($login) removes only the first match; remove every row.
              foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
                  $I->dontHaveUserInDatabase((int) $staleId);
@@ -171,6 +171,11 @@ class CampManagerRosterCest
 
     public function UpdateMemberWpid(AcceptanceTester $I)
     {
+        // A user without a complete profile (no address, phone, ...) is not offered.
+        $I->haveUserInDatabase("halfdone", "subscriber", [
+            "display_name" => "Half Done",
+            "meta_input" => ["first_name" => "Half", "last_name" => "Done", "playa_name" => "Halfway"],
+        ]);
         $member_id = $I->haveInDatabase("wp_mf_roster", [
             "wpid" => 0,
             "low_income" => 0,
@@ -196,6 +201,7 @@ class CampManagerRosterCest
         usort($sorted, 'strcasecmp');
         $I->assertEquals($sorted, $names, "WordPress users should be listed alphabetically");
         $I->assertContains("Test User (testuser - " . $I->grabFromDatabase("wp_users", "user_email", ["ID" => $this->userId]) . ")", $names);
+        $I->assertEmpty(preg_grep('/halfdone/', $names), "users with an incomplete profile should not be offered");
 
         // The picker is a select2 box (the native select is hidden, so selectOption() can't
         // click its options) and choosing a user opens a confirm() offering to fill the form
