@@ -38,6 +38,7 @@ class MycodelicForestProfile
         add_action('init', [$this, 'register_profile_meta']);
         add_action('init', [$this, 'register_profile_binding_source']);
         add_filter('render_block', [$this, 'maybe_hide_edit_profile_button'], 10, 2);
+        add_filter('render_block', [$this, 'maybe_hide_camp_lead_badge'], 10, 2);
 
         // The profile hero's background photo can't be driven by Block Bindings
         // (see set_profile_hero_background() for why) — same class of exception
@@ -927,12 +928,31 @@ class MycodelicForestProfile
                 }
                 return $pills;
 
+            case 'camp_lead_badge':
+                // "Camp Lead" pill in the hero for this season's lead(s) only. The block
+                // itself is dropped for everyone else (maybe_hide_camp_lead_badge()).
+                if (!$this->isCurrentCampLead($user->ID)) {
+                    return '';
+                }
+                /* translators: %d: the current camp season (year) */
+                return '<span style="' . $this->pillStyle() . '">' . esc_html(sprintf(__('%d Camp Lead', 'textdomain'), CampManagerSeason::current())) . '</span>';
+
             case 'roles_list':
-                $roles = wp_get_object_terms($user->ID, 'mycodelic_role');
-                if (empty($roles) || is_wp_error($roles)) {
+                // Camp Manager roles are per season, so each role lists every year held.
+                $roles = class_exists('CampManagerRoles') ? (new CampManagerRoles())->rolesByYearForUser($user->ID) : [];
+                if (!$roles) {
                     return __('No roles yet.', 'textdomain');
                 }
-                return implode(', ', wp_list_pluck($roles, 'name'));
+                $lines = [];
+                foreach ($roles as $name => $years) {
+                    $pills = '';
+                    foreach ($years as $y) {
+                        $url = home_url('/history/' . $y . '/');
+                        $pills .= '<a href="' . esc_url($url) . '" style="' . $this->pillStyle() . 'text-decoration:none;">' . esc_html($y) . '</a>';
+                    }
+                    $lines[] = '<strong style="display:block;margin-bottom:4px;">' . esc_html($name) . '</strong>' . $pills;
+                }
+                return implode('<br>', $lines);
 
             case 'roster_list':
                 $contact_id = $this->civicrm->getContactIdForUser($user->ID);
@@ -940,11 +960,12 @@ class MycodelicForestProfile
                 if (!$rosters) {
                     return __('No roster history yet.', 'textdomain');
                 }
+                // One roster per row, so the year list reads top to bottom.
                 $pills = '';
                 foreach ($rosters as $title) {
                     $year = preg_match('/^\d{4}/', $title, $m) ? $m[0] : null;
                     $url = $year ? home_url('/roster/?roster_year=' . $year) : home_url('/roster/');
-                    $pills .= '<a href="' . esc_url($url) . '" style="' . $this->pillStyle() . 'text-decoration:none;">' . esc_html($title) . '</a>';
+                    $pills .= '<a href="' . esc_url($url) . '" style="' . $this->pillStyle() . 'display:block;width:fit-content;text-decoration:none;">' . esc_html($title) . '</a>';
                 }
                 return $pills;
 
@@ -955,6 +976,22 @@ class MycodelicForestProfile
         }
 
         return '';
+    }
+
+    /**
+     * Whether this user holds Camp Manager's Camp Lead role in the current season.
+     */
+    protected function isCurrentCampLead($user_id)
+    {
+        if (!class_exists('CampManagerRoles') || !class_exists('CampManagerSeason')) {
+            return false;
+        }
+        foreach ((new CampManagerRoles())->rolesByYearForUser((int) $user_id) as $name => $years) {
+            if (strtolower($name) === strtolower(CampManagerRoles::LEAD_ROLE) && in_array(CampManagerSeason::current(), $years, true)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1000,6 +1037,29 @@ class MycodelicForestProfile
 
         $user = get_queried_object();
         if (!($user instanceof WP_User) || get_current_user_id() !== $user->ID) {
+            return '';
+        }
+
+        return $block_content;
+    }
+
+    /**
+     * The hero's "Camp Lead" pill (className mf-camp-lead-badge) only exists for
+     * this season's camp lead(s); drop the whole block for everyone else so no
+     * empty paragraph is left behind.
+     */
+    public function maybe_hide_camp_lead_badge($block_content, $block)
+    {
+        if (empty($block['attrs']['className']) || strpos($block['attrs']['className'], 'mf-camp-lead-badge') === false) {
+            return $block_content;
+        }
+
+        if (!is_author()) {
+            return $block_content;
+        }
+
+        $user = get_queried_object();
+        if (!($user instanceof WP_User) || !$this->isCurrentCampLead($user->ID)) {
             return '';
         }
 

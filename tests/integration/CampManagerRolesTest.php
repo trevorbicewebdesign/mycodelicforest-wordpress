@@ -175,6 +175,65 @@ class CampManagerRolesTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $this->assertStringContainsString('Not recorded for this year', $history->renderLeads($empty));
     }
 
+    public function testProfileListsEveryRoleWithTheYearsHeld()
+    {
+        $user = self::factory()->user->create(['role' => 'subscriber', 'user_nicename' => 'sparkle']);
+        $lead_2024 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2024]);
+        $lead_2025 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2025]);
+        $treasurer_2025 = $this->roles->upsertRole(['name' => 'Treasurer', 'sort_order' => 20, 'season' => 2025]);
+        $lead_2023 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2023]);
+        $cook_2027 = $this->roles->upsertRole(['name' => 'Cook', 'sort_order' => 5, 'season' => 2027]);
+        $member_2025 = $this->rosterMember($user, 2025);
+        $this->roles->setRoleMembers($lead_2024, [$this->rosterMember($user, 2024)]);
+        $this->roles->setRoleMembers($lead_2025, [$member_2025]);
+        $this->roles->setRoleMembers($treasurer_2025, [$member_2025]);
+        $this->roles->setRoleMembers($lead_2023, [$this->rosterMember($user, 2023, 'Dropped')]);
+        $this->roles->setRoleMembers($cook_2027, [$this->rosterMember($user, 2027)]);
+
+        $this->assertSame(
+            ['Camp Lead' => [2025, 2024], 'Cook' => [2027], 'Treasurer' => [2025]],
+            $this->roles->rolesByYearForUser($user),
+            'Camp Lead first, then by sort order; newest season first; dropped seasons left out'
+        );
+        $this->assertSame([], $this->roles->rolesByYearForUser(0));
+
+        $profile = new MycodelicForestProfile(new MycodelicForestMessages(), new MycodelicForestCiviCRM());
+        $this->go_to(home_url('/?author=' . $user));
+        $html = $profile->resolve_profile_binding(['key' => 'roles_list']);
+
+        $this->assertStringContainsString('Camp Lead', $html);
+        $this->assertStringContainsString('Treasurer', $html);
+        $this->assertStringContainsString('href="' . home_url('/history/2024/') . '"', $html);
+        $this->assertStringContainsString('href="' . home_url('/history/2025/') . '"', $html);
+        $this->assertStringNotContainsString('2023', $html);
+
+        $nobody = self::factory()->user->create(['role' => 'subscriber']);
+        $this->go_to(home_url('/?author=' . $nobody));
+        $this->assertSame('No roles yet.', $profile->resolve_profile_binding(['key' => 'roles_list']));
+    }
+
+    public function testHeroBadgeOnlyForThisSeasonsCampLead()
+    {
+        $profile = new MycodelicForestProfile(new MycodelicForestMessages(), new MycodelicForestCiviCRM());
+        $badge_block = ['blockName' => 'core/paragraph', 'attrs' => ['className' => 'mf-camp-lead-badge']];
+        $lead_now = self::factory()->user->create(['role' => 'subscriber']);
+        $lead_before = self::factory()->user->create(['role' => 'subscriber']);
+        $lead_2027 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2027]);
+        $lead_2025 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2025]);
+        $this->roles->setRoleMembers($lead_2027, [$this->rosterMember($lead_now, 2027)]);
+        $this->roles->setRoleMembers($lead_2025, [$this->rosterMember($lead_before, 2025)]);
+
+        $this->go_to(home_url('/?author=' . $lead_now));
+        $html = $profile->resolve_profile_binding(['key' => 'camp_lead_badge']);
+        $this->assertStringContainsString('2027 Camp Lead', $html);
+        $this->assertSame('<p>kept</p>', $profile->maybe_hide_camp_lead_badge('<p>kept</p>', $badge_block));
+
+        $this->go_to(home_url('/?author=' . $lead_before));
+        $this->assertSame('', $profile->resolve_profile_binding(['key' => 'camp_lead_badge']), 'last season only');
+        $this->assertSame('', $profile->maybe_hide_camp_lead_badge('<p>gone</p>', $badge_block));
+        $this->assertSame('<p>other</p>', $profile->maybe_hide_camp_lead_badge('<p>other</p>', ['attrs' => []]), 'other blocks untouched');
+    }
+
     public function testDeletingRolesRemovesTheirHolders()
     {
         global $wpdb;
