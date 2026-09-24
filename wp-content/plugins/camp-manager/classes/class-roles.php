@@ -332,6 +332,41 @@ class CampManagerRoles
     }
 
     /**
+     * Every Camp Manager role a WordPress user has held, for their public profile:
+     * role name => seasons held (newest first). Roles are per season, so the same
+     * name across seasons is one role with several years. Camp Lead comes first,
+     * then the others in their sort order. Seasons where the member dropped or
+     * declined don't count, as with access.
+     */
+    public function rolesByYearForUser(int $wpid): array
+    {
+        if (!$wpid || (int) get_option(CampManagerSeason::OPTION_DB_VERSION) < 3) {
+            return [];
+        }
+        global $wpdb;
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT r.name, r.season
+             FROM {$wpdb->prefix}mf_roles r
+             JOIN {$wpdb->prefix}mf_role_members m ON m.role_id = r.id
+             JOIN {$wpdb->prefix}mf_roster ro ON ro.id = m.roster_id
+             WHERE ro.wpid = %d AND (ro.status IS NULL OR ro.status NOT IN ('Dropped', 'No'))
+             ORDER BY (LOWER(r.name) = %s) DESC, r.sort_order, r.name, r.season DESC",
+            $wpid,
+            strtolower(self::LEAD_ROLE)
+        ), ARRAY_A) ?: [];
+
+        $by_role = [];
+        foreach ($rows as $row) {
+            $by_role[$row['name']][] = (int) $row['season'];
+        }
+        foreach ($by_role as &$seasons) {
+            $seasons = array_values(array_unique($seasons));
+            rsort($seasons);
+        }
+        return $by_role;
+    }
+
+    /**
      * Makes sure every season that has a roster (or roles, or is current) has a Camp Lead
      * role, since the camp has always had one. Holders are not guessed. Returns the seasons
      * a role was added to. Runs from CampManagerSeason::upgrade() (db version 4); safe to
