@@ -1,0 +1,95 @@
+name: Setup Apache
+description: 'sets up Apache + PHP-FPM to serve the workspace for the functional and acceptance suites'
+
+inputs:
+  php-version:
+    description: 'PHP version'
+    required: false
+    default: '8.4'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup PHP-FPM
+      run: |
+        set -euo pipefail
+        V="${{ inputs.php-version }}"
+        # Ubuntu's own archive only ships one PHP series (8.3 on 24.04); the ondrej PPA
+        # provides every supported version, with the same /run/php/php${V}-fpm.sock layout.
+        if ! apt-cache show "php${V}-fpm" >/dev/null 2>&1; then
+          sudo add-apt-repository -y ppa:ondrej/php
+        fi
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          "php${V}-fpm" "php${V}-mysql" "php${V}-mbstring" "php${V}-xml" "php${V}-curl" \
+          "php${V}-zip" "php${V}-gd" "php${V}-intl" "php${V}-bcmath"
+        # The workspace lives under /home/runner (mode 750). Run the FPM pool as the
+        # runner user so PHP can read the site and write its error log there, and let
+        # Apache (www-data) traverse the home dir for static files and the vhost's
+        # DocumentRoot. Otherwise FPM answers "Primary script unknown" and every
+        # request is a bare 404.
+        POOL="/etc/php/${V}/fpm/pool.d/www.conf"
+        sudo sed -i -E "s/^user = .*/user = $(id -un)/; s/^group = .*/group = $(id -gn)/" "${POOL}"
+        sudo chmod o+x "${HOME}"
+        # Keep PHP errors in the workspace (uploaded with the failure artifacts).
+        printf 'error_log=%s/php_errors.log\nlog_errors=On\n' "${GITHUB_WORKSPACE}" \
+          | sudo tee "/etc/php/${V}/fpm/conf.d/98-ci-errorlog.ini" >/dev/null
+        sudo touch "/var/log/php${V}-fpm.log"
+        sudo chmod 644 "/var/log/php${V}-fpm.log"
+        sudo systemctl enable --now "php${V}-fpm"
+        sudo systemctl restart "php${V}-fpm"
+        sudo systemctl is-active "php${V}-fpm"
+      shell: bash
+
+    - name: Build Apache config
+      uses: dominicwatson/github-action-envsubst@v1
+      env:
+        PHP_VERSION: ${{ inputs.php-version }}
+        GITHUB_WORKSPACE: ${{ github.workspace }}
+      with:
+        files: apache-test-admin.conf
+        patterns: $GITHUB_WORKSPACE $PHP_VERSION
+
+    - name: Setup Apache
+      run: |
+        set -euo pipefail
+        # The runner image ships both servers; make sure nginx is not holding port 80.
+        sudo systemctl stop nginx 2>/dev/null || true
+        sudo systemctl disable nginx 2>/dev/null || true
+        if ! dpkg -s apache2 >/dev/null 2>&1; then
+          sudo apt-get install -y --no-install-recommends apache2
+        fi
+        sudo a2enmod proxy proxy_fcgi rewrite
+        sudo a2dissite 000-default
+        sudo cp "${GITHUB_WORKSPACE}/apache-test-admin.conf" /etc/apache2/sites-available/admintest.conf
+        sudo a2ensite admintest
+        echo "ServerName localhost" | sudo tee /etc/apache2/conf-available/servername.conf >/dev/null
+        sudo a2enconf servername
+        sudo apache2ctl configtest
+        sudo systemctl restart apache2
+        sudo systemctl is-active apache2
+        for i in $(seq 1 40); do
+          curl -s -o /dev/null http://127.0.0.1/ && break
+          sleep 0.5
+        done
+      shell: bash
+
+    - name: Test Apache + PHP-FPM
+      run: |
+        set -euo pipefail
+        # Also proves the test-database header reaches PHP: Apache drops header names
+        # with underscores, so anything sending X_TEST_REQUEST would land on the wrong DB.
+        echo '<?php header("Content-Type: text/plain"); echo "php-ok ", PHP_VERSION, " user=", get_current_user(), " mysqli=", extension_loaded("mysqli") ? "yes" : "no", " test=", $_SERVER["HTTP_X_TEST_REQUEST"] ?? "missing";' > __probe.php
+        out="$(curl -s -H 'X-Test-Request: 1' http://127.0.0.1/__probe.php)"; rm -f __probe.php
+        echo "${out}"
+        case "${out}" in
+          php-ok*mysqli=yes*test=1) ;;
+          *) echo "::error::Apache/PHP-FPM is not serving the workspace correctly (or the X-Test-Request header is not reaching PHP)"; sudo tail -n 30 /var/log/apache2/error.log || true; exit 1;;
+        esac
+        echo "front page status: $(curl -s -o /dev/null -w '%{http_code}' -H 'X-Test-Request: 1' http://127.0.0.1/)"
+      shell: bash
+
+    - name: Log PHP-FPM
+      run: |
+        sudo tail -n 20 /var/log/php${{ inputs.php-version }}-fpm.log
+      shell: bash

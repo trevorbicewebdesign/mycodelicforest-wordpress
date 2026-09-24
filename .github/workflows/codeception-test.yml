@@ -240,10 +240,10 @@ jobs:
           wp config set WP_HOME 'http://127.0.0.1' --type=constant
           wp config set WP_SITEURL 'http://127.0.0.1' --type=constant
 
-      # Start NGIX server for functional and acceptance tests
-      - name: Start NGIX Server
+      # Start the Apache + PHP-FPM server for the functional and acceptance suites
+      - name: Start Apache Server
         if: ${{ matrix.test-type != 'integration' && matrix.test-type != 'unit' }}
-        uses: ./.github/actions/setup-nginx
+        uses: ./.github/actions/setup-apache
         with:
           php-version: ${{ env.PHP_VERSION }}
       # The acceptance suite's Mailpit module expects an API at localhost:10006 (the port
@@ -274,4 +274,4 @@ jobs:
             tests/_output/*.html
             tests/_output/*.png
             wp-content/debug.log
-            /var/log/php_errors.log
+            php_errors.log

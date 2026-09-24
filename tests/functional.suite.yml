@@ -14,9 +14,12 @@ modules:
         adminUsername: '%WORDPRESS_ADMIN_USER%'
         adminPassword: '%WORDPRESS_ADMIN_PASSWORD%'
         adminPath: '/wp-admin'
+        # Hyphenated on purpose: Apache never passes header names containing
+        # underscores through to PHP, and wp-config.php reads HTTP_X_TEST_REQUEST
+        # to pick the seed database. PHP sees the same variable either way.
         headers:
-          X_WPBROWSER_REQUEST: 1
-          X_TEST_REQUEST: 1
+          X-WPBrowser-Request: 1
+          X-Test-Request: 1
       lucatume\WPBrowser\Module\WPDb:
           dbUrl: '%WORDPRESS_DB_SEED_URL%'
           dump:
