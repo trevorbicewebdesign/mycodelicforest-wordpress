@@ -11,7 +11,7 @@ class CampManagerRosterCest
     {
          // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
          // duplicates make wp_signon() log in the oldest one, so start clean.
-         foreach (["testadmin", "testuser"] as $login) {
+         foreach (["testadmin", "testuser", "halfdone"] as $login) {
              // dontHaveUserInDatabase($login) removes only the first match; remove every row.
              foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
                  $I->dontHaveUserInDatabase((int) $staleId);
@@ -171,6 +171,11 @@ class CampManagerRosterCest
 
     public function UpdateMemberWpid(AcceptanceTester $I)
     {
+        // A user without a complete profile (no address, phone, ...) is not offered.
+        $I->haveUserInDatabase("halfdone", "subscriber", [
+            "display_name" => "Half Done",
+            "meta_input" => ["first_name" => "Half", "last_name" => "Done", "playa_name" => "Halfway"],
+        ]);
         $member_id = $I->haveInDatabase("wp_mf_roster", [
             "wpid" => 0,
             "low_income" => 0,
@@ -187,13 +192,44 @@ class CampManagerRosterCest
         // No WordPress user selected yet.
         $I->assertEquals("", $I->grabValueFrom("#wpid"));
 
-        $I->selectOption("#wpid", (string) $this->userId);
+        // The user list is a searchable select2 box, sorted by display name.
+        $I->seeElement("#select2-wpid-container");
+        // (select2 hides the native select, and WebDriver reads hidden elements' text as empty.)
+        $names = $I->executeJS('return jQuery("#wpid option").map(function () { return jQuery(this).text().trim(); }).get();');
+        array_shift($names); // the "Select a WordPress user" placeholder
+        $sorted = $names;
+        usort($sorted, 'strcasecmp');
+        $I->assertEquals($sorted, $names, "WordPress users should be listed alphabetically");
+        // Options read "Display name (login - e-mail)"; the fixture user's display name is its login.
+        $I->assertNotEmpty(preg_grep('/\(testuser - /', $names), "the complete test user should be offered");
+        $I->assertEmpty(preg_grep('/halfdone/', $names), "users with an incomplete profile should not be offered");
+
+        // The picker is a select2 box (the native select is hidden, so selectOption() can't
+        // click its options) and choosing a user opens a confirm() offering to fill the form
+        // from their profile. Pick through the select's value with the prompt answered.
+        $pick = 'window.confirm = function () { return %s; }; jQuery("#wpid").val(arguments[0]).trigger("change");';
+
+        // Declining keeps what the roster already has, and still links the user.
+        $I->executeJS(sprintf($pick, 'false'), [(string) $this->userId]);
+        $I->assertEquals((string) $this->userId, $I->grabValueFrom("#wpid"));
+        $I->seeInField("#member_fname", "Wanda");
+        $I->seeInField("#member_playaname", "Wander");
+
+        // Accepting fills the name, playa name and e-mail from the WordPress profile.
+        $I->executeJS('jQuery("#wpid").val("").trigger("change");');
+        $I->executeJS(sprintf($pick, 'true'), [(string) $this->userId]);
+        $I->seeInField("#member_fname", "Test");
+        $I->seeInField("#member_lname", "User");
+        $I->seeInField("#member_playaname", "TestBurner");
+
         $I->click("Save Member");
         $I->wait(1);
 
         $I->seeInDatabase("wp_mf_roster", [
             "id" => $member_id,
             "wpid" => $this->userId,
+            "fname" => "Test",
+            "playaname" => "TestBurner",
         ]);
 
         // Reload and confirm the selection survived the round trip.

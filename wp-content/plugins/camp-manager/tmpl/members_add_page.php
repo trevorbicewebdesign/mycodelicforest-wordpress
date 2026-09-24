@@ -89,19 +89,32 @@ $can_assign_roles = current_user_can('manage_options');
                         <th><label for="wpid">wpid</label></th>
                         <td>
                             <?php
-                            // Get all WordPress users
-                            $users = get_users([
-                                'fields' => ['ID', 'display_name', 'user_login', 'user_email']
-                            ]);
+                            // WordPress users, alphabetical, carrying the profile fields the form can be
+                            // filled from ('all_with_meta' primes the user meta in one query). Only members
+                            // with a complete profile (mycodelic-forest's check: address, phone, years
+                            // attended, ...) are offered, plus whoever this row is already linked to.
+                            $users = get_users(['orderby' => 'display_name', 'order' => 'ASC', 'fields' => 'all_with_meta']);
+                            global $MycodelicForestInit;
+                            $profile = $MycodelicForestInit->MycodelicForestProfile ?? null;
+                            if ($profile && method_exists($profile, 'profileComplete')) {
+                                $users = array_filter($users, function ($user) use ($profile, $wpid) {
+                                    return (int) $wpid === (int) $user->ID || $profile->profileComplete($user->ID);
+                                });
+                            }
                             ?>
-                            <select name="wpid" id="wpid" class="regular-text">
+                            <select name="wpid" id="wpid" class="regular-text" data-placeholder="Search for a WordPress user">
                                 <option value="">Select a WordPress user</option>
                                 <?php foreach ($users as $user): ?>
-                                    <option value="<?php echo esc_attr($user->ID); ?>" <?php selected($wpid == $user->ID); ?>>
+                                    <option value="<?php echo esc_attr($user->ID); ?>" <?php selected($wpid == $user->ID); ?>
+                                        data-fname="<?php echo esc_attr($user->first_name); ?>"
+                                        data-lname="<?php echo esc_attr($user->last_name); ?>"
+                                        data-playaname="<?php echo esc_attr(get_user_meta($user->ID, 'playa_name', true)); ?>"
+                                        data-email="<?php echo esc_attr($user->user_email); ?>">
                                         <?php echo esc_html($user->display_name . " ({$user->user_login} - {$user->user_email})"); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                            <p class="description">Only members with a complete profile are listed. Type to search by name, login or e-mail. Choosing a user offers to fill in the name, playa name and e-mail from their profile.</p>
                         </td>
                     <tr>
                         <th><label for="member_low_income">Low Income</label></th>
@@ -205,6 +218,37 @@ jQuery(document).ready(function ($) {
     if ($.fn.select2 && $('#member_roles').length) {
         $('#member_roles').select2({ placeholder: 'Choose camp roles', width: '25em' });
     }
+    if ($.fn.select2) {
+        $('#wpid').select2({ placeholder: 'Search for a WordPress user', allowClear: true, width: '25em' });
+    }
+
+    // Offer to fill the form from the chosen user's profile. Only fields the profile has a
+    // value for are replaced, and declining keeps what is typed while still linking the user:
+    // the roster keeps its own copy of the name/playa name/e-mail as of that season.
+    $('#wpid').on('change', function () {
+        var option = this.options[this.selectedIndex];
+        if (!option || !option.value) {
+            return;
+        }
+        var fields = {
+            member_fname: option.dataset.fname || '',
+            member_lname: option.dataset.lname || '',
+            member_playaname: option.dataset.playaname || '',
+            member_email: option.dataset.email || ''
+        };
+        var summary = $.trim(fields.member_fname + ' ' + fields.member_lname)
+            + (fields.member_playaname ? ' (' + fields.member_playaname + ')' : '')
+            + (fields.member_email ? ' – ' + fields.member_email : '');
+        if (!confirm('Fill in the first name, last name, playa name and e-mail from this WordPress user?\n\n'
+                + summary + '\n\nOK replaces those fields with the profile values. Cancel keeps what is entered here and still links the user.')) {
+            return;
+        }
+        $.each(fields, function (id, value) {
+            if (value !== '') {
+                $('#' + id).val(value);
+            }
+        });
+    });
 
     // Set correct action on button click
     $('#save-btn').on('click', function() {
