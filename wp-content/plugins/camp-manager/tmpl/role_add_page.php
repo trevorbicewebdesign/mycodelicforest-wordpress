@@ -6,6 +6,10 @@ $role = $role_id ? $this->roles->getRole($role_id) : null;
 $is_edit = $role !== null;
 $season = $is_edit ? (int) $role['season'] : CampManagerSeason::selected();
 $holder_ids = $is_edit ? array_map('intval', array_column($role['members'], 'id')) : [];
+// The same role in other seasons, possibly under another name, and the roles it could be joined to.
+$also_known_as = $is_edit ? $role['also_known_as'] : [];
+$lineage_rows = $is_edit ? ($this->roles->lineages()[$this->roles->lineageOf($role_id)] ?? []) : [];
+$lineage_options = $this->roles->lineageOptions($is_edit ? $role_id : null, $season);
 
 // Holders come from the role's own season roster.
 global $wpdb;
@@ -48,6 +52,31 @@ $season_roster = $wpdb->get_results($wpdb->prepare(
             <tr>
                 <th><label for="role_sort_order">Order</label></th>
                 <td><input type="number" name="role_sort_order" id="role_sort_order" class="small-text" value="<?php echo (int) ($role['sort_order'] ?? 0); ?>"></td>
+            </tr>
+            <tr>
+                <th><label for="role_same_as">Same Role As</label></th>
+                <td>
+                    <select name="role_same_as" id="role_same_as" style="min-width: 25em;">
+                        <option value="">&mdash; Keep as is &mdash;</option>
+                        <?php if (count($lineage_rows) > 1): ?>
+                            <option value="new">Start a separate history for this role</option>
+                        <?php endif; ?>
+                        <?php foreach ($lineage_options as $option): ?>
+                            <option value="<?php echo esc_attr($option['id']); ?>"><?php echo esc_html($option['label']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="description">
+                        A role keeps its history across seasons even when its name changes: if this role used to be
+                        called something else (2023's Goblin is the Treasurer), pick that earlier role here and the two
+                        histories become one. Roles with the same name are joined automatically.
+                        <?php if (count($lineage_rows) > 1): ?>
+                            <br>This role in other seasons:
+                            <?php echo esc_html(implode(', ', array_map(function ($row) use ($role_id) {
+                                return CampManagerRoles::roleLabel($row);
+                            }, array_values(array_filter($lineage_rows, function ($row) use ($role_id) { return $row['id'] !== $role_id; }))))); ?>.
+                        <?php endif; ?>
+                    </p>
+                </td>
             </tr>
             <tr>
                 <th><label for="role_members">Held By</label></th>
@@ -93,6 +122,7 @@ $season_roster = $wpdb->get_results($wpdb->prepare(
 jQuery(function ($) {
     if ($.fn.select2) {
         $('#role_members').select2({ placeholder: 'Choose roster members', width: '25em' });
+        $('#role_same_as').select2({ width: '25em' });
     }
 });
 </script>

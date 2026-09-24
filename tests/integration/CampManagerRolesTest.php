@@ -449,4 +449,96 @@ class CampManagerRolesTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $this->assertMatchesRegularExpression('/<option value="' . $lead19 . '"[^>]*selected[^>]*>\s*2019 Camp Lead\s*</', $html);
     }
 
+
+    public function testARenamedRoleStaysTheSameRoleAcrossSeasons()
+    {
+        $goblin23 = $this->roles->upsertRole(['name' => 'Goblin', 'sort_order' => 30, 'season' => 2023]);
+        $goblin24 = $this->roles->upsertRole(['name' => 'GOBLIN', 'sort_order' => 30, 'season' => 2024]);
+        $treasurer25 = $this->roles->upsertRole(['name' => 'Treasurer', 'sort_order' => 20, 'season' => 2025]);
+        $lead25 = $this->roles->upsertRole(['name' => 'Camp Lead', 'sort_order' => 10, 'season' => 2025]);
+
+        // Same-named roles join on their own (case-insensitive); a new name starts its own history.
+        $this->assertSame($goblin23, $this->roles->lineageOf($goblin24));
+        $this->assertSame($treasurer25, $this->roles->lineageOf($treasurer25));
+        $this->assertSame([], $this->roles->getRole($goblin24)['also_known_as']);
+        $this->assertSame(
+            ['2024 GOBLIN', '2023 Goblin'],
+            array_column($this->roles->lineageOptions($treasurer25, 2025), 'label'),
+            'only roles outside this one\'s history, from other seasons'
+        );
+
+        // Declaring the Treasurer the same role as the Goblin merges the histories.
+        $this->roles->upsertRole(['name' => 'Treasurer', 'sort_order' => 20, 'same_as' => $goblin24], $treasurer25);
+
+        $this->assertSame($goblin23, $this->roles->lineageOf($treasurer25));
+        $this->assertSame(['GOBLIN' => [2024], 'Goblin' => [2023]], $this->roles->getRole($treasurer25)['also_known_as'], 'newest first');
+        $this->assertSame(['Treasurer' => [2025]], $this->roles->getRole($goblin23)['also_known_as']);
+        $this->assertSame([], array_column($this->roles->lineageOptions($treasurer25, 2025), 'label'), 'nothing left outside its history but same-season roles');
+        $this->assertSame('Treasurer', $this->roles->lineages()[$goblin23][0]['name'], 'the newest row names the role');
+
+        // Copying a season's roles keeps each copy the same role as its original.
+        $this->roles->copyRoles(2025, 2027);
+        $copies = $this->roles->getRoles(2027);
+        $this->assertSame(['Camp Lead', 'Treasurer'], array_column($copies, 'name'));
+        $this->assertSame($goblin23, $this->roles->lineageOf((int) $copies[1]['id']));
+        $this->assertSame($lead25, $this->roles->lineageOf((int) $copies[0]['id']));
+
+        // A member who was the 2023 Goblin and the 2025 Treasurer held one role, under its current name.
+        $user = self::factory()->user->create(['role' => 'subscriber']);
+        $this->roles->setRoleMembers($goblin23, [$this->rosterMember($user, 2023)]);
+        $this->roles->setRoleMembers($treasurer25, [$this->rosterMember($user, 2025)]);
+        $this->assertSame(['Treasurer' => [2025, 2023]], $this->roles->rolesByYearForUser($user));
+        $this->assertSame(['Treasurer' => ['Goblin' => [2023]]], $this->roles->formerNamesForUser($user));
+
+        $profile = new MycodelicForestProfile(new MycodelicForestMessages(), new MycodelicForestCiviCRM());
+        $this->go_to(home_url('/?author=' . $user));
+        $html = $profile->resolve_profile_binding(['key' => 'roles_list']);
+        $this->assertStringContainsString('Treasurer', $html);
+        $this->assertStringContainsString('as Goblin in 2023', $html);
+        $this->assertStringContainsString('href="' . home_url('/history/2023/') . '"', $html);
+
+        // Cutting the 2023 Goblin back out leaves the others together, rooted at their earliest row.
+        $this->roles->upsertRole(['name' => 'Goblin', 'sort_order' => 30, 'same_as' => 'new'], $goblin23);
+
+        $this->assertSame($goblin23, $this->roles->lineageOf($goblin23));
+        $this->assertSame($goblin24, $this->roles->lineageOf($goblin24));
+        $this->assertSame($goblin24, $this->roles->lineageOf($treasurer25));
+        $this->assertSame(['Treasurer' => [2025], 'Goblin' => [2023]], $this->roles->rolesByYearForUser($user));
+        $this->assertSame([], $this->roles->formerNamesForUser($user));
+
+        // Deleting a lineage's earliest row re-roots the rest.
+        $this->roles->deleteRoles([$goblin24]);
+        $this->assertSame($treasurer25, $this->roles->lineageOf($treasurer25));
+        $this->assertSame($treasurer25, $this->roles->lineageOf((int) $copies[1]['id']));
+    }
+
+    public function testCampLeadsAreFoundThroughTheRolesHistory()
+    {
+        $lead24 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2024]);
+        $poobah25 = $this->roles->upsertRole(['name' => 'Grand Poobah', 'season' => 2025, 'same_as' => $lead24]);
+        $user = self::factory()->user->create(['role' => 'subscriber']);
+        $this->roles->setRoleMembers($poobah25, [$this->rosterMember($user, 2025, 'Confirmed', 'Sparkle')]);
+
+        $this->assertSame(['Sparkle'], array_column($this->roles->leadsForSeason(2025), 'playaname'));
+        $this->assertSame(['Grand Poobah' => [2025]], $this->roles->rolesByYearForUser($user));
+    }
+
+    public function testBackfillJoinsSameNamedRolesIntoOneHistory()
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_roles";
+        $wpdb->insert($table, ['name' => 'Treasurer', 'season' => 2024]);
+        $a = (int) $wpdb->insert_id;
+        $wpdb->insert($table, ['name' => 'treasurer', 'season' => 2025]);
+        $b = (int) $wpdb->insert_id;
+        $wpdb->insert($table, ['name' => 'Goblin', 'season' => 2023]);
+        $c = (int) $wpdb->insert_id;
+
+        $this->roles->backfillLineages();
+
+        $this->assertSame($a, $this->roles->lineageOf($a));
+        $this->assertSame($a, $this->roles->lineageOf($b));
+        $this->assertSame($c, $this->roles->lineageOf($c));
+    }
+
 }

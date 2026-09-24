@@ -40,7 +40,13 @@ class CampManagerRolesTable extends WP_List_Table
         switch ($column_name) {
             case 'name':
                 $url = admin_url('admin.php?page=camp-manager-add-role&id=' . urlencode($item['id']));
-                return sprintf('<a href="%s"><strong>%s</strong></a>', esc_url($url), esc_html($item['name']));
+                $html = sprintf('<a href="%s"><strong>%s</strong></a>', esc_url($url), esc_html($item['name']));
+                if (!empty($item['also_known_as'])) {
+                    $html .= '<br><small>also known as ' . esc_html(implode(', ', array_map(function ($name, $seasons) {
+                        return $name . ' (' . implode(', ', $seasons) . ')';
+                    }, array_keys($item['also_known_as']), $item['also_known_as']))) . '</small>';
+                }
+                return $html;
             case 'members':
                 $names = array_map(function ($member) {
                     return esc_html(trim($member['fname'] . ' ' . $member['lname']) . (!empty($member['playaname']) ? " ({$member['playaname']})" : ''));
