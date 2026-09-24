@@ -24,7 +24,7 @@
 /package.json
 /Makefile
 /README.md
-/nginx-test-admin.conf
+/apache-test-admin.conf
 /local-phpinfo.php
 /auth.json
 /phpunit.xml
