@@ -6,6 +6,11 @@
  * A role belongs to one season and is held by roster members of that same season, so each
  * year starts fresh: copy last season's roles, then assign this year's holders.
  *
+ * Across seasons the rows of one role share a lineage (lineage_id, the id of its earliest
+ * row), so a role that was renamed (2023's Goblin is 2025's Treasurer) is still one role with
+ * one history. Same-named roles join a lineage on their own; a rename is joined on the role's
+ * edit page ("Same role as"). A lineage is known by the name of its newest row.
+ *
  * A role can also grant access to parts of Camp Manager. Only holders of a role in the
  * *current* season get that access, and only while they aren't Dropped/No on the roster, so
  * last year's Treasurer loses the ledger when a new season starts. Admins (manage_options)
@@ -93,6 +98,7 @@ class CampManagerRoles
     public static function flushCache()
     {
         self::$areasByUser = [];
+        self::$lineages = null;
     }
 
     private static function parsePermissions($list): array
@@ -117,6 +123,7 @@ class CampManagerRoles
                 'description' => isset($_POST['role_description']) ? wp_unslash($_POST['role_description']) : '',
                 'sort_order'  => isset($_POST['role_sort_order']) ? (int) $_POST['role_sort_order'] : 0,
                 'permissions' => isset($_POST['role_permissions']) ? (array) $_POST['role_permissions'] : [],
+                'same_as'     => isset($_POST['role_same_as']) ? sanitize_text_field(wp_unslash($_POST['role_same_as'])) : '',
             ], $role_id);
             $this->setRoleMembers($role_id, isset($_POST['role_members']) ? (array) $_POST['role_members'] : []);
         } catch (\Exception $e) {
@@ -141,19 +148,30 @@ class CampManagerRoles
         $to = CampManagerSeason::selected();
         $from = isset($_POST['from_season']) ? (int) $_POST['from_season'] : 0;
 
-        // Only into a season that has no roles yet, so a double click can't duplicate them.
-        // Holders are not copied: they are this season's roster members, assigned fresh.
-        if ($from && $from < $to && !$this->countRoles($to)) {
-            $wpdb->query($wpdb->prepare(
-                "INSERT INTO $table (name, description, permissions, sort_order, season)
-                 SELECT name, description, permissions, sort_order, %d FROM $table WHERE season = %d",
-                $to,
-                $from
-            ));
-        }
+        $this->copyRoles($from, $to);
 
         wp_safe_redirect(admin_url('admin.php?page=camp-manager-roles'));
         exit;
+    }
+
+    /**
+     * Copies one season's roles into a later season that has none yet (so a double click
+     * can't duplicate them). Each copy stays the same role as its original (same lineage).
+     * Holders are not copied: they are the new season's roster members, assigned fresh.
+     */
+    public function copyRoles(int $from, int $to)
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_roles";
+        if ($from && $from < $to && !$this->countRoles($to)) {
+            $wpdb->query($wpdb->prepare(
+                "INSERT INTO $table (name, description, permissions, sort_order, season, lineage_id)
+                 SELECT name, description, permissions, sort_order, %d, COALESCE(lineage_id, id) FROM $table WHERE season = %d",
+                $to,
+                $from
+            ));
+            self::$lineages = null;
+        }
     }
 
     // ********************************* //
@@ -172,6 +190,7 @@ class CampManagerRoles
         foreach ($roles as &$role) {
             $role['members'] = $members[$role['id']] ?? [];
             $role['permissions'] = self::parsePermissions($role['permissions']);
+            $role['also_known_as'] = $this->otherNames($role);
         }
         return $roles;
     }
@@ -185,6 +204,7 @@ class CampManagerRoles
         }
         $role['members'] = $this->getMembersByRole([$role['id']])[$role['id']] ?? [];
         $role['permissions'] = self::parsePermissions($role['permissions']);
+        $role['also_known_as'] = $this->otherNames($role);
         return $role;
     }
 
@@ -252,7 +272,13 @@ class CampManagerRoles
         return $by_member;
     }
 
-    /** Inserts (into the viewed season) or updates a role; returns its id. */
+    /**
+     * Inserts (into the viewed season) or updates a role; returns its id.
+     *
+     * 'same_as' sets the role's lineage: another role's id joins this role's history to that
+     * role's, 'new' starts a fresh history for this row alone, and empty leaves it as it is.
+     * A new role with nothing given continues the newest other role with the same name, if any.
+     */
     public function upsertRole(array $data, ?int $role_id = null): int
     {
         global $wpdb;
@@ -279,10 +305,155 @@ class CampManagerRoles
                 throw new \Exception("Failed to insert role: {$wpdb->last_error}");
             }
             $role_id = (int) $wpdb->insert_id;
+            if (($data['same_as'] ?? '') === '') {
+                $data['same_as'] = $this->newestRoleNamed($name, $role_id) ?: 'new';
+            }
+        }
+        if (($data['same_as'] ?? '') !== '') {
+            $this->setLineage((int) $role_id, $data['same_as']);
         }
 
         self::flushCache();
         return (int) $role_id;
+    }
+
+    // ********************************* //
+    // Lineage: the same role across seasons
+
+    /** Per-request cache of every role's lineage: lineage id => rows (newest season first). */
+    private static $lineages = null;
+
+    /** The lineage a role belongs to (its earliest row's id). */
+    public function lineageOf(int $role_id): int
+    {
+        global $wpdb;
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(lineage_id, id) FROM {$wpdb->prefix}mf_roles WHERE id = %d",
+            $role_id
+        ));
+    }
+
+    /**
+     * Every role grouped by lineage, newest season first, so [0] of a lineage is the row
+     * whose name and order stand for the whole role.
+     */
+    public function lineages(): array
+    {
+        if (self::$lineages === null) {
+            global $wpdb;
+            $rows = $wpdb->get_results(
+                "SELECT id, season, name, sort_order, COALESCE(lineage_id, id) AS lineage
+                 FROM {$wpdb->prefix}mf_roles ORDER BY season DESC, sort_order, name",
+                ARRAY_A
+            ) ?: [];
+            self::$lineages = [];
+            foreach ($rows as $row) {
+                self::$lineages[(int) $row['lineage']][] = [
+                    'id' => (int) $row['id'], 'season' => (int) $row['season'],
+                    'name' => $row['name'], 'sort_order' => (int) $row['sort_order'],
+                ];
+            }
+        }
+        return self::$lineages;
+    }
+
+    /** Names a role has gone by in other seasons, with those seasons: ['Goblin' => [2024, 2023]]. */
+    public function otherNames(array $role): array
+    {
+        $names = [];
+        foreach ($this->lineages()[$this->lineageOf((int) $role['id'])] ?? [] as $row) {
+            if (strcasecmp($row['name'], $role['name']) !== 0) {
+                $names[$row['name']][] = $row['season'];
+            }
+        }
+        return $names;
+    }
+
+    /**
+     * Roles a role could be declared the same as, for the edit page: every role from another
+     * season that isn't already in its lineage, labelled "YYYY Name", newest first.
+     */
+    public function lineageOptions(?int $role_id, int $season): array
+    {
+        $mine = $role_id ? $this->lineageOf($role_id) : 0;
+        $options = [];
+        foreach ($this->lineages() as $lineage => $rows) {
+            if ($lineage === $mine) {
+                continue;
+            }
+            foreach ($rows as $row) {
+                if ($row['season'] !== $season) {
+                    $options[] = ['id' => $row['id'], 'label' => self::roleLabel($row)];
+                }
+            }
+        }
+        usort($options, function ($a, $b) {
+            return strcmp($b['label'], $a['label']);
+        });
+        return $options;
+    }
+
+    /** Id of the newest other role with this name (case-insensitive), or 0. */
+    private function newestRoleNamed(string $name, int $except): int
+    {
+        global $wpdb;
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}mf_roles WHERE LOWER(name) = %s AND id <> %d ORDER BY season DESC, id DESC LIMIT 1",
+            strtolower($name),
+            $except
+        ));
+    }
+
+    /**
+     * Moves a role into another role's lineage (every row of its current lineage comes along,
+     * so two histories merge), or with 'new' cuts this one row out into a history of its own.
+     */
+    public function setLineage(int $role_id, $same_as)
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_roles";
+        $mine = $this->lineageOf($role_id);
+        if (!$mine) {
+            return;
+        }
+
+        if ($same_as === 'new') {
+            $others = array_map('intval', $wpdb->get_col($wpdb->prepare(
+                "SELECT id FROM $table WHERE COALESCE(lineage_id, id) = %d AND id <> %d",
+                $mine,
+                $role_id
+            )));
+            if ($others) {
+                // The rest keep a lineage of their own, rooted at their earliest row.
+                $placeholders = implode(',', array_fill(0, count($others), '%d'));
+                $wpdb->query($wpdb->prepare("UPDATE $table SET lineage_id = %d WHERE id IN ($placeholders)", min($others), ...$others));
+            }
+            $wpdb->update($table, ['lineage_id' => $role_id], ['id' => $role_id]);
+        } else {
+            $target = $this->lineageOf((int) $same_as);
+            if ($target && $target !== $mine) {
+                $wpdb->query($wpdb->prepare(
+                    "UPDATE $table SET lineage_id = %d WHERE COALESCE(lineage_id, id) = %d",
+                    $target,
+                    $mine
+                ));
+            }
+        }
+        self::$lineages = null;
+    }
+
+    /** Joins every same-named role into one lineage where none is set yet (db version 5). */
+    public function backfillLineages()
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_roles";
+        $wpdb->query(
+            "UPDATE $table r
+             JOIN (SELECT LOWER(name) AS n, MIN(id) AS first FROM $table GROUP BY LOWER(name)) f ON LOWER(r.name) = f.n
+             SET r.lineage_id = f.first
+             WHERE r.lineage_id IS NULL"
+        );
+        self::$lineages = null;
     }
 
     /** Replaces a role's holders. Only roster members from the role's own season are kept. */
@@ -318,12 +489,14 @@ class CampManagerRoles
             return [];
         }
         global $wpdb;
+        // The lineage of any role named Camp Lead, so a season that called it something else still counts.
         return $wpdb->get_results($wpdb->prepare(
             "SELECT ro.*
              FROM {$wpdb->prefix}mf_roles r
              JOIN {$wpdb->prefix}mf_role_members m ON m.role_id = r.id
              JOIN {$wpdb->prefix}mf_roster ro ON ro.id = m.roster_id
-             WHERE r.season = %d AND LOWER(r.name) = %s
+             WHERE r.season = %d
+               AND COALESCE(r.lineage_id, r.id) IN (SELECT COALESCE(l.lineage_id, l.id) FROM {$wpdb->prefix}mf_roles l WHERE LOWER(l.name) = %s)
                AND (ro.status IS NULL OR ro.status NOT IN ('Dropped', 'No'))
              ORDER BY ro.playaname, ro.fname",
             $season,
@@ -333,37 +506,72 @@ class CampManagerRoles
 
     /**
      * Every Camp Manager role a WordPress user has held, for their public profile:
-     * role name => seasons held (newest first). Roles are per season, so the same
-     * name across seasons is one role with several years. Camp Lead comes first,
-     * then the others in their sort order. Seasons where the member dropped or
-     * declined don't count, as with access.
+     * role name => seasons held (newest first). Rows of one lineage are one role, under
+     * the lineage's current name (so 2023's Goblin is listed as Treasurer; see
+     * formerNamesForUser()). Camp Lead comes first, then the others in their sort order.
+     * Seasons where the member dropped or declined don't count, as with access.
      */
     public function rolesByYearForUser(int $wpid): array
+    {
+        $by_role = [];
+        foreach ($this->userRoleLineages($wpid) as $info) {
+            $by_role[$info['name']] = array_values(array_unique(array_merge($by_role[$info['name']] ?? [], $info['seasons'])));
+            rsort($by_role[$info['name']]);
+        }
+        return $by_role;
+    }
+
+    /**
+     * For each role in rolesByYearForUser(), the earlier names the user held it under:
+     * current name => [former name => seasons]. Only roles with a former name appear.
+     */
+    public function formerNamesForUser(int $wpid): array
+    {
+        $former = [];
+        foreach ($this->userRoleLineages($wpid) as $info) {
+            foreach ($info['former'] as $name => $seasons) {
+                $former[$info['name']][$name] = array_values(array_unique(array_merge($former[$info['name']][$name] ?? [], $seasons)));
+                rsort($former[$info['name']][$name]);
+            }
+        }
+        return $former;
+    }
+
+    /** The user's held roles grouped by lineage and ordered as the profile lists them. */
+    private function userRoleLineages(int $wpid): array
     {
         if (!$wpid || (int) get_option(CampManagerSeason::OPTION_DB_VERSION) < 3) {
             return [];
         }
         global $wpdb;
         $rows = $wpdb->get_results($wpdb->prepare(
-            "SELECT r.name, r.season
+            "SELECT r.id, r.name, r.season, COALESCE(r.lineage_id, r.id) AS lineage
              FROM {$wpdb->prefix}mf_roles r
              JOIN {$wpdb->prefix}mf_role_members m ON m.role_id = r.id
              JOIN {$wpdb->prefix}mf_roster ro ON ro.id = m.roster_id
              WHERE ro.wpid = %d AND (ro.status IS NULL OR ro.status NOT IN ('Dropped', 'No'))
-             ORDER BY (LOWER(r.name) = %s) DESC, r.sort_order, r.name, r.season DESC",
-            $wpid,
-            strtolower(self::LEAD_ROLE)
+             ORDER BY r.season DESC",
+            $wpid
         ), ARRAY_A) ?: [];
 
-        $by_role = [];
+        $lineages = $this->lineages();
+        $held = [];
         foreach ($rows as $row) {
-            $by_role[$row['name']][] = (int) $row['season'];
+            $lineage = (int) $row['lineage'];
+            if (!isset($held[$lineage])) {
+                $current = $lineages[$lineage][0] ?? ['name' => $row['name'], 'sort_order' => 0];
+                $held[$lineage] = ['name' => $current['name'], 'sort_order' => $current['sort_order'], 'seasons' => [], 'former' => []];
+            }
+            $held[$lineage]['seasons'][] = (int) $row['season'];
+            if (strcasecmp($row['name'], $held[$lineage]['name']) !== 0) {
+                $held[$lineage]['former'][$row['name']][] = (int) $row['season'];
+            }
         }
-        foreach ($by_role as &$seasons) {
-            $seasons = array_values(array_unique($seasons));
-            rsort($seasons);
-        }
-        return $by_role;
+        uasort($held, function ($a, $b) {
+            return [strcasecmp($a['name'], self::LEAD_ROLE) !== 0, $a['sort_order'], strtolower($a['name'])]
+                <=> [strcasecmp($b['name'], self::LEAD_ROLE) !== 0, $b['sort_order'], strtolower($b['name'])];
+        });
+        return $held;
     }
 
     /**
@@ -639,6 +847,14 @@ class CampManagerRoles
         $placeholders = implode(',', array_fill(0, count($role_ids), '%d'));
         $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}mf_role_members WHERE role_id IN ($placeholders)", ...$role_ids));
         $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}mf_roles WHERE id IN ($placeholders)", ...$role_ids));
+        // Rows whose lineage was rooted at a deleted role are re-rooted at their earliest survivor.
+        $wpdb->query(
+            "UPDATE {$wpdb->prefix}mf_roles r
+             JOIN (SELECT lineage_id, MIN(id) AS first FROM {$wpdb->prefix}mf_roles GROUP BY lineage_id) f ON f.lineage_id = r.lineage_id
+             LEFT JOIN {$wpdb->prefix}mf_roles root ON root.id = r.lineage_id
+             SET r.lineage_id = f.first
+             WHERE root.id IS NULL"
+        );
         self::flushCache();
     }
 

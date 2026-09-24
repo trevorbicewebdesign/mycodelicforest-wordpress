@@ -943,6 +943,9 @@ class MycodelicForestProfile
                 if (!$roles) {
                     return __('No roles yet.', 'textdomain');
                 }
+                // A renamed role is one role: it is listed under its current name, with the
+                // name it had when this member held it.
+                $former = (new CampManagerRoles())->formerNamesForUser($user->ID);
                 $lines = [];
                 foreach ($roles as $name => $years) {
                     $pills = '';
@@ -950,7 +953,14 @@ class MycodelicForestProfile
                         $url = home_url('/history/' . $y . '/');
                         $pills .= '<a href="' . esc_url($url) . '" style="' . $this->pillStyle() . 'text-decoration:none;">' . esc_html($y) . '</a>';
                     }
-                    $lines[] = '<strong style="display:block;margin-bottom:4px;">' . esc_html($name) . '</strong>' . $pills;
+                    $title = esc_html($name);
+                    if (!empty($former[$name])) {
+                        $title .= ' <small style="font-weight:normal;">(' . esc_html(implode('; ', array_map(function ($old, $seasons) {
+                            /* translators: 1: the role's earlier name, 2: the seasons it had that name */
+                            return sprintf(__('as %1$s in %2$s', 'textdomain'), $old, implode(', ', $seasons));
+                        }, array_keys($former[$name]), $former[$name]))) . ')</small>';
+                    }
+                    $lines[] = '<strong style="display:block;margin-bottom:4px;">' . $title . '</strong>' . $pills;
                 }
                 return implode('<br>', $lines);
 

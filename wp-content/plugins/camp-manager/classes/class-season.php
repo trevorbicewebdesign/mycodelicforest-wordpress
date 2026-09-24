@@ -15,7 +15,7 @@
  */
 class CampManagerSeason
 {
-    const DB_VERSION = 4;
+    const DB_VERSION = 5;
     // Everything recorded before seasons existed belongs to the 2025 season.
     const LEGACY_SEASON = 2025;
     const OPTION_CURRENT = 'camp_manager_season';
@@ -94,7 +94,8 @@ class CampManagerSeason
     /**
      * Brings the tables up to DB_VERSION, once: version 2 adds the season columns and files
      * pre-season data under the legacy season; version 3 adds the camp role tables; version 4
-     * gives every past season a Camp Lead role.
+     * gives every past season a Camp Lead role; version 5 adds role lineages (the same role
+     * across seasons, even when renamed).
      *
      * Only the missing columns are added (no dbDelta over every table), and a database lock
      * lets exactly one request do it: right after a deploy WP-CLI and web requests all hit
@@ -149,6 +150,17 @@ class CampManagerSeason
                 // The camp has always had a Camp Lead: give every season one so Burn Year
                 // pages can name that year's leads. Holders are assigned by hand.
                 (new CampManagerRoles())->ensureLeadRoleEverySeason();
+            }
+
+            if ($version < 5) {
+                // Role lineage: rows of the same role across seasons share a lineage_id, so a
+                // renamed role (Goblin -> Treasurer) keeps its history. Same-named roles are
+                // joined here; renames are joined by hand on the role's edit page.
+                $name = $wpdb->prefix . 'mf_roles';
+                if (!$wpdb->get_var("SHOW COLUMNS FROM $name LIKE 'lineage_id'")) {
+                    $wpdb->query("ALTER TABLE $name ADD COLUMN lineage_id int DEFAULT NULL, ADD KEY lineage_id (lineage_id)");
+                }
+                (new CampManagerRoles())->backfillLineages();
             }
 
             update_option(self::OPTION_DB_VERSION, self::DB_VERSION);
