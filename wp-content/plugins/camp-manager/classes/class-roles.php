@@ -437,6 +437,198 @@ class CampManagerRoles
         self::flushCache();
     }
 
+    // ********************************* //
+    // Roles by WordPress user (the wp-admin user profile)
+
+    /**
+     * Every role in every season, newest season first, for the user-profile picker. Each
+     * row carries a 'label' of "YYYY Name", so typing the year narrows a list to that season.
+     */
+    public function getAllRoles(): array
+    {
+        global $wpdb;
+        $roles = $wpdb->get_results(
+            "SELECT id, season, name, sort_order FROM {$wpdb->prefix}mf_roles ORDER BY season DESC, sort_order, name",
+            ARRAY_A
+        ) ?: [];
+        foreach ($roles as &$role) {
+            $role['id'] = (int) $role['id'];
+            $role['season'] = (int) $role['season'];
+            $role['label'] = self::roleLabel($role);
+        }
+        return $roles;
+    }
+
+    /** "YYYY Role name": the season first, so a role can be found by typing its year. */
+    public static function roleLabel(array $role): string
+    {
+        return (int) $role['season'] . ' ' . $role['name'];
+    }
+
+    /**
+     * The roster row that stands for a WordPress user in each season, keyed by season
+     * (newest first). A user should have one row per season; if there are several, an
+     * active one (not Dropped/No) wins, then the oldest.
+     */
+    public function rosterRowsForUser(int $wpid): array
+    {
+        if (!$wpid) {
+            return [];
+        }
+        global $wpdb;
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}mf_roster
+             WHERE wpid = %d AND season IS NOT NULL
+             ORDER BY season DESC, (status IN ('Dropped', 'No')) ASC, id ASC",
+            $wpid
+        ), ARRAY_A) ?: [];
+
+        $by_season = [];
+        foreach ($rows as $row) {
+            $by_season[(int) $row['season']] = $by_season[(int) $row['season']] ?? $row;
+        }
+        return $by_season;
+    }
+
+    /** Ids of every role a WordPress user holds through any of their roster rows, newest season first. */
+    public function getUserRoleIds(int $wpid): array
+    {
+        if (!$wpid) {
+            return [];
+        }
+        global $wpdb;
+        $ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT r.id
+             FROM {$wpdb->prefix}mf_role_members m
+             JOIN {$wpdb->prefix}mf_roster ro ON ro.id = m.roster_id
+             JOIN {$wpdb->prefix}mf_roles r ON r.id = m.role_id
+             WHERE ro.wpid = %d
+             ORDER BY r.season DESC, r.sort_order, r.name",
+            $wpid
+        )) ?: [];
+        return array_values(array_unique(array_map('intval', $ids)));
+    }
+
+    /**
+     * A roster row nobody is linked to yet that looks like this WordPress user, in a season:
+     * matched by email, then first and last name, then playa name (all case-insensitive),
+     * the best match first. Read-only; autoLinkRosterRow() does the linking.
+     */
+    public function findUnlinkedRosterRow(int $wpid, int $season): ?array
+    {
+        $user = $wpid ? get_userdata($wpid) : false;
+        if (!$user) {
+            return null;
+        }
+        $email = strtolower(trim((string) $user->user_email));
+        $fname = strtolower(trim((string) get_user_meta($wpid, 'first_name', true)));
+        $lname = strtolower(trim((string) get_user_meta($wpid, 'last_name', true)));
+        $playa = strtolower(trim((string) get_user_meta($wpid, 'playa_name', true)));
+
+        $matches = [];
+        $args = [];
+        if ($email !== '') {
+            $matches[] = 'LOWER(email) = %s';
+            $args[] = $email;
+        }
+        if ($fname !== '' && $lname !== '') {
+            $matches[] = '(LOWER(fname) = %s AND LOWER(lname) = %s)';
+            array_push($args, $fname, $lname);
+        }
+        if ($playa !== '') {
+            $matches[] = 'LOWER(playaname) = %s';
+            $args[] = $playa;
+        }
+        if (!$matches) {
+            return null;
+        }
+
+        global $wpdb;
+        // The same tests order the candidates, so an email match beats a name match.
+        $order = implode(' DESC, ', array_map(function ($m) { return "($m)"; }, $matches)) . ' DESC';
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}mf_roster
+             WHERE season = %d AND (wpid IS NULL OR wpid = 0) AND (" . implode(' OR ', $matches) . ")
+             ORDER BY $order, id ASC
+             LIMIT 1",
+            $season,
+            ...$args,
+            ...$args
+        ), ARRAY_A);
+        return $row ?: null;
+    }
+
+    /**
+     * Links a WordPress user to their roster row in a season when nothing links them yet
+     * (see findUnlinkedRosterRow()). Only wpid is written: the entry's names, email, status
+     * and everything else stay exactly as they were. Returns the row now linked, or null
+     * when there is nothing to link.
+     */
+    public function autoLinkRosterRow(int $wpid, int $season): ?array
+    {
+        $row = $this->findUnlinkedRosterRow($wpid, $season);
+        if (!$row) {
+            return null;
+        }
+        global $wpdb;
+        $wpdb->update("{$wpdb->prefix}mf_roster", ['wpid' => $wpid], ['id' => (int) $row['id']]);
+        $row['wpid'] = $wpid;
+        self::flushCache();
+        return $row;
+    }
+
+    /**
+     * Replaces a WordPress user's roles across seasons, from the admin user profile: the
+     * other direction of setMemberRoles(), for someone rather than one roster row. Roles are
+     * held through the roster, so in each season the user is on the roster their roles become
+     * the submitted ones from that season (none submitted clears that season). A role from a
+     * season they aren't linked to yet first auto-links their roster entry for that season;
+     * when there is none to link the role can't be held and is skipped.
+     *
+     * Returns ['skipped' => role ids, 'linked' => season => roster row linked on the way].
+     */
+    public function setUserRoles(int $wpid, array $role_ids): array
+    {
+        $wanted = array_values(array_unique(array_filter(array_map('intval', $role_ids))));
+        $rows = $this->rosterRowsForUser($wpid);
+
+        $season_of = [];
+        foreach ($this->getAllRoles() as $role) {
+            $season_of[$role['id']] = $role['season'];
+        }
+        $per_season = [];
+        $skipped = [];
+        $linked = [];
+        foreach ($wanted as $role_id) {
+            $season = $season_of[$role_id] ?? 0;
+            if ($season && !isset($rows[$season]) && !isset($linked[$season])) {
+                $row = $this->autoLinkRosterRow($wpid, $season);
+                if ($row) {
+                    $rows[$season] = $linked[$season] = $row;
+                }
+            }
+            if ($season && isset($rows[$season])) {
+                $per_season[$season][] = $role_id;
+            } else {
+                $skipped[] = $role_id;
+            }
+        }
+
+        global $wpdb;
+        foreach ($rows as $season => $row) {
+            // Clear every roster row of theirs in the season (there should be one), then set the chosen one.
+            $wpdb->query($wpdb->prepare(
+                "DELETE m FROM {$wpdb->prefix}mf_role_members m
+                 JOIN {$wpdb->prefix}mf_roster ro ON ro.id = m.roster_id
+                 WHERE ro.wpid = %d AND ro.season = %d",
+                $wpid,
+                $season
+            ));
+            $this->setMemberRoles((int) $row['id'], $per_season[$season] ?? []);
+        }
+        return ['skipped' => $skipped, 'linked' => $linked];
+    }
+
     public function deleteRoles(array $role_ids)
     {
         $role_ids = array_map('intval', $role_ids);

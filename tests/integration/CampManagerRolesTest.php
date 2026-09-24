@@ -264,4 +264,189 @@ class CampManagerRolesTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $this->assertStringContainsString('Open', $html);
         $this->assertStringNotContainsString('Sparkle', do_shortcode('[camp_manager_roles holders="no"]'));
     }
+
+    public function testAUsersRolesFollowTheirRosterRowsAcrossSeasons()
+    {
+        $user = self::factory()->user->create(['role' => 'subscriber']);
+        $other = self::factory()->user->create(['role' => 'subscriber']);
+        $lead27 = $this->roles->upsertRole(['name' => 'Camp Lead', 'sort_order' => 10, 'season' => 2027]);
+        $fire27 = $this->roles->upsertRole(['name' => 'Firelord', 'sort_order' => 20, 'season' => 2027]);
+        $lead25 = $this->roles->upsertRole(['name' => 'Camp Lead', 'sort_order' => 10, 'season' => 2025]);
+        $lead24 = $this->roles->upsertRole(['name' => 'Camp Lead', 'sort_order' => 10, 'season' => 2024]);
+        $row27 = $this->rosterMember($user, 2027);
+        $row25 = $this->rosterMember($user, 2025);
+        $other27 = $this->rosterMember($other, 2027);
+        $this->roles->setRoleMembers($lead27, [$other27]);
+
+        // Options are "YYYY Role", newest season first.
+        $this->assertSame(['2027 Camp Lead', '2027 Firelord', '2025 Camp Lead', '2024 Camp Lead'], array_column($this->roles->getAllRoles(), 'label'));
+        $this->assertSame([2027, 2025], array_keys($this->roles->rosterRowsForUser($user)));
+
+        // 2024 has no roster row for them, so that role is skipped; 0 is ignored.
+        $result = $this->roles->setUserRoles($user, [$lead25, $lead27, $lead24, 0]);
+
+        $this->assertSame(['skipped' => [$lead24], 'linked' => []], $result);
+        $this->assertSame([$lead27, $lead25], $this->roles->getUserRoleIds($user));
+        $this->assertSame([$lead27], $this->roles->getMemberRoleIds($row27));
+        $this->assertSame([$lead25], $this->roles->getMemberRoleIds($row25));
+        $this->assertSame([$lead27], $this->roles->getMemberRoleIds($other27), 'the other holder is untouched');
+
+        // Leaving a season out clears it; a user with no roster rows holds nothing and changes nothing.
+        $this->roles->setUserRoles($user, [$fire27]);
+
+        $this->assertSame([$fire27], $this->roles->getUserRoleIds($user));
+        $this->assertSame([], $this->roles->getMemberRoleIds($row25));
+        $this->assertSame([$lead27], $this->roles->setUserRoles(self::factory()->user->create(), [$lead27])['skipped']);
+        $this->assertSame([$lead27], $this->roles->getMemberRoleIds($other27));
+    }
+
+    public function testDuplicateRosterRowsInASeasonResolveToTheActiveOne()
+    {
+        $user = self::factory()->user->create(['role' => 'subscriber']);
+        $lead = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2027]);
+        $dropped = $this->rosterMember($user, 2027, 'Dropped');
+        $active = $this->rosterMember($user, 2027);
+        $this->roles->setRoleMembers($lead, [$dropped]);
+
+        $this->assertSame((string) $active, $this->roles->rosterRowsForUser($user)[2027]['id']);
+        $this->assertSame([$lead], $this->roles->getUserRoleIds($user), 'held through either row');
+
+        $this->roles->setUserRoles($user, [$lead]);
+
+        $this->assertSame([$lead], $this->roles->getMemberRoleIds($active));
+        $this->assertSame([], $this->roles->getMemberRoleIds($dropped), 'the stale row is cleared');
+    }
+
+    public function testUserProfileFieldOffersYearPrefixedRolesAndSavesForAdminsOnly()
+    {
+        $admin = self::factory()->user->create(['role' => 'administrator']);
+        $member = self::factory()->user->create(['role' => 'subscriber']);
+        $lead27 = $this->roles->upsertRole(['name' => 'Camp Lead', 'sort_order' => 10, 'season' => 2027]);
+        $fire27 = $this->roles->upsertRole(['name' => 'Firelord', 'sort_order' => 20, 'season' => 2027]);
+        $lead24 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2024]);
+        $this->roles->setMemberRoles($this->rosterMember($member, 2027), [$lead27]);
+        $profile = new CampManagerUserProfile();
+
+        wp_set_current_user($admin);
+        ob_start();
+        $profile->render(get_userdata($member));
+        $html = ob_get_clean();
+
+        $this->assertStringContainsString('<h3>Camp Roles</h3>', $html);
+        $this->assertMatchesRegularExpression('/<option value="' . $lead27 . '"[^>]*selected[^>]*>\s*2027 Camp Lead\s*</', $html);
+        $this->assertMatchesRegularExpression('/<option value="' . $fire27 . '"(?![^>]*selected)(?![^>]*disabled)[^>]*>\s*2027 Firelord\s*</', $html);
+        $this->assertMatchesRegularExpression('/<option value="' . $lead24 . '"[^>]*disabled[^>]*>\s*2024 Camp Lead \(not on the 2024 roster\)/', $html);
+
+        // Saving swaps the 2027 role; the 2024 one can't be held and is ignored.
+        $_POST = [CampManagerUserProfile::FIELD . '_submitted' => '1', CampManagerUserProfile::FIELD => [(string) $fire27, (string) $lead24]];
+        $profile->save($member);
+        $this->assertSame([$fire27], $this->roles->getUserRoleIds($member));
+
+        // A form without the field leaves roles alone.
+        $_POST = [];
+        $profile->save($member);
+        $this->assertSame([$fire27], $this->roles->getUserRoleIds($member));
+
+        // Non-admins see their roles read-only and can't change them, whatever they post.
+        wp_set_current_user($member);
+        ob_start();
+        $profile->render(get_userdata($member));
+        $html = ob_get_clean();
+        $this->assertStringContainsString('2027 Firelord', $html);
+        $this->assertStringNotContainsString('<select', $html);
+
+        $_POST = [CampManagerUserProfile::FIELD . '_submitted' => '1', CampManagerUserProfile::FIELD => [(string) $lead27]];
+        $profile->save($member);
+        $this->assertSame([$fire27], $this->roles->getUserRoleIds($member));
+        $_POST = [];
+    }
+
+
+    public function testAssigningARoleAutoLinksTheUsersUnlinkedRosterEntry()
+    {
+        // Users outlive the test (the suite commits), so emails must be unique per run.
+        $email = 'wizard-' . uniqid() . '@example.org';
+        $user = self::factory()->user->create(['role' => 'subscriber', 'user_email' => $email]);
+        update_user_meta($user, 'first_name', 'Sandor');
+        update_user_meta($user, 'last_name', 'Stockfleth');
+        update_user_meta($user, 'playa_name', 'Wizard');
+        $stranger = self::factory()->user->create(['role' => 'subscriber']);
+        $lead = [];
+        foreach ([2019, 2018, 2017, 2016] as $season) {
+            $lead[$season] = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => $season]);
+        }
+        // 2019: by email (case-insensitive), even though the names differ; a name-only match loses to it.
+        $by_name_2019 = $this->tester->haveInDatabase('mf_roster', ['wpid' => 0, 'fname' => 'sandor', 'lname' => 'STOCKFLETH', 'email' => 'other@example.org', 'status' => 'Confirmed', 'season' => 2019]);
+        $by_email = $this->tester->haveInDatabase('mf_roster', ['wpid' => null, 'fname' => 'Sandy', 'lname' => 'S', 'playaname' => '', 'email' => strtoupper($email), 'status' => 'Dropped', 'season' => 2019, 'low_income' => 1]);
+        // 2018: by first and last name. 2017: by playa name. 2016: nothing to link.
+        $by_name = $this->tester->haveInDatabase('mf_roster', ['wpid' => 0, 'fname' => 'SANDOR', 'lname' => 'stockfleth', 'email' => '', 'status' => 'Confirmed', 'season' => 2018]);
+        $by_playa = $this->tester->haveInDatabase('mf_roster', ['wpid' => 0, 'fname' => '', 'lname' => '', 'playaname' => 'wizard', 'email' => '', 'status' => 'Confirmed', 'season' => 2017]);
+        // Rows already linked to someone else are never taken, whatever they match.
+        $taken = $this->tester->haveInDatabase('mf_roster', ['wpid' => $stranger, 'fname' => 'Sandor', 'lname' => 'Stockfleth', 'email' => $email, 'status' => 'Confirmed', 'season' => 2016]);
+
+        $this->assertSame((string) $by_email, $this->roles->findUnlinkedRosterRow($user, 2019)['id']);
+        $this->assertNull($this->roles->findUnlinkedRosterRow($user, 2016));
+
+        $result = $this->roles->setUserRoles($user, [$lead[2019], $lead[2018], $lead[2017], $lead[2016]]);
+
+        $this->assertSame([$lead[2016]], $result['skipped']);
+        $this->assertSame([2019, 2018, 2017], array_keys($result['linked']));
+        $this->assertSame([$lead[2019], $lead[2018], $lead[2017]], $this->roles->getUserRoleIds($user));
+        $this->assertSame([$lead[2019]], $this->roles->getMemberRoleIds($by_email));
+        $this->assertSame([], $this->roles->getMemberRoleIds($by_name_2019));
+        $this->assertSame([$lead[2018]], $this->roles->getMemberRoleIds($by_name));
+        $this->assertSame([$lead[2017]], $this->roles->getMemberRoleIds($by_playa));
+
+        // Linking writes the user id and nothing else on the entry.
+        $this->tester->seeInDatabase('mf_roster', ['id' => $by_email, 'wpid' => $user, 'fname' => 'Sandy', 'lname' => 'S', 'playaname' => '', 'email' => strtoupper($email), 'status' => 'Dropped', 'low_income' => 1]);
+        $this->tester->seeInDatabase('mf_roster', ['id' => $by_name_2019, 'wpid' => 0]);
+        $this->tester->seeInDatabase('mf_roster', ['id' => $taken, 'wpid' => $stranger]);
+        $this->assertSame([2019, 2018, 2017], array_keys($this->roles->rosterRowsForUser($user)));
+
+        // Once linked, a later save finds the row without linking again.
+        $result = $this->roles->setUserRoles($user, [$lead[2019]]);
+        $this->assertSame(['skipped' => [], 'linked' => []], $result);
+        $this->assertSame([$lead[2019]], $this->roles->getUserRoleIds($user));
+    }
+
+    public function testUserProfileFieldExplainsAutoLinkingAndReportsIt()
+    {
+        $admin = self::factory()->user->create(['role' => 'administrator']);
+        $email = 'ember-' . uniqid() . '@example.org';
+        $member = self::factory()->user->create(['role' => 'subscriber', 'user_email' => $email]);
+        $lead19 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2019]);
+        $lead16 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2016]);
+        $this->tester->haveInDatabase('mf_roster', ['wpid' => 0, 'fname' => 'Em', 'lname' => 'Ber', 'email' => $email, 'status' => 'Confirmed', 'season' => 2019]);
+        $profile = new CampManagerUserProfile();
+        wp_set_current_user($admin);
+
+        ob_start();
+        $profile->render(get_userdata($member));
+        $html = ob_get_clean();
+
+        $this->assertMatchesRegularExpression('/<option value="' . $lead19 . '"(?![^>]*disabled)[^>]*>\s*2019 Camp Lead \(links their 2019 roster entry, Em Ber\)/', $html);
+        $this->assertMatchesRegularExpression('/<option value="' . $lead16 . '"[^>]*disabled[^>]*>\s*2016 Camp Lead \(not on the 2016 roster\)/', $html);
+
+        $_POST = [CampManagerUserProfile::FIELD . '_submitted' => '1', CampManagerUserProfile::FIELD => [(string) $lead19, (string) $lead16]];
+        $profile->save($member);
+        $_POST = [];
+
+        $this->assertSame([$lead19], $this->roles->getUserRoleIds($member));
+        ob_start();
+        $profile->notices();
+        $notice = ob_get_clean();
+        $this->assertStringContainsString('Linked this user to the 2019 roster entry for Em Ber.', $notice);
+        $this->assertStringContainsString('Could not assign 2016 Camp Lead: this user is not on the roster for that season.', $notice);
+
+        // The notice shows once.
+        ob_start();
+        $profile->notices();
+        $this->assertSame('', ob_get_clean());
+        // And the linked season now reads as plain.
+        ob_start();
+        $profile->render(get_userdata($member));
+        $html = ob_get_clean();
+        $this->assertMatchesRegularExpression('/<option value="' . $lead19 . '"[^>]*selected[^>]*>\s*2019 Camp Lead\s*</', $html);
+    }
+
 }

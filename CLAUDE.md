@@ -38,9 +38,12 @@ files and deploy; do not add links through the Site Editor, the database navigat
   (the footer's About Us column is done this way; use it as the template).
 - Use site-relative URLs (`/history/`) with `"kind":"custom"` so the markup works on Local, CI
   and production without page IDs or hostnames.
-- Members-only pages get Spectra's display condition on the link so logged-out visitors do not
-  see a link that redirects to login: add
-  `"UAGLoggedOut":true,"UAGDisplayConditions":"userstate"` to the link's attributes.
+- Links to members-only pages (History, Roster) get `"className":"mf-members-only"` in the
+  block attributes. `MycodelicForestHistory::hideMembersOnlyBlocks()` (a `render_block`
+  filter in the mycodelic-forest plugin) drops any block with that class unless the viewer is
+  a Mycodelic Forest Member or can edit content, the same test as the history pages. Spectra's
+  own display conditions are not enough: "userstate" only tells logged in from logged out, and
+  "userRole" hides a block *from* a role rather than showing it only to one.
 - The database holds `wp_template_part` overrides for `footer` and `header`, but they belong to
   the `spectra-one` theme, so they do not shadow the child theme files. If a change to a part
   file does not show up, check whether an override for `mycodelic-forest-child` was saved from

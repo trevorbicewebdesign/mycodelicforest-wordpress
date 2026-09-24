@@ -30,6 +30,10 @@ class MycodelicForestHistory {
         add_filter('register_post_type_args', [$this, 'hideFromSearch'], 10, 2);
         add_filter('wp_sitemaps_post_types', [$this, 'removeFromSitemap']);
         add_filter('sgg_sitemap_exclude_post_ids', [$this, 'excludeFromSitemapPlugin']);
+
+        // Any block given the "mf-members-only" CSS class (e.g. the footer's History and
+        // Roster links in the child theme) renders only for members.
+        add_filter('render_block', [$this, 'hideMembersOnlyBlocks'], 10, 2);
     }
 
     // Camp history is for members: the Mycodelic Forest Member role (as on the members-only
@@ -40,6 +44,14 @@ class MycodelicForestHistory {
         }
         $user = wp_get_current_user();
         return in_array('mycodelic_forest_member', (array) $user->roles, true) || current_user_can('edit_posts');
+    }
+
+    /** Blocks with the mf-members-only class are dropped for everyone who isn't a member. */
+    public function hideMembersOnlyBlocks($block_content, $block) {
+        if (empty($block['attrs']['className']) || !in_array('mf-members-only', preg_split('/\s+/', $block['attrs']['className']), true)) {
+            return $block_content;
+        }
+        return $this->isMember() ? $block_content : '';
     }
 
     public function restrictToMembers() {
