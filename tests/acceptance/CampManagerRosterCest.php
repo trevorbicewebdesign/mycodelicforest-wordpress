@@ -187,13 +187,42 @@ class CampManagerRosterCest
         // No WordPress user selected yet.
         $I->assertEquals("", $I->grabValueFrom("#wpid"));
 
-        $I->selectOption("#wpid", (string) $this->userId);
+        // The user list is a searchable select2 box, sorted by display name.
+        $I->seeElement("#select2-wpid-container");
+        // (select2 hides the native select, and WebDriver reads hidden elements' text as empty.)
+        $names = $I->executeJS('return jQuery("#wpid option").map(function () { return jQuery(this).text().trim(); }).get();');
+        array_shift($names); // the "Select a WordPress user" placeholder
+        $sorted = $names;
+        usort($sorted, 'strcasecmp');
+        $I->assertEquals($sorted, $names, "WordPress users should be listed alphabetically");
+        $I->assertContains("Test User (testuser - " . $I->grabFromDatabase("wp_users", "user_email", ["ID" => $this->userId]) . ")", $names);
+
+        // The picker is a select2 box (the native select is hidden, so selectOption() can't
+        // click its options) and choosing a user opens a confirm() offering to fill the form
+        // from their profile. Pick through the select's value with the prompt answered.
+        $pick = 'window.confirm = function () { return %s; }; jQuery("#wpid").val(arguments[0]).trigger("change");';
+
+        // Declining keeps what the roster already has, and still links the user.
+        $I->executeJS(sprintf($pick, 'false'), [(string) $this->userId]);
+        $I->assertEquals((string) $this->userId, $I->grabValueFrom("#wpid"));
+        $I->seeInField("#member_fname", "Wanda");
+        $I->seeInField("#member_playaname", "Wander");
+
+        // Accepting fills the name, playa name and e-mail from the WordPress profile.
+        $I->executeJS('jQuery("#wpid").val("").trigger("change");');
+        $I->executeJS(sprintf($pick, 'true'), [(string) $this->userId]);
+        $I->seeInField("#member_fname", "Test");
+        $I->seeInField("#member_lname", "User");
+        $I->seeInField("#member_playaname", "TestBurner");
+
         $I->click("Save Member");
         $I->wait(1);
 
         $I->seeInDatabase("wp_mf_roster", [
             "id" => $member_id,
             "wpid" => $this->userId,
+            "fname" => "Test",
+            "playaname" => "TestBurner",
         ]);
 
         // Reload and confirm the selection survived the round trip.
