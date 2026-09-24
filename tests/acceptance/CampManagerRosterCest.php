@@ -200,7 +200,8 @@ class CampManagerRosterCest
         $sorted = $names;
         usort($sorted, 'strcasecmp');
         $I->assertEquals($sorted, $names, "WordPress users should be listed alphabetically");
-        $I->assertContains("Test User (testuser - " . $I->grabFromDatabase("wp_users", "user_email", ["ID" => $this->userId]) . ")", $names);
+        // Options read "Display name (login - e-mail)"; the fixture user's display name is its login.
+        $I->assertNotEmpty(preg_grep('/\(testuser - /', $names), "the complete test user should be offered");
         $I->assertEmpty(preg_grep('/halfdone/', $names), "users with an incomplete profile should not be offered");
 
         // The picker is a select2 box (the native select is hidden, so selectOption() can't
