@@ -155,9 +155,14 @@ class CampManagerInventoryCest
         $I->seeNumberOfElements("table.wp-list-table tbody tr", 1);
         $I->see("Sound tote", "table.wp-list-table tbody .column-name");
 
-        // The overview collapses and stays collapsed for this user.
+        // The overview collapses and stays collapsed for this user. The filter has just
+        // reloaded the page: wait until core's postbox script has bound the toggle (its
+        // footer scripts, one from a CDN, can still be loading when the table is already there).
+        $I->waitForJS("return !!(window.jQuery && jQuery._data(jQuery('#totes-overview .handlediv')[0], 'events'));", 10);
         $I->click("#totes-overview .handlediv");
         $I->waitForElement("#totes-overview.closed", 10);
+        // The closed state is saved for this user with an ajax call.
+        $I->wait(1);
         $I->reloadPage();
         $I->waitForText("Inventory", 10, "h1");
         $I->seeElement("#totes-overview.closed");
