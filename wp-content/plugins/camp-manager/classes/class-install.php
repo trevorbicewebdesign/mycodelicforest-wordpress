@@ -45,9 +45,11 @@ class CampManagerInstall
             permissions varchar(255) NOT NULL DEFAULT '',
             sort_order int NOT NULL DEFAULT '0',
             lineage_id int DEFAULT NULL,
+            parent_id int DEFAULT NULL,
             PRIMARY KEY  (id),
             KEY season (season),
-            KEY lineage_id (lineage_id)
+            KEY lineage_id (lineage_id),
+            KEY parent_id (parent_id)
         ) $charset_collate;";
         dbDelta($sql);
     }

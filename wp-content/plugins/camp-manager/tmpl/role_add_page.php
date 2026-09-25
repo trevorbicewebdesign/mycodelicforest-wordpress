@@ -10,6 +10,8 @@ $holder_ids = $is_edit ? array_map('intval', array_column($role['members'], 'id'
 $also_known_as = $is_edit ? $role['also_known_as'] : [];
 $lineage_rows = $is_edit ? ($this->roles->lineages()[$this->roles->lineageOf($role_id)] ?? []) : [];
 $lineage_options = $this->roles->lineageOptions($is_edit ? $role_id : null, $season);
+$parent_options = $this->roles->parentOptions($season, $is_edit ? $role_id : null);
+$parent_id = $is_edit ? (int) $role['parent_id'] : (int) ($_GET['parent'] ?? 0);
 
 // Holders come from the role's own season roster.
 global $wpdb;
@@ -41,6 +43,21 @@ $season_roster = $wpdb->get_results($wpdb->prepare(
             <tr>
                 <th><label for="role_name">Name</label></th>
                 <td><input type="text" name="role_name" id="role_name" class="regular-text" value="<?php echo esc_attr($role['name'] ?? ''); ?>" required></td>
+            </tr>
+            <tr>
+                <th><label for="role_parent">Part of Circle</label></th>
+                <td>
+                    <select name="role_parent" id="role_parent" style="min-width: 25em;">
+                        <option value="0">&mdash; None (top level) &mdash;</option>
+                        <?php foreach ($parent_options as $option): ?>
+                            <option value="<?php echo esc_attr($option['id']); ?>" <?php selected($parent_id, $option['id']); ?>><?php echo esc_html($option['label']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="description">
+                        As in Holacracy, a circle is a role that holds other roles: put a role inside the circle it belongs to,
+                        and it becomes a circle itself once something is inside it. Every circle has its own Circle Lead.
+                    </p>
+                </td>
             </tr>
             <tr>
                 <th><label for="role_description">Description</label></th>
@@ -123,6 +140,7 @@ jQuery(function ($) {
     if ($.fn.select2) {
         $('#role_members').select2({ placeholder: 'Choose roster members', width: '25em' });
         $('#role_same_as').select2({ width: '25em' });
+        $('#role_parent').select2({ width: '25em' });
     }
 });
 </script>

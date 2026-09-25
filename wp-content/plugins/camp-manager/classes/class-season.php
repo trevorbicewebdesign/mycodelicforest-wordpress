@@ -15,10 +15,12 @@
  */
 class CampManagerSeason
 {
-    const DB_VERSION = 5;
+    const DB_VERSION = 6;
     // Everything recorded before seasons existed belongs to the 2025 season.
     const LEGACY_SEASON = 2025;
     const OPTION_CURRENT = 'camp_manager_season';
+    /** First season of the roles added in db version 6 (the camp did not attend 2020 or 2026). */
+    const ROLES_SINCE = 2022;
     const OPTION_DB_VERSION = 'camp_manager_db_version';
     const USER_META_VIEWING = 'camp_manager_viewing_season';
     const SWITCH_PARAM = 'camp_manager_switch_season';
@@ -95,7 +97,10 @@ class CampManagerSeason
      * Brings the tables up to DB_VERSION, once: version 2 adds the season columns and files
      * pre-season data under the legacy season; version 3 adds the camp role tables; version 4
      * gives every past season a Camp Lead role; version 5 adds role lineages (the same role
-     * across seasons, even when renamed).
+     * across seasons, even when renamed); version 6 adds the roles the camp has had since 2022
+     * (Circle Lead, Programming Director) or that Burning Man now requires (Leave No Trace,
+     * Sustainability and R.I.D.E. Leads) to every season from 2022 on, and adds circles (roles
+     * inside roles), starting the current season's roles off in the camp's circles.
      *
      * Only the missing columns are added (no dbDelta over every table), and a database lock
      * lets exactly one request do it: right after a deploy WP-CLI and web requests all hit
@@ -161,6 +166,22 @@ class CampManagerSeason
                     $wpdb->query("ALTER TABLE $name ADD COLUMN lineage_id int DEFAULT NULL, ADD KEY lineage_id (lineage_id)");
                 }
                 (new CampManagerRoles())->backfillLineages();
+            }
+
+            if ($version < 6) {
+                // Circles: a role can sit inside another role (its circle). Then the roles the
+                // camp has had since 2022 or that Burning Man requires are added, and the
+                // current season is put into the camp's circles. Holders are assigned by hand.
+                $name = $wpdb->prefix . 'mf_roles';
+                if (!$wpdb->get_var("SHOW COLUMNS FROM $name LIKE 'parent_id'")) {
+                    $wpdb->query("ALTER TABLE $name ADD COLUMN parent_id int DEFAULT NULL, ADD KEY parent_id (parent_id)");
+                }
+                $roles = new CampManagerRoles();
+                $roles->addMissingDefaultRolesSince(
+                    self::ROLES_SINCE,
+                    ['Circle Lead', 'Programming Director', 'Leave No Trace Lead', 'Sustainability Lead', 'R.I.D.E. Lead']
+                );
+                $roles->applyDefaultStructure(self::current());
             }
 
             update_option(self::OPTION_DB_VERSION, self::DB_VERSION);
