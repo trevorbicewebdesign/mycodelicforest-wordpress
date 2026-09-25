@@ -1,0 +1,28 @@
+name: Composer GitHub auth
+description: 'Verifies the read-only GitHub token and registers it with Composer, so the private plugin packages (gravityforms, revslider, ACF Pro) can be installed'
+
+inputs:
+  token:
+    description: 'Bare read-only GitHub token (the COMPOSER_AUTH secret; not Composer JSON)'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Authenticate Composer with GitHub (private plugin packages)
+      env:
+        RAW_TOKEN: ${{ inputs.token }}
+      run: |
+        # Trim any whitespace/newline that came along when the secret was pasted.
+        token="$(printf '%s' "${RAW_TOKEN}" | tr -d '[:space:]')"
+        if [ -z "${token}" ]; then
+          echo "::error::COMPOSER_AUTH secret is empty."; exit 1
+        fi
+        echo "::add-mask::${token}"
+        code="$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: token ${token}" https://api.github.com/user)"
+        echo "GitHub token check: HTTP ${code} (token length ${#token})"
+        if [ "${code}" != "200" ]; then
+          echo "::error::GitHub rejected the COMPOSER_AUTH token (HTTP ${code}). Regenerate it (Contents: read-only on the private plugin repos) and update the secret."; exit 1
+        fi
+        composer config -g github-oauth.github.com "${token}"
+      shell: bash

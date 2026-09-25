@@ -20,12 +20,15 @@ defaults:
 env:
   PHP_VERSION: '8.4'  # must match composer.json config.platform.php and production
   WP_VERSION: '7.1.1'  # WordPress core for tests (core is not a Composer package; see deploy.sh / composer.json)
-  CACHE_PATHS: |      # Paths to cache composer dependencies
-    vendor/
+  COMPOSER_VERSION: 'v2'  # Composer version for setup
+  # Cache layers. Each is its own cache entry with its own key, so a change to one
+  # (a WordPress bump, a plugin update) never rebuilds the others. The repo's own code
+  # (camp-manager, house-ledger, mycodelic-forest, the child theme, ...) is in none of
+  # them: it is checked out fresh every run, and the layers are restored over it. Their
+  # directory names never collide with Composer-managed plugins/themes.
+  CORE_PATHS: |       # Layer 1: WordPress core (key: WP_VERSION)
     wp-admin/
     wp-includes/
-    wp-content/plugins/
-    wp-content/themes/
     index.php
     wp-activate.php
     wp-blog-header.php
@@ -40,110 +43,122 @@ env:
     wp-signup.php
     wp-trackback.php
     xmlrpc.php
-  COMPOSER_VERSION: 'v2'  # Composer version for setup
+  PACKAGE_PATHS: |    # Layer 2: everything Composer installs (key: composer.lock)
+    vendor/
+    wp-content/plugins/
+    wp-content/themes/
 
-# Job to cache Composer dependencies
+# Jobs
 jobs:
+  # Builds the cache layers once, so the parallel test jobs below only ever restore them.
   setup:
-    name: Cache Composer Dependencies
+    name: Build dependency caches
     runs-on: ubuntu-latest
     outputs:
-      cache-hit: ${{ steps.cache-hit.outputs.cache-hit }}  # Output for cache status
-      cache-key: ${{ steps.cache-key.outputs.key }}        # Output for cache key
+      core-key: ${{ steps.keys.outputs.core }}
+      packages-key: ${{ steps.keys.outputs.packages }}
 
     steps:
-      # Step to check out the code repository
-      - name: Checkout repository
+      # Only what Composer needs; the rest of the repo would end up inside the caches.
+      - name: Checkout composer files
         uses: actions/checkout@v5
+        with:
+          sparse-checkout: |
+            composer.json
+            composer.lock
+            .github/actions
+            bin/check-seed-clean.php
+            tests/_support/Data/db
+          sparse-checkout-cone-mode: false
 
-      # Step to prepare the workspace by removing unnecessary files
-      - name: Prepare workspace for caching composer dependencies
-        run: |
-          rm -rf *
-          rm -r .github
-          rm .deployignore .gitignore
-          git checkout composer.json
-          git checkout composer.lock
-          rm -r .git
-          ls -a
-
-      # Set up PHP and Composer environment
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
           tools: composer:${{ env.COMPOSER_VERSION }}, wp-cli
 
-      # Generate a unique cache key based on the `composer.lock` file
-      - name: Generate cache key from composer.lock
-        id: cache-key
-        run: echo "key=$(echo ${{ runner.os }}-composer-$(sha256sum composer.lock | awk '{ print $1 }'))" >> $GITHUB_OUTPUT
-  
-      # Look up cache based on the generated key
-      - name: Lookup Composer cache
-        id: cache-hit
+      # The dumps are committed to a public repository: fail fast, before anything is built,
+      # if one carries personal data or credentials. Never prints the offending values.
+      - name: Check test databases hold no personal data or secrets
+        run: php bin/check-seed-clean.php
+
+      - name: Compute cache keys
+        id: keys
+        run: |
+          echo "core=${{ runner.os }}-wp-core-${{ env.WP_VERSION }}" >> "$GITHUB_OUTPUT"
+          echo "packages=${{ runner.os }}-composer-packages-${{ hashFiles('composer.lock') }}" >> "$GITHUB_OUTPUT"
+
+      # Layer 1: WordPress core. Rebuilt only when WP_VERSION changes.
+      - name: Restore WordPress core layer
+        id: core
         uses: actions/cache@v5
         with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ steps.cache-key.outputs.key }}
-          restore-keys: |
-            ${{ runner.os }}-composer
-          lookup-only: true
-
-      # Output whether cache was hit
-      - name: Debug cache hit
-        run: echo "Cache hit was ${{ steps.cache-hit.outputs.cache-hit }}"
-
-      # Install dependencies if cache is missing
-      - name: Authenticate Composer with GitHub (private plugin packages)
-        if: steps.cache-hit.outputs.cache-hit != 'true'
-        # Secret COMPOSER_AUTH holds the bare read-only GitHub token (not Composer's JSON format).
-        run: |
-          # Trim any whitespace/newline that came along when the secret was pasted.
-          token="$(printf '%s' "${{ secrets.COMPOSER_AUTH }}" | tr -d '[:space:]')"
-          if [ -z "${token}" ]; then
-            echo "::error::COMPOSER_AUTH secret is empty."; exit 1
-          fi
-          code="$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: token ${token}" https://api.github.com/user)"
-          echo "GitHub token check: HTTP ${code} (token length $(printf '%s' "${token}" | wc -c | tr -d ' '))"
-          if [ "${code}" != "200" ]; then
-            echo "::error::GitHub rejected the COMPOSER_AUTH token (HTTP ${code}). Regenerate it (Contents: read-only on the private plugin repos) and update the secret."; exit 1
-          fi
-          composer config -g github-oauth.github.com "${token}"
-      - name: Install Dependencies if no cache hit
-        if: steps.cache-hit.outputs.cache-hit != 'true'
-        run: composer install --no-interaction --no-progress --optimize-autoloader
-      - name: Download WordPress core if no cache hit
-        if: steps.cache-hit.outputs.cache-hit != 'true'
+          path: ${{ env.CORE_PATHS }}
+          key: ${{ steps.keys.outputs.core }}
+      - name: Download WordPress core
+        if: steps.core.outputs.cache-hit != 'true'
         run: wp core download --version="${{ env.WP_VERSION }}" --skip-content --force
 
-      # Remove composer files to avoid caching them
-      - name: Remove composer files from caching
-        if: steps.cache-hit.outputs.cache-hit != 'true'
-        run: rm composer.json
-
-      # Cache dependencies if they were not previously cached
-      - name: Cache Composer dependencies
-        if: steps.cache-hit.outputs.cache-hit != 'true'
+      # Layer 2: Composer packages. An exact hit needs no work. On a miss, the newest
+      # earlier entry is restored anyway (restore-keys) and `composer install` then
+      # changes only the packages that differ from the lock file, so one plugin update
+      # does not reinstall all of them.
+      - name: Restore Composer packages layer
+        id: packages
         uses: actions/cache@v5
         with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          path: ${{ env.PACKAGE_PATHS }}
+          key: ${{ steps.keys.outputs.packages }}
           restore-keys: |
-            ${{ runner.os }}-composer
+            ${{ runner.os }}-composer-packages-
+      # The download cache only matters when something has to be fetched.
+      - name: Locate Composer download cache
+        if: steps.packages.outputs.cache-hit != 'true'
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - name: Restore Composer download cache
+        if: steps.packages.outputs.cache-hit != 'true'
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-downloads-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-downloads-
+      - name: Authenticate Composer with GitHub
+        if: steps.packages.outputs.cache-hit != 'true'
+        uses: ./.github/actions/composer-auth
+        with:
+          token: ${{ secrets.COMPOSER_AUTH }}
+      - name: Install Composer dependencies
+        if: steps.packages.outputs.cache-hit != 'true'
+        run: composer install --no-interaction --no-progress --optimize-autoloader
 
   # Job to run tests
   run-tests:
-    name: Test 
+    name: Test ${{ matrix.test-type }}${{ matrix.group && format(' ({0})', matrix.group) || '' }}
     needs: [setup]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false  # Allow tests to continue even if some fail
+      # Every entry is a fully isolated runner with its own MySQL and `seed` database, so
+      # acceptance shards cannot interfere with each other. `group` is a Codeception group
+      # (#[Group('...')] on the Cest classes); locally: codecept run acceptance --group camp-budgets
       matrix:
         include:
           - test-type: integration
           - test-type: functional
           - test-type: acceptance
+            group: camp-budgets
+          - test-type: acceptance
+            group: camp-receipts
+          - test-type: acceptance
+            group: camp-roster
+          - test-type: acceptance
+            group: camp-ledger
+          - test-type: acceptance
+            group: profile
+          - test-type: acceptance
+            group: site
 
     steps:
       # Check out repository for tests
@@ -159,18 +174,22 @@ jobs:
           php-version: ${{ env.PHP_VERSION }}
           tools: composer:${{ env.COMPOSER_VERSION }}, wp-cli
 
-      # Restore cached dependencies
-      - name: Restore Cached dependencies
-        uses: actions/cache@v5
+      # Restore the cache layers built by `setup` over the checkout. A miss here is an
+      # error (evicted or never built), not something to paper over with a download.
+      - name: Restore WordPress core layer
+        uses: actions/cache/restore@v5
         with:
-          path: ${{ env.CACHE_PATHS }}
-          key: ${{ needs.setup.outputs.cache-key }}
-          restore-keys: |
-            ${{ runner.os }}-composer
+          path: ${{ env.CORE_PATHS }}
+          key: ${{ needs.setup.outputs.core-key }}
+          fail-on-cache-miss: true
+      - name: Restore Composer packages layer
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ env.PACKAGE_PATHS }}
+          key: ${{ needs.setup.outputs.packages-key }}
+          fail-on-cache-miss: true
 
       # Create .env file for testing
-      - name: Ensure WordPress core is present
-        run: test -f wp-load.php || wp core download --version="${{ env.WP_VERSION }}" --skip-content --force
       - name: Create .env file for tests
         run: |
           cp ./tests/.env.ci ./tests/.env
@@ -191,6 +210,15 @@ jobs:
       # very folders the cache just restored, its own composer install). CI does the
       # two things the suites actually need: an uploads dir and a populated seed DB
       # (functional populates itself via WPDb; acceptance expects it pre-loaded).
+      # The committed dump is built by bin/build-seed.sh: scrubbed of all personal data and
+      # credentials (the setup job fails the run if that ever regresses), with the config that
+      # does not follow the repo already baked in (dummy Turnstile keys, mail routing, CiviCRM
+      # off, admin-email interstitial off). What is left here follows the code under test, so
+      # it can never go stale: `wp core update-db` (a no-op until WordPress is bumped, which
+      # is how an update PR exercises the upgrade path), the profile form fixture, and
+      # camp-manager's activation, which creates its (empty) tables from the current schema.
+      # Test data is not seeded here: each Cest resets to the seed and creates what it needs
+      # with the helpers in tests/_support/Helper/DbHelper.php.
       - name: Prepare test fixtures
         env:
           # wp-config.php reads $_SERVER['HTTP_X_TEST_REQUEST']; PHP CLI mirrors env
@@ -199,31 +227,18 @@ jobs:
         run: |
           mkdir -p wp-content/uploads
           mysql -u root -proot -h localhost seed < tests/_support/Data/db/dump.sql
-          # The dump predates the core version under test; without this WordPress
-          # bounces every wp-admin request (and logins) to /wp-admin/upgrade.php.
+          # A no-op while the dump matches the core version; after a WordPress bump, without
+          # this WordPress bounces every wp-admin request (and logins) to /wp-admin/upgrade.php.
           wp core update-db
-          # Never show the "verify your admin e-mail" interstitial on admin logins.
-          wp option update admin_email_lifespan 2533080438
-          # Cloudflare Turnstile always-pass test keys, so the registration form can be
-          # submitted by a headless browser (production keys only work on the real domain).
-          wp option update gravityformsaddon_ss88-gravity-forms-turnstile_settings \
-            '{"ct_site_key":"1x00000000000000000000AA","ct_secret_key":"1x0000000000000000000000000000000AA"}' --format=json
-          # Route outgoing mail through PHP mail() -> sendmail_path -> Mailpit (see below);
-          # the option may not exist in the dump, so do not fail if there is nothing to patch.
-          wp option patch update wp_mail_smtp mail mailer mail || true
           # The dump's Profile form (id 6) is an old revision: it ends with a text
           # confirmation and has no pre-population params, while production redirects
           # back to /profile/ and pre-fills from the user. Load the production
           # definition (exported with GFAPI::get_form) and use the non-AJAX page block.
           wp eval '$f = json_decode(file_get_contents("tests/_support/Data/forms/form-6-profile.json"), true); $r = GFAPI::update_form($f); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message()); exit(1); }'
           wp post update 275 --post_content='<!-- wp:gravityforms/form {"formId":"6","inputPrimaryColor":"#204ce5"} /-->'
-          # Plugin state for the suites: camp-manager must be active (its admin pages are
-          # under test and activation creates the mf_* tables); CiviCRM is listed active in
-          # the dump but has no tables/settings here, so it would only add installer notices.
+          # camp-manager must be active (its admin pages are under test and activation
+          # creates the mf_* tables, so it is deliberately not baked into the dump).
           wp plugin activate camp-manager
-          wp plugin deactivate civicrm || true
-          # The budget acceptance tests assume these two categories (ids 1 and 2).
-          mysql -u root -proot -h localhost seed -e "INSERT IGNORE INTO wp_mf_budget_category (id, name, description) VALUES (1, 'Power', ''), (2, 'Sojourner', '')"
           wp option get siteurl; wp option get home
           wp plugin list --status=active --field=name | tr '\n' ' '; echo
 
@@ -261,15 +276,27 @@ jobs:
           curl -sf http://127.0.0.1:10006/api/v1/info | head -c 200; echo
 
       # Run the tests based on matrix test-type
-      - name: Run ${{ matrix.test-type }} tests
-        run: ./vendor/bin/codecept run ${{ matrix.test-type }} -d --no-interaction --skip-group=skipCI --html
+      - name: Run ${{ matrix.test-type }} tests${{ matrix.group && format(' ({0})', matrix.group) || '' }}
+        env:
+          SUITE: ${{ matrix.test-type }}
+          GROUP: ${{ matrix.group }}
+        run: |
+          args=(-d --no-interaction --skip-group=skipCI --html)
+          if [ -n "${GROUP}" ]; then args+=(--group "${GROUP}"); fi
+          ./vendor/bin/codecept run "${SUITE}" "${args[@]}"
+
+      # The seed-data helpers (tests/_support/Helper/DbHelper.php) need only MySQL and the
+      # prepared seed, so they ride along in the integration job instead of costing a runner.
+      - name: Run seed helper tests
+        if: ${{ matrix.test-type == 'integration' }}
+        run: ./vendor/bin/codecept run db -d --no-interaction --skip-group=skipCI --html
 
       # Upload artifacts if any tests fail
       - name: Upload Artifacts on Failure
         if: failure()
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ matrix.test-type }}-test-artifacts-${{ github.sha }}
+          name: ${{ matrix.test-type }}${{ matrix.group && format('-{0}', matrix.group) || '' }}-test-artifacts-${{ github.sha }}
           path: |
             tests/_output/*.html
             tests/_output/*.png

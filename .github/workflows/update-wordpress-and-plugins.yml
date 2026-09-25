@@ -5,95 +5,96 @@ on:
     - cron: '0 0 * * *'
   workflow_dispatch:
 
+# create-pull-request pushes the branch and opens the PR; actions:write lets the last step
+# start the Tests workflow on that branch (see the comment there).
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+# A manual run must not race the nightly one for the same branch.
+concurrency:
+  group: update-dependencies
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          tools: composer:v2, wp-cli
+          tools: composer:v2
 
-      - name: Checkout code
-        uses: actions/checkout@v5
+      - name: Authenticate Composer with GitHub
+        uses: ./.github/actions/composer-auth
+        with:
+          token: ${{ secrets.COMPOSER_AUTH }}
 
-      # Clean up the vendor folder so we have a fresh environment.
-      - name: Remove vendor folder
-        run: rm -rf vendor
-
-      - name: Authenticate Composer with GitHub (private plugin packages)
-        # Secret COMPOSER_AUTH holds the bare read-only GitHub token (not Composer's JSON format).
-        run: |
-          # Trim any whitespace/newline that came along when the secret was pasted.
-          token="$(printf '%s' "${{ secrets.COMPOSER_AUTH }}" | tr -d '[:space:]')"
-          if [ -z "${token}" ]; then
-            echo "::error::COMPOSER_AUTH secret is empty."; exit 1
-          fi
-          code="$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: token ${token}" https://api.github.com/user)"
-          echo "GitHub token check: HTTP ${code} (token length $(printf '%s' "${token}" | wc -c | tr -d ' '))"
-          if [ "${code}" != "200" ]; then
-            echo "::error::GitHub rejected the COMPOSER_AUTH token (HTTP ${code}). Regenerate it (Contents: read-only on the private plugin repos) and update the secret."; exit 1
-          fi
-          composer config -g github-oauth.github.com "${token}"
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress
-
-      - name: Capture initial plugin versions
-        run: |
-          composer show --direct --format=json > composer_initial.json
-
+      # Only composer.lock is being rewritten, so there is nothing to install: --no-install
+      # resolves and updates the lock file without downloading any package (no vendor/,
+      # no plugin zips), and the previous lock file is the "before" snapshot.
       - name: Update Composer dependencies
         run: |
-          rm -r vendor
-          composer update --no-progress
+          cp composer.lock "${RUNNER_TEMP}/composer.lock.before"
+          composer update --no-interaction --no-progress --no-install
 
-      - name: Capture final plugin versions
+      # Compares the whole lock file, so transitive packages and dev tools show up too
+      # (`composer show --direct` only ever listed the packages named in composer.json).
+      - name: Prepare PR body
         run: |
-          composer show --direct --format=json > composer_final.json
-
-      - name: Compare versions and prepare PR body
-        run: |
-          # Create a temporary file to store PR body
-          TMP_PR_BODY=$(mktemp)
-          echo "TMP_PR_BODY=$TMP_PR_BODY" >> $GITHUB_ENV
-
-          # Compare plugin versions
-          echo '### Plugin updates:' >> "$TMP_PR_BODY"
-          PLUGIN_UPDATES=""
-          for ROW in $(jq -r '.installed[] | .name' composer_final.json); do
-            INITIAL_VERSION=$(jq -r --arg ROW "$ROW" '.installed[] | select(.name == $ROW) | .version' composer_initial.json)
-            FINAL_VERSION=$(jq -r --arg ROW "$ROW" '.installed[] | select(.name == $ROW) | .version' composer_final.json)
-            if [[ "$INITIAL_VERSION" != "$FINAL_VERSION" ]]; then
-              PLUGIN_UPDATES="${PLUGIN_UPDATES}**$ROW** was updated from $INITIAL_VERSION to $FINAL_VERSION\n"
+          {
+            echo '### Dependency updates'
+            echo
+            changes="$(jq -rn \
+              --slurpfile a "${RUNNER_TEMP}/composer.lock.before" --slurpfile b composer.lock '
+              def pk: (.packages + (.["packages-dev"] // [])) | map({(.name): .version}) | add // {};
+              ($a[0] | pk) as $x | ($b[0] | pk) as $y |
+              ( [ $y | to_entries[] | select($x[.key] != null and $x[.key] != .value) | "- **\(.key)**: \($x[.key]) → \(.value)" ]
+              + [ $y | to_entries[] | select($x[.key] == null) | "- **\(.key)**: added (\(.value))" ]
+              + [ $x | to_entries[] | select($y[.key] == null) | "- **\(.key)**: removed (was \(.value))" ] )
+              | .[]')"
+            if [ -z "${changes}" ]; then
+              echo 'No dependency changes.'
+            else
+              echo "${changes}"
             fi
-          done
+            echo
+            echo '### Before merging'
+            echo
+            echo '- The Tests workflow runs on this branch. Its seed database is rebuilt from the committed dump plus `wp core update-db` on every run, so a green run also covers the upgrade path for these versions.'
+            echo '- WordPress core is **not** updated here (it is not a Composer package). It is pinned in `.github/workflows/codeception-test.yml` (`WP_VERSION`) and deployed by `deploy.sh`.'
+          } > "${RUNNER_TEMP}/pr_body.md"
+          cat "${RUNNER_TEMP}/pr_body.md"
 
-          if [[ -z "$PLUGIN_UPDATES" ]]; then
-            echo "No plugins to update" >> "$TMP_PR_BODY"
-          else
-            echo -e "$PLUGIN_UPDATES" >> "$TMP_PR_BODY"
-          fi
-
-      - name: Commit changes and clean workspace
-        run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          git add composer.json composer.lock
-          git commit -m "Update dependencies"
-          git reset --hard
-          ls -la
-
-      - name: Restore PR body and create PR
-        run: cp "$TMP_PR_BODY" pr_body.txt
-
+      # create-pull-request commits the change itself (and does nothing when composer.lock
+      # is unchanged, so a night without updates no longer fails on an empty `git commit`).
       - name: Create or update PR
+        id: cpr
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          base: master
+          base: ${{ github.event.repository.default_branch }}
           branch: update-wordpress-and-plugins
-          title: 'Update plugins'
-          body-path: pr_body.txt
+          delete-branch: true
+          add-paths: composer.lock
+          title: 'Update Composer dependencies'
+          body-path: ${{ runner.temp }}/pr_body.md
           commit-message: 'Update dependencies'
+
+      # Events caused by GITHUB_TOKEN (the push and the pull_request that
+      # create-pull-request just produced) do not start other workflows, so without this
+      # the update PR would never be tested. workflow_dispatch is the one exception; the
+      # run attaches to the branch's head commit and shows up in the PR's checks.
+      # (A PAT or GitHub App token for create-pull-request would make the normal
+      # pull_request trigger fire instead.)
+      - name: Run the tests on the update branch
+        if: steps.cpr.outputs.pull-request-operation == 'created' || steps.cpr.outputs.pull-request-operation == 'updated'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run codeception-test.yml --ref update-wordpress-and-plugins

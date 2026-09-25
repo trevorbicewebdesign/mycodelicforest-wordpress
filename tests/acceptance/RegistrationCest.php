@@ -2,7 +2,9 @@
 
 namespace Tests\Acceptance;
 
+use Codeception\Attribute\Group;
 use Tests\Support\AcceptanceTester;
+#[Group('site')]
 class RegistrationCest
 {
     public function _before(AcceptanceTester $I)

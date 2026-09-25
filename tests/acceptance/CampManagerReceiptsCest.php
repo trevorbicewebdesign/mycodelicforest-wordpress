@@ -2,7 +2,9 @@
 
 namespace Tests\Acceptance;
 
+use Codeception\Attribute\Group;
 use Tests\Support\AcceptanceTester;
+#[Group('camp-receipts')]
 class CampManagerReceiptsCest
 {
     protected $userId;
