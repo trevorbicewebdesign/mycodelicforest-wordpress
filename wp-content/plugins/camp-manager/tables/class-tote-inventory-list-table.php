@@ -4,175 +4,222 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (!class_exists('WP_List_Table')) {
-    require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
-}
+require_once __DIR__ . '/class-inventory-base-list-table.php';
 
-class CampManagerToteInventoryTable extends WP_List_Table
+/**
+ * Tote inventory: which items are packed in which totes, with quantities and weights.
+ *
+ * On the "Tote inventory" tab it lists every row, searchable and filterable by tote. On a
+ * tote's edit page it is scoped to that tote (pass its id; `false` lists nothing, for a tote
+ * that is not saved yet) and drops the tote column, the filters and the page size picker.
+ */
+class CampManagerToteInventoryTable extends CampManagerInventoryListTable
 {
-    private $data;
+    const FILTER_FORM = 'tote-inventory-filters';
+    /** Rows shown on a tote's edit page, where there is no pagination control to speak of. */
+    const EMBEDDED_PER_PAGE = 100;
 
+    private $inventory;
     private $tote_id;
 
-    public function __construct($tote_id = null)
+    /** @param int|false|null $tote_id a tote to scope to, false for no rows, null for every tote */
+    public function __construct($tote_id = null, ?CampManagerInventory $inventory = null)
     {
         $this->tote_id = $tote_id;
+        $this->inventory = $inventory ?: new CampManagerInventory();
         parent::__construct([
-            'singular' => 'Tote Inventory Item',
-            'plural' => 'Tote Inventory Items',
-            'ajax' => false,
+            'singular' => 'tote_inventory_item',
+            'plural'   => 'tote_inventory_items',
+            'ajax'     => false,
         ]);
+    }
+
+    public function filterFormId(): string
+    {
+        return self::FILTER_FORM;
+    }
+
+    /** True on a tote's edit page (scoped to one tote), false on the Tote inventory tab. */
+    public function isEmbedded(): bool
+    {
+        return $this->tote_id !== null;
+    }
+
+    public function perPage(): int
+    {
+        return $this->isEmbedded() ? self::EMBEDDED_PER_PAGE : parent::perPage();
     }
 
     public function get_columns()
     {
-        return [
-            'cb' => '<input type="checkbox" />',
-            'id' => 'ID',
-            'inventory_name' => 'Inventory Name',
-            'tote_name' => 'Tote Name',
-            'quantity' => 'Quantity',
-            'weight' => 'Weight',
-            'total_weight' => 'Total Weight',
+        $columns = [
+            'cb'             => '<input type="checkbox" />',
+            'inventory_name' => 'Item',
+            'tote_name'      => 'Tote',
+            'quantity'       => 'Quantity',
+            'weight'         => 'Unit weight',
+            'total_weight'   => 'Total weight',
         ];
+        if ($this->isEmbedded()) {
+            unset($columns['tote_name']);
+        }
+        return $columns;
     }
 
     public function get_sortable_columns()
     {
-        return [
-            'id' => ['id', true],
+        $sortable = [
             'inventory_name' => ['inventory_name', false],
-            'tote_name' => ['tote_name', false],
-            'quantity' => ['quantity', false],
-            'weight' => ['weight', false],
-            'total_weight' => ['total_weight', false],
+            'tote_name'      => ['tote_name', false],
+            'quantity'       => ['quantity', false],
+            'weight'         => ['weight', false],
+            'total_weight'   => ['total_weight', false],
+        ];
+        if ($this->isEmbedded()) {
+            unset($sortable['tote_name']);
+        }
+        return $sortable;
+    }
+
+    public function get_primary_column_name()
+    {
+        return 'inventory_name';
+    }
+
+    /** The search text, tote filter and page size currently asked for in the URL. */
+    public function filters(): array
+    {
+        return [
+            'search'   => $this->isEmbedded() ? '' : $this->searchTerm(),
+            'tote'     => $this->isEmbedded() || (int) $this->pick('tote', null) <= 0 ? '' : (string) (int) $this->pick('tote', null),
+            'per_page' => $this->perPage(),
         ];
     }
 
     public function column_default($item, $column_name)
     {
-        return match ($column_name) {
-            'id' => esc_html($item['id']),
-            'inventory_name' => esc_html($item['inventory_name']),
-            'tote_name' => esc_html($item['tote_name']),
-            'quantity' => esc_html($item['quantity']),
-            'weight' => !empty($item['weight']) ? esc_html(number_format((float)$item['weight'], 2)) : '',
-            'total_weight' => (!empty($item['total_weight'])) ? esc_html(number_format((float)$item['total_weight'], 2)) : '',
-            default => isset($item[$column_name]) ? esc_html($item[$column_name]) : '',
-        };
+        switch ($column_name) {
+            case 'quantity':
+                return number_format((float) $item['quantity'], 0);
+            case 'weight':
+                return $item['weight'] === null ? $this->emptyCell() : number_format((float) $item['weight'], 2) . ' lbs';
+            case 'total_weight':
+                return $item['weight'] === null ? $this->emptyCell() : number_format((float) $item['total_weight'], 2) . ' lbs';
+            default:
+                return isset($item[$column_name]) ? esc_html($item[$column_name]) : '';
+        }
     }
 
-    public function get_primary_column_name()
+    public function column_inventory_name($item)
     {
-        return 'id';
+        $return = base64_encode($this->isEmbedded()
+            ? admin_url('admin.php?page=camp-manager-add-tote&id=' . (int) $this->tote_id)
+            : admin_url('admin.php?page=camp-manager-view-tote-inventory'));
+        $edit_url = admin_url('admin.php?page=camp-manager-add-tote-inventory&id=' . (int) $item['id'] . '&return=' . $return);
+        $actions = ['edit' => '<a href="' . esc_url($edit_url) . '">Edit</a>'];
+        if ($item['inventory_id']) {
+            $actions['item'] = '<a href="' . esc_url(admin_url('admin.php?page=camp-manager-add-inventory&id=' . (int) $item['inventory_id'] . '&return=' . $return)) . '">Edit item</a>';
+        }
+        return $this->titleCell(stripslashes((string) ($item['inventory_name'] ?? '')), $edit_url, [], $actions);
+    }
+
+    public function column_tote_name($item)
+    {
+        if (!$item['tote_id']) {
+            return $this->emptyCell();
+        }
+        $url = admin_url('admin.php?page=camp-manager-add-tote&id=' . (int) $item['tote_id']);
+        return '<a href="' . esc_url($url) . '">' . esc_html(stripslashes((string) $item['tote_name'])) . '</a>';
+    }
+
+    protected function column_cb($item)
+    {
+        return sprintf('<input type="checkbox" name="tote-inventory[]" value="%d" />', (int) $item['id']);
+    }
+
+    public function get_bulk_actions()
+    {
+        return ['delete' => 'Remove from tote'];
     }
 
     public function process_bulk_action()
     {
-        
-        if ('delete' === $this->current_action()) {
-            if (!empty($_POST['tote-inventory']) && is_array($_POST['tote-inventory'])) {
-                global $wpdb;
-                $table = "{$wpdb->prefix}mf_tote_inventory";
-                $ids = array_map('intval', $_POST['tote-inventory']);
-                $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-                $wpdb->query($wpdb->prepare(
-                    "DELETE FROM $table WHERE id IN ($placeholders)", ...$ids
-                ));
-                // REDIRECT!
-                $tote_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
-                $redirect_url = admin_url("admin.php?page=camp-manager-add-tote&id={$tote_id}&deleted=1");
-                wp_redirect($redirect_url);
+        if ('delete' !== $this->current_action()) {
+            return;
+        }
+        $this->inventory->deleteToteInventory($this->bulkIds('tote-inventory'));
+
+        // A tote's edit page posts a return address; go back there so the URL is clean.
+        if (!empty($_POST['return_url'])) {
+            $return = base64_decode((string) wp_unslash($_POST['return_url']), true);
+            if ($return !== false && $return !== '') {
+                wp_safe_redirect(esc_url_raw($return));
                 exit;
             }
         }
     }
 
-    public function get_bulk_actions()
+    public function no_items()
     {
-        return [
-            'delete' => 'Delete',
-        ];
+        echo $this->isEmbedded() ? 'Nothing packed in this tote yet.' : 'No tote inventory found.';
+    }
+
+    protected function extra_tablenav($which)
+    {
+        if ('top' !== $which || $this->isEmbedded()) {
+            return;
+        }
+        $totes = [];
+        foreach ($this->inventory->getAllTotes() as $tote) {
+            $totes[(string) (int) $tote->id] = (string) $tote->name;
+        }
+        $this->renderFilterDropdowns(['tote' => ['All totes', $totes]], $this->filters());
+        $this->renderPerPage();
     }
 
     public function prepare_items()
     {
         global $wpdb;
+        $filters = $this->filters();
 
-        $per_page = 100;
-        $current_page = $this->get_pagenum();
-        $offset = ($current_page - 1) * $per_page;
-        $table = "{$wpdb->prefix}mf_tote_inventory";
-
-        $total_items = $wpdb->get_var("SELECT COUNT(*) FROM $table");
-
-        $order_by = $_GET['orderby'] ?? 'id';
-        $order = (isset($_GET['order']) && strtolower($_GET['order']) === 'asc') ? 'ASC' : 'DESC';
-
-        $sortable_columns = array_keys($this->get_sortable_columns());
-        if (!in_array($order_by, $sortable_columns, true)) {
-            $order_by = 'id';
-        }
-
-        $order_by = esc_sql($order_by);
-        $order = ($order === 'ASC') ? 'ASC' : 'DESC';
-
-        // Build WHERE clause if tote_id is provided
-        $where = '';
-        $params = [$per_page, $offset];
+        $where = ['1=1'];
+        $args  = [];
         if ($this->tote_id === false) {
-            // If tote_id is explicitly false, return no entries
-            $where = 'WHERE 1=0';
+            $where[] = '1=0';
         } elseif ($this->tote_id !== null) {
-            // If tote_id is set (not null), filter by tote_id
-            $where = 'WHERE ti.tote_id = %d';
-            array_unshift($params, $this->tote_id);
-        } else {
-            // If tote_id is null, select all entries (no WHERE clause)
-            $where = '';
+            $where[] = 'ti.tote_id = %d';
+            $args[]  = (int) $this->tote_id;
+        } elseif ($filters['tote'] !== '') {
+            $where[] = 'ti.tote_id = %d';
+            $args[]  = (int) $filters['tote'];
+        }
+        if ($filters['search'] !== '') {
+            $like    = '%' . $wpdb->esc_like($filters['search']) . '%';
+            $where[] = '(i.name LIKE %s OR t.name LIKE %s)';
+            array_push($args, $like, $like);
         }
 
-        $sql = $wpdb->prepare(
-            "SELECT ti.id, ti.inventory_id, ti.tote_id, ti.quantity, 
-                i.name AS inventory_name, t.name AS tote_name,
-                (ti.quantity * i.weight) AS total_weight
-             FROM $table ti
-             LEFT JOIN {$wpdb->prefix}mf_inventory i ON ti.inventory_id = i.id
-             LEFT JOIN {$wpdb->prefix}mf_totes t ON ti.tote_id = t.id
-             $where 
-             ORDER BY $order_by $order
-             LIMIT %d OFFSET %d",
-            ...$params
-        );
+        $sql = "SELECT ti.id, ti.inventory_id, ti.tote_id, ti.quantity,
+                       i.name AS inventory_name, i.weight, t.name AS tote_name,
+                       (ti.quantity * i.weight) AS total_weight
+                FROM {$wpdb->prefix}mf_tote_inventory ti
+                LEFT JOIN {$wpdb->prefix}mf_inventory i ON ti.inventory_id = i.id
+                LEFT JOIN {$wpdb->prefix}mf_totes t ON ti.tote_id = t.id
+                WHERE " . implode(' AND ', $where);
+        $rows = $wpdb->get_results($args ? $wpdb->prepare($sql, ...$args) : $sql, ARRAY_A) ?: [];
 
-        $this->data = $wpdb->get_results($sql, ARRAY_A);
-        $this->items = $this->data;
-
-        $this->_column_headers = [$this->get_columns(), [], $this->get_sortable_columns()];
-
-        $this->set_pagination_args([
-            'total_items' => $total_items,
-            'per_page' => $per_page,
-            'total_pages' => ceil($total_items / $per_page),
-        ]);
-    }
-
-    public function column_cb($item)
-    {
-        return sprintf('<input type="checkbox" name="tote-inventory[]" value="%s" />', esc_attr($item['id']));
-    }
-
-    public function column_tote_name($item)
-    {
-        $url = admin_url("admin.php?page=camp-manager-add-tote&id={$item['tote_id']}");
-        return '<a href="' . esc_url($url) . '">' . esc_html($item['tote_name']) . '</a>';
-    }
-
-    public function column_inventory_name($item)
-    {
-        $current_url = esc_url_raw($_SERVER['REQUEST_URI']);
-        $return_param = base64_encode($current_url);
-        $url = admin_url("admin.php?page=camp-manager-add-tote-inventory&id={$item['id']}&return=" . urlencode($return_param));
-        return '<a href="' . esc_url($url) . '">' . esc_html($item['inventory_name']) . '</a>';
+        [$orderby, $descending] = $this->sortRequest('inventory_name');
+        $this->paginate($rows, static function (array $a, array $b) use ($orderby): int {
+            switch ($orderby) {
+                case 'quantity':
+                case 'weight':
+                case 'total_weight':
+                    return (float) $a[$orderby] <=> (float) $b[$orderby];
+                case 'tote_name':
+                    return strnatcasecmp(stripslashes((string) $a['tote_name']), stripslashes((string) $b['tote_name']));
+                default:
+                    return strnatcasecmp(stripslashes((string) $a['inventory_name']), stripslashes((string) $b['inventory_name']));
+            }
+        }, $descending);
     }
 }

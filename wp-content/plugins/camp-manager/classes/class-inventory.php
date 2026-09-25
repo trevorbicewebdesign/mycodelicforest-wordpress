@@ -353,4 +353,275 @@ class CampManagerInventory
         return $wpdb->get_results("SELECT * FROM $table");
     }
 
+    // ------------------------------------------------------------- the admin list pages
+
+    /** The three sections of the Inventory admin area: slug => [tab label, admin page]. */
+    public static function sections(): array
+    {
+        return [
+            'items'          => ['All items', 'camp-manager-inventory'],
+            'totes'          => ['Totes', 'camp-manager-totes'],
+            'tote_inventory' => ['Tote inventory', 'camp-manager-view-tote-inventory'],
+        ];
+    }
+
+    /**
+     * The top of every Inventory list page: the heading, its Add New button and the tabs that
+     * switch between items, totes and tote inventory. Prints the pages' shared styles once.
+     */
+    public static function renderPageHeader(string $current, string $add_url): void
+    {
+        self::pageStyles();
+        ?>
+        <h1 class="wp-heading-inline">Inventory</h1>
+        <a href="<?php echo esc_url($add_url); ?>" class="page-title-action">Add New</a>
+        <hr class="wp-header-end">
+        <nav class="cm-tabs" aria-label="Inventory sections">
+            <?php foreach (self::sections() as $slug => [$label, $page]): ?>
+                <?php printf(
+                    '<a href="%s" class="cm-tab%s" data-tab="%s"%s>%s</a>',
+                    esc_url(admin_url('admin.php?page=' . $page)),
+                    $slug === $current ? ' is-active' : '',
+                    esc_attr($slug),
+                    $slug === $current ? ' aria-current="page"' : '',
+                    esc_html($label)
+                ); ?>
+            <?php endforeach; ?>
+        </nav>
+        <?php
+    }
+
+    /** The styles the list tables and tabs rely on; printed once per request. */
+    public static function pageStyles(): void
+    {
+        static $printed = false;
+        if ($printed) {
+            return;
+        }
+        $printed = true;
+        ?>
+<style>
+    .cm-inventory-page .cm-tabs { display: flex; flex-wrap: wrap; gap: 0 28px; margin: 12px 0 16px; border-bottom: 1px solid #c3c4c7; }
+    .cm-inventory-page .cm-tab { display: inline-block; padding: 6px 0 9px; margin-bottom: -1px; font-size: 14px; line-height: 1.4; text-decoration: none; border-bottom: 2px solid transparent; }
+    .cm-inventory-page .cm-tab:hover { color: #135e96; }
+    .cm-inventory-page .cm-tab.is-active { color: #1d2327; font-weight: 600; border-bottom-color: #1d2327; }
+    .cm-inventory-page .cm-tab:focus { box-shadow: none; outline: 2px solid #2271b1; outline-offset: -2px; }
+    .cm-inventory-page .cm-postbox { margin-bottom: 16px; }
+    .cm-inventory-page .search-box { margin-bottom: 8px; }
+
+    /* One flex row: bulk actions and filters on the left, the page size and the pagination on the right. */
+    .cm-inventory-page .tablenav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; height: auto; }
+    .cm-inventory-page .tablenav .bulkactions,
+    .cm-inventory-page .tablenav .actions { float: none; padding: 0; }
+    .cm-inventory-page .tablenav .tablenav-pages { float: none; margin: 0 0 0 auto; }
+    .cm-inventory-page .tablenav .cm-per-page { margin-left: auto; }
+    .cm-inventory-page .tablenav .cm-per-page + .tablenav-pages { margin-left: 0; }
+    .cm-inventory-page .tablenav .clear { display: none; }
+    .cm-inventory-page .tablenav .actions select { max-width: 170px; }
+    /* The count sits with the bottom pagination; up top the page size picker takes its place. */
+    .cm-inventory-page .tablenav.top .displaying-num { display: none; }
+    @media screen and (max-width: 782px) {
+        .cm-inventory-page .tablenav .cm-per-page { display: none; }
+    }
+
+    .cm-inventory-table td,
+    .cm-inventory-table th.check-column { vertical-align: middle; }
+    .cm-inventory-table .column-cb { width: 2.2em; }
+    .cm-inventory-table .cm-item-meta { color: #646970; margin-top: 2px; }
+    .cm-inventory-table .cm-empty { color: #787c82; }
+    .cm-inventory-table .column-quantity,
+    .cm-inventory-table .column-weight,
+    .cm-inventory-table .column-total_weight { width: 110px; text-align: right; }
+    .cm-inventory-table td.column-quantity,
+    .cm-inventory-table td.column-weight,
+    .cm-inventory-table td.column-total_weight { padding-right: 24px; }
+    .cm-inventory-table td.column-items .cm-item-meta { display: block; }
+    .cm-inventory-table .cm-link { display: inline-flex; align-items: center; gap: 6px; }
+    .cm-inventory-table .cm-link .dashicons { font-size: 16px; width: 16px; height: 16px; }
+    /* Row actions keep their line whether shown or not, so hovering never changes a row's height. */
+    .cm-inventory-table .row-actions { position: relative; }
+    .cm-inventory-table tr:not(:hover):not(:focus-within) .row-actions { left: -9999em; }
+    .cm-inventory-table tr:hover .row-actions,
+    .cm-inventory-table tr:focus-within .row-actions { left: 0; }
+</style>
+        <?php
+    }
+
+    // ------------------------------------------------------------------ items (mf_inventory)
+
+    /** Every distinct category in use (category_name, else category), alphabetically. */
+    public function itemCategories(): array
+    {
+        global $wpdb;
+        return $wpdb->get_col(
+            "SELECT DISTINCT COALESCE(NULLIF(category_name, ''), category) AS c
+             FROM {$wpdb->prefix}mf_inventory
+             WHERE COALESCE(NULLIF(category_name, ''), category) <> ''
+             ORDER BY c"
+        ) ?: [];
+    }
+
+    /** Every distinct item location in use, alphabetically. */
+    public function itemLocations(): array
+    {
+        global $wpdb;
+        return $wpdb->get_col("SELECT DISTINCT location FROM {$wpdb->prefix}mf_inventory WHERE location <> '' ORDER BY location") ?: [];
+    }
+
+    /** The totes each item is packed in: [inventory_id => [tote_id => tote name]], by tote name. */
+    public function getToteNamesByItem(array $inventory_ids): array
+    {
+        $inventory_ids = array_values(array_filter(array_map('intval', $inventory_ids)));
+        if (!$inventory_ids) {
+            return [];
+        }
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($inventory_ids), '%d'));
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT ti.inventory_id, t.id AS tote_id, t.name
+             FROM {$wpdb->prefix}mf_tote_inventory ti
+             JOIN {$wpdb->prefix}mf_totes t ON t.id = ti.tote_id
+             WHERE ti.inventory_id IN ($placeholders)
+             ORDER BY t.name",
+            ...$inventory_ids
+        ), ARRAY_A) ?: [];
+
+        $totes = [];
+        foreach ($rows as $row) {
+            $totes[(int) $row['inventory_id']][(int) $row['tote_id']] = stripslashes((string) $row['name']);
+        }
+        return $totes;
+    }
+
+    /** Deletes items and the tote inventory rows that packed them. */
+    public function deleteInventoryItems(array $ids): void
+    {
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+        if (!$ids) {
+            return;
+        }
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}mf_tote_inventory WHERE inventory_id IN ($placeholders)", ...$ids));
+        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}mf_inventory WHERE id IN ($placeholders)", ...$ids));
+    }
+
+    // ----------------------------------------------------------------------- totes (mf_totes)
+
+    /** Every distinct tote status in use, alphabetically. */
+    public function toteStatuses(): array
+    {
+        global $wpdb;
+        return $wpdb->get_col("SELECT DISTINCT status FROM {$wpdb->prefix}mf_totes WHERE status IS NOT NULL AND status <> '' ORDER BY status") ?: [];
+    }
+
+    /** Every distinct tote location in use, alphabetically. */
+    public function toteLocations(): array
+    {
+        global $wpdb;
+        return $wpdb->get_col("SELECT DISTINCT location FROM {$wpdb->prefix}mf_totes WHERE location IS NOT NULL AND location <> '' ORDER BY location") ?: [];
+    }
+
+    /** Figures for the Totes overview: how many totes, how many are packed, and the weights. */
+    public function totesOverview(): array
+    {
+        global $wpdb;
+        $row = $wpdb->get_row(
+            "SELECT COUNT(*) AS total,
+                    SUM(status = 'PACKED') AS packed,
+                    SUM(status = 'READY') AS ready,
+                    COALESCE(SUM(weight), 0) AS total_weight,
+                    COALESCE(SUM(CASE WHEN status = 'PACKED' THEN weight END), 0) AS packed_weight,
+                    COALESCE(SUM(CASE WHEN location = 'Sojourner' THEN weight END), 0) AS sojourner_weight
+             FROM {$wpdb->prefix}mf_totes",
+            ARRAY_A
+        );
+        return [
+            'total'            => (int) ($row['total'] ?? 0),
+            'packed'           => (int) ($row['packed'] ?? 0),
+            'ready'            => (int) ($row['ready'] ?? 0),
+            'total_weight'     => (float) ($row['total_weight'] ?? 0),
+            'packed_weight'    => (float) ($row['packed_weight'] ?? 0),
+            'sojourner_weight' => (float) ($row['sojourner_weight'] ?? 0),
+        ];
+    }
+
+    /** What each tote holds: [tote_id => ['items' => distinct items, 'quantity' => pieces]]. */
+    public function countToteItemsByTote(array $tote_ids): array
+    {
+        $tote_ids = array_values(array_filter(array_map('intval', $tote_ids)));
+        if (!$tote_ids) {
+            return [];
+        }
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($tote_ids), '%d'));
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT tote_id, COUNT(*) AS items, COALESCE(SUM(quantity), 0) AS quantity
+             FROM {$wpdb->prefix}mf_tote_inventory
+             WHERE tote_id IN ($placeholders)
+             GROUP BY tote_id",
+            ...$tote_ids
+        ), ARRAY_A) ?: [];
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row['tote_id']] = ['items' => (int) $row['items'], 'quantity' => (int) $row['quantity']];
+        }
+        return $counts;
+    }
+
+    /** Deletes totes and their tote inventory rows. */
+    public function deleteTotes(array $ids): void
+    {
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+        if (!$ids) {
+            return;
+        }
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}mf_tote_inventory WHERE tote_id IN ($placeholders)", ...$ids));
+        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}mf_totes WHERE id IN ($placeholders)", ...$ids));
+    }
+
+    // ------------------------------------------------------ tote inventory (mf_tote_inventory)
+
+    /**
+     * Figures for the Tote inventory overview, for one tote or all of them: packed rows,
+     * distinct items, pieces, their weight and the totes in use.
+     */
+    public function toteInventoryOverview(?int $tote_id = null): array
+    {
+        global $wpdb;
+        $where = $tote_id === null ? '' : $wpdb->prepare('WHERE ti.tote_id = %d', $tote_id);
+        $row = $wpdb->get_row(
+            "SELECT COUNT(*) AS rows_count,
+                    COUNT(DISTINCT ti.inventory_id) AS items,
+                    COALESCE(SUM(ti.quantity), 0) AS quantity,
+                    COALESCE(SUM(ti.quantity * i.weight), 0) AS weight,
+                    COUNT(DISTINCT ti.tote_id) AS totes
+             FROM {$wpdb->prefix}mf_tote_inventory ti
+             LEFT JOIN {$wpdb->prefix}mf_inventory i ON i.id = ti.inventory_id
+             $where",
+            ARRAY_A
+        );
+        return [
+            'rows'     => (int) ($row['rows_count'] ?? 0),
+            'items'    => (int) ($row['items'] ?? 0),
+            'quantity' => (int) ($row['quantity'] ?? 0),
+            'weight'   => (float) ($row['weight'] ?? 0),
+            'totes'    => (int) ($row['totes'] ?? 0),
+        ];
+    }
+
+    /** Deletes tote inventory rows (takes items out of totes; the items themselves stay). */
+    public function deleteToteInventory(array $ids): void
+    {
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+        if (!$ids) {
+            return;
+        }
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}mf_tote_inventory WHERE id IN ($placeholders)", ...$ids));
+    }
 }

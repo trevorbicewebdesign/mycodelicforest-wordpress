@@ -1,33 +1,53 @@
 <?php
-$table = new CampManagerTotesTable();
+
+$inventory = isset($this) && isset($this->inventory) ? $this->inventory : new CampManagerInventory();
+$table = new CampManagerTotesTable($inventory);
 $table->process_bulk_action();
 $table->prepare_items();
+
+$screen_id = 'camp-manager-totes';
+$overview = $inventory->totesOverview();
+$lbs = static function (float $weight): string {
+    return number_format($weight, 1) . ' lbs';
+};
+$stats = [
+    ['Totes', number_format($overview['total']), 'total'],
+    ['Packed', number_format($overview['packed']), 'packed'],
+    ['Ready', number_format($overview['ready']), 'ready'],
+    ['Packed weight', $lbs($overview['packed_weight']), 'packed_weight'],
+    ['On Sojourner', $lbs($overview['sojourner_weight']), 'sojourner_weight'],
+];
 ?>
 <style>
-    .wp-list-table td.column-name { width: 30%; }
-    .wp-list-table td.column-name {
-        white-space: normal;
-        word-break: break-word;
-    }
-
-    .wp-list-table td.column-name a {
-        display: inline-block;
-        max-width: 200px;
-    }
-    .wp-list-table td, .wp-list-table th {
-            padding: 4px 6px;
-            vertical-align: middle;
-        }
+    .cm-totes-page .column-name { width: 30%; }
+    .cm-totes-page .column-size { width: 90px; }
+    .cm-totes-page .column-status { width: 110px; }
+    .cm-totes-page .column-items { width: 120px; }
 </style>
-<div class="wrap">
-    <h1 class="wp-heading-inline">Totes</h1>
-    <h4><?php echo "Packed Totes: " . number_format($this->inventory->sumPackedTotes(), 2); ?> lbs</h4>
-    <h4><?php echo "Sojourner Totes: " . number_format($this->inventory->sumSojournerTotes(), 2); ?> lbs</h4>
-    <a href="<?php echo admin_url('admin.php?page=camp-manager-add-tote'); ?>" class="page-title-action">Add New</a>
-    <hr class="wp-header-end">
+<div class="wrap cm-inventory-page cm-totes-page">
+    <?php CampManagerInventory::renderPageHeader('totes', admin_url('admin.php?page=camp-manager-add-tote')); ?>
+
+    <?php CampManagerPostbox::boot($screen_id); ?>
+    <?php CampManagerPostbox::open('totes-overview', 'Totes overview', $screen_id, ['class' => 'totes-overview']); ?>
+        <div class="cm-stats">
+            <?php foreach ($stats as [$label, $value, $key]): ?>
+                <div class="cm-stat" data-stat="<?php echo esc_attr($key); ?>">
+                    <span class="cm-stat__label"><?php echo esc_html($label); ?></span>
+                    <span class="cm-stat__value"><?php echo esc_html($value); ?></span>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <p class="cm-stat-footer">
+            All totes together weigh <?php echo esc_html($lbs($overview['total_weight'])); ?>.
+        </p>
+    <?php CampManagerPostbox::close(); ?>
+
+    <form method="get" id="<?php echo esc_attr(CampManagerTotesTable::FILTER_FORM); ?>">
+        <?php $table->filterFormFields(); ?>
+        <?php $table->search_box('Search Totes', 'totes-search'); ?>
+    </form>
+
     <form method="post">
-        <?php
-        $table->display();
-        ?>
+        <?php $table->display(); ?>
     </form>
 </div>
