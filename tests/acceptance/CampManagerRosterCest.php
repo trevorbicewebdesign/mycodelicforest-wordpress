@@ -101,11 +101,11 @@ class CampManagerRosterCest
         $I->waitForElementVisible("#roster-overview .roster-overview__stats", 10);
 
         $I->click("#roster-overview .handlediv");
-        $I->waitForElement("#roster-overview.closed", 5);
+        $I->waitForElement("div#roster-overview.closed", 5);
         $I->dontSeeElement("#roster-overview .roster-overview__stats");
 
         $I->click("#roster-overview .handlediv");
-        $I->waitForElementNotVisible("#roster-overview.closed", 5);
+        $I->waitForElement("div#roster-overview:not(.closed)", 5);
         $I->seeElement("#roster-overview .roster-overview__stats");
     }
 
