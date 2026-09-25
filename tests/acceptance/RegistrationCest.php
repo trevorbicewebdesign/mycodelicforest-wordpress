@@ -7,7 +7,8 @@ class RegistrationCest
 {
     public function _before(AcceptanceTester $I)
     {
-
+        // Registering creates a user and a form entry; start from the seed each time.
+        $I->resetSeedState();
     }
 
     

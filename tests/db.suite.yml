@@ -1,0 +1,23 @@
+# Database fixture suite
+#
+# Tests for the seed-data helpers (tests/_support/Helper/DbHelper.php): no browser, no web
+# server, just MySQL. It runs against the prepared seed database exactly as the acceptance
+# suite finds it (dump imported, camp-manager activated), and never repopulates it.
+actor: DbTester
+suite_namespace: Tests\Db
+modules:
+    enabled:
+        - lucatume\WPBrowser\Module\WPDb
+        - Tests\Support\Helper\DbHelper
+        - Asserts
+    config:
+        lucatume\WPBrowser\Module\WPDb:
+          dbUrl: '%WORDPRESS_DB_SEED_URL%'
+          dump: 'tests/_support/Data/db/dump.sql'
+          populate: false
+          cleanup: false
+          reconnect: false
+          url: '%WORDPRESS_URL%'
+          urlReplacement: false
+          tablePrefix: '%SEED_TABLE_PREFIX%'
+          createIfNotExists: true

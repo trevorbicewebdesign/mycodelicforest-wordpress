@@ -90,25 +90,6 @@ class AcceptanceTester extends \Codeception\Actor
         }
     }
 
-    /**
-     * Mirrors CampManagerSeason::current()'s fallback chain (the `camp_manager_season`
-     * option, else MAX(season) on mf_roster, else this year) - app code doesn't run in
-     * this process, so fixtures that need to land in a season the app will actually
-     * display have to replicate the same resolution instead of guessing a fixed year.
-     */
-    public function currentCampManagerSeason(): int
-    {
-        $I = $this;
-
-        $option = (int) $I->grabOptionFromDatabase('camp_manager_season');
-        if ($option) {
-            return $option;
-        }
-
-        $latest = (int) $I->grabFromDatabase($I->grabPrefixedTableNameFor('mf_roster'), 'MAX(season)');
-        return $latest ?: (int) gmdate('Y');
-    }
-
      /**
      * Captures a full-page screenshot by resizing the browser to the entire page height,
      * taking the screenshot, then restoring the original window size.

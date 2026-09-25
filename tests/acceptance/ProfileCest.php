@@ -9,20 +9,13 @@ class ProfileCest
     protected $profileIncompleteId;
     public function _before(AcceptanceTester $I)
     {
-        // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
-        // duplicates make wp_signon() log in the oldest one, so start clean.
-        foreach (["testadmin", "testuser"] as $login) {
-            // dontHaveUserInDatabase($login) removes only the first match; remove every row.
-            foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
-                $I->dontHaveUserInDatabase((int) $staleId);
-            }
-        }
-        $this->userId = $I->haveUserInDatabase("testuser", "subscriber",[
+        $I->resetSeedState();
+        // A member who has not filled in the rest of their profile yet.
+        $this->userId = $I->createUser("testuser", "subscriber", [
             "first_name" => "Test",
             "last_name" => "User",
             "user_phone" => "123-456-7890",
-            "user_pass" => "password123!test",
-        ]);
+        ])['id'];
     }
 
     public function profilePageIsVisible(AcceptanceTester $I)

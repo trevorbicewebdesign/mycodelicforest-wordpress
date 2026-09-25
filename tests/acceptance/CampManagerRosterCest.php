@@ -9,52 +9,9 @@ class CampManagerRosterCest
     protected $adminId;
     public function _before(AcceptanceTester $I)
     {
-         // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
-         // duplicates make wp_signon() log in the oldest one, so start clean.
-         foreach (["testadmin", "testuser", "halfdone"] as $login) {
-             // dontHaveUserInDatabase($login) removes only the first match; remove every row.
-             foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
-                 $I->dontHaveUserInDatabase((int) $staleId);
-             }
-         }
-         $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
-            "first_name" => "Test",
-            "last_name" => "Admin",
-            "user_pass" => "password123!test",
-            "meta_input" => [
-                "first_name" => "Test",
-                "last_name" => "Admin",
-                "user_phone" => "(123) 456-7890",
-                "address_1" => "123 Main St",
-                "city" => "Anytown",
-                "state" => "CA",
-                "zip" => "12345",
-                "country" => "United States",
-                "user_about_me" => "This is a test.",
-                "playa_name" => "TestBurner",
-                "has_attended_burning_man" => "No",
-                 // "years_attended" => '["2024"]',
-            ]
-        ]);
-        $this->userId = $I->haveUserInDatabase("testuser", "subscriber",[
-            "first_name" => "Test",
-            "last_name" => "User",
-            "user_pass" => "password123!test",
-            "meta_input" => [
-                "first_name" => "Test",
-                "last_name" => "User",
-                "user_phone" => "(123) 456-7890",
-                "address_1" => "123 Main St",
-                "city" => "Anytown",
-                "state" => "CA",
-                "zip" => "12345",
-                "country" => "United States",
-                "user_about_me" => "This is a test.",
-                "playa_name" => "TestBurner",
-                "has_attended_burning_man" => "No",
-                // "years_attended" => '["2024"]',
-            ]
-        ]);
+        $I->resetSeedState();
+        $this->adminId = $I->createTestAdmin()['id'];
+        $this->userId = $I->createTestUser()['id'];
         $I->signInAs("testadmin", "password123!test");
     }
     public function ViewRoster(AcceptanceTester $I)
@@ -65,7 +22,7 @@ class CampManagerRosterCest
         // actually resolves to.
         $season = $I->currentCampManagerSeason();
         foreach ([['Alice', 'Anders', 'Ally'], ['Bob', 'Baker', 'Bobcat']] as $m) {
-            $I->haveInDatabase("wp_mf_roster", [
+            $I->createRosterMember([
                 "wpid" => 0, "season" => $season, "fname" => $m[0], "lname" => $m[1], "playaname" => $m[2],
                 "email" => strtolower($m[0]) . "@example.com", "low_income" => 0, "fully_paid" => 1, "status" => "Confirmed",
             ]);
@@ -133,7 +90,7 @@ class CampManagerRosterCest
 
     public function UpdateMember(AcceptanceTester $I)
     {
-        $member_id = $I->haveInDatabase("wp_mf_roster", [
+        $member_id = $I->createRosterMember([
             "wpid" => $this->userId,
             "low_income" => 0,
             "fully_paid" => 0,
@@ -142,7 +99,7 @@ class CampManagerRosterCest
             "lname" => "Doe",
             "playaname" => "BurnerJohn",
             "email" => "john.doe@example.com"
-        ]);
+        ])['id'];
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member&id=$member_id");
         $I->waitForText("Edit Member", 10, "h1");
 
@@ -176,7 +133,7 @@ class CampManagerRosterCest
             "display_name" => "Half Done",
             "meta_input" => ["first_name" => "Half", "last_name" => "Done", "playa_name" => "Halfway"],
         ]);
-        $member_id = $I->haveInDatabase("wp_mf_roster", [
+        $member_id = $I->createRosterMember([
             "wpid" => 0,
             "low_income" => 0,
             "fully_paid" => 0,
@@ -185,7 +142,7 @@ class CampManagerRosterCest
             "lname" => "Ward",
             "playaname" => "Wander",
             "email" => "wanda.ward@example.com"
-        ]);
+        ])['id'];
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member&id=$member_id");
         $I->waitForText("Edit Member", 10, "h1");
 

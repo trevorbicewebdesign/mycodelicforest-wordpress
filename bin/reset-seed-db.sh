@@ -34,5 +34,4 @@ wp core update-db
 wp eval '$f = json_decode(file_get_contents("tests/_support/Data/forms/form-6-profile.json"), true); $r = GFAPI::update_form($f); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message()); exit(1); }'
 wp post update 275 --post_content='<!-- wp:gravityforms/form {"formId":"6","inputPrimaryColor":"#204ce5"} /-->'
 wp plugin activate camp-manager
-mysql -u root -proot seed -e "INSERT IGNORE INTO wp_mf_budget_category (id, name, description) VALUES (1, 'Power', ''), (2, 'Sojourner', '')"
 wp plugin list --status=active --field=name | tr '\n' ' '; echo

@@ -8,61 +8,19 @@ class CampManagerReceiptsCest
     protected $userId;
     protected $adminId;
     protected $season;
+    protected $powerId;
+    protected $sojournerId;
     public function _before(AcceptanceTester $I)
     {
-         // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
-         // duplicates make wp_signon() log in the oldest one, so start clean.
-         foreach (["testadmin", "testuser"] as $login) {
-             // dontHaveUserInDatabase($login) removes only the first match; remove every row.
-             foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
-                 $I->dontHaveUserInDatabase((int) $staleId);
-             }
-         }
-         $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
-            "first_name" => "Test",
-            "last_name" => "Admin",
-            "user_pass" => "password123!test",
-            "meta_input" => [
-                "first_name" => "Test",
-                "last_name" => "Admin",
-                "user_phone" => "(123) 456-7890",
-                "address_1" => "123 Main St",
-                "city" => "Anytown",
-                "state" => "CA",
-                "zip" => "12345",
-                "country" => "United States",
-                "user_about_me" => "This is a test.",
-                "playa_name" => "TestBurner",
-                "has_attended_burning_man" => "No",
-                 // "years_attended" => '["2024"]',
-            ]
-        ]);
-        $this->userId = $I->haveUserInDatabase("testuser", "subscriber",[
-            "first_name" => "Test",
-            "last_name" => "User",
-            "user_pass" => "password123!test",
-            "meta_input" => [
-                "first_name" => "Test",
-                "last_name" => "User",
-                "user_phone" => "(123) 456-7890",
-                "address_1" => "123 Main St",
-                "city" => "Anytown",
-                "state" => "CA",
-                "zip" => "12345",
-                "country" => "United States",
-                "user_about_me" => "This is a test.",
-                "playa_name" => "TestBurner",
-                "has_attended_burning_man" => "No",
-                // "years_attended" => '["2024"]',
-            ]
-        ]);
-        // getRosterMembers(), the "Power"/"Sojourner" categories and the all-items branch of
-        // getBudgetItems() all filter/join on `season = <viewed season>` - pin the two seeded
-        // categories to it here too (AddNewReceipt's item picker depends on them, and this
-        // Cest can't assume CampManagerBudgetsCest already fixed them up this run).
+        $I->resetSeedState();
+        $this->adminId = $I->createTestAdmin()['id'];
+        $this->userId = $I->createTestUser()['id'];
+        // Camp Manager's pages filter on the season being viewed, so the categories are created
+        // in it; the ids are whatever the database hands out, never assumed.
         $this->season = $I->currentCampManagerSeason();
-        $I->updateInDatabase("wp_mf_budget_category", ["season" => $this->season], ["id" => 1]);
-        $I->updateInDatabase("wp_mf_budget_category", ["season" => $this->season], ["id" => 2]);
+        $categories = $I->createDefaultBudgetCategories();
+        $this->powerId = $categories["Power"]["id"];
+        $this->sojournerId = $categories["Sojourner"]["id"];
 
         $I->signInAs("testadmin", "password123!test");
     }
@@ -97,19 +55,19 @@ class CampManagerReceiptsCest
     {
         // The purchaser <select> is built from the roster (season-scoped); the CI seed DB
         // has no members.
-        $I->haveInDatabase("wp_mf_roster", [
+        $I->createRosterMember([
             "wpid" => 0, "season" => $this->season, "fname" => "Trevor", "lname" => "Bice", "playaname" => "TB",
             "email" => "trevor@example.com", "low_income" => 0, "fully_paid" => 1, "status" => "Confirmed",
         ]);
-        $budget_item_id = $I->haveInDatabase("wp_mf_budget_items", [
+        $budget_item_id = $I->createBudgetItem([
             "name" => "Test Budget Item",
-            "category_id" => 1,
+            "category_id" => $this->powerId,
             "price" => 100.00,
             "quantity" => 2,
             "subtotal" => 200.00,
             "tax" => 10.00,
             "total" => 230.00,
-        ]);
+        ])['id'];
         
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-receipt");
         $I->waitForText("Add New Receipt", 10, "h1");
@@ -200,7 +158,7 @@ class CampManagerReceiptsCest
 
         $I->seeInDatabase("wp_mf_receipt_items", [
             "receipt_id" => $receipt_id,
-            "category_id" => "1",
+            "category_id" => (string) $this->powerId,
             "name" => "Test Budget Item",
             "budget_item_id" => $budget_item_id,
             "price" => 100.00,
@@ -214,7 +172,7 @@ class CampManagerReceiptsCest
 
     public function DeleteReceipt(AcceptanceTester $I)
     {
-        $id = $I->haveInDatabase("wp_mf_receipts", [
+        $id = $I->createReceipt([
             "cmid" => 1,
             "store" => "Test Store",
             "date" => "2025-08-01",
@@ -223,16 +181,16 @@ class CampManagerReceiptsCest
             "shipping" => 0.00,
             "total" => 110.00,
             "season" => $this->season,
-        ]);
-        $item_id = $I->haveInDatabase("wp_mf_receipt_items", [
+        ])['id'];
+        $item_id = $I->createReceiptItem([
             "receipt_id" => $id,
-            "category_id" => 1,
+            "category_id" => $this->powerId,
             "name" => "Test Receipt Item",
             "price" => 100.00,
             "quantity" => 2,
             "subtotal" => 200.00,
             "tax" => 20.00,
-        ]);
+        ])['id'];
         // Navigate to the receipts page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-actuals");
         $I->waitForText("Receipts", 10, "h1");

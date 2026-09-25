@@ -8,64 +8,19 @@ class CampManagerLedgerCest
     protected $userId;
     protected $adminId;
     protected $season;
+    protected $ledger;
     public function _before(AcceptanceTester $I)
     {
-         // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
-         // duplicates make wp_signon() log in the oldest one, so start clean.
-         foreach (["testadmin", "testuser"] as $login) {
-             // dontHaveUserInDatabase($login) removes only the first match; remove every row.
-             foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
-                 $I->dontHaveUserInDatabase((int) $staleId);
-             }
-         }
-         $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
-            "first_name" => "Test",
-            "last_name" => "Admin",
-            "user_pass" => "password123!test",
-            "meta_input" => [
-                "first_name" => "Test",
-                "last_name" => "Admin",
-                "user_phone" => "(123) 456-7890",
-                "address_1" => "123 Main St",
-                "city" => "Anytown",
-                "state" => "CA",
-                "zip" => "12345",
-                "country" => "United States",
-                "user_about_me" => "This is a test.",
-                "playa_name" => "TestBurner",
-                "has_attended_burning_man" => "No",
-                 // "years_attended" => '["2024"]',
-            ]
-        ]);
-        $this->userId = $I->haveUserInDatabase("testuser", "subscriber",[
-            "first_name" => "Test",
-            "last_name" => "User",
-            "user_pass" => "password123!test",
-            "meta_input" => [
-                "first_name" => "Test",
-                "last_name" => "User",
-                "user_phone" => "(123) 456-7890",
-                "address_1" => "123 Main St",
-                "city" => "Anytown",
-                "state" => "CA",
-                "zip" => "12345",
-                "country" => "United States",
-                "user_about_me" => "This is a test.",
-                "playa_name" => "TestBurner",
-                "has_attended_burning_man" => "No",
-                // "years_attended" => '["2024"]',
-            ]
-        ]);
+        $I->resetSeedState();
+        $this->adminId = $I->createTestAdmin()['id'];
+        $this->userId = $I->createTestUser()['id'];
 
         // getLedger()/totals filter `WHERE season = <viewed season>`; a season-less fixture
         // row would be invisible everywhere the app actually renders ledger data.
         $this->season = $I->currentCampManagerSeason();
-        $I->haveInDatabase("wp_mf_ledger", [
+        $this->ledger = $I->createLedgerEntry([
             "note" => "Test Ledger Item",
             "amount" => 200.00,
-            "date" => date("Y-m-d H:i:s"),
-            "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
-            "season" => $this->season,
         ]);
         $I->wait(1);
 
@@ -95,7 +50,7 @@ class CampManagerLedgerCest
         $I->see(date("Y-m-d"), "table.wp-list-table tbody tr:nth-child(1) td.date");
         $I->see("", "table.wp-list-table tbody tr:nth-child(1) td.receipts");
         $I->see("View", "table.wp-list-table tbody tr:nth-child(1) td.link");
-        $I->seeLink("View", "https://www.paypal.com/activity/payment/76U3343887368243K");  
+        $I->seeLink("View", $this->ledger["link"]);
     }
 
     public function AddLedger(AcceptanceTester $I)
@@ -154,15 +109,12 @@ class CampManagerLedgerCest
     public function DeleteLedger(AcceptanceTester $I)
     {
 
-        $ledger_id = $I->haveInDatabase("wp_mf_ledger", [
+        $ledger_id = $I->createLedgerEntry([
             "note" => "Test Ledger Item",
             "amount" => 200.00,
-            "date" => date("Y-m-d H:i:s"),
-            "link" => "https://www.paypal.com/activity/payment/76U3343887368243K",
-            "season" => $this->season,
-        ]);
+        ])['id'];
 
-        $ledger_line_item_id = $I->haveInDatabase("wp_mf_ledger_line_items", [
+        $ledger_line_item_id = $I->createLedgerLineItem([
             "ledger_id" => $ledger_id,
             "receipt_id" => 0,
             "name" => "",
@@ -170,7 +122,7 @@ class CampManagerLedgerCest
             "cmid" => $this->userId,
             "note" => "Test Ledger Line Item Note",
             "type" => "Expense",
-        ]);
+        ])['id'];
         
         // Navigate to the ledger page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-ledger");

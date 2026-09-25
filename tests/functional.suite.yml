@@ -8,6 +8,7 @@ modules:
         - lucatume\WPBrowser\Module\WPLoader
         - lucatume\WPBrowser\Module\WPBrowser
         - Tests\Support\Helper\Functional
+        - Tests\Support\Helper\DbHelper
     config:
       lucatume\WPBrowser\Module\WPBrowser:
         url: '%WORDPRESS_URL%'

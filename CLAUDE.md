@@ -32,6 +32,25 @@ to do it.
 - `wp-config.php` is tracked but flagged `skip-worktree`, so local edits to it never show in
   `git status`. Keep the three-way database switch intact when editing it.
 
+## Test data: reset to the seed, then create what the test needs
+
+The seed holds no people and no camp data (one synthetic `seedadmin`, empty Camp Manager tables).
+Acceptance/functional tests never rely on anything else existing, and never on a fixed ID. Use
+`tests/_support/Helper/DbHelper.php` (enabled in the acceptance, functional and `db` suites):
+
+```php
+$I->resetSeedState();                              // only seedadmin, no mf_* rows, no form entries
+$this->adminId = $I->createTestAdmin()['id'];      // testadmin, complete profile, password123!test
+$categories    = $I->createDefaultBudgetCategories();
+$item          = $I->createBudgetItem(['category_id' => $categories['Power']['id']]);
+```
+
+- Same shape as the Mothership repo's `DbHelper`: `createXData($data)` merges defaults and returns
+  the row; `createX($data)` inserts it and returns it with its `id`. Defaults cover only what a row
+  cannot exist without, so a test states the values it asserts on.
+- Add a helper here when a second test needs the same fixture; do not copy insert blocks between Cests.
+- The helpers are tested by `tests/db/DbHelperCest.php` (`codecept run db`: MySQL only, no browser).
+
 ## Theme: header and footer menus live in the child theme source
 
 The active theme is `mycodelic-forest-child` (parent: Spectra One, a block theme). The header

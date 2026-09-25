@@ -10,62 +10,17 @@ class ProfileAdminCest
     protected $profileIncompleteId;
     public function _before(AcceptanceTester $I)
     {
-        // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
-        // duplicates make wp_signon() log in the oldest one, so start clean.
-        foreach (["testadmin", "testuser"] as $login) {
-            // dontHaveUserInDatabase($login) removes only the first match; remove every row.
-            foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
-                $I->dontHaveUserInDatabase((int) $staleId);
-            }
-        }
-        $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
-            "first_name" => "Test",
-            "last_name" => "Admin",
-            "user_pass" => "password123!test",
-            "meta_input" => [
-                "first_name" => "Test",
-                "last_name" => "Admin",
-                "user_phone" => "(123) 456-7890",
-                "address_1" => "123 Main St",
-                "city" => "Anytown",
-                "state" => "CA",
-                "zip" => "12345",
-                "country" => "United States",
-                "user_about_me" => "This is a test.",
-                "playa_name" => "TestBurner",
-                "has_attended_burning_man" => "No",
-                 // "years_attended" => '["2024"]',
-            ]
-        ]);
-        $this->userId = $I->haveUserInDatabase("testuser", "subscriber",[
-            "first_name" => "Test",
-            "last_name" => "User",
-            "user_pass" => "password123!test",
-            "meta_input" => [
-                "first_name" => "Test",
-                "last_name" => "User",
-                "user_phone" => "(123) 456-7890",
-                "address_1" => "123 Main St",
-                "city" => "Anytown",
-                "state" => "CA",
-                "zip" => "12345",
-                "country" => "United States",
-                "user_about_me" => "This is a test.",
-                "playa_name" => "TestBurner",
-                "has_attended_burning_man" => "No",
-                // "years_attended" => '["2024"]',
-            ]
-        ]);
-
-        $this->profileIncompleteId = $I->haveUserInDatabase("profile-incomplete", "subscriber",[
+        $I->resetSeedState();
+        $this->adminId = $I->createTestAdmin()['id'];
+        $this->userId = $I->createTestUser()['id'];
+        $this->profileIncompleteId = $I->createUser("profile-incomplete", "subscriber", [
             "first_name" => "Profile",
             "last_name" => "Incomplete",
-            "user_pass" => "password123!test",
             "meta_input" => [
                 "first_name" => "Profile",
                 "last_name" => "Incomplete",
-            ]
-        ]);
+            ],
+        ])['id'];
 
         
     }

@@ -10,6 +10,7 @@ modules:
         - lucatume\WPBrowser\Module\WPDb
         - lucatume\WPBrowser\Module\WPWebDriver
         - Tests\Support\Helper\Acceptance
+        - Tests\Support\Helper\DbHelper
         - Asserts
         - Mailpit
     config:

@@ -8,67 +8,24 @@ class CampManagerBudgetsCest
     protected $userId;
     protected $adminId;
     protected $season;
+    protected $powerId;
+    protected $sojournerId;
     public function _before(AcceptanceTester $I)
     {
-         // Earlier tests leave their own "testadmin"/"testuser" rows behind (WPDb cleanup is off);
-         // duplicates make wp_signon() log in the oldest one, so start clean.
-         foreach (["testadmin", "testuser"] as $login) {
-             // dontHaveUserInDatabase($login) removes only the first match; remove every row.
-             foreach ($I->grabColumnFromDatabase($I->grabPrefixedTableNameFor("users"), "ID", ["user_login" => $login]) as $staleId) {
-                 $I->dontHaveUserInDatabase((int) $staleId);
-             }
-         }
-         $this->adminId = $I->haveUserInDatabase("testadmin", "administrator",[
-            "first_name" => "Test",
-            "last_name" => "Admin",
-            "user_pass" => "password123!test",
-            "meta_input" => [
-                "first_name" => "Test",
-                "last_name" => "Admin",
-                "user_phone" => "(123) 456-7890",
-                "address_1" => "123 Main St",
-                "city" => "Anytown",
-                "state" => "CA",
-                "zip" => "12345",
-                "country" => "United States",
-                "user_about_me" => "This is a test.",
-                "playa_name" => "TestBurner",
-                "has_attended_burning_man" => "No",
-                 // "years_attended" => '["2024"]',
-            ]
-        ]);
-        $this->userId = $I->haveUserInDatabase("testuser", "subscriber",[
-            "first_name" => "Test",
-            "last_name" => "User",
-            "user_pass" => "password123!test",
-            "meta_input" => [
-                "first_name" => "Test",
-                "last_name" => "User",
-                "user_phone" => "(123) 456-7890",
-                "address_1" => "123 Main St",
-                "city" => "Anytown",
-                "state" => "CA",
-                "zip" => "12345",
-                "country" => "United States",
-                "user_about_me" => "This is a test.",
-                "playa_name" => "TestBurner",
-                "has_attended_burning_man" => "No",
-                // "years_attended" => '["2024"]',
-            ]
-        ]);
+        $I->resetSeedState();
+        $this->adminId = $I->createTestAdmin()['id'];
+        $this->userId = $I->createTestUser()['id'];
 
-        // Both getItemCategories() (the category select and the categories list page) and
-        // getBudgetItems() join/filter on `season = <viewed season>`. The CI fixture's raw-SQL
-        // seed of these two categories doesn't set one (see codeception-test.yml), so pin them
-        // to whatever season this environment will actually display - otherwise "Power"/
-        // "Sojourner" silently don't exist anywhere a page renders them.
+        // Camp Manager's pages filter on the season being viewed, so the categories are created
+        // in it; the ids are whatever the database hands out, never assumed.
         $this->season = $I->currentCampManagerSeason();
-        $I->updateInDatabase("wp_mf_budget_category", ["season" => $this->season], ["id" => 1]);
-        $I->updateInDatabase("wp_mf_budget_category", ["season" => $this->season], ["id" => 2]);
+        $categories = $I->createDefaultBudgetCategories();
+        $this->powerId = $categories["Power"]["id"];
+        $this->sojournerId = $categories["Sojourner"]["id"];
 
-        $I->haveInDatabase("wp_mf_budget_items", [
+        $I->createBudgetItem([
             "name" => "Test Budget Item",
-            "category_id" => 1,
+            "category_id" => $this->powerId,
             "price" => 100,
             "quantity" => 2,
             "subtotal" => 200,
@@ -169,7 +126,7 @@ class CampManagerBudgetsCest
         $I->seeInDatabase("wp_mf_budget_items", [
             "name" => "Test Budget Item",
             // "description" => "This is a test budget item description.",
-            "category_id" => 1,
+            "category_id" => $this->powerId,
             "price" => 100,
             "quantity" => 2,
             "subtotal" => 200,
@@ -192,9 +149,9 @@ class CampManagerBudgetsCest
     public function UpdateBudgetItem(AcceptanceTester $I)
     {
         // Add a test item to update
-        $id = $I->haveInDatabase("wp_mf_budget_items", [
+        $id = $I->createBudgetItem([
             "name" => "Test Budget Item",
-            "category_id" => 1,
+            "category_id" => $this->powerId,
             "price" => 100,
             "quantity" => 2,
             "subtotal" => 200,
@@ -203,7 +160,7 @@ class CampManagerBudgetsCest
             "receipt_id" => NULL,
             // "purchased" => 0,
             "priority" => 1,
-        ]);
+        ])['id'];
         codecept_debug("Test Budget Item ID: $id");
         $I->wait(2);
 
@@ -241,7 +198,7 @@ class CampManagerBudgetsCest
             "id" => $id,
             "name" => "Updated Budget Item",
             // "description" => "This is an updated budget item description.",
-            "category_id" => 2, // Assuming 'Sojourner' category has ID 2
+            "category_id" => $this->sojournerId,
             "price" => 150,
             "quantity" => 3,
             "subtotal" => 450,
@@ -254,16 +211,16 @@ class CampManagerBudgetsCest
 
     public function deleteBudgetItem(AcceptanceTester $I)
     {
-        $id = $I->haveInDatabase("wp_mf_budget_items", [
+        $id = $I->createBudgetItem([
             "name" => "Test Budget Item",
-            "category_id" => 1, // Assuming 'Power' category has ID 1
+            "category_id" => $this->powerId,
             "price" => 100,
             "quantity" => 2,
             "subtotal" => 200,
             "tax" => 20,
             "total" => 220,
             "priority" => 1,
-        ]);
+        ])['id'];
         // Navigate to the budget items page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budgets");
         $I->waitForText("Budget Items", 10, "h1");
@@ -337,11 +294,11 @@ class CampManagerBudgetsCest
     public function UpdateBudgetCategory(AcceptanceTester $I)
     {
         // Add a test category to update
-        $id = $I->haveInDatabase("wp_mf_budget_category", [
+        $id = $I->createBudgetCategory([
             "name" => "Test Category",
             "description" => "This is a test budget category description.",
             "season" => $this->season,
-        ]);
+        ])['id'];
 
         // Navigate to the edit budget category page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-budget-category&id=$id");
@@ -375,11 +332,11 @@ class CampManagerBudgetsCest
     public function DeleteBudgetCategory(AcceptanceTester $I)
     {
         // Add a test category to delete
-        $id = $I->haveInDatabase("wp_mf_budget_category", [
+        $id = $I->createBudgetCategory([
             "name" => "Test Category",
             "description" => "This is a test budget category description.",
             "season" => $this->season,
-        ]);
+        ])['id'];
 
         // Navigate to the budget categories page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-budget-categories");
