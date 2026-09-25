@@ -420,6 +420,8 @@ class CampManagerInventoryListTest extends \lucatume\WPBrowser\TestCase\WPTestCa
         // The plugin's hooks are registered when it is activated, inside whichever test did
         // that, and the test framework drops them again after it. Register the pages here.
         remove_all_actions('admin_menu');
+        remove_all_actions('admin_head');
+        remove_all_filters('submenu_file');
         if (!has_filter('user_has_cap', [CampManagerRoles::class, 'grantCaps'])) {
             add_filter('user_has_cap', [CampManagerRoles::class, 'grantCaps'], 10, 4);
         }
@@ -431,26 +433,37 @@ class CampManagerInventoryListTest extends \lucatume\WPBrowser\TestCase\WPTestCa
         $menu = $submenu = $_registered_pages = $_parent_pages = $admin_page_hooks = [];
         do_action('admin_menu', '');
 
-        $labels = array_column($submenu['camp-manager-inventory'], 0);
-        $this->assertSame(['All items', 'Totes', 'Tote inventory'], $labels);
-        $this->assertSame(['camp-manager-inventory', 'camp-manager-totes', 'camp-manager-view-tote-inventory'], array_column($submenu['camp-manager-inventory'], 2));
-
-        foreach (['camp-manager-add-inventory', 'camp-manager-add-tote', 'camp-manager-add-tote-inventory'] as $slug) {
-            $this->assertArrayHasKey(get_plugin_page_hookname($slug, ''), $_registered_pages, "$slug still renders");
-            $this->assertNotContains($slug, array_column($submenu['camp-manager-inventory'], 2), "$slug is not in the menu");
+        $slugs = static fn() => array_column($GLOBALS['submenu']['camp-manager-inventory'], 2);
+        $hidden = ['camp-manager-add-inventory', 'camp-manager-add-tote', 'camp-manager-add-tote-inventory'];
+        $this->assertSame(['camp-manager-inventory', 'camp-manager-totes', 'camp-manager-view-tote-inventory', ...$hidden], $slugs());
+        $this->assertSame(['All items', 'Totes', 'Tote inventory'], array_slice(array_column($submenu['camp-manager-inventory'], 0), 0, 3));
+        $this->assertSame('Edit tote', $submenu['camp-manager-inventory'][4][3], 'Edit pages keep a title');
+        foreach ($hidden as $slug) {
+            $this->assertArrayHasKey(get_plugin_page_hookname($slug, 'camp-manager-inventory'), $_registered_pages, "$slug renders");
         }
-        $this->assertSame('Edit tote', current(array_filter($submenu[''], static fn($s) => $s[2] === 'camp-manager-add-tote'))[3], 'Hidden pages keep a title');
+        // The menu and its first entry share the page hook: one callback, so the page runs once.
+        $this->assertSame(1, count($GLOBALS['wp_filter']['toplevel_page_camp-manager-inventory']->callbacks[10]), 'The items page renders once');
 
-        // On an edit page the Inventory menu and its matching tab stay highlighted.
+        // Opening an edit page: WordPress files it under Inventory, its tab is highlighted, and
+        // once the head is done it is no longer in the submenu that is about to be drawn.
         $GLOBALS['plugin_page'] = 'camp-manager-add-tote';
-        $this->assertSame('camp-manager-inventory', apply_filters('parent_file', ''));
+        $GLOBALS['pagenow'] = 'admin.php';
+        $GLOBALS['parent_file'] = null;
+        $this->assertSame('camp-manager-inventory', get_admin_page_parent());
         $this->assertSame('camp-manager-totes', apply_filters('submenu_file', '', 'camp-manager-inventory'));
         $GLOBALS['plugin_page'] = 'camp-manager-add-inventory';
         $this->assertSame('camp-manager-inventory', apply_filters('submenu_file', '', 'camp-manager-inventory'));
         $GLOBALS['plugin_page'] = 'camp-manager-members';
-        $this->assertSame('other', apply_filters('parent_file', 'other'));
         $this->assertSame('other', apply_filters('submenu_file', 'other', 'x'));
-        unset($GLOBALS['plugin_page']);
+
+        do_action('admin_head');
+        $this->assertSame(['camp-manager-inventory', 'camp-manager-totes', 'camp-manager-view-tote-inventory'], $slugs(), 'Only the tabs are listed');
+        // menu-header.php resolves the parent again before drawing: the page is no longer
+        // listed, so the parent resolved earlier stands and the Inventory menu stays open.
+        $GLOBALS['plugin_page'] = 'camp-manager-add-tote';
+        get_admin_page_parent();
+        $this->assertSame('camp-manager-inventory', $GLOBALS['parent_file']);
+        unset($GLOBALS['plugin_page'], $GLOBALS['parent_file']);
     }
 
     // -------------------------------------------------------------------------- the pages
