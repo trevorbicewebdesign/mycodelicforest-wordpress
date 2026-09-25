@@ -19,6 +19,14 @@ to do it.
 
 - Rebuild `seed` from `tests/_support/Data/db/dump.sql` with `bin/reset-seed-db.sh`. It mirrors
   the CI fixture step and refuses to run unless wp-cli resolves to `seed`.
+- **The seed dump is public and must stay clean.** It is committed to a public repository, so it
+  holds no personal data (users, emails, entries, logs, sessions), no credentials and nothing
+  environment-specific. Acceptance tests never rely on existing users: every Cest creates its own
+  in `_before`, so the dump keeps a single synthetic admin (`seedadmin`) and nothing else. To
+  change the dump, edit `bin/scrub-seed.sql` / `bin/build-seed.sh` and run `bin/build-seed.sh`
+  (it loads a source dump into `seed`, scrubs it, and exports); **never** commit a raw export
+  (`wp db export`, Akeeba, `make setup_db`). `bin/check-seed-clean.php` verifies the result and
+  runs first in CI, failing the build if a dump holds personal data or secrets.
 - `test` is recreated by the integration suite itself.
 - `make setup_db` imports into and exports from `local`, so it is a developer-only command.
 - `wp-config.php` is tracked but flagged `skip-worktree`, so local edits to it never show in
