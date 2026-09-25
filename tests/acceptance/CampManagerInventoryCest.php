@@ -160,12 +160,12 @@ class CampManagerInventoryCest
         // footer scripts, one from a CDN, can still be loading when the table is already there).
         $I->waitForJS("return !!(window.jQuery && jQuery._data(jQuery('#totes-overview .handlediv')[0], 'events'));", 10);
         $I->click("#totes-overview .handlediv");
-        $I->waitForElement("#totes-overview.closed", 10);
+        $I->waitForElement("div#totes-overview.closed", 10);
         // The closed state is saved for this user with an ajax call.
         $I->wait(1);
         $I->reloadPage();
         $I->waitForText("Inventory", 10, "h1");
-        $I->seeElement("#totes-overview.closed");
+        $I->seeElement("div#totes-overview.closed");
     }
 
     public function ToteInventoryTabListsWhatIsPacked(AcceptanceTester $I)
