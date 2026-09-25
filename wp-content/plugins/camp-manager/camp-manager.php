@@ -19,6 +19,8 @@ require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-ledger.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-budgets.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-pages.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-roster.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-postbox.php');
+require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-dashboard.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-shortcodes.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-inventory.php');
 require_once(CAMPMANAGER_CORE_ABS_PATH . 'classes/class-roles.php');

@@ -9,14 +9,7 @@ $money = static function (float $amount): string {
     return '$' . number_format($amount, 2);
 };
 
-// The overview box is a regular WordPress postbox, so core's postbox script handles the
-// collapse toggle and remembers (per user) whether it was left closed.
 $screen_id = 'camp-manager-roster';
-$overview_id = 'roster-overview';
-$closed_boxes = get_user_option('closedpostboxes_' . $screen_id);
-$overview_closed = is_array($closed_boxes) && in_array($overview_id, $closed_boxes, true);
-wp_enqueue_script('postbox');
-wp_add_inline_script('postbox', 'jQuery(function () { postboxes.add_postbox_toggles(' . wp_json_encode($screen_id) . '); });');
 
 $filters = $table->filters();
 $stats = [
@@ -28,22 +21,6 @@ $stats = [
 ];
 ?>
 <style>
-    .roster-overview { margin-top: 0; }
-    .roster-overview .postbox-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #c3c4c7; }
-    .roster-overview .hndle { flex: 1; margin: 0; padding: 12px 16px; font-size: 15px; line-height: 1.4; }
-    .roster-overview.closed .postbox-header { border-bottom: 0; }
-    /* Core draws the collapse arrow only inside .meta-box-sortables, which would also make the box draggable. */
-    .roster-overview .toggle-indicator::before { content: "\f142"; display: inline-block; font: normal 20px/1 dashicons; -webkit-font-smoothing: antialiased; }
-    .roster-overview.closed .toggle-indicator::before { content: "\f140"; }
-    .roster-overview .handlediv { width: 36px; height: 36px; }
-    .roster-overview .inside { margin: 0; padding: 0; }
-    .roster-overview__stats { display: flex; flex-wrap: wrap; }
-    .roster-overview__stat { flex: 1 1 160px; padding: 14px 16px 12px; border-left: 1px solid #dcdcde; }
-    .roster-overview__stat:first-child { border-left: 0; }
-    .roster-overview__label { display: block; color: #50575e; margin-bottom: 4px; }
-    .roster-overview__value { display: block; font-size: 24px; line-height: 1.2; font-weight: 600; color: #1d2327; }
-    .roster-overview__footer { margin: 0; padding: 10px 16px 14px; color: #50575e; }
-
     .roster-table .column-cb { width: 2.2em; }
     .roster-table .column-camp_dues { width: 110px; text-align: right; }
     .roster-table td.column-camp_dues { padding-right: 24px; }
@@ -73,33 +50,22 @@ $stats = [
     <hr class="wp-header-end">
     <?php CampManagerSeason::renderSwitcher(); ?>
 
-    <?php wp_nonce_field('closedpostboxes', 'closedpostboxesnonce', false); ?>
-    <div id="<?php echo esc_attr($overview_id); ?>" class="postbox roster-overview<?php echo $overview_closed ? ' closed' : ''; ?>">
-        <div class="postbox-header">
-            <h2 class="hndle is-non-sortable">Season overview</h2>
-            <div class="handle-actions hide-if-no-js">
-                <button type="button" class="handlediv" aria-expanded="<?php echo $overview_closed ? 'false' : 'true'; ?>">
-                    <span class="screen-reader-text">Toggle panel: Season overview</span>
-                    <span class="toggle-indicator" aria-hidden="true"></span>
-                </button>
-            </div>
+    <?php CampManagerPostbox::boot($screen_id); ?>
+    <?php CampManagerPostbox::open('roster-overview', 'Season overview', $screen_id, ['class' => 'roster-overview']); ?>
+        <div class="cm-stats">
+            <?php foreach ($stats as [$label, $value, $key]): ?>
+                <div class="cm-stat" data-stat="<?php echo esc_attr($key); ?>">
+                    <span class="cm-stat__label"><?php echo esc_html($label); ?></span>
+                    <span class="cm-stat__value"><?php echo esc_html($value); ?></span>
+                </div>
+            <?php endforeach; ?>
         </div>
-        <div class="inside">
-            <div class="roster-overview__stats">
-                <?php foreach ($stats as [$label, $value, $key]): ?>
-                    <div class="roster-overview__stat" data-stat="<?php echo esc_attr($key); ?>">
-                        <span class="roster-overview__label"><?php echo esc_html($label); ?></span>
-                        <span class="roster-overview__value"><?php echo esc_html($value); ?></span>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-            <p class="roster-overview__footer">
-                Low-income members: <?php echo (int) $overview['low_income']; ?>
-                &middot;
-                Low-income dues paid: <?php echo (int) $overview['low_income_dues_paid']; ?>
-            </p>
-        </div>
-    </div>
+        <p class="cm-stat-footer">
+            Low-income members: <?php echo (int) $overview['low_income']; ?>
+            &middot;
+            Low-income dues paid: <?php echo (int) $overview['low_income_dues_paid']; ?>
+        </p>
+    <?php CampManagerPostbox::close(); ?>
 
     <?php $table->views(); ?>
 
