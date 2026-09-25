@@ -41,7 +41,9 @@ class CampManagerPages
         add_action('admin_menu', function () {
             global $menu;
 
-            $separator_position = 5; // position in the menu array
+            // Core keeps Posts at 5, so a separator there replaces it. Use a string key (as core
+            // does for fractional positions) to land between Posts and the Camp Manager menus at 6.
+            $separator_position = '5.5'; // position in the menu array
 
             // Insert separator
             $menu[$separator_position] = [
