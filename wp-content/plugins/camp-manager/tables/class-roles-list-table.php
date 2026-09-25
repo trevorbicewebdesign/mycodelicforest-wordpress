@@ -40,12 +40,23 @@ class CampManagerRolesTable extends WP_List_Table
         switch ($column_name) {
             case 'name':
                 $url = admin_url('admin.php?page=camp-manager-add-role&id=' . urlencode($item['id']));
-                return sprintf('<a href="%s"><strong>%s</strong></a>', esc_url($url), esc_html($item['name']));
+                $html = str_repeat('<span aria-hidden="true">— </span>', (int) $item['depth'])
+                    . sprintf('<a href="%s"><strong>%s</strong></a>', esc_url($url), esc_html($item['name']));
+                if (!empty($item['is_circle'])) {
+                    $html .= ' <span class="description">(circle)</span>';
+                }
+                if (!empty($item['also_known_as'])) {
+                    $html .= '<br><small>also known as ' . esc_html(implode(', ', array_map(function ($name, $seasons) {
+                        return $name . ' (' . implode(', ', $seasons) . ')';
+                    }, array_keys($item['also_known_as']), $item['also_known_as']))) . '</small>';
+                }
+                return $html;
             case 'members':
                 $names = array_map(function ($member) {
                     return esc_html(trim($member['fname'] . ' ' . $member['lname']) . (!empty($member['playaname']) ? " ({$member['playaname']})" : ''));
                 }, $item['members']);
-                return $names ? implode('<br>', $names) : '<em>Unfilled</em>';
+                // A circle needs no holder of its own: its roles are held.
+                return $names ? implode('<br>', $names) : (!empty($item['is_circle']) ? '' : '<em>Unfilled</em>');
             case 'permissions':
                 return esc_html(implode(', ', array_map(function ($area) {
                     return CampManagerRoles::AREAS[$area];

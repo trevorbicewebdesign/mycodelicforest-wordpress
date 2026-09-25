@@ -48,23 +48,42 @@ class CampManagerShortcodes
         }
 
         $show_holders = !in_array(strtolower($atts['holders']), ['no', 'false', '0'], true);
-        $output = '<div class="camp-manager-roles">';
+        $children = [];
         foreach ($roles as $role) {
-            $output .= '<div class="camp-manager-role">';
-            $output .= '<h3 class="camp-manager-role-name">' . esc_html($role['name']) . '</h3>';
-            if ($show_holders) {
-                // Dropped holders are no longer doing the job.
-                $holders = array_filter($role['members'], function ($member) {
-                    return !in_array($member['status'], ['Dropped', 'No'], true);
-                });
-                $names = array_filter(array_map([CampManagerRoles::class, 'displayName'], $holders));
+            $children[(int) $role['parent_id']][] = $role;
+        }
+        // Roles arrive in tree order, so the top level (parent 0) plus the recursion shows them all.
+        $output = '<div class="camp-manager-roles">' . $this->renderRoles($children, 0, 0, $show_holders) . '</div>';
+
+        return $output;
+    }
+
+    /** One level of the role tree: a circle's roles sit in a block inside the circle. */
+    private function renderRoles(array $children, int $parent, int $depth, bool $show_holders): string
+    {
+        $output = '';
+        foreach ($children[$parent] ?? [] as $role) {
+            $inside = $children[(int) $role['id']] ?? [];
+            $output .= '<div class="camp-manager-role' . ($inside ? ' camp-manager-circle' : '') . '">';
+            $heading = 'h' . min(3 + $depth, 6);
+            $output .= '<' . $heading . ' class="camp-manager-role-name">' . esc_html($role['name']) . ($inside ? ' <small>(circle)</small>' : '') . '</' . $heading . '>';
+
+            // Dropped holders are no longer doing the job.
+            $holders = array_filter($role['members'], function ($member) {
+                return !in_array($member['status'], ['Dropped', 'No'], true);
+            });
+            $names = array_filter(array_map([CampManagerRoles::class, 'displayName'], $holders));
+            // A circle needs no holder of its own: the roles inside it are held.
+            if ($show_holders && ($names || !$inside)) {
                 $output .= '<p class="camp-manager-role-holders"><em>' . ($names ? esc_html(implode(', ', $names)) : 'Open — ask a camp lead if you\'re interested') . '</em></p>';
             }
             $output .= '<div class="camp-manager-role-description">' . wpautop(wp_kses_post($role['description'])) . '</div>';
+            if ($inside) {
+                $output .= '<div class="camp-manager-circle-roles" style="margin-left: 1rem; padding-left: 1rem; border-left: 2px solid rgba(128, 128, 128, 0.35);">'
+                    . $this->renderRoles($children, (int) $role['id'], $depth + 1, $show_holders) . '</div>';
+            }
             $output .= '</div>';
         }
-        $output .= '</div>';
-
         return $output;
     }
 

@@ -151,7 +151,7 @@ $can_assign_roles = current_user_can('manage_options');
                                 <select name="member_roles[]" id="member_roles" multiple style="min-width: 25em;">
                                     <?php foreach ($season_roles as $role): ?>
                                         <option value="<?php echo esc_attr($role['id']); ?>" <?php selected(in_array((int) $role['id'], $member_role_ids, true)); ?>>
-                                            <?php echo esc_html($role['name']); ?>
+                                            <?php echo esc_html($role['path']); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
@@ -167,7 +167,7 @@ $can_assign_roles = current_user_can('manage_options');
                                     return in_array((int) $role['id'], $member_role_ids, true);
                                 });
                                 ?>
-                                <?php echo $held ? esc_html(implode(', ', array_column($held, 'name'))) : '<em>None</em>'; ?>
+                                <?php echo $held ? esc_html(implode(', ', array_column($held, 'path'))) : '<em>None</em>'; ?>
                                 <p class="description">Only administrators can assign camp roles.</p>
                             <?php endif; ?>
                         </td>

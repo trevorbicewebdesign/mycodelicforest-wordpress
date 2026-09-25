@@ -148,6 +148,44 @@ class CampManagerRolesTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $this->assertSame([], $this->roles->ensureLeadRoleEverySeason(), 'running it again adds nothing');
     }
 
+    public function testNewerDefaultRolesAreAddedToASeasonOnce()
+    {
+        $required = ['Circle Lead', 'Leave No Trace Lead', 'Sustainability Lead', 'R.I.D.E. Lead'];
+        $this->roles->upsertRole(['name' => 'Treasurer', 'sort_order' => 20, 'season' => 2027]);
+        $this->roles->upsertRole(['name' => 'sustainability lead', 'sort_order' => 30, 'season' => 2027]); // any case
+
+        $added = $this->roles->addMissingDefaultRoles(2027, $required);
+
+        $this->assertSame(['Circle Lead', 'Leave No Trace Lead', 'R.I.D.E. Lead'], $added);
+        $this->assertSame(
+            ['Treasurer', 'sustainability lead', 'Circle Lead', 'Leave No Trace Lead', 'R.I.D.E. Lead'],
+            array_column($this->roles->getRoles(2027), 'name')
+        );
+        $this->assertSame([], $this->roles->addMissingDefaultRoles(2027, $required), 'running it again adds nothing');
+        $this->assertSame([], $this->roles->getRoles(2025), 'other seasons are left alone');
+    }
+
+    public function testNewerDefaultRolesGoBackToTheSeasonsFrom2022()
+    {
+        $this->rosterMember(0, 2021);
+        $this->rosterMember(0, 2022);
+        $this->rosterMember(0, 2025);
+        $this->roles->upsertRole(['name' => 'Camp Lead', 'sort_order' => 10, 'season' => 2022]);
+
+        $added = $this->roles->addMissingDefaultRolesSince(2022, ['Circle Lead', 'Sustainability Lead']);
+
+        $this->assertSame([2022, 2025, 2027], array_keys($added));
+        $this->assertSame(['Circle Lead', 'Sustainability Lead'], $added[2025]);
+        $this->assertSame(['Camp Lead', 'Circle Lead', 'Sustainability Lead'], array_column($this->roles->getRoles(2022), 'name'));
+        $this->assertSame([], $this->roles->getRoles(2021), 'seasons before 2022 are left alone');
+        $lineages = array_unique(array_column(array_filter(
+            array_merge($this->roles->getRoles(2022), $this->roles->getRoles(2025), $this->roles->getRoles(2027)),
+            function ($r) { return $r['name'] === 'Circle Lead'; }
+        ), 'lineage_id'));
+        $this->assertCount(1, $lineages, 'the same role in every season shares one lineage');
+        $this->assertSame([], $this->roles->addMissingDefaultRolesSince(2022, ['Circle Lead', 'Sustainability Lead']));
+    }
+
     public function testBurnYearPageListsThatSeasonsCampLeads()
     {
         $user = self::factory()->user->create(['role' => 'subscriber', 'user_nicename' => 'sparkle']);
@@ -447,6 +485,444 @@ class CampManagerRolesTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $profile->render(get_userdata($member));
         $html = ob_get_clean();
         $this->assertMatchesRegularExpression('/<option value="' . $lead19 . '"[^>]*selected[^>]*>\s*2019 Camp Lead\s*</', $html);
+    }
+
+
+    public function testARenamedRoleStaysTheSameRoleAcrossSeasons()
+    {
+        $goblin23 = $this->roles->upsertRole(['name' => 'Goblin', 'sort_order' => 30, 'season' => 2023]);
+        $goblin24 = $this->roles->upsertRole(['name' => 'GOBLIN', 'sort_order' => 30, 'season' => 2024]);
+        $treasurer25 = $this->roles->upsertRole(['name' => 'Treasurer', 'sort_order' => 20, 'season' => 2025]);
+        $lead25 = $this->roles->upsertRole(['name' => 'Camp Lead', 'sort_order' => 10, 'season' => 2025]);
+
+        // Same-named roles join on their own (case-insensitive); a new name starts its own history.
+        $this->assertSame($goblin23, $this->roles->lineageOf($goblin24));
+        $this->assertSame($treasurer25, $this->roles->lineageOf($treasurer25));
+        $this->assertSame([], $this->roles->getRole($goblin24)['also_known_as']);
+        $this->assertSame(
+            ['2024 GOBLIN', '2023 Goblin'],
+            array_column($this->roles->lineageOptions($treasurer25, 2025), 'label'),
+            'only roles outside this one\'s history, from other seasons'
+        );
+
+        // Declaring the Treasurer the same role as the Goblin merges the histories.
+        $this->roles->upsertRole(['name' => 'Treasurer', 'sort_order' => 20, 'same_as' => $goblin24], $treasurer25);
+
+        $this->assertSame($goblin23, $this->roles->lineageOf($treasurer25));
+        $this->assertSame(['GOBLIN' => [2024], 'Goblin' => [2023]], $this->roles->getRole($treasurer25)['also_known_as'], 'newest first');
+        $this->assertSame(['Treasurer' => [2025]], $this->roles->getRole($goblin23)['also_known_as']);
+        $this->assertSame([], array_column($this->roles->lineageOptions($treasurer25, 2025), 'label'), 'nothing left outside its history but same-season roles');
+        $this->assertSame('Treasurer', $this->roles->lineages()[$goblin23][0]['name'], 'the newest row names the role');
+
+        // Copying a season's roles keeps each copy the same role as its original.
+        $this->roles->copyRoles(2025, 2027);
+        $copies = $this->roles->getRoles(2027);
+        $this->assertSame(['Camp Lead', 'Treasurer'], array_column($copies, 'name'));
+        $this->assertSame($goblin23, $this->roles->lineageOf((int) $copies[1]['id']));
+        $this->assertSame($lead25, $this->roles->lineageOf((int) $copies[0]['id']));
+
+        // A member who was the 2023 Goblin and the 2025 Treasurer held one role, under its current name.
+        $user = self::factory()->user->create(['role' => 'subscriber']);
+        $this->roles->setRoleMembers($goblin23, [$this->rosterMember($user, 2023)]);
+        $this->roles->setRoleMembers($treasurer25, [$this->rosterMember($user, 2025)]);
+        $this->assertSame(['Treasurer' => [2025, 2023]], $this->roles->rolesByYearForUser($user));
+        $this->assertSame(['Treasurer' => ['Goblin' => [2023]]], $this->roles->formerNamesForUser($user));
+
+        $profile = new MycodelicForestProfile(new MycodelicForestMessages(), new MycodelicForestCiviCRM());
+        $this->go_to(home_url('/?author=' . $user));
+        $html = $profile->resolve_profile_binding(['key' => 'roles_list']);
+        $this->assertStringContainsString('Treasurer', $html);
+        $this->assertStringContainsString('as Goblin in 2023', $html);
+        $this->assertStringContainsString('href="' . home_url('/history/2023/') . '"', $html);
+
+        // Cutting the 2023 Goblin back out leaves the others together, rooted at their earliest row.
+        $this->roles->upsertRole(['name' => 'Goblin', 'sort_order' => 30, 'same_as' => 'new'], $goblin23);
+
+        $this->assertSame($goblin23, $this->roles->lineageOf($goblin23));
+        $this->assertSame($goblin24, $this->roles->lineageOf($goblin24));
+        $this->assertSame($goblin24, $this->roles->lineageOf($treasurer25));
+        $this->assertSame(['Treasurer' => [2025], 'Goblin' => [2023]], $this->roles->rolesByYearForUser($user));
+        $this->assertSame([], $this->roles->formerNamesForUser($user));
+
+        // Deleting a lineage's earliest row re-roots the rest.
+        $this->roles->deleteRoles([$goblin24]);
+        $this->assertSame($treasurer25, $this->roles->lineageOf($treasurer25));
+        $this->assertSame($treasurer25, $this->roles->lineageOf((int) $copies[1]['id']));
+    }
+
+    public function testCampLeadsAreFoundThroughTheRolesHistory()
+    {
+        $lead24 = $this->roles->upsertRole(['name' => 'Camp Lead', 'season' => 2024]);
+        $poobah25 = $this->roles->upsertRole(['name' => 'Grand Poobah', 'season' => 2025, 'same_as' => $lead24]);
+        $user = self::factory()->user->create(['role' => 'subscriber']);
+        $this->roles->setRoleMembers($poobah25, [$this->rosterMember($user, 2025, 'Confirmed', 'Sparkle')]);
+
+        $this->assertSame(['Sparkle'], array_column($this->roles->leadsForSeason(2025), 'playaname'));
+        $this->assertSame(['Grand Poobah' => [2025]], $this->roles->rolesByYearForUser($user));
+    }
+
+    public function testBackfillJoinsSameNamedRolesIntoOneHistory()
+    {
+        global $wpdb;
+        $table = "{$wpdb->prefix}mf_roles";
+        $wpdb->insert($table, ['name' => 'Treasurer', 'season' => 2024]);
+        $a = (int) $wpdb->insert_id;
+        $wpdb->insert($table, ['name' => 'treasurer', 'season' => 2025]);
+        $b = (int) $wpdb->insert_id;
+        $wpdb->insert($table, ['name' => 'Goblin', 'season' => 2023]);
+        $c = (int) $wpdb->insert_id;
+
+        $this->roles->backfillLineages();
+
+        $this->assertSame($a, $this->roles->lineageOf($a));
+        $this->assertSame($a, $this->roles->lineageOf($b));
+        $this->assertSame($c, $this->roles->lineageOf($c));
+    }
+
+    // ********************************* //
+    // Circles: roles inside roles
+
+    private function circle(string $name, int $season = 2027, int $parent = 0, int $order = 0): int
+    {
+        return $this->roles->upsertRole(['name' => $name, 'season' => $season, 'parent_id' => $parent, 'sort_order' => $order]);
+    }
+
+    public function testRolesAreListedAsATreeWithTheirCircleFirst()
+    {
+        $anchor = $this->circle('Anchor Circle', 2027, 0, 1);
+        $lead = $this->circle('Camp Lead', 2027, $anchor, 10);
+        $placement = $this->circle('Placement', 2027, $anchor, 50);
+        $qm = $this->circle('Quartermaster', 2027, $placement, 10);
+        $this->circle('Loose Role', 2027, 0, 5);
+
+        $roles = $this->roles->getRoles(2027);
+
+        $this->assertSame(['Anchor Circle', 'Camp Lead', 'Placement', 'Quartermaster', 'Loose Role'], array_column($roles, 'name'));
+        $this->assertSame([0, 1, 1, 2, 0], array_column($roles, 'depth'));
+        $this->assertSame('Anchor Circle › Placement › Quartermaster', $roles[3]['path']);
+        $this->assertSame([true, false, true, false, false], array_column($roles, 'is_circle'));
+        $this->assertSame([null, $anchor, $anchor, $placement, null], array_column($roles, 'parent_id'));
+    }
+
+    public function testARoleCanOnlySitInACircleFromItsOwnSeasonAndNeverInsideItself()
+    {
+        $a = $this->circle('A');
+        $b = $this->circle('B', 2027, $a);
+        $c = $this->circle('C', 2027, $b);
+        $other = $this->circle('Other', 2025);
+
+        foreach ([[$a, $a], [$a, $c], [$b, $c]] as [$role, $parent]) {
+            try {
+                $this->roles->upsertRole(['name' => 'A', 'parent_id' => $parent], $role);
+                $this->fail('a loop was accepted');
+            } catch (\Exception $e) {
+                $this->assertStringContainsString('inside', $e->getMessage());
+            }
+        }
+        try {
+            $this->roles->upsertRole(['name' => 'C', 'parent_id' => $other], $c);
+            $this->fail('a circle from another season was accepted');
+        } catch (\Exception $e) {
+            $this->assertStringContainsString('own season', $e->getMessage());
+        }
+
+        $this->roles->upsertRole(['name' => 'C', 'parent_id' => $a], $c); // moving up is fine
+        $this->assertSame($a, $this->roles->getRole($c)['parent_id']);
+        $this->roles->upsertRole(['name' => 'C', 'description' => 'no parent given'], $c); // key left out: unchanged
+        $this->assertSame($a, $this->roles->getRole($c)['parent_id']);
+        $this->roles->upsertRole(['name' => 'C', 'parent_id' => 0], $c);
+        $this->assertNull($this->roles->getRole($c)['parent_id']);
+        $this->assertSame([$a, $b, $c], array_column($this->roles->parentOptions(2027, null), 'id'));
+        $this->assertSame([$c], array_column($this->roles->parentOptions(2027, $a), 'id'), 'not itself or what is inside it');
+    }
+
+    public function testEveryCircleHasItsOwnCircleLeadWithItsOwnHistory()
+    {
+        $placement25 = $this->circle('Placement', 2025);
+        $lead25 = $this->circle('Circle Lead', 2025, $placement25);
+        $comms25 = $this->circle('Communications', 2025);
+        $comms_lead25 = $this->circle('Circle Lead', 2025, $comms25);
+        $placement27 = $this->circle('Placement', 2027);
+        $lead27 = $this->circle('Circle Lead', 2027, $placement27);
+        $comms27 = $this->circle('Communications', 2027);
+        $comms_lead27 = $this->circle('Circle Lead', 2027, $comms27);
+
+        $this->assertSame($this->roles->lineageOf($lead25), $this->roles->lineageOf($lead27));
+        $this->assertSame($this->roles->lineageOf($comms_lead25), $this->roles->lineageOf($comms_lead27));
+        $this->assertNotSame($this->roles->lineageOf($lead27), $this->roles->lineageOf($comms_lead27));
+
+        $titles = array_column($this->roles->getRoles(2027), 'title', 'id');
+        $this->assertSame('Circle Lead (Placement)', $titles[$lead27]);
+        $this->assertSame('Circle Lead (Communications)', $titles[$comms_lead27]);
+        $this->assertSame('Placement', $titles[$placement27], 'a name that is unique stays as it is');
+    }
+
+    public function testARoleThatMovedIntoACircleKeepsItsHistory()
+    {
+        $old = $this->circle('Quartermaster', 2025);
+        $placement = $this->circle('Placement', 2027);
+        $new = $this->circle('Quartermaster', 2027, $placement);
+
+        $this->assertSame($this->roles->lineageOf($old), $this->roles->lineageOf($new));
+    }
+
+    public function testHoldersOfSeveralCircleLeadsAreKeptApartOnTheirProfile()
+    {
+        $wpid = self::factory()->user->create();
+        $placement = $this->circle('Placement');
+        $comms = $this->circle('Communications');
+        $lead = $this->circle('Circle Lead', 2027, $placement);
+        $this->circle('Circle Lead', 2027, $comms);
+        $camp_lead = $this->circle('Camp Lead');
+        $member = $this->rosterMember($wpid, 2027);
+        $this->roles->setRoleMembers($lead, [$member]);
+        $this->roles->setRoleMembers($camp_lead, [$member]);
+
+        $this->assertSame(['Camp Lead' => [2027], 'Circle Lead (Placement)' => [2027]], $this->roles->rolesByYearForUser($wpid));
+        $this->assertSame([$member => ['Circle Lead (Placement)', 'Camp Lead']], array_map(
+            function ($names) { rsort($names); return $names; },
+            $this->roles->getRoleNamesByMember([$member])
+        ));
+    }
+
+    public function testCopyingRolesKeepsTheCircles()
+    {
+        $anchor = $this->circle('Anchor', 2025);
+        $placement = $this->circle('Placement', 2025, $anchor);
+        $this->circle('Circle Lead', 2025, $placement);
+        $this->circle('Circle Lead', 2025, $anchor);
+
+        $this->roles->copyRoles(2025, 2027);
+
+        $roles = $this->roles->getRoles(2027);
+        $this->assertSame(['Anchor', 'Circle Lead', 'Placement', 'Circle Lead'], array_column($roles, 'name'));
+        $this->assertSame([0, 1, 1, 2], array_column($roles, 'depth'));
+        $this->assertSame('Anchor › Placement › Circle Lead', $roles[3]['path']);
+        $this->assertSame(0, count(array_intersect(array_column($roles, 'id'), array_column($this->roles->getRoles(2025), 'id'))), 'copies, not the originals');
+    }
+
+    public function testDeletingACircleLeavesItsRolesAtTheTopLevel()
+    {
+        $circle = $this->circle('Placement');
+        $qm = $this->circle('Quartermaster', 2027, $circle);
+
+        $this->roles->deleteRoles([$circle]);
+
+        $this->assertNull($this->roles->getRole($qm)['parent_id']);
+        $this->assertSame(['Quartermaster'], array_column($this->roles->getRoles(2027), 'name'));
+    }
+
+    public function testARoleWhoseCircleIsMissingIsStillListed()
+    {
+        global $wpdb;
+        $lost = $this->circle('Lost');
+        $wpdb->update("{$wpdb->prefix}mf_roles", ['parent_id' => 999999], ['id' => $lost]);
+        $a = $this->circle('A');
+        $b = $this->circle('B', 2027, $a);
+        $wpdb->update("{$wpdb->prefix}mf_roles", ['parent_id' => $b], ['id' => $a]); // a loop
+
+        $names = array_column($this->roles->getRoles(2027), 'name');
+        sort($names);
+
+        $this->assertSame(['A', 'B', 'Lost'], $names);
+    }
+
+    public function testShortcodeNestsRolesInsideTheirCircle()
+    {
+        $anchor = $this->circle('Anchor Circle');
+        $placement = $this->circle('Placement', 2027, $anchor);
+        $qm = $this->circle('Quartermaster', 2027, $placement);
+        $this->roles->setRoleMembers($qm, [$this->rosterMember(0, 2027, 'Confirmed', 'Sparkle')]);
+
+        $html = do_shortcode('[camp_manager_roles]');
+
+        $this->assertMatchesRegularExpression('#Anchor Circle.*camp-manager-circle-roles.*Placement.*camp-manager-circle-roles.*Quartermaster.*Sparkle#s', $html);
+        $this->assertSame(2, substr_count($html, 'camp-manager-circle-roles'), 'only circles hold a block of roles');
+        $this->assertSame(2, substr_count($html, '(circle)'));
+        $this->assertStringNotContainsString('Open', $html, 'a circle is not shown as an unfilled role');
+    }
+
+    public function testTheDefaultStructureIsAppliedToASeasonOnce()
+    {
+        $lead = $this->circle('Camp Lead', 2027, 0, 10);
+        $qm = $this->circle('Quartermaster', 2027, 0, 20);
+        $treasurer = $this->circle('Treasurer', 2027, 0, 30);
+        $kept = $this->circle('Welcome Wagon', 2027, $treasurer, 40); // already placed by hand: left alone
+        $old_circle_lead = $this->circle('Circle Lead', 2025);
+        $circle_lead = $this->circle('Circle Lead', 2027, 0, 50);
+        $member = $this->rosterMember(0, 2027);
+        $this->roles->setRoleMembers($qm, [$member]);
+
+        $created = $this->roles->applyDefaultStructure(2027);
+
+        $roles = array_column($this->roles->getRoles(2027), null, 'id');
+        $by_path = array_column($roles, 'id', 'path');
+        $anchor = (int) $by_path['Mycodelic Forest Anchor Circle'];
+        $this->assertSame($anchor, $roles[$lead]['parent_id']);
+        $this->assertSame($anchor, $roles[$circle_lead]['parent_id'], 'the existing Circle Lead is the anchor circle\'s');
+        $this->assertSame(5, (int) $roles[$circle_lead]['sort_order'], 'and comes first in it');
+        $this->assertSame($treasurer, $roles[$kept]['parent_id']);
+        $placement = (int) $by_path['Mycodelic Forest Anchor Circle › Placement'];
+        $this->assertSame($placement, $roles[$qm]['parent_id']);
+        $this->assertSame([$member], array_map('intval', array_column($roles[$qm]['members'], 'id')), 'holders are not touched');
+        $this->assertNotContains('Camp Lead', $created);
+        $this->assertNotContains('Quartermaster', $created);
+        $this->assertContains('Webmaster', $created);
+
+        foreach (['Communications', 'Placement', 'Sojourner'] as $circle) {
+            $this->assertArrayHasKey("Mycodelic Forest Anchor Circle › $circle › Circle Lead", $by_path);
+        }
+        $this->assertSame(['Circle Lead', 'Webmaster'], array_values(array_filter(array_column(
+            array_filter($roles, function ($r) use ($by_path) { return $r['parent_id'] === (int) $by_path['Mycodelic Forest Anchor Circle › Communications']; }),
+            'name'
+        ), function ($n) { return in_array($n, ['Circle Lead', 'Webmaster'], true); })));
+
+        $lineages = [];
+        foreach (array_filter($roles, function ($r) { return $r['name'] === 'Circle Lead'; }) as $r) {
+            $lineages[] = $this->roles->lineageOf($r['id']);
+        }
+        $this->assertCount(4, array_unique($lineages), 'each circle has its own Circle Lead');
+        $this->assertContains($this->roles->lineageOf($old_circle_lead), $lineages, 'the anchor circle\'s Circle Lead continues the old one');
+
+        $this->assertSame([], $this->roles->applyDefaultStructure(2027), 'running it again adds nothing');
+        $this->assertCount(count($roles), $this->roles->getRoles(2027));
+    }
+
+    // ********************************* //
+    // Import / export
+
+    private function structure(int $season): array
+    {
+        return array_map(function ($r) {
+            $permissions = $r['permissions'];
+            sort($permissions);
+            return [$r['path'], $r['description'], $permissions, (int) $r['sort_order']];
+        }, $this->roles->getRoles($season));
+    }
+
+    private function clearRoles()
+    {
+        global $wpdb;
+        foreach (['mf_role_members', 'mf_roles'] as $table) {
+            $wpdb->query("DELETE FROM {$wpdb->prefix}$table");
+        }
+        CampManagerRoles::flushCache();
+    }
+
+    public function testRolesSurviveAnExportAndImportWithTheirCirclesAndHistory()
+    {
+        $goblin = $this->roles->upsertRole(['name' => 'Goblin', 'description' => 'Money', 'permissions' => ['finances'], 'season' => 2023]);
+        $anchor = $this->circle('Anchor', 2025, 0, 1);
+        $treasurer = $this->roles->upsertRole(['name' => 'Treasurer', 'description' => 'Manages <strong>money</strong>', 'permissions' => ['finances', 'budgets'], 'sort_order' => 30, 'season' => 2025, 'parent_id' => $anchor, 'same_as' => $goblin]);
+        $placement = $this->circle('Placement', 2025, $anchor, 50);
+        $lead = $this->circle('Circle Lead', 2025, $placement, 5);
+        $comms = $this->circle('Communications', 2025, $anchor, 60);
+        $comms_lead = $this->circle('Circle Lead', 2025, $comms, 5);
+        $member = $this->rosterMember(0, 2025);
+        $this->roles->setRoleMembers($treasurer, [$member]);
+        $before = [$this->structure(2023), $this->structure(2025)];
+
+        $json = wp_json_encode($this->roles->exportRoles());
+        $this->assertStringNotContainsString('Camper', $json, 'holders are not exported');
+        $this->clearRoles();
+        $result = $this->roles->importRolesFromJson($json);
+
+        $this->assertSame(7, $result['created']);
+        $this->assertSame([$before[0], $before[1]], [$this->structure(2023), $this->structure(2025)]);
+        $imported = array_column($this->roles->getRoles(2025), null, 'path');
+        $this->assertSame($this->roles->lineageOf((int) $this->roles->getRoles(2023)[0]['id']), $this->roles->lineageOf((int) $imported['Anchor › Treasurer']['id']), 'the rename is still one role');
+        $this->assertNotSame(
+            $this->roles->lineageOf((int) $imported['Anchor › Placement › Circle Lead']['id']),
+            $this->roles->lineageOf((int) $imported['Anchor › Communications › Circle Lead']['id'])
+        );
+        $this->assertSame([], $imported['Anchor › Treasurer']['members'], 'holders come from the site\'s own roster');
+    }
+
+    public function testImportingAgainChangesNothingAndTheFileUpdatesWhatIsThere()
+    {
+        $anchor = $this->circle('Anchor', 2027);
+        $qm = $this->roles->upsertRole(['name' => 'Quartermaster', 'description' => 'Old', 'season' => 2027, 'parent_id' => $anchor]);
+        $keep = $this->circle('Not In The File', 2027);
+        $member = $this->rosterMember(0, 2027);
+        $this->roles->setRoleMembers($qm, [$member]);
+        $file = $this->roles->exportRoles(2027);
+
+        $again = $this->roles->importRoles($file);
+        $this->assertSame([0, 0, 3], [$again['created'], $again['updated'], $again['unchanged']]);
+
+        foreach ($file['seasons'][2027] as &$role) {
+            if ($role['name'] === 'Quartermaster') {
+                $role['description'] = 'Lays out camp';
+                $role['permissions'] = ['inventory', 'bogus'];
+            }
+        }
+        unset($role);
+        $file['seasons'][2027][] = ['id' => 99, 'parent' => null, 'lineage' => 99, 'name' => 'Brand New', 'description' => '', 'permissions' => [], 'sort_order' => 0];
+        $result = $this->roles->importRoles($file);
+
+        $this->assertSame([1, 1, 2], [$result['created'], $result['updated'], $result['unchanged']]);
+        $roles = array_column($this->roles->getRoles(2027), null, 'name');
+        $this->assertSame('Lays out camp', $roles['Quartermaster']['description']);
+        $this->assertSame(['inventory'], $roles['Quartermaster']['permissions'], 'unknown access is dropped');
+        $this->assertSame((int) $qm, (int) $roles['Quartermaster']['id'], 'updated in place');
+        $this->assertSame([$member], array_map('intval', array_column($roles['Quartermaster']['members'], 'id')), 'holders are untouched');
+        $this->assertArrayHasKey('Not In The File', $roles, 'nothing is deleted');
+    }
+
+    public function testAPreviewChangesNothing()
+    {
+        $this->circle('Anchor', 2027);
+        $file = $this->roles->exportRoles(2027);
+        $file['seasons'][2027][] = ['id' => 5, 'parent' => $file['seasons'][2027][0]['id'], 'lineage' => 5, 'name' => 'Webmaster', 'description' => '', 'permissions' => [], 'sort_order' => 0];
+
+        $preview = $this->roles->importRoles($file, true);
+
+        $this->assertTrue($preview['dry_run']);
+        $this->assertSame([1, 0, 1], [$preview['created'], $preview['updated'], $preview['unchanged']]);
+        $this->assertSame(['Anchor'], array_column($this->roles->getRoles(2027), 'name'));
+    }
+
+    public function testAnImportedSeasonOnlyNeedsToMatchByNameAndCircle()
+    {
+        // The same names in different circles are different roles, and a role in the file
+        // whose circle is missing here is placed in the circle the file describes.
+        $comms = $this->circle('Communications', 2027);
+        $this->circle('Circle Lead', 2027, $comms);
+        $file = ['format' => 'camp-manager-roles', 'version' => 1, 'seasons' => ['2027' => [
+            ['id' => 1, 'parent' => null, 'name' => 'Communications'],
+            ['id' => 2, 'parent' => 1, 'name' => 'Circle Lead'],
+            ['id' => 3, 'parent' => null, 'name' => 'Placement'],
+            ['id' => 4, 'parent' => 3, 'name' => 'Circle Lead'],
+        ]]];
+
+        $result = $this->roles->importRoles($file);
+
+        $this->assertSame([2, 0], [$result['created'], $result['updated']]);
+        $this->assertSame(['Communications', 'Communications › Circle Lead', 'Placement', 'Placement › Circle Lead'], array_column($this->roles->getRoles(2027), 'path'));
+    }
+
+    public function testABadRolesFileIsRefusedBeforeAnythingIsChanged()
+    {
+        $good = ['id' => 1, 'parent' => null, 'name' => 'Fine'];
+        $bad = [
+            'not json'                 => 'nope',
+            'wrong format'             => ['format' => 'something-else', 'version' => 1, 'seasons' => []],
+            'wrong version'            => ['format' => 'camp-manager-roles', 'version' => 2, 'seasons' => []],
+            'no name'                  => ['format' => 'camp-manager-roles', 'version' => 1, 'seasons' => ['2027' => [$good, ['id' => 2, 'name' => ' ']]]],
+            'duplicate id'             => ['format' => 'camp-manager-roles', 'version' => 1, 'seasons' => ['2027' => [$good, ['id' => 1, 'name' => 'Twin']]]],
+            'circle that is not there' => ['format' => 'camp-manager-roles', 'version' => 1, 'seasons' => ['2027' => [$good, ['id' => 2, 'parent' => 9, 'name' => 'Orphan']]]],
+            'circles in each other'    => ['format' => 'camp-manager-roles', 'version' => 1, 'seasons' => ['2027' => [['id' => 1, 'parent' => 2, 'name' => 'A'], ['id' => 2, 'parent' => 1, 'name' => 'B']]]],
+            'not a year'               => ['format' => 'camp-manager-roles', 'version' => 1, 'seasons' => ['soon' => [$good]]],
+        ];
+        foreach ($bad as $why => $data) {
+            try {
+                is_array($data) ? $this->roles->importRoles($data) : $this->roles->importRolesFromJson($data);
+                $this->fail("accepted a file with $why");
+            } catch (\InvalidArgumentException $e) {
+                $this->assertNotSame('', $e->getMessage(), $why);
+            }
+        }
+        $this->assertSame([], $this->roles->getRoles(2027), 'a refused file adds nothing, even the roles before the bad one');
     }
 
 }
