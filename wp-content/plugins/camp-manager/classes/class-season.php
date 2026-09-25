@@ -237,8 +237,11 @@ class CampManagerSeason
         exit;
     }
 
-    /** Season picker plus an "archived season" notice, for the top of admin pages. */
-    public static function renderSwitcher(bool $allowAll = false)
+    /**
+     * Season picker plus an "archived season" notice, for the top of admin pages. $trailing is
+     * trusted HTML (a button, say) shown at the right end of the season row.
+     */
+    public static function renderSwitcher(bool $allowAll = false, string $trailing = '')
     {
         $all = $allowAll && self::viewingAll();
         $selected = self::selected();
@@ -262,6 +265,9 @@ class CampManagerSeason
             <?php if (!$all): ?>
                 <span aria-hidden="true" style="color: #a7aaad;">|</span>
                 <span class="camp-manager-season-status" style="color: #50575e;"><?php echo $selected === $current ? 'Current' : 'Archived'; ?></span>
+            <?php endif; ?>
+            <?php if ($trailing !== ''): ?>
+                <span class="camp-manager-season-trailing" style="margin-left: auto;"><?php echo $trailing; ?></span>
             <?php endif; ?>
         </form>
         <?php if ($all): ?>

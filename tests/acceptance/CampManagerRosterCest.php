@@ -83,30 +83,30 @@ class CampManagerRosterCest
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members");
         $I->waitForText("Season overview", 10, "#roster-overview");
 
-        $stat = fn(string $key) => $I->grabTextFrom("#roster-overview [data-stat='$key'] .roster-overview__value");
+        $stat = fn(string $key) => $I->grabTextFrom("#roster-overview [data-stat='$key'] .cm-stat__value");
         $I->assertSame("4", $stat("total"));
         $I->assertSame("3", $stat("confirmed"));
         $I->assertSame("1", $stat("unpaid"));
         $I->assertSame('$600.00', $stat("collected"));
         // Three standard (incl. the dropped member) at $350 plus one low income at $250.
         $I->assertSame('$1,300.00', $stat("expected"));
-        $I->see("Low-income members: 1", "#roster-overview .roster-overview__footer");
-        $I->see("Low-income dues paid: 1", "#roster-overview .roster-overview__footer");
+        $I->see("Low-income members: 1", "#roster-overview .cm-stat-footer");
+        $I->see("Low-income dues paid: 1", "#roster-overview .cm-stat-footer");
     }
 
     public function SeasonOverviewCollapses(AcceptanceTester $I)
     {
         $this->seedSeasonMembers($I);
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members");
-        $I->waitForElementVisible("#roster-overview .roster-overview__stats", 10);
+        $I->waitForElementVisible("#roster-overview .cm-stats", 10);
 
         $I->click("#roster-overview .handlediv");
         $I->waitForElement("div#roster-overview.closed", 5);
-        $I->dontSeeElement("#roster-overview .roster-overview__stats");
+        $I->dontSeeElement("#roster-overview .cm-stats");
 
         $I->click("#roster-overview .handlediv");
         $I->waitForElement("div#roster-overview:not(.closed)", 5);
-        $I->seeElement("#roster-overview .roster-overview__stats");
+        $I->seeElement("#roster-overview .cm-stats");
     }
 
     public function StatusViewsFilterTheRoster(AcceptanceTester $I)
