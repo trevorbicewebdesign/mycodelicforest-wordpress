@@ -37,21 +37,170 @@ class CampManagerRosterCest
         $I->seeElement("a.page-title-action[href$='/wp-admin/admin.php?page=camp-manager-add-member']");
 
         // Assert that each table header is present
-        $I->see("ID", "th#id");
-        $I->see("First Name", "th#fname");
-        $I->see("Last Name", "th#lname");
-        $I->see("Playa Name", "th#playaname");
-        $I->see("Camp Dues", "th#camp_dues");
-        $I->see("Low Income", "th#low_income");
-        $I->see("Fully Paid", "th#fully_paid");
-        $I->see("WordPress ID", "th#wpid");
-        
+        $I->see("Member", "th#member");
+        $I->see("Playa name", "th#playaname");
+        $I->see("Camp dues", "th#camp_dues");
+        $I->see("Dues category", "th#dues_category");
+        $I->see("Payment", "th#payment");
+        $I->see("Status", "th#status");
+        $I->see("Camp roles", "th#roles");
+        // The old split name / flag / id columns are gone.
+        foreach (["id", "fname", "lname", "low_income", "fully_paid", "wpid"] as $removed) {
+            $I->dontSeeElement("th#$removed");
+        }
+
         // Optional: Check for the select-all checkbox label
         $I->see("Select All", "label[for='cb-select-all-1']");
 
         $I->seeNumberOfElements("table.wp-list-table tbody tr", 2);
-        $I->see("Alice", "table.wp-list-table tbody");
-        $I->see("Bob", "table.wp-list-table tbody");
+        $I->see("Alice Anders", "table.wp-list-table tbody .column-member");
+        $I->see("Ally", "table.wp-list-table tbody");
+        $I->see("Bob Baker", "table.wp-list-table tbody .column-member");
+        // Both were created fully paid and confirmed.
+        $I->see("Paid", "table.wp-list-table tbody .roster-payment--paid");
+        $I->see("Confirmed", "table.wp-list-table tbody .column-status");
+        $I->see("Standard", "table.wp-list-table tbody .column-dues_category");
+    }
+
+    /** Four members: three confirmed (one low income, both of those paid) and one dropped. */
+    private function seedSeasonMembers(AcceptanceTester $I): array
+    {
+        $season = $I->currentCampManagerSeason();
+        $paid = $I->createRosterMember(["season" => $season, "fname" => "Pam", "lname" => "Paid", "playaname" => "Payer", "fully_paid" => 1, "low_income" => 0, "status" => "Confirmed"])['id'];
+        $low = $I->createRosterMember(["season" => $season, "fname" => "Lou", "lname" => "Lowincome", "playaname" => "", "fully_paid" => 1, "low_income" => 1, "status" => "Confirmed"])['id'];
+        $unpaid = $I->createRosterMember(["season" => $season, "fname" => "Una", "lname" => "Unpaid", "playaname" => "Owes", "fully_paid" => 0, "low_income" => 0, "status" => "Confirmed"])['id'];
+        $dropped = $I->createRosterMember(["season" => $season, "fname" => "Dan", "lname" => "Dropped", "playaname" => "Gone", "fully_paid" => 0, "low_income" => 0, "status" => "Dropped"])['id'];
+
+        $ledger = $I->createLedgerEntry(["season" => $season])['id'];
+        $I->createLedgerLineItem(["ledger_id" => $ledger, "cmid" => $paid, "amount" => 350.00, "type" => "Camp Dues"]);
+        $I->createLedgerLineItem(["ledger_id" => $ledger, "cmid" => $low, "amount" => 250.00, "type" => "Camp Dues"]);
+        return compact('paid', 'low', 'unpaid', 'dropped');
+    }
+
+    public function SeasonOverviewSummarisesTheSeason(AcceptanceTester $I)
+    {
+        $this->seedSeasonMembers($I);
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members");
+        $I->waitForText("Season overview", 10, "#roster-overview");
+
+        $stat = fn(string $key) => $I->grabTextFrom("#roster-overview [data-stat='$key'] .roster-overview__value");
+        $I->assertSame("4", $stat("total"));
+        $I->assertSame("3", $stat("confirmed"));
+        $I->assertSame("1", $stat("unpaid"));
+        $I->assertSame('$600.00', $stat("collected"));
+        // Three standard (incl. the dropped member) at $350 plus one low income at $250.
+        $I->assertSame('$1,300.00', $stat("expected"));
+        $I->see("Low-income members: 1", "#roster-overview .roster-overview__footer");
+        $I->see("Low-income dues paid: 1", "#roster-overview .roster-overview__footer");
+    }
+
+    public function SeasonOverviewCollapses(AcceptanceTester $I)
+    {
+        $this->seedSeasonMembers($I);
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members");
+        $I->waitForElementVisible("#roster-overview .roster-overview__stats", 10);
+
+        $I->click("#roster-overview .handlediv");
+        $I->waitForElement("#roster-overview.closed", 5);
+        $I->dontSeeElement("#roster-overview .roster-overview__stats");
+
+        $I->click("#roster-overview .handlediv");
+        $I->waitForElementNotVisible("#roster-overview.closed", 5);
+        $I->seeElement("#roster-overview .roster-overview__stats");
+    }
+
+    public function StatusViewsFilterTheRoster(AcceptanceTester $I)
+    {
+        $this->seedSeasonMembers($I);
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members");
+
+        $I->see("All (4)", ".subsubsub");
+        $I->see("Confirmed (3)", ".subsubsub");
+        $I->see("Dropped (1)", ".subsubsub");
+        $I->seeNumberOfElements("table.wp-list-table tbody tr.roster-row", 4);
+        // Dropped members are listed last and muted.
+        $I->seeElement("table.wp-list-table tbody tr.roster-row:last-child.is-dropped");
+
+        $I->click("Dropped", ".subsubsub");
+        $I->waitForText("Dan Dropped", 10, "table.wp-list-table");
+        $I->seeNumberOfElements("table.wp-list-table tbody tr.roster-row", 1);
+        $I->seeElement(".subsubsub a.current[href*='member_status=dropped']");
+
+        $I->click("Confirmed", ".subsubsub");
+        $I->waitForText("Pam Paid", 10, "table.wp-list-table");
+        $I->seeNumberOfElements("table.wp-list-table tbody tr.roster-row", 3);
+        $I->dontSee("Dan Dropped", "table.wp-list-table");
+    }
+
+    public function FilterByPaymentAndDuesCategory(AcceptanceTester $I)
+    {
+        $this->seedSeasonMembers($I);
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members");
+
+        $I->selectOption("#roster-filter-payment_status", "Unpaid");
+        $I->click("#roster-filter-submit");
+        $I->waitForText("Una Unpaid", 10, "table.wp-list-table");
+        $I->seeInCurrentUrl("payment_status=unpaid");
+        $I->seeNumberOfElements("table.wp-list-table tbody tr.roster-row", 2); // Una and the dropped Dan
+        $I->see("Unpaid", "table.wp-list-table tbody .roster-payment--unpaid");
+        $I->dontSee("Pam Paid", "table.wp-list-table");
+
+        $I->selectOption("#roster-filter-payment_status", "Payment status");
+        $I->selectOption("#roster-filter-dues_category", "Low income");
+        $I->click("#roster-filter-submit");
+        $I->waitForText("Lou Lowincome", 10, "table.wp-list-table");
+        $I->seeInCurrentUrl("dues_category=low_income");
+        $I->seeNumberOfElements("table.wp-list-table tbody tr.roster-row", 1);
+        $I->see("Low income", "table.wp-list-table tbody .column-dues_category");
+    }
+
+    public function SearchMembers(AcceptanceTester $I)
+    {
+        $this->seedSeasonMembers($I);
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members");
+
+        $I->fillField("#roster-search-search-input", "Owes");
+        $I->click("#search-submit");
+        $I->waitForText("Una Unpaid", 10, "table.wp-list-table");
+        $I->seeNumberOfElements("table.wp-list-table tbody tr.roster-row", 1);
+
+        $I->fillField("#roster-search-search-input", "zzz-nobody");
+        $I->click("#search-submit");
+        $I->waitForText("No members found.", 10, "table.wp-list-table");
+    }
+
+    public function SortByCampDues(AcceptanceTester $I)
+    {
+        $this->seedSeasonMembers($I);
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members&orderby=camp_dues&order=desc");
+
+        // Pam paid $350, Lou $250, Una nothing; the dropped member stays last.
+        $I->see("Pam Paid", "table.wp-list-table tbody tr.roster-row:nth-child(1) .column-member");
+        $I->see("Lou Lowincome", "table.wp-list-table tbody tr.roster-row:nth-child(2) .column-member");
+        $I->see("Dan Dropped", "table.wp-list-table tbody tr.roster-row:nth-child(4) .column-member");
+        $I->seeElement("th#camp_dues.sorted.desc");
+    }
+
+    public function ArchivedSeasonShowsNoticeAndLinksBackToCurrent(AcceptanceTester $I)
+    {
+        $I->haveOptionInDatabase("camp_manager_season", 2027);
+        $I->createRosterMember(["season" => 2027, "fname" => "Cur", "lname" => "Rent", "status" => "Confirmed"]);
+        $I->createRosterMember(["season" => 2025, "fname" => "Arc", "lname" => "Hived", "status" => "Confirmed"]);
+
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members");
+        $I->see("Current", ".camp-manager-season-status");
+        $I->dontSeeElement(".camp-manager-archived-notice");
+
+        $I->amOnPage("/wp-admin/admin.php?page=camp-manager-members&camp_manager_switch_season=2025");
+        $I->waitForText("Arc Hived", 10, "table.wp-list-table");
+        $I->dontSee("Cur Rent", "table.wp-list-table");
+        $I->see("Archived", ".camp-manager-season-status");
+        $I->see("You are viewing the archived 2025 season. New entries will be saved to 2025. The current season is 2027.", ".camp-manager-archived-notice");
+
+        $I->click("View current season.", ".camp-manager-archived-notice");
+        $I->waitForText("Cur Rent", 10, "table.wp-list-table");
+        $I->dontSee("Arc Hived", "table.wp-list-table");
+        $I->dontSeeElement(".camp-manager-archived-notice");
     }
 
     public function AddMember(AcceptanceTester $I)

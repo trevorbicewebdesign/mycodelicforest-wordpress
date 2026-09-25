@@ -105,6 +105,40 @@ class CampManagerRoster
         return $wpdb->get_var($query);
     }
 
+    /** Member counts for the roster's status views (All / Confirmed / Dropped) in the viewed season. */
+    public function countByStatus(): array
+    {
+        global $wpdb;
+        $table_name = "{$wpdb->prefix}mf_roster";
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT COUNT(*) AS total,
+                    COALESCE(SUM(status = 'Confirmed'), 0) AS confirmed,
+                    COALESCE(SUM(status = 'Dropped'), 0) AS dropped
+             FROM $table_name WHERE season = %d",
+            $this->season()
+        ), ARRAY_A);
+
+        return [
+            'all'       => (int) ($row['total'] ?? 0),
+            'confirmed' => (int) ($row['confirmed'] ?? 0),
+            'dropped'   => (int) ($row['dropped'] ?? 0),
+        ];
+    }
+
+    /** The figures in the roster's "Season overview" box, for the viewed season. */
+    public function seasonOverview(CampManagerLedger $ledger): array
+    {
+        return [
+            'total'                 => (int) $this->countRosterMembers(),
+            'confirmed'             => (int) $this->countConfirmedRosterMembers(),
+            'unpaid'                => (int) $this->countUnpaidMembers(),
+            'dues_collected'        => (float) $ledger->totalCampDues(),
+            'dues_expected'         => (float) $this->expectedCampDuesRevenue(),
+            'low_income'            => (int) $this->countLowIncomeMembers(),
+            'low_income_dues_paid'  => (int) $this->countPaidLowIncomeCampDues(),
+        ];
+    }
+
     public function getRosterMembers(): array
     {
         // Get all members from mf_roster
