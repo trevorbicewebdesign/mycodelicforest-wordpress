@@ -52,8 +52,11 @@ $stats = [
     .roster-table .column-status { width: 110px; }
     .roster-table .roster-row td,
     .roster-table .roster-row th.check-column { vertical-align: middle; }
-    /* Row actions only take up room while the row is hovered or focused. */
-    .roster-table tr:not(:hover):not(:focus-within) .row-actions { position: absolute; }
+    /* Row actions (Edit / View) keep their line whether shown or not, so hovering never changes a row's height. */
+    .roster-table .row-actions { position: relative; }
+    .roster-table tr:not(:hover):not(:focus-within) .row-actions { left: -9999em; }
+    .roster-table tr:hover .row-actions,
+    .roster-table tr:focus-within .row-actions { left: 0; }
     .roster-table .is-dropped td { color: #787c82; }
     .roster-table .is-dropped .row-title { color: #787c82; }
     .roster-table .roster-empty { color: #787c82; }
