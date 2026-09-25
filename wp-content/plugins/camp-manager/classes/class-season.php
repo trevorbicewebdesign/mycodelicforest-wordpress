@@ -245,7 +245,7 @@ class CampManagerSeason
         $current = self::current();
         $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : '';
         ?>
-        <form method="get" style="margin: 8px 0 12px;">
+        <form method="get" class="camp-manager-season-switcher" style="display: flex; align-items: center; gap: 8px; margin: 8px 0 12px;">
             <input type="hidden" name="page" value="<?php echo esc_attr($page); ?>">
             <label for="camp-manager-season"><strong>Season:</strong></label>
             <select name="<?php echo esc_attr(self::SWITCH_PARAM); ?>" id="camp-manager-season" onchange="this.form.submit()">
@@ -254,18 +254,24 @@ class CampManagerSeason
                 <?php endif; ?>
                 <?php foreach (self::available() as $season): ?>
                     <option value="<?php echo esc_attr($season); ?>" <?php selected(!$all && $season === $selected); ?>>
-                        <?php echo esc_html($season . ($season === $current ? ' (current)' : '')); ?>
+                        <?php echo esc_html($season); ?>
                     </option>
                 <?php endforeach; ?>
             </select>
             <noscript><button class="button">Switch</button></noscript>
+            <?php if (!$all): ?>
+                <span aria-hidden="true" style="color: #a7aaad;">|</span>
+                <span class="camp-manager-season-status" style="color: #50575e;"><?php echo $selected === $current ? 'Current' : 'Archived'; ?></span>
+            <?php endif; ?>
         </form>
         <?php if ($all): ?>
             <div class="notice notice-info inline"><p>Showing <strong>all seasons</strong>. New entries are saved to the season you were last viewing (<?php echo (int) $selected; ?>).</p></div>
         <?php elseif ($selected !== $current): ?>
-            <div class="notice notice-warning inline"><p>
-                You are viewing the archived <strong><?php echo (int) $selected; ?></strong> season. New entries are saved to it.
+            <div class="notice notice-warning inline camp-manager-archived-notice"><p>
+                You are viewing the archived <strong><?php echo (int) $selected; ?></strong> season.
+                New entries will be saved to <strong><?php echo (int) $selected; ?></strong>.
                 The current season is <strong><?php echo (int) $current; ?></strong>.
+                <a href="<?php echo esc_url(add_query_arg(self::SWITCH_PARAM, $current, remove_query_arg([self::SWITCH_PARAM, self::VIEW_ALL_PARAM]))); ?>">View current season.</a>
             </p></div>
         <?php endif;
     }

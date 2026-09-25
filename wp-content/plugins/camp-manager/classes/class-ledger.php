@@ -293,4 +293,28 @@ class CampManagerLedger
         global $wpdb;
         return $wpdb->get_var($wpdb->prepare("SELECT SUM(amount) FROM {$wpdb->prefix}mf_ledger_line_items WHERE cmid = %d AND (type = 'Camp Dues' OR type = 'Partial Camp Dues')", $cmid)) ?: 0;
     }
+
+    /** Camp dues paid per roster member, as [roster id => amount]; members with no dues are left out. */
+    public function sumCampDuesByMember(array $cmids): array
+    {
+        $cmids = array_values(array_unique(array_filter(array_map('intval', $cmids))));
+        if (!$cmids) {
+            return [];
+        }
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($cmids), '%d'));
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT cmid, SUM(amount) AS total
+             FROM {$wpdb->prefix}mf_ledger_line_items
+             WHERE cmid IN ($placeholders) AND type IN ('Camp Dues', 'Partial Camp Dues')
+             GROUP BY cmid",
+            ...$cmids
+        ), ARRAY_A) ?: [];
+
+        $totals = [];
+        foreach ($rows as $row) {
+            $totals[(int) $row['cmid']] = (float) $row['total'];
+        }
+        return $totals;
+    }
 }
