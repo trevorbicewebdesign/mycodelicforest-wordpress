@@ -216,12 +216,16 @@ class CampManagerRoles
         global $wpdb;
         $table = "{$wpdb->prefix}mf_roles";
         if ($from && $from < $to && !$this->countRoles($to)) {
-            $wpdb->query($wpdb->prepare(
-                "INSERT INTO $table (name, description, permissions, sort_order, season, lineage_id)
-                 SELECT name, description, permissions, sort_order, %d, COALESCE(lineage_id, id) FROM $table WHERE season = %d",
-                $to,
+            $roles = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, name, description, permissions, sort_order, COALESCE(lineage_id, id) AS lineage FROM $table WHERE season = %d",
                 $from
-            ));
+            ), ARRAY_A) ?: [];
+            foreach ($roles as $role) {
+                $wpdb->insert($table, [
+                    'name' => $role['name'], 'description' => $role['description'], 'permissions' => $role['permissions'],
+                    'sort_order' => (int) $role['sort_order'], 'season' => $to, 'lineage_id' => (int) $role['lineage'],
+                ]);
+            }
             $this->copyCircles($from, $to);
             self::$lineages = null;
         }
@@ -637,13 +641,28 @@ class CampManagerRoles
             return 0;
         }
         $candidates = $wpdb->get_results($wpdb->prepare(
-            "SELECT r.id, r.season, COALESCE(r.lineage_id, r.id) AS lineage, COALESCE(p.lineage_id, p.id) AS parent_lineage
-             FROM $table r LEFT JOIN $table p ON p.id = r.parent_id
-             WHERE LOWER(r.name) = %s AND r.season <> %d
-             ORDER BY r.season DESC, r.id DESC",
+            "SELECT id, season, parent_id, COALESCE(lineage_id, id) AS lineage
+             FROM $table
+             WHERE LOWER(name) = %s AND season <> %d
+             ORDER BY season DESC, id DESC",
             strtolower($me['name']),
             $me['season']
         ), ARRAY_A) ?: [];
+        // Each candidate's circle's lineage, from a second query (not a self-join: the
+        // integration tests' temporary tables can't be named twice in one query).
+        $parents = [];
+        $parent_ids = array_values(array_filter(array_unique(array_column($candidates, 'parent_id'))));
+        if ($parent_ids) {
+            $placeholders = implode(',', array_fill(0, count($parent_ids), '%d'));
+            $parents = array_column($wpdb->get_results($wpdb->prepare(
+                "SELECT id, COALESCE(lineage_id, id) AS lineage FROM $table WHERE id IN ($placeholders)",
+                ...array_map('intval', $parent_ids)
+            ), ARRAY_A) ?: [], 'lineage', 'id');
+        }
+        foreach ($candidates as &$candidate) {
+            $candidate['parent_lineage'] = $candidate['parent_id'] ? ($parents[$candidate['parent_id']] ?? null) : null;
+        }
+        unset($candidate);
 
         $parent_lineage = $me['parent_id'] ? $this->lineageOf((int) $me['parent_id']) : null;
         foreach ($candidates as $candidate) {
@@ -710,12 +729,16 @@ class CampManagerRoles
     {
         global $wpdb;
         $table = "{$wpdb->prefix}mf_roles";
-        $wpdb->query(
-            "UPDATE $table r
-             JOIN (SELECT LOWER(name) AS n, MIN(id) AS first FROM $table GROUP BY LOWER(name)) f ON LOWER(r.name) = f.n
-             SET r.lineage_id = f.first
-             WHERE r.lineage_id IS NULL"
-        );
+        // Done in PHP, not one UPDATE joined to a grouped copy of the table: the integration
+        // tests' temporary tables can't be named twice in one query.
+        $rows = $wpdb->get_results("SELECT id, name FROM $table ORDER BY id", ARRAY_A) ?: [];
+        $first = [];
+        foreach ($rows as $row) {
+            $first[strtolower($row['name'])] = $first[strtolower($row['name'])] ?? (int) $row['id'];
+        }
+        foreach ($first as $name => $id) {
+            $wpdb->query($wpdb->prepare("UPDATE $table SET lineage_id = %d WHERE LOWER(name) = %s AND lineage_id IS NULL", $id, $name));
+        }
         self::$lineages = null;
     }
 
@@ -753,17 +776,25 @@ class CampManagerRoles
         }
         global $wpdb;
         // The lineage of any role named Camp Lead, so a season that called it something else still counts.
+        $lineages = array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT COALESCE(lineage_id, id) FROM {$wpdb->prefix}mf_roles WHERE LOWER(name) = %s",
+            strtolower(self::LEAD_ROLE)
+        )));
+        if (!$lineages) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($lineages), '%d'));
         return $wpdb->get_results($wpdb->prepare(
             "SELECT ro.*
              FROM {$wpdb->prefix}mf_roles r
              JOIN {$wpdb->prefix}mf_role_members m ON m.role_id = r.id
              JOIN {$wpdb->prefix}mf_roster ro ON ro.id = m.roster_id
              WHERE r.season = %d
-               AND COALESCE(r.lineage_id, r.id) IN (SELECT COALESCE(l.lineage_id, l.id) FROM {$wpdb->prefix}mf_roles l WHERE LOWER(l.name) = %s)
+               AND COALESCE(r.lineage_id, r.id) IN ($placeholders)
                AND (ro.status IS NULL OR ro.status NOT IN ('Dropped', 'No'))
              ORDER BY ro.playaname, ro.fname",
             $season,
-            strtolower(self::LEAD_ROLE)
+            ...$lineages
         ), ARRAY_A) ?: [];
     }
 
@@ -1114,13 +1145,21 @@ class CampManagerRoles
         // The roles inside a deleted circle stay, at the top level.
         $wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}mf_roles SET parent_id = NULL WHERE parent_id IN ($placeholders)", ...$role_ids));
         // Rows whose lineage was rooted at a deleted role are re-rooted at their earliest survivor.
-        $wpdb->query(
-            "UPDATE {$wpdb->prefix}mf_roles r
-             JOIN (SELECT lineage_id, MIN(id) AS first FROM {$wpdb->prefix}mf_roles GROUP BY lineage_id) f ON f.lineage_id = r.lineage_id
-             LEFT JOIN {$wpdb->prefix}mf_roles root ON root.id = r.lineage_id
-             SET r.lineage_id = f.first
-             WHERE root.id IS NULL"
-        );
+        $rows = $wpdb->get_results("SELECT id, lineage_id FROM {$wpdb->prefix}mf_roles ORDER BY id", ARRAY_A) ?: [];
+        $alive = array_flip(array_column($rows, 'id'));
+        $orphaned = [];
+        foreach ($rows as $row) {
+            if ($row['lineage_id'] !== null && !isset($alive[$row['lineage_id']])) {
+                $orphaned[(int) $row['lineage_id']][] = (int) $row['id'];
+            }
+        }
+        foreach ($orphaned as $ids) {
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$wpdb->prefix}mf_roles SET lineage_id = %d WHERE id IN (" . implode(',', array_fill(0, count($ids), '%d')) . ')',
+                $ids[0],
+                ...$ids
+            ));
+        }
         self::flushCache();
     }
 
