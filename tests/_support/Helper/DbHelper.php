@@ -255,6 +255,39 @@ class DbHelper extends Module
         return $this->insert('mf_roster', $this->createRosterMemberData($data));
     }
 
+    // ------------------------------------------------------------------------- inventory
+
+    public function createInventoryItemData(array $data = []): array
+    {
+        return $data + [
+            'uuid' => 0, 'name' => 'Test Item', 'manufacturer' => '', 'model' => '', 'description' => '',
+            'quantity' => 1, 'photo' => '', 'location' => '', 'weight' => 0, 'category' => '',
+            'category_name' => '', 'links' => '', 'amp' => 0, 'set_name' => '',
+        ];
+    }
+
+    public function createInventoryItem(array $data = []): array
+    {
+        return $this->insert('mf_inventory', $this->createInventoryItemData($data));
+    }
+
+    public function createToteData(array $data = []): array
+    {
+        return $data + ['name' => 'Test Tote', 'weight' => 0, 'uid' => null, 'status' => 'PACKED', 'location' => '', 'size' => 'Full'];
+    }
+
+    /** Tote names and UIDs are unique, so a test creating several gives each its own. */
+    public function createTote(array $data = []): array
+    {
+        return $this->insert('mf_totes', $this->createToteData($data));
+    }
+
+    /** Packs $quantity of an item into a tote (a mf_tote_inventory row). */
+    public function createToteInventory(int $toteId, int $inventoryId, int $quantity = 1): array
+    {
+        return $this->insert('mf_tote_inventory', ['tote_id' => $toteId, 'inventory_id' => $inventoryId, 'quantity' => $quantity]);
+    }
+
     // ---------------------------------------------------------------------------- internals
 
     /** Complete profile for $first/$last, overridable by $data (its meta_input merges in). */

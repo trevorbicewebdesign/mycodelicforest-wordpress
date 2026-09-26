@@ -12,16 +12,27 @@ if($tote_id) {
 $is_edit = $tote !== null;
 $tote_id = $is_edit ? intval($tote->id) : 0;
 ?>
-<div class="wrap">
+<?php CampManagerInventory::pageStyles(); ?>
+<style>
+    .cm-tote-edit { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+    .cm-tote-edit > div { flex: 1 1 420px; min-width: 0; }
+    .cm-tote-edit .form-table { margin-top: 0; }
+    .cm-tote-edit h2 { margin: 0 0 8px; }
+    .cm-tote-edit .cm-tote-items-actions { margin: 0 0 12px; }
+    .cm-tote-edit .cm-tote-items-actions .page-title-action { margin-left: 0; }
+    .cm-tote-edit .column-inventory_name { width: 46%; }
+</style>
+<div class="wrap cm-inventory-page">
     <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Tote' : 'Add New Tote'; ?></h1>
-    <hr/>
+    <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-totes')); ?>" class="page-title-action">All totes</a>
+    <hr class="wp-header-end">
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="tote-form">
         <input type="hidden" name="action" value="camp_manager_save_tote" id="action-field">
         <?php if ($is_edit): ?>
             <input type="hidden" name="tote_id" value="<?php echo esc_attr($tote_id); ?>">
         <?php endif; ?>
-        <div style="display: flex; gap: 20px;">
-            <div style="width: 50%;">
+        <div class="cm-tote-edit">
+            <div>
                 <table class="form-table">
                     <tr>
                         <th><label for="tote_name">Name</label></th>
@@ -71,23 +82,23 @@ $tote_id = $is_edit ? intval($tote->id) : 0;
             </div>
             <input type="hidden" name="return_url" value="<?php echo esc_url( base64_encode( admin_url('admin.php?page=camp-manager-tote-inventory') ) ); ?>">
             </form>
-            <div style="width: 50%;">
-                <h2>Tote Inventory Items</h2>
+            <div>
+                <h2>Packed in this tote</h2>
                 <?php
-                $table = new CampManagerToteInventoryTable($tote_id !== null ? $tote_id : false);
+                // A tote that is not saved yet has nothing packed and nowhere to add items to.
+                $table = new CampManagerToteInventoryTable($is_edit ? $tote_id : false, $this->inventory);
                 $table->process_bulk_action();
                 $table->prepare_items();
+                $back_here = base64_encode(admin_url('admin.php?page=camp-manager-add-tote&id=' . $tote_id));
                 ?>
-                <style>
-                    .wp-list-table .column-inventory_name { width: 40%; }
-                    .wp-list-table .column-quantity       { width: 15%; text-align: right; }
-                    .wp-list-table .column-location       { width: 15%; }
-                    .wp-list-table .column-actions        { width: 15%; }
-                </style>
-
-                <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-tote-inventory&tote_id=' . $tote_id)); ?>&return=<?php echo esc_attr(base64_encode(admin_url('admin.php?page=camp-manager-add-tote&id=' . $tote_id))); ?>" class="page-title-action">Add Tote Item</a>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-inventory')); ?>&return=<?php echo esc_attr(base64_encode(admin_url('admin.php?page=camp-manager-add-tote&id=' . $tote_id))); ?>" class="page-title-action">Add Inventory Item</a>
-                <hr class="wp-header-end">
+                <?php if ($is_edit): ?>
+                    <p class="cm-tote-items-actions">
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-tote-inventory&tote_id=' . $tote_id . '&return=' . $back_here)); ?>" class="page-title-action">Add item to tote</a>
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-add-inventory&return=' . $back_here)); ?>" class="page-title-action">New inventory item</a>
+                    </p>
+                <?php else: ?>
+                    <p class="description">Save the tote first, then add items to it.</p>
+                <?php endif; ?>
                 <form method="post">
                     <?php
                     $table->display();

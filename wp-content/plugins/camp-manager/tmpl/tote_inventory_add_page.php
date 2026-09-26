@@ -22,8 +22,9 @@ $tote_inventory_id = $is_edit ? intval($inventory->id) : 0;
                     ?>
                     <select name="inventory_id" id="inventory_id" required>
                         <?php
+                        $wanted_item = $is_edit ? (int) $inventory->inventory_id : (isset($_GET['inventory_id']) ? (int) $_GET['inventory_id'] : 0);
                         foreach ($inventory_items as $item) {
-                            $selected = ($is_edit && $item->id == $inventory->inventory_id) ? 'selected' : '';
+                            $selected = ((int) $item->id === $wanted_item) ? 'selected' : '';
                             echo '<option value="' . esc_attr($item->id) . '" ' . $selected . '>' . esc_html($item->name) . '</option>';
                         }
                         ?>

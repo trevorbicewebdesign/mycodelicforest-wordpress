@@ -11,6 +11,16 @@ class CampManagerPages
     private $inventory;
     private $roles;
 
+    /**
+     * Inventory pages reached from a list rather than the menu: slug => [title, template, the
+     * submenu entry to highlight while on it].
+     */
+    const INVENTORY_HIDDEN_PAGES = [
+        'camp-manager-add-inventory'      => ['Edit inventory item', 'inventory_add_page.php', 'camp-manager-inventory'],
+        'camp-manager-add-tote'           => ['Edit tote', 'totes_add_page.php', 'camp-manager-totes'],
+        'camp-manager-add-tote-inventory' => ['Edit tote inventory', 'tote_inventory_add_page.php', 'camp-manager-view-tote-inventory'],
+    ];
+
     public function __construct(CampManagerReceipts $receipts, CampManagerBudgets $budgets, CampManagerRoster $roster, CampManagerLedger $ledger, CampManagerCore $core, CampManagerInventory $inventory, ?CampManagerRoles $roles = null)
     {
         $this->roles = $roles ?: new CampManagerRoles();
@@ -284,73 +294,45 @@ class CampManagerPages
         });
 
         add_action('admin_menu', function () {
-            // Top-level menu
-            add_menu_page(
-                'View Inventory', 
-                'Inventory',
-                CampManagerRoles::cap('inventory'),
-                'camp-manager-inventory',
-                function() {
-                    include(plugin_dir_path(__FILE__) . '../tmpl/inventory_view_all_page.php');
-                },
-                'dashicons-admin-site',
-                6
-            );
-            add_submenu_page(
-                'camp-manager-inventory',
-                'Add Inventory',
-                'Add Inventory',
-                CampManagerRoles::cap('inventory'),
-                'camp-manager-add-inventory',
-                function() {
-                    include plugin_dir_path(__FILE__) . '../tmpl/inventory_add_page.php';
-                }   
-            );
+            // Inventory: the three list pages are the submenu (the page's tabs mirror it). The
+            // add/edit pages are registered under it too, so WordPress resolves their parent,
+            // title and capability as usual, and are taken out of the submenu just before it is
+            // drawn (below), so they open by URL but are not listed.
+            $cap = CampManagerRoles::cap('inventory');
+            $render = function (string $template) {
+                return function () use ($template) {
+                    include plugin_dir_path(__FILE__) . '../tmpl/' . $template;
+                };
+            };
 
-            add_submenu_page(
-                'camp-manager-inventory',
-                'View Totes',
-                'View Totes',
-                CampManagerRoles::cap('inventory'),
-                'camp-manager-totes',
-                function() {
-                    include plugin_dir_path(__FILE__) . '../tmpl/totes_view_all_page.php';
-                }
-            );
+            // The menu and its first entry share a slug, so they share one page hook: pass the
+            // same callback to both, or WordPress runs the page twice (two closures, two tables).
+            $items = $render('inventory_view_all_page.php');
+            add_menu_page('Inventory', 'Inventory', $cap, 'camp-manager-inventory', $items, 'dashicons-admin-site', 6);
+            add_submenu_page('camp-manager-inventory', 'Inventory', 'All items', $cap, 'camp-manager-inventory', $items);
+            add_submenu_page('camp-manager-inventory', 'Totes', 'Totes', $cap, 'camp-manager-totes', $render('totes_view_all_page.php'));
+            add_submenu_page('camp-manager-inventory', 'Tote inventory', 'Tote inventory', $cap, 'camp-manager-view-tote-inventory', $render('tote_inventory_view_all_page.php'));
 
-            add_submenu_page(
-                'camp-manager-inventory',
-                'Add a Tote',
-                'Add a Tote',
-                CampManagerRoles::cap('inventory'),
-                'camp-manager-add-tote',
-                function() {
-                    include plugin_dir_path(__FILE__) . '../tmpl/totes_add_page.php';
-                }
-            );
+            foreach (self::INVENTORY_HIDDEN_PAGES as $slug => [$title, $template]) {
+                add_submenu_page('camp-manager-inventory', $title, $title, $cap, $slug, $render($template));
+            }
+        });
 
-            add_submenu_page(
-                'camp-manager-inventory',
-                'Add Tote Inventory',
-                'Add Tote Inventory',
-                CampManagerRoles::cap('inventory'),
-                'camp-manager-add-tote-inventory',
-                function() {
-                    include plugin_dir_path(__FILE__) . '../tmpl/tote_inventory_add_page.php';
-                }
-            );
+        // admin_head runs after the page's access check and title are resolved and before the
+        // menu is drawn, so the edit pages are left out of the Inventory submenu without
+        // WordPress losing track of what they belong to.
+        add_action('admin_head', function () {
+            foreach (array_keys(self::INVENTORY_HIDDEN_PAGES) as $slug) {
+                remove_submenu_page('camp-manager-inventory', $slug);
+            }
+        });
 
-            add_submenu_page(
-                'camp-manager-inventory',
-                'View Tote Inventory',
-                'View Tote Inventory',
-                CampManagerRoles::cap('inventory'),
-                'camp-manager-view-tote-inventory',
-                function() {
-                    include plugin_dir_path(__FILE__) . '../tmpl/tote_inventory_view_all_page.php';
-                }
-            );
-
+        // On an edit page, highlight the tab it belongs to.
+        add_filter('submenu_file', function ($submenu_file) {
+            global $plugin_page;
+            return isset($plugin_page) && isset(self::INVENTORY_HIDDEN_PAGES[$plugin_page])
+                ? self::INVENTORY_HIDDEN_PAGES[$plugin_page][2]
+                : $submenu_file;
         });
 
          add_action('admin_enqueue_scripts', function($hook) {
