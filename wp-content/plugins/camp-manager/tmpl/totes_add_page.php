@@ -22,7 +22,7 @@ $tote_id = $is_edit ? intval($tote->id) : 0;
     .cm-tote-edit .cm-tote-items-actions .page-title-action { margin-left: 0; }
     .cm-tote-edit .column-inventory_name { width: 46%; }
 </style>
-<div class="wrap cm-inventory-page">
+<div class="wrap cm-list-page">
     <h1 class="wp-heading-inline"><?php echo $is_edit ? 'Edit Tote' : 'Add New Tote'; ?></h1>
     <a href="<?php echo esc_url(admin_url('admin.php?page=camp-manager-totes')); ?>" class="page-title-action">All totes</a>
     <hr class="wp-header-end">

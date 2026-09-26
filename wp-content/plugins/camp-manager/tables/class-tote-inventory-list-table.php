@@ -4,7 +4,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once __DIR__ . '/class-inventory-base-list-table.php';
+require_once __DIR__ . '/class-list-table.php';
 
 /**
  * Tote inventory: which items are packed in which totes, with quantities and weights.
@@ -13,7 +13,7 @@ require_once __DIR__ . '/class-inventory-base-list-table.php';
  * tote's edit page it is scoped to that tote (pass its id; `false` lists nothing, for a tote
  * that is not saved yet) and drops the tote column, the filters and the page size picker.
  */
-class CampManagerToteInventoryTable extends CampManagerInventoryListTable
+class CampManagerToteInventoryTable extends CampManagerListTable
 {
     const FILTER_FORM = 'tote-inventory-filters';
     /** Rows shown on a tote's edit page, where there is no pagination control to speak of. */

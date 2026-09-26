@@ -4,13 +4,13 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-require_once __DIR__ . '/class-inventory-base-list-table.php';
+require_once __DIR__ . '/class-list-table.php';
 
 /**
  * The "Totes" tab of the Inventory admin page: every tote with its size, status, location,
  * weight and how many items it holds, searchable and filterable by status, location and size.
  */
-class CampManagerTotesTable extends CampManagerInventoryListTable
+class CampManagerTotesTable extends CampManagerListTable
 {
     const FILTER_FORM = 'totes-filters';
     const SIZES = ['Full', 'Half'];

@@ -24,7 +24,7 @@ $stats = [
     .cm-totes-page .column-status { width: 110px; }
     .cm-totes-page .column-items { width: 120px; }
 </style>
-<div class="wrap cm-inventory-page cm-totes-page">
+<div class="wrap cm-list-page cm-totes-page">
     <?php CampManagerInventory::renderPageHeader('totes', admin_url('admin.php?page=camp-manager-add-tote')); ?>
 
     <?php CampManagerPostbox::boot($screen_id); ?>

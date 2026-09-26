@@ -11,7 +11,7 @@ $table->prepare_items();
     .cm-items-page .column-location { width: 14%; }
     .cm-items-page .column-links { width: 110px; }
 </style>
-<div class="wrap cm-inventory-page cm-items-page">
+<div class="wrap cm-list-page cm-items-page">
     <?php CampManagerInventory::renderPageHeader('items', admin_url('admin.php?page=camp-manager-add-inventory')); ?>
 
     <form method="get" id="<?php echo esc_attr(CampManagerInventoryTable::FILTER_FORM); ?>">

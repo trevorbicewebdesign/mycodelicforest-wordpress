@@ -9,16 +9,17 @@ if (!class_exists('WP_List_Table')) {
 }
 
 /**
- * What the three Inventory list tables (items, totes, tote inventory) share: the page size and
- * its "N items per page" picker, the GET form that carries search and filter fields, the sort
- * request, empty cells and the "name plus a grey second line" cell.
+ * What the redesigned Camp Manager list tables (inventory items, totes, tote inventory, the
+ * ledger) share: the page size and its "N items per page" picker, the GET form that carries
+ * search and filter fields, the sort request, empty cells, the "name plus a grey second line"
+ * cell and the styles that lay all of it out (styles()).
  *
  * Filters and the page size travel in the URL (?category=..&per_page=50), so sorting and
  * pagination links keep them. The dropdowns sit in the table's tablenav, inside the POST form
  * used for bulk actions, so they point back at the GET form with the `form` attribute rather
  * than nesting forms, as the roster does.
  */
-abstract class CampManagerInventoryListTable extends WP_List_Table
+abstract class CampManagerListTable extends WP_List_Table
 {
     const PER_PAGE_DEFAULT = 20;
     const PER_PAGE_OPTIONS = [20, 50, 100];
@@ -30,7 +31,7 @@ abstract class CampManagerInventoryListTable extends WP_List_Table
     public function perPage(): int
     {
         $wanted = isset($_GET['per_page']) ? (int) $_GET['per_page'] : 0;
-        return in_array($wanted, self::PER_PAGE_OPTIONS, true) ? $wanted : self::PER_PAGE_DEFAULT;
+        return in_array($wanted, self::PER_PAGE_OPTIONS, true) ? $wanted : static::PER_PAGE_DEFAULT;
     }
 
     /** The search text, if any. */
@@ -90,7 +91,54 @@ abstract class CampManagerInventoryListTable extends WP_List_Table
 
     protected function get_table_classes()
     {
-        return array_merge(parent::get_table_classes(), ['cm-inventory-table']);
+        return array_merge(parent::get_table_classes(), ['cm-list-table']);
+    }
+
+    /** The styles the list pages rely on (tablenav layout, cells, row actions); printed once per request. */
+    public static function styles(): void
+    {
+        static $printed = false;
+        if ($printed) {
+            return;
+        }
+        $printed = true;
+        ?>
+<style>
+    .cm-list-page .cm-postbox { margin-bottom: 16px; }
+    .cm-list-page .search-box { margin-bottom: 8px; }
+    .cm-list-page .subsubsub { margin-bottom: 0; }
+
+    /* One flex row: bulk actions and filters on the left, the page size and the pagination on the right. */
+    .cm-list-page .tablenav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; height: auto; }
+    .cm-list-page .tablenav .bulkactions,
+    .cm-list-page .tablenav .actions { float: none; padding: 0; }
+    .cm-list-page .tablenav .tablenav-pages { float: none; margin: 0 0 0 auto; }
+    .cm-list-page .tablenav .cm-per-page { margin-left: auto; }
+    .cm-list-page .tablenav .cm-per-page + .tablenav-pages { margin-left: 0; }
+    .cm-list-page .tablenav .clear { display: none; }
+    .cm-list-page .tablenav .actions select { max-width: 170px; }
+    /* The count sits with the bottom pagination; up top the page size picker takes its place. */
+    .cm-list-page .tablenav.top .displaying-num { display: none; }
+    @media screen and (max-width: 782px) {
+        .cm-list-page .tablenav .cm-per-page { display: none; }
+    }
+
+    .cm-list-table td,
+    .cm-list-table th.check-column { vertical-align: middle; }
+    .cm-list-table .column-cb { width: 2.2em; }
+    .cm-list-table .cm-item-meta { color: #646970; margin-top: 2px; }
+    .cm-list-table .cm-empty { color: #787c82; }
+    .cm-list-table .cm-num { width: 110px; text-align: right; }
+    .cm-list-table td.cm-num { padding-right: 24px; }
+    .cm-list-table .cm-link { display: inline-flex; align-items: center; gap: 6px; }
+    .cm-list-table .cm-link .dashicons { font-size: 16px; width: 16px; height: 16px; }
+    /* Row actions keep their line whether shown or not, so hovering never changes a row's height. */
+    .cm-list-table .row-actions { position: relative; }
+    .cm-list-table tr:not(:hover):not(:focus-within) .row-actions { left: -9999em; }
+    .cm-list-table tr:hover .row-actions,
+    .cm-list-table tr:focus-within .row-actions { left: 0; }
+</style>
+        <?php
     }
 
     /** A dash for a blank cell, read as "None" by screen readers. */
