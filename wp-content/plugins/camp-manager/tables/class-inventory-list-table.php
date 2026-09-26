@@ -4,14 +4,14 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-require_once __DIR__ . '/class-inventory-base-list-table.php';
+require_once __DIR__ . '/class-list-table.php';
 
 /**
  * The "All items" tab of the Inventory admin page: every inventory item with its quantity,
  * category, location, the totes it is packed in (or its set) and its link, searchable and
  * filterable by category, location and tote.
  */
-class CampManagerInventoryTable extends CampManagerInventoryListTable
+class CampManagerInventoryTable extends CampManagerListTable
 {
     const FILTER_FORM = 'inventory-filters';
     /** Value of the tote filter that keeps only items that are not packed in any tote. */

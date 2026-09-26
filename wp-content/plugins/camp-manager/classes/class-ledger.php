@@ -317,4 +317,134 @@ class CampManagerLedger
         }
         return $totals;
     }
+
+    // ------------------------------------------------------------------ the admin list page
+
+    /** The line item types, in the order the ledger shows them. */
+    const LINE_ITEM_TYPES = ['Camp Dues', 'Partial Camp Dues', 'Donation', 'Sold Asset', 'Expense'];
+
+    /**
+     * Figures for the ledger page's overview, for the season being viewed (or every season
+     * together): what the season started with, what came in and went out, and what that
+     * leaves, plus how the money splits by line item type.
+     */
+    public function overview(): array
+    {
+        global $wpdb;
+        $flow = $wpdb->get_row(
+            "SELECT COUNT(*) AS entries,
+                    COALESCE(SUM(CASE WHEN amount > 0 THEN amount END), 0) AS money_in,
+                    COALESCE(SUM(CASE WHEN amount < 0 THEN -amount END), 0) AS money_out
+             FROM {$wpdb->prefix}mf_ledger WHERE " . CampManagerSeason::whereSeason(),
+            ARRAY_A
+        );
+        $by_type = $wpdb->get_results(
+            "SELECT li.type, COALESCE(SUM(li.amount), 0) AS total
+             FROM {$wpdb->prefix}mf_ledger_line_items li
+             INNER JOIN {$wpdb->prefix}mf_ledger l ON l.id = li.ledger_id
+             WHERE " . CampManagerSeason::whereSeason('l.season') . '
+             GROUP BY li.type',
+            ARRAY_A
+        ) ?: [];
+        $totals = [];
+        foreach ($by_type as $row) {
+            $totals[(string) $row['type']] = (float) $row['total'];
+        }
+
+        $starting = CampManagerSeason::viewingAll() ? self::OPENING_BALANCE : (float) $this->startingBalance();
+        $money_in = (float) ($flow['money_in'] ?? 0);
+        $money_out = (float) ($flow['money_out'] ?? 0);
+        return [
+            'entries'          => (int) ($flow['entries'] ?? 0),
+            'starting_balance' => $starting,
+            'money_in'         => $money_in,
+            'money_out'        => $money_out,
+            'net'              => $money_in - $money_out,
+            'ending_balance'   => $starting + $money_in - $money_out,
+            'camp_dues'        => ($totals['Camp Dues'] ?? 0) + ($totals['Partial Camp Dues'] ?? 0),
+            'donations'        => $totals['Donation'] ?? 0.0,
+            'assets_sold'      => $totals['Sold Asset'] ?? 0.0,
+            'expenses'         => $totals['Expense'] ?? 0.0,
+        ];
+    }
+
+    /** How many entries the viewed season has, and how many brought money in or sent it out. */
+    public function countByFlow(): array
+    {
+        global $wpdb;
+        $row = $wpdb->get_row(
+            "SELECT COUNT(*) AS total, SUM(amount > 0) AS money_in, SUM(amount < 0) AS money_out
+             FROM {$wpdb->prefix}mf_ledger WHERE " . CampManagerSeason::whereSeason(),
+            ARRAY_A
+        );
+        return ['all' => (int) ($row['total'] ?? 0), 'in' => (int) ($row['money_in'] ?? 0), 'out' => (int) ($row['money_out'] ?? 0)];
+    }
+
+    /** The line items of several entries at once: [ledger_id => [line item rows]]. */
+    public function getLineItemsByEntry(array $ledger_ids): array
+    {
+        $ledger_ids = array_values(array_filter(array_map('intval', $ledger_ids)));
+        if (!$ledger_ids) {
+            return [];
+        }
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($ledger_ids), '%d'));
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, ledger_id, receipt_id, name, cmid, amount, note, type
+             FROM {$wpdb->prefix}mf_ledger_line_items
+             WHERE ledger_id IN ($placeholders)
+             ORDER BY id",
+            ...$ledger_ids
+        ), ARRAY_A) ?: [];
+
+        $items = [];
+        foreach ($rows as $row) {
+            $items[(int) $row['ledger_id']][] = $row;
+        }
+        return $items;
+    }
+
+    /** Deletes entries and their line items. */
+    public function deleteEntries(array $ids): void
+    {
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+        if (!$ids) {
+            return;
+        }
+        global $wpdb;
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}mf_ledger_line_items WHERE ledger_id IN ($placeholders)", ...$ids));
+        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}mf_ledger WHERE id IN ($placeholders)", ...$ids));
+    }
+
+    /**
+     * Why an entry needs a second look, as short labels, or [] when it is in order: no date,
+     * no line items, line items that do not add up to the entry's amount (signs aside), or a
+     * line item without a type.
+     */
+    public static function attentionReasons(array $entry, array $line_items): array
+    {
+        $reasons = [];
+        $date = (string) ($entry['date'] ?? '');
+        if ($date === '' || strpos($date, '0000-00-00') === 0) {
+            $reasons[] = 'No date';
+        }
+        if (!$line_items) {
+            $reasons[] = 'No line items';
+        } else {
+            $sum = 0.0;
+            $untyped = false;
+            foreach ($line_items as $item) {
+                $sum += (float) $item['amount'];
+                $untyped = $untyped || trim((string) ($item['type'] ?? '')) === '';
+            }
+            if (abs(abs((float) $entry['amount']) - abs($sum)) > 0.005) {
+                $reasons[] = 'Line items total ' . CampManagerDashboard::money($sum);
+            }
+            if ($untyped) {
+                $reasons[] = 'Untyped line item';
+            }
+        }
+        return $reasons;
+    }
 }

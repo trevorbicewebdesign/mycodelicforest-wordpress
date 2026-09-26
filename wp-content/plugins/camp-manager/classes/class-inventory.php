@@ -391,9 +391,10 @@ class CampManagerInventory
         <?php
     }
 
-    /** The styles the list tables and tabs rely on; printed once per request. */
+    /** The tab strip's styles (the list layout comes from CampManagerListTable); printed once per request. */
     public static function pageStyles(): void
     {
+        CampManagerListTable::styles();
         static $printed = false;
         if ($printed) {
             return;
@@ -401,48 +402,18 @@ class CampManagerInventory
         $printed = true;
         ?>
 <style>
-    .cm-inventory-page .cm-tabs { display: flex; flex-wrap: wrap; gap: 0 28px; margin: 12px 0 16px; border-bottom: 1px solid #c3c4c7; }
-    .cm-inventory-page .cm-tab { display: inline-block; padding: 6px 0 9px; margin-bottom: -1px; font-size: 14px; line-height: 1.4; text-decoration: none; border-bottom: 2px solid transparent; }
-    .cm-inventory-page .cm-tab:hover { color: #135e96; }
-    .cm-inventory-page .cm-tab.is-active { color: #1d2327; font-weight: 600; border-bottom-color: #1d2327; }
-    .cm-inventory-page .cm-tab:focus { box-shadow: none; outline: 2px solid #2271b1; outline-offset: -2px; }
-    .cm-inventory-page .cm-postbox { margin-bottom: 16px; }
-    .cm-inventory-page .search-box { margin-bottom: 8px; }
-
-    /* One flex row: bulk actions and filters on the left, the page size and the pagination on the right. */
-    .cm-inventory-page .tablenav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; height: auto; }
-    .cm-inventory-page .tablenav .bulkactions,
-    .cm-inventory-page .tablenav .actions { float: none; padding: 0; }
-    .cm-inventory-page .tablenav .tablenav-pages { float: none; margin: 0 0 0 auto; }
-    .cm-inventory-page .tablenav .cm-per-page { margin-left: auto; }
-    .cm-inventory-page .tablenav .cm-per-page + .tablenav-pages { margin-left: 0; }
-    .cm-inventory-page .tablenav .clear { display: none; }
-    .cm-inventory-page .tablenav .actions select { max-width: 170px; }
-    /* The count sits with the bottom pagination; up top the page size picker takes its place. */
-    .cm-inventory-page .tablenav.top .displaying-num { display: none; }
-    @media screen and (max-width: 782px) {
-        .cm-inventory-page .tablenav .cm-per-page { display: none; }
-    }
-
-    .cm-inventory-table td,
-    .cm-inventory-table th.check-column { vertical-align: middle; }
-    .cm-inventory-table .column-cb { width: 2.2em; }
-    .cm-inventory-table .cm-item-meta { color: #646970; margin-top: 2px; }
-    .cm-inventory-table .cm-empty { color: #787c82; }
-    .cm-inventory-table .column-quantity,
-    .cm-inventory-table .column-weight,
-    .cm-inventory-table .column-total_weight { width: 110px; text-align: right; }
-    .cm-inventory-table td.column-quantity,
-    .cm-inventory-table td.column-weight,
-    .cm-inventory-table td.column-total_weight { padding-right: 24px; }
-    .cm-inventory-table td.column-items .cm-item-meta { display: block; }
-    .cm-inventory-table .cm-link { display: inline-flex; align-items: center; gap: 6px; }
-    .cm-inventory-table .cm-link .dashicons { font-size: 16px; width: 16px; height: 16px; }
-    /* Row actions keep their line whether shown or not, so hovering never changes a row's height. */
-    .cm-inventory-table .row-actions { position: relative; }
-    .cm-inventory-table tr:not(:hover):not(:focus-within) .row-actions { left: -9999em; }
-    .cm-inventory-table tr:hover .row-actions,
-    .cm-inventory-table tr:focus-within .row-actions { left: 0; }
+    .cm-list-page .cm-tabs { display: flex; flex-wrap: wrap; gap: 0 28px; margin: 12px 0 16px; border-bottom: 1px solid #c3c4c7; }
+    .cm-list-page .cm-tab { display: inline-block; padding: 6px 0 9px; margin-bottom: -1px; font-size: 14px; line-height: 1.4; text-decoration: none; border-bottom: 2px solid transparent; }
+    .cm-list-page .cm-tab:hover { color: #135e96; }
+    .cm-list-page .cm-tab.is-active { color: #1d2327; font-weight: 600; border-bottom-color: #1d2327; }
+    .cm-list-page .cm-tab:focus { box-shadow: none; outline: 2px solid #2271b1; outline-offset: -2px; }
+    .cm-list-table .column-quantity,
+    .cm-list-table .column-weight,
+    .cm-list-table .column-total_weight { width: 110px; text-align: right; }
+    .cm-list-table td.column-quantity,
+    .cm-list-table td.column-weight,
+    .cm-list-table td.column-total_weight { padding-right: 24px; }
+    .cm-list-table td.column-items .cm-item-meta { display: block; }
 </style>
         <?php
     }
