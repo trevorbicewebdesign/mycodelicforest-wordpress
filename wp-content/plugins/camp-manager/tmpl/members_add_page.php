@@ -172,24 +172,6 @@ $can_assign_roles = current_user_can('manage_options');
                             <?php endif; ?>
                         </td>
                     </tr>
-                    <tr>
-                        <th><label for="member_sponsor">Sponsor</label></th>
-                        <td>
-                            <?php
-                            $roster_members = $this->roster->getRosterMembers();
-                            ?>
-                            <select name="member_sponsor" id="member_sponsor">
-                                <option value="">Select a sponsor</option>
-                                <?php
-                                foreach ($roster_members as $roster_member) {
-                                    $selected = ($is_edit && isset($member->sponsor_cmd) && $member->sponsor_cmd == $roster_member['id']) ? 'selected' : '';
-                                    $display_name = esc_html($roster_member['fname'] . ' ' . $roster_member['lname'] . (!empty($roster_member['playaname']) ? " ({$roster_member['playaname']})" : ''));
-                                    echo "<option value=\"" . esc_attr($roster_member['id']) . "\" $selected>$display_name</option>";
-                                }
-                                ?>
-                            </select>
-                        </td>
-                    </tr>
                 </table>
 
                 <div style="display: flex; gap: 10px;">

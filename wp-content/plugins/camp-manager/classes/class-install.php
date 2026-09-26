@@ -269,7 +269,6 @@ class CampManagerInstall
             status enum('Confirmed','Very Maybe','Maybe','No','Dropped') DEFAULT NULL,
             email varchar(255) DEFAULT NULL,
             rsvp int DEFAULT NULL,
-            sponsor_cmid int DEFAULT NULL,
             PRIMARY KEY  (id)
         ) $charset_collate;";
         dbDelta($sql);

@@ -66,9 +66,15 @@ class ProfileAdminCest
         // seeCheckboxIsChecked() takes one selector and checks the first match, so name the
         // 2024 box itself rather than whichever year happens to come first in the list.
         $I->seeCheckboxIsChecked("[name='years_attended[]'][value='2024']");
+        // Who invited them: another member, picked by name.
+        $I->see("Sponsor", "label[for='sponsor_user_id']");
+        $I->seeOptionIsSelected("#sponsor_user_id", "None");
+        $I->selectOption("#sponsor_user_id", "Test Admin (TestBurner)");
         
         $I->click("Update User");
         $I->waitForText("User updated.", 10);
+        $I->seeOptionIsSelected("#sponsor_user_id", "Test Admin (TestBurner)");
+        $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "sponsor_user_id","meta_value" => (string) $this->adminId]);
 
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "first_name","meta_value" => "Test"]);
         $I->seeInDatabase("wp_usermeta", ["user_id"=>$this->userId, "meta_key" => "last_name","meta_value" => "User"]);
