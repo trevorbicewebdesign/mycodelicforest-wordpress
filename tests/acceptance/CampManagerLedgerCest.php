@@ -66,12 +66,16 @@ class CampManagerLedgerCest
         $I->seeOptionIsSelected("#cm-per-page", "50 items per page");
     }
 
-    /** Dues in, fuel out with a receipt, and a payment whose line items do not add up. */
+    /**
+     * Dues in, fuel out with a receipt, and a payment whose line items do not add up. Dated
+     * around today, so the order is known whatever the month: fuel tomorrow, the sale now (after
+     * _before's entry, which is also dated now), dues yesterday.
+     */
     private function seedLedger(AcceptanceTester $I): array
     {
-        $dues = $I->createLedgerEntry(["note" => "Tina camp dues", "amount" => 350.00, "date" => "{$this->season}-06-01 00:00:00"])['id'];
-        $fuel = $I->createLedgerEntry(["note" => "Fuel", "amount" => -832.57, "date" => "{$this->season}-07-07 00:00:00", "link" => "https://www.paypal.com/activity/payment/FUEL000000000000"])['id'];
-        $short = $I->createLedgerEntry(["note" => "Generator sale", "amount" => 359.79, "date" => "{$this->season}-06-29 00:00:00"])['id'];
+        $dues = $I->createLedgerEntry(["note" => "Tina camp dues", "amount" => 350.00, "date" => date("Y-m-d H:i:s", strtotime("-1 day"))])['id'];
+        $fuel = $I->createLedgerEntry(["note" => "Fuel", "amount" => -832.57, "date" => date("Y-m-d H:i:s", strtotime("+1 day")), "link" => "https://www.paypal.com/activity/payment/FUEL000000000000"])['id'];
+        $short = $I->createLedgerEntry(["note" => "Generator sale", "amount" => 359.79, "date" => date("Y-m-d H:i:s")])['id'];
         $I->createLedgerLineItem(["ledger_id" => $dues, "amount" => 350.00, "type" => "Camp Dues"]);
         $I->createLedgerLineItem(["ledger_id" => $fuel, "amount" => 832.57, "type" => "Expense", "receipt_id" => 96, "note" => "diesel"]);
         $I->createLedgerLineItem(["ledger_id" => $short, "amount" => 370.88, "type" => "Sold Asset"]);
