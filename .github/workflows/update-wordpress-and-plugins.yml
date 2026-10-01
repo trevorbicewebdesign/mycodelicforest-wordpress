@@ -38,11 +38,12 @@ jobs:
 
       # Only composer.lock is being rewritten, so there is nothing to install: --no-install
       # resolves and updates the lock file without downloading any package (no vendor/,
-      # no plugin zips), and the previous lock file is the "before" snapshot.
+      # no plugin zips), and --no-scripts skips the post-update hook that copies core into
+      # the web root (there is no core to copy). The previous lock file is the "before" snapshot.
       - name: Update Composer dependencies
         run: |
           cp composer.lock "${RUNNER_TEMP}/composer.lock.before"
-          composer update --no-interaction --no-progress --no-install
+          composer update --no-interaction --no-progress --no-install --no-scripts
 
       # Compares the whole lock file, so transitive packages and dev tools show up too
       # (`composer show --direct` only ever lists the packages named in composer.json).

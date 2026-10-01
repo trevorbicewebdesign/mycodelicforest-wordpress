@@ -29,8 +29,10 @@ $version = static function (string $dir): ?string {
 
 $want = $version($source);
 if ($want === null) {
-    fwrite(STDERR, "install-core: roots/wordpress-no-content is not installed under vendor/ (run composer install); leaving WordPress core alone.\n");
-    exit(1);
+    // Nothing under vendor/: a `composer update --no-install` (the nightly update rewrites only
+    // the lock file), or a vendor/ that is yet to be installed. Nothing to copy, nothing wrong.
+    echo "install-core: WordPress core is not under vendor/ yet (nothing installed); leaving the web root alone.\n";
+    exit(0);
 }
 $have = $version($root);
 if ($have === $want) {
