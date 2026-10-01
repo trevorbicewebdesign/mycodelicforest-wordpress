@@ -1,5 +1,8 @@
 {
+    "name": "trevorbicewebdesign/mycodelicforest-wordpress",
+    "description": "WordPress site: WordPress core, plugins and theme installed by Composer, tested with Codeception.",
     "type": "project",
+    "license": "GPL-2.0-or-later",
     "config": {
         "vendor-dir": "vendor",
         "allow-plugins": {
@@ -28,6 +31,10 @@
         },
         {
             "type": "vcs",
+            "url": "https://github.com/trevorbicewebdesign/akeebabackupwp.git"
+        },
+        {
+            "type": "vcs",
             "url": "https://github.com/trevorbicewebdesign/gravityforms.git"
         },
         {
@@ -39,29 +46,47 @@
             "url": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro.git"
         },
         {
+            "type": "package",
+            "package": {
+                "name": "trevorbicewebdesign/spectra-pro",
+                "description": "Spectra Pro (licensed copy, private mirror). The mirror has no composer.json, so the package is described here.",
+                "version": "dev-master",
+                "type": "wordpress-plugin",
+                "source": {
+                    "url": "https://github.com/trevorbicewebdesign/spectra-pro.git",
+                    "type": "git",
+                    "reference": "master"
+                }
+            }
+        },
+        {
             "type": "vcs",
             "url": "https://github.com/trevorbicewebdesign/codeception-mailpit"
         }
     ],
     "require": {
+        "roots/wordpress-no-content": "*",
+        "trevorbicewebdesign/advanced-custom-fields-pro": "^6.8",
+        "trevorbicewebdesign/akeebabackupwp": "*",
         "trevorbicewebdesign/gravityforms": "^3.1",
         "trevorbicewebdesign/revslider": "^7.1",
+        "trevorbicewebdesign/spectra-pro": "dev-master",
+        "wpackagist-plugin/create-block-theme": "*",
+        "wpackagist-plugin/email-address-obfuscation": "*",
         "wpackagist-plugin/enable-turnstile-cloudflare-for-gravity-forms": "*",
         "wpackagist-plugin/google-site-kit": "*",
+        "wpackagist-plugin/login-with-google": "*",
+        "wpackagist-plugin/loginpress": "*",
+        "wpackagist-plugin/members": "*",
         "wpackagist-plugin/really-simple-ssl": "*",
         "wpackagist-plugin/redirection": "*",
-        "wpackagist-plugin/xml-sitemap-generator-for-google": "*",
-        "wpackagist-plugin/email-address-obfuscation": "*",
-        "wpackagist-plugin/ultimate-addons-for-gutenberg": "*",
-        "wpackagist-plugin/login-with-google": "*",
-        "wpackagist-plugin/wordfence": "*",
-        "wpackagist-plugin/ultimate-faqs": "*",
-        "wpackagist-plugin/wp-mail-smtp": "*",
-        "wpackagist-plugin/members": "*",
-        "wpackagist-plugin/loginpress": "*",
         "wpackagist-plugin/svg-support": "*",
-        "wpackagist-theme/spectra-one": "*",
-        "trevorbicewebdesign/advanced-custom-fields-pro": "^6.8"
+        "wpackagist-plugin/ultimate-addons-for-gutenberg": "*",
+        "wpackagist-plugin/ultimate-faqs": "*",
+        "wpackagist-plugin/wordfence": "*",
+        "wpackagist-plugin/wp-mail-smtp": "*",
+        "wpackagist-plugin/xml-sitemap-generator-for-google": "*",
+        "wpackagist-theme/spectra-one": "*"
     },
     "require-dev": {
         "lucatume/wp-browser": "^4.0",
@@ -75,5 +100,10 @@
         "psr-4": {
             "Helper\\": "tests/_support/Helper/"
         }
+    },
+    "scripts": {
+        "test": "codecept run integration",
+        "post-install-cmd": "@php bin/install-core.php",
+        "post-update-cmd": "@php bin/install-core.php"
     }
 }

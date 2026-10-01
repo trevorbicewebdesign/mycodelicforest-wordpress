@@ -1,37 +1,17 @@
 #!/usr/bin/env bash
-# Rebuild the `seed` database (acceptance/functional tests) from the committed dump,
-# mirroring the "Prepare seed database" step in .github/workflows/codeception-test.yml.
+# Rebuild the seed database (acceptance/functional tests) from the committed dump, exactly as
+# the "Prepare test fixtures" step in .github/workflows/codeception-test.yml does.
 #
-# Databases on this site:
-#   local - the developer's site. Only the developer changes it; no script or test writes here.
-#   seed  - acceptance/functional tests (requests with X-Test-Request: 1 / webdriver cookie).
-#   test  - integration tests (WPLoader installs into it with the test_ prefix).
-#
-# Needs `wp` and `mysql` on PATH pointed at Local's MySQL (Local's "Open site shell" does this).
+# Databases on this site (see bin/seed.conf):
+#   SITE_DB - the developer's site. Only the developer changes it; no script or test writes here.
+#   SEED_DB - acceptance/functional tests (requests with X-Test-Request: 1 / webdriver cookie).
+#   TEST_DB - integration tests (WPLoader installs into it with the test_ prefix).
 set -euo pipefail
-cd "$(dirname "$0")/.."
+# shellcheck disable=SC1091
+source "$(dirname "$0")/_common.sh"
 
-# wp-config.php selects the seed database when this is set (PHP CLI mirrors env into $_SERVER).
-export HTTP_X_TEST_REQUEST=1
+mysql_ -e "DROP DATABASE IF EXISTS \`$SEED_DB\`; CREATE DATABASE \`$SEED_DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE IF NOT EXISTS \`$TEST_DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+mysql_ "$SEED_DB" < tests/_support/Data/db/dump.sql
+use_seed_database
 
-# CiviCRM has no tables in seed; on a machine with a civicrm.settings.php it fatals on boot,
-# so never load it here (the dump already has it deactivated).
-wp() { command wp --skip-plugins=civicrm "$@"; }
-
-mysql -u root -proot -e "DROP DATABASE IF EXISTS seed; CREATE DATABASE seed"
-mysql -u root -proot seed < tests/_support/Data/db/dump.sql
-
-# Last line only: PHP startup warnings from a mismatched local PHP go to stdout.
-db=$(wp eval 'global $wpdb; echo $wpdb->dbname;' | tail -n 1)
-if [ "$db" != "seed" ]; then
-    echo "wp-cli is pointed at '$db', not 'seed'; refusing to continue." >&2
-    exit 1
-fi
-
-# Mirrors the "Prepare test fixtures" step in .github/workflows/codeception-test.yml. The dump
-# itself is built by bin/build-seed.sh and already holds the config that does not follow the repo.
-wp core update-db
-wp eval '$f = json_decode(file_get_contents("tests/_support/Data/forms/form-6-profile.json"), true); $r = GFAPI::update_form($f); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message()); exit(1); }'
-wp post update 275 --post_content='<!-- wp:gravityforms/form {"formId":"6","inputPrimaryColor":"#204ce5"} /-->'
-wp plugin activate camp-manager
-wp plugin list --status=active --field=name | tr '\n' ' '; echo
+bin/ci-fixtures.sh

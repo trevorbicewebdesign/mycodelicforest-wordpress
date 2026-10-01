@@ -1,4 +1,4 @@
-name: Update Plugin Dependencies
+name: Update WordPress and plugins
 
 on:
   schedule:
@@ -45,11 +45,13 @@ jobs:
           composer update --no-interaction --no-progress --no-install
 
       # Compares the whole lock file, so transitive packages and dev tools show up too
-      # (`composer show --direct` only ever listed the packages named in composer.json).
+      # (`composer show --direct` only ever lists the packages named in composer.json).
       - name: Prepare PR body
         run: |
           {
-            echo '### Dependency updates'
+            echo '### Updates'
+            echo
+            echo 'WordPress core is `roots/wordpress-no-content`.'
             echo
             changes="$(jq -rn \
               --slurpfile a "${RUNNER_TEMP}/composer.lock.before" --slurpfile b composer.lock '
@@ -68,12 +70,12 @@ jobs:
             echo '### Before merging'
             echo
             echo '- The Tests workflow runs on this branch. Its seed database is rebuilt from the committed dump plus `wp core update-db` on every run, so a green run also covers the upgrade path for these versions.'
-            echo '- WordPress core is **not** updated here (it is not a Composer package). It is pinned in `.github/workflows/codeception-test.yml` (`WP_VERSION`) and deployed by `deploy.sh`.'
+            echo '- After merging, `composer install` brings a machine or server to these versions, WordPress core included (`bin/update-local.sh`, or the deploy script).'
           } > "${RUNNER_TEMP}/pr_body.md"
           cat "${RUNNER_TEMP}/pr_body.md"
 
       # create-pull-request commits the change itself (and does nothing when composer.lock
-      # is unchanged, so a night without updates no longer fails on an empty `git commit`).
+      # is unchanged, so a night without updates does not fail on an empty `git commit`).
       - name: Create or update PR
         id: cpr
         uses: peter-evans/create-pull-request@v8
@@ -83,9 +85,9 @@ jobs:
           branch: update-wordpress-and-plugins
           delete-branch: true
           add-paths: composer.lock
-          title: 'Update Composer dependencies'
+          title: 'Update WordPress and plugins'
           body-path: ${{ runner.temp }}/pr_body.md
-          commit-message: 'Update dependencies'
+          commit-message: 'Update WordPress and plugins'
 
       # Events caused by GITHUB_TOKEN (the push and the pull_request that
       # create-pull-request just produced) do not start other workflows, so without this

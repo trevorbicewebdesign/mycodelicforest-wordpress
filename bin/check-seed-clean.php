@@ -3,7 +3,7 @@
 /**
  * Fails when a committed test database dump holds personal data or credentials.
  *
- * The dumps are committed to a public repository, so this is a tripwire, not a scrubber:
+ * The dumps are committed to git, so this is a tripwire, not a scrubber:
  * bin/build-seed.sh produces a clean dump and this proves it stayed that way. It never
  * prints matched values, only what kind of thing was found and where.
  *
@@ -23,7 +23,9 @@ $mustBeEmpty = [
     'comments', 'commentmeta', 'gf_entry', 'gf_entry_meta', 'gf_entry_notes',
     'gf_draft_submissions', 'wpmailsmtp_debug_events', 'wpmailsmtp_tasks_meta',
     'redirection_404', 'redirection_logs', 'actionscheduler_actions', 'actionscheduler_logs',
-    'actionscheduler_claims',
+    'actionscheduler_claims', 'um_metadata', 'wc_orders', 'wc_customer_lookup',
+    'woocommerce_sessions', 'woocommerce_api_keys', 'wpforms_entries', 'frm_items',
+    'e_submissions',
 ];
 $forbiddenOptions = '(_transient_|_site_transient_|recovery_keys|adminhash|gf_telemetry_data|rsssl_404_cache|wp_google_login_settings|redirection_options|wp_mail_smtp_mail_key)';
 // Addresses that are reserved for documentation/tests or shipped as WordPress defaults.
@@ -82,7 +84,8 @@ foreach ($files as $file) {
     }
 
     $bad_domains = [];
-    if (preg_match_all('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/', $sql, $m)) {
+    // Same pattern as bin/build-seed.sh: the lookahead spares file names such as logo@2x.png.
+    if (preg_match_all('/[A-Za-z0-9._%+-]+@(?![A-Za-z0-9.-]*\.(?:png|jpe?g|gif|webp|avif|svg|css|js)\b)[A-Za-z0-9.-]+\.[A-Za-z]{2,}/', $sql, $m)) {
         foreach (array_unique($m[0]) as $email) {
             if (!preg_match($allowedEmail, $email)) {
                 $bad_domains[substr(strrchr($email, '@'), 1)] = ($bad_domains[substr(strrchr($email, '@'), 1)] ?? 0) + 1;
@@ -103,7 +106,7 @@ foreach ($files as $file) {
 if ($problems) {
     fwrite(STDERR, "Seed dump is NOT clean:\n  - " . implode("\n  - ", $problems) . "\n");
     fwrite(STDERR, "Rebuild the dump with bin/build-seed.sh (see CLAUDE.md), or delete it if nothing uses it.\n");
-    fwrite(STDERR, "Never commit a raw site export (wp db export, Akeeba, make setup_db).\n");
+    fwrite(STDERR, "Never commit a raw site export (wp db export, Akeeba, a hosting backup).\n");
     exit(1);
 }
 echo "Seed dump(s) clean: " . implode(', ', array_map('basename', $files)) . "\n";

@@ -131,7 +131,7 @@ class DbHelper extends Module
             $this->db()->dontHaveUserInDatabase((int) $staleId);
         }
 
-        $data += ['user_pass' => self::PASSWORD];
+        $data += ['user_pass' => self::PASSWORD, 'user_email' => $login . '@seed.test'];
         $id = $this->db()->haveUserInDatabase($login, $role, $data);
 
         return ['id' => $id, 'login' => $login, 'role' => $role, 'password' => $data['user_pass']] + $data;
@@ -286,6 +286,34 @@ class DbHelper extends Module
     public function createToteInventory(int $toteId, int $inventoryId, int $quantity = 1): array
     {
         return $this->insert('mf_tote_inventory', ['tote_id' => $toteId, 'inventory_id' => $inventoryId, 'quantity' => $quantity]);
+    }
+
+    // ------------------------------------------------------------------------ site pages
+
+    /** Slugs of every published page, for tests that walk the site. */
+    public function grabPublishedPagePaths(): array
+    {
+        $posts = $this->db()->grabPrefixedTableNameFor('posts');
+        $stmt  = $this->db()->_getDbh()->query(
+            "SELECT p.ID, p.post_name, p.post_parent FROM `{$posts}` p
+              WHERE p.post_type = 'page' AND p.post_status = 'publish' ORDER BY p.menu_order, p.ID"
+        );
+        $rows = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $rows[(int) $row['ID']] = $row;
+        }
+
+        $paths = [];
+        foreach ($rows as $id => $row) {
+            $path = $row['post_name'];
+            for ($parent = (int) $row['post_parent'], $guard = 0; $parent && isset($rows[$parent]) && $guard < 10; $guard++) {
+                $path   = $rows[$parent]['post_name'] . '/' . $path;
+                $parent = (int) $rows[$parent]['post_parent'];
+            }
+            $paths[$id] = '/' . $path . '/';
+        }
+
+        return $paths;
     }
 
     // ---------------------------------------------------------------------------- internals

@@ -15,6 +15,7 @@
 /node_modules/
 /.gitignore
 /.deployignore
+/.deploykeep
 /codeception.yml
 /docker-compose.yml
 /Gruntfile.js
@@ -25,6 +26,7 @@
 /Makefile
 /README.md
 /apache-test-admin.conf
+/CLAUDE.md
 /local-phpinfo.php
 /auth.json
 /phpunit.xml

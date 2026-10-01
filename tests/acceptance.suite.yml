@@ -15,7 +15,7 @@ modules:
         - Mailpit
     config:
         Mailpit:
-            base_uri: http://localhost:10006
+            base_uri: '%MAILPIT_URI%'
         lucatume\WPBrowser\Module\WPWebDriver:
           url: '%WORDPRESS_URL%'
           adminUsername: '%WORDPRESS_ADMIN_USER%'
