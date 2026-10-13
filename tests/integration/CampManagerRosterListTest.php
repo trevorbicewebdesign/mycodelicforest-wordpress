@@ -117,6 +117,31 @@ class CampManagerRosterListTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $this->assertSame(1, $overview['low_income_dues_paid']);
     }
 
+    // ------------------------------------------------------------------------- the member form
+
+    public function testMemberFormHasNoSponsorFieldAnyMore()
+    {
+        // The sponsor (who invited a first-time camper) is a fact about the person, kept on
+        // their WordPress profile, not on a season's roster row.
+        wp_set_current_user(self::factory()->user->create(['role' => 'administrator']));
+        // The page checks a Camp Manager capability, granted by a filter the plugin adds on
+        // activation, which the test framework drops between test classes.
+        if (!has_filter('user_has_cap', [CampManagerRoles::class, 'grantCaps'])) {
+            add_filter('user_has_cap', [CampManagerRoles::class, 'grantCaps'], 10, 4);
+        }
+        $_GET = $_REQUEST = ['page' => 'camp-manager-add-member'];
+        $host = new class { public $roster; public function render(): void { include WP_CONTENT_DIR . '/plugins/camp-manager/tmpl/members_add_page.php'; } };
+        $host->roster = new CampManagerRoster();
+        ob_start();
+        $host->render();
+        $html = ob_get_clean();
+
+        $this->assertStringContainsString('Add New Member', $html);
+        $this->assertStringContainsString('id="member_fname"', $html);
+        $this->assertStringNotContainsString('member_sponsor', $html);
+        $this->assertStringNotContainsString('Sponsor', $html);
+    }
+
     // ------------------------------------------------------------------------- the list table
 
     public function testColumnsAreTheRedesignedSet()

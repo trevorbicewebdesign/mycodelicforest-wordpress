@@ -1,7 +1,5 @@
-# Workflow Name
 name: Tests
 
-# Events that trigger this workflow
 on:
   push:
     branches:
@@ -11,51 +9,28 @@ on:
     types: [opened, reopened, synchronize]
   workflow_dispatch:
 
-# Set default shell for all `run` commands
 defaults:
   run:
     shell: bash
 
-# Define environment variables to avoid duplication
 env:
   PHP_VERSION: '8.4'  # must match composer.json config.platform.php and production
-  WP_VERSION: '7.1.1'  # WordPress core for tests (core is not a Composer package; see deploy.sh / composer.json)
-  COMPOSER_VERSION: 'v2'  # Composer version for setup
-  # Cache layers. Each is its own cache entry with its own key, so a change to one
-  # (a WordPress bump, a plugin update) never rebuilds the others. The repo's own code
-  # (camp-manager, house-ledger, mycodelic-forest, the child theme, ...) is in none of
-  # them: it is checked out fresh every run, and the layers are restored over it. Their
-  # directory names never collide with Composer-managed plugins/themes.
-  CORE_PATHS: |       # Layer 1: WordPress core (key: WP_VERSION)
-    wp-admin/
-    wp-includes/
-    index.php
-    wp-activate.php
-    wp-blog-header.php
-    wp-comments-post.php
-    wp-config-sample.php
-    wp-cron.php
-    wp-links-opml.php
-    wp-load.php
-    wp-login.php
-    wp-mail.php
-    wp-settings.php
-    wp-signup.php
-    wp-trackback.php
-    xmlrpc.php
-  PACKAGE_PATHS: |    # Layer 2: everything Composer installs (key: composer.lock)
+  COMPOSER_VERSION: 'v2'
+  # One cache layer: everything Composer installs, WordPress core included (it is the package
+  # roots/wordpress-no-content under vendor/; bin/install-core.php copies it into the web root).
+  # The repo's own code is not in it: it is checked out fresh every run, and the layer is
+  # restored over it. Directory names never collide with Composer-managed plugins/themes.
+  PACKAGE_PATHS: |    # key: composer.lock
     vendor/
     wp-content/plugins/
     wp-content/themes/
 
-# Jobs
 jobs:
   # Builds the cache layers once, so the parallel test jobs below only ever restore them.
   setup:
     name: Build dependency caches
     runs-on: ubuntu-latest
     outputs:
-      core-key: ${{ steps.keys.outputs.core }}
       packages-key: ${{ steps.keys.outputs.packages }}
 
     steps:
@@ -66,6 +41,7 @@ jobs:
           sparse-checkout: |
             composer.json
             composer.lock
+            bin/install-core.php
             .github/actions
             bin/check-seed-clean.php
             tests/_support/Data/db
@@ -75,31 +51,18 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          tools: composer:${{ env.COMPOSER_VERSION }}, wp-cli
+          tools: composer:${{ env.COMPOSER_VERSION }}
 
-      # The dumps are committed to a public repository: fail fast, before anything is built,
-      # if one carries personal data or credentials. Never prints the offending values.
+      # The dumps are committed: fail fast, before anything is built, if one carries personal
+      # data or credentials. Never prints the offending values.
       - name: Check test databases hold no personal data or secrets
         run: php bin/check-seed-clean.php
 
       - name: Compute cache keys
         id: keys
-        run: |
-          echo "core=${{ runner.os }}-wp-core-${{ env.WP_VERSION }}" >> "$GITHUB_OUTPUT"
-          echo "packages=${{ runner.os }}-composer-packages-${{ hashFiles('composer.lock') }}" >> "$GITHUB_OUTPUT"
+        run: echo "packages=${{ runner.os }}-composer-packages-${{ hashFiles('composer.lock') }}" >> "$GITHUB_OUTPUT"
 
-      # Layer 1: WordPress core. Rebuilt only when WP_VERSION changes.
-      - name: Restore WordPress core layer
-        id: core
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.CORE_PATHS }}
-          key: ${{ steps.keys.outputs.core }}
-      - name: Download WordPress core
-        if: steps.core.outputs.cache-hit != 'true'
-        run: wp core download --version="${{ env.WP_VERSION }}" --skip-content --force
-
-      # Layer 2: Composer packages. An exact hit needs no work. On a miss, the newest
+      # Composer packages. An exact hit needs no work. On a miss, the newest
       # earlier entry is restored anyway (restore-keys) and `composer install` then
       # changes only the packages that differ from the lock file, so one plugin update
       # does not reinstall all of them.
@@ -129,20 +92,23 @@ jobs:
         uses: ./.github/actions/composer-auth
         with:
           token: ${{ secrets.COMPOSER_AUTH }}
+      # --no-scripts: the copy of core into the web root (bin/install-core.php) is not part
+      # of the cache; every test job does it after restoring the layer.
       - name: Install Composer dependencies
         if: steps.packages.outputs.cache-hit != 'true'
-        run: composer install --no-interaction --no-progress --optimize-autoloader
+        run: |
+          mkdir -p wp-content/plugins wp-content/themes
+          composer install --no-interaction --no-progress --optimize-autoloader --no-scripts
 
-  # Job to run tests
   run-tests:
     name: Test ${{ matrix.test-type }}${{ matrix.group && format(' ({0})', matrix.group) || '' }}
     needs: [setup]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false  # Allow tests to continue even if some fail
-      # Every entry is a fully isolated runner with its own MySQL and `seed` database, so
+      # Every entry is a fully isolated runner with its own MySQL and seed database, so
       # acceptance shards cannot interfere with each other. `group` is a Codeception group
-      # (#[Group('...')] on the Cest classes); locally: codecept run acceptance --group camp-budgets
+      # (#[Group('...')] on the Cest classes); locally: ./tests/run acceptance --group camp-budgets
       matrix:
         include:
           - test-type: integration
@@ -161,121 +127,78 @@ jobs:
             group: site
 
     steps:
-      # Check out repository for tests
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
           ref: ${{ github.head_ref || github.ref }}
 
-      # Set up PHP and Composer environment
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
           tools: composer:${{ env.COMPOSER_VERSION }}, wp-cli
 
-      # Restore the cache layers built by `setup` over the checkout. A miss here is an
+      # Restore the cache layer built by `setup` over the checkout. A miss here is an
       # error (evicted or never built), not something to paper over with a download.
-      - name: Restore WordPress core layer
-        uses: actions/cache/restore@v5
-        with:
-          path: ${{ env.CORE_PATHS }}
-          key: ${{ needs.setup.outputs.core-key }}
-          fail-on-cache-miss: true
       - name: Restore Composer packages layer
         uses: actions/cache/restore@v5
         with:
           path: ${{ env.PACKAGE_PATHS }}
           key: ${{ needs.setup.outputs.packages-key }}
           fail-on-cache-miss: true
+      - name: Put WordPress core in the web root
+        run: php bin/install-core.php
 
-      # Create .env file for testing
-      - name: Create .env file for tests
+      # The site's own wp-config.php is never committed; CI has its own, with no secrets in it.
+      - name: Create wp-config.php and tests/.env
         run: |
+          cp ./tests/wp-config.ci.php ./wp-config.php
           cp ./tests/.env.ci ./tests/.env
-          echo "DISCORD_CHANNEL_ANNOUNCEMENT_TESTS=${{ secrets.DISCORD_CHANNEL_ANNOUNCEMENT_TESTS }}" >> ./tests/.env
 
-           # Start MySQL and setup databases
       - name: Start and Setup MySQL
         run: |
-          # Start MySQL service
           sudo systemctl start mysql.service
-          # Verify MySQL service status
           sudo systemctl status mysql.service
-          # Set up test databases
-          mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS seed;"
-          mysql -u root -proot -h localhost -e "CREATE DATABASE IF NOT EXISTS test;"
-          
-      # bin/setup.php is an interactive local-dev reset (prompts, git clean -fdx of the
-      # very folders the cache just restored, its own composer install). CI does the
-      # two things the suites actually need: an uploads dir and a populated seed DB
-      # (functional populates itself via WPDb; acceptance expects it pre-loaded).
+          source bin/seed.conf
+          mysql -u root -proot -h 127.0.0.1 -e "CREATE DATABASE IF NOT EXISTS \`${SEED_DB}\`; CREATE DATABASE IF NOT EXISTS \`${TEST_DB}\`;"
+
       # The committed dump is built by bin/build-seed.sh: scrubbed of all personal data and
       # credentials (the setup job fails the run if that ever regresses), with the config that
-      # does not follow the repo already baked in (dummy Turnstile keys, mail routing, CiviCRM
-      # off, admin-email interstitial off). What is left here follows the code under test, so
-      # it can never go stale: `wp core update-db` (a no-op until WordPress is bumped, which
-      # is how an update PR exercises the upgrade path), the profile form fixture, and
-      # camp-manager's activation, which creates its (empty) tables from the current schema.
-      # Test data is not seeded here: each Cest resets to the seed and creates what it needs
-      # with the helpers in tests/_support/Helper/DbHelper.php.
+      # does not follow the repo already baked in. bin/ci-fixtures.sh adds what follows the
+      # code under test, so it can never go stale. Test data is not seeded here: each Cest
+      # resets to the seed and creates what it needs with tests/_support/Helper/DbHelper.php.
       - name: Prepare test fixtures
-        env:
-          # wp-config.php reads $_SERVER['HTTP_X_TEST_REQUEST']; PHP CLI mirrors env
-          # vars into $_SERVER, so this makes wp-cli operate on the seed database.
-          HTTP_X_TEST_REQUEST: '1'
         run: |
           mkdir -p wp-content/uploads
-          mysql -u root -proot -h localhost seed < tests/_support/Data/db/dump.sql
-          # A no-op while the dump matches the core version; after a WordPress bump, without
-          # this WordPress bounces every wp-admin request (and logins) to /wp-admin/upgrade.php.
-          wp core update-db
-          # The dump's Profile form (id 6) is an old revision: it ends with a text
-          # confirmation and has no pre-population params, while production redirects
-          # back to /profile/ and pre-fills from the user. Load the production
-          # definition (exported with GFAPI::get_form) and use the non-AJAX page block.
-          wp eval '$f = json_decode(file_get_contents("tests/_support/Data/forms/form-6-profile.json"), true); $r = GFAPI::update_form($f); if (is_wp_error($r)) { fwrite(STDERR, $r->get_error_message()); exit(1); }'
-          wp post update 275 --post_content='<!-- wp:gravityforms/form {"formId":"6","inputPrimaryColor":"#204ce5"} /-->'
-          # camp-manager must be active (its admin pages are under test and activation
-          # creates the mf_* tables, so it is deliberately not baked into the dump).
-          wp plugin activate camp-manager
-          wp option get siteurl; wp option get home
-          wp plugin list --status=active --field=name | tr '\n' ' '; echo
+          source bin/seed.conf
+          mysql -u root -proot -h 127.0.0.1 "${SEED_DB}" < tests/_support/Data/db/dump.sql
+          bin/ci-fixtures.sh
 
-      # Restart Chromedriver for acceptance tests
       - name: Restart Chromedriver
         if: ${{ matrix.test-type == 'acceptance' }}
         run: |
           ./vendor/bin/codecept chromedriver:update
           ./vendor/bin/codecept dev:restart
 
-      # Configure WordPress URLs for tests
-      - name: Checkout wp-config.php & add defines
-        run: |
-          wp config set WP_HOME 'http://127.0.0.1' --type=constant
-          wp config set WP_SITEURL 'http://127.0.0.1' --type=constant
-
       # Start the Apache + PHP-FPM server for the functional and acceptance suites
       - name: Start Apache Server
-        if: ${{ matrix.test-type != 'integration' && matrix.test-type != 'unit' }}
+        if: ${{ matrix.test-type != 'integration' }}
         uses: ./.github/actions/setup-apache
         with:
           php-version: ${{ env.PHP_VERSION }}
-      # The acceptance suite's Mailpit module expects an API at localhost:10006 (the port
-      # Local uses on the dev machine). Run the real thing here and point PHP's
-      # sendmail_path at it so wp_mail() lands in Mailpit.
+
+      # Point PHP's sendmail_path at Mailpit so wp_mail() lands there (tests/.env.ci has its API).
       - name: Start Mailpit
         if: ${{ matrix.test-type == 'acceptance' }}
         run: |
           set -euo pipefail
           curl -sSL https://github.com/axllent/mailpit/releases/latest/download/mailpit-linux-amd64.tar.gz | sudo tar -xz -C /usr/local/bin mailpit
-          nohup mailpit --smtp 127.0.0.1:1025 --listen 127.0.0.1:10006 > mailpit.log 2>&1 &
+          nohup mailpit --smtp 127.0.0.1:1025 --listen 127.0.0.1:8025 > mailpit.log 2>&1 &
           printf 'sendmail_path = "/usr/local/bin/mailpit sendmail --smtp-addr 127.0.0.1:1025"\n' | sudo tee "/etc/php/${{ env.PHP_VERSION }}/fpm/conf.d/99-mailpit.ini" >/dev/null
           sudo systemctl restart "php${{ env.PHP_VERSION }}-fpm"
-          for i in $(seq 1 20); do curl -sf http://127.0.0.1:10006/api/v1/info >/dev/null && break; sleep 0.5; done
-          curl -sf http://127.0.0.1:10006/api/v1/info | head -c 200; echo
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:8025/api/v1/info >/dev/null && break; sleep 0.5; done
+          curl -sf http://127.0.0.1:8025/api/v1/info | head -c 200; echo
 
-      # Run the tests based on matrix test-type
       - name: Run ${{ matrix.test-type }} tests${{ matrix.group && format(' ({0})', matrix.group) || '' }}
         env:
           SUITE: ${{ matrix.test-type }}
@@ -291,7 +214,6 @@ jobs:
         if: ${{ matrix.test-type == 'integration' }}
         run: ./vendor/bin/codecept run db -d --no-interaction --skip-group=skipCI --html
 
-      # Upload artifacts if any tests fail
       - name: Upload Artifacts on Failure
         if: failure()
         uses: actions/upload-artifact@v6

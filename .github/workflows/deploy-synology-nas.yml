@@ -1,0 +1,27 @@
+name: Deploy to Synology NAS
+
+# Manual trigger only. The real deploy logic lives in bin/deploy.sh on the
+# NAS (git fetch + composer install + two-pass rsync + perms fix) — this
+# workflow's only job is to SSH in and run it, not to reimplement it here.
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        type: string
+        description: 'Branch to deploy (blank = origin default branch)'
+        required: false
+        default: ''
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Run deploy.sh on the NAS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: grimoire.trevorbice.com
+          port: 222
+          username: trevorbice
+          key: ${{ secrets.NAS_DEPLOY_SSH_KEY }}
+          script: /volume1/LocalSites/bin/deploy.sh "${{ inputs.branch }}"

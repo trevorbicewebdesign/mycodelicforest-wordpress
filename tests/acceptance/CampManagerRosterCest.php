@@ -208,6 +208,8 @@ class CampManagerRosterCest
         // Navigate to the add member page
         $I->amOnPage("/wp-admin/admin.php?page=camp-manager-add-member");
         $I->waitForText("Add New Member", 10, "h1");
+        // The sponsor moved to the member's WordPress profile.
+        $I->dontSeeElement("#member_sponsor");
 
         // The season field is prefilled from CampManagerSeason::selected(), which depends on
         // ambient roster data (it falls back to the current year when the table is empty) -

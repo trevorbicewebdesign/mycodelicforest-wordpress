@@ -102,9 +102,82 @@ class MycodelicForestProfileTest extends \lucatume\WPBrowser\TestCase\WPTestCase
         $this->assertArrayHasKey('playa_name', $results);
         $this->assertArrayHasKey('has_attended_burning_man', $results);
         $this->assertArrayHasKey('years_attended', $results);
-        
+        $this->assertArrayHasKey('sponsor_user_id', $results);
     }
 
+    // ------------------------------------------------------------------------------ sponsor
+
+    private function profile(): MycodelicForestProfile
+    {
+        return new MycodelicForestProfile(new MycodelicForestMessages(), new MycodelicForestCiviCRM());
+    }
+
+    public function testSponsorIsSavedOnlyWhenItIsAnotherExistingMember()
+    {
+        $profile = $this->profile();
+        $sponsor = self::factory()->user->create(['role' => 'subscriber']);
+
+        $profile->update_extra_fields($this->wpid, ['sponsor_user_id' => (string) $sponsor]);
+        $this->assertSame((string) $sponsor, get_user_meta($this->wpid, 'sponsor_user_id', true));
+        $this->assertSame($sponsor, $profile->get_sponsor($this->wpid)->ID);
+        $this->assertSame((string) $sponsor, $profile->get_profile($this->wpid)['sponsor_user_id']);
+
+        $profile->update_extra_fields($this->wpid, ['sponsor_user_id' => (string) $this->wpid]);
+        $this->assertSame('', get_user_meta($this->wpid, 'sponsor_user_id', true), 'Nobody sponsors themselves');
+
+        $profile->update_extra_fields($this->wpid, ['sponsor_user_id' => (string) $sponsor]);
+        $profile->update_extra_fields($this->wpid, ['sponsor_user_id' => '999999']);
+        $this->assertSame('', get_user_meta($this->wpid, 'sponsor_user_id', true), 'An unknown user clears it');
+
+        $profile->update_extra_fields($this->wpid, ['sponsor_user_id' => (string) $sponsor]);
+        $profile->update_extra_fields($this->wpid, ['playa_name' => 'Untouched']);
+        $this->assertSame((string) $sponsor, get_user_meta($this->wpid, 'sponsor_user_id', true), 'A save without the field (the front-end profile form) leaves it alone');
+
+        $profile->update_extra_fields($this->wpid, ['sponsor_user_id' => '']);
+        $this->assertSame('', get_user_meta($this->wpid, 'sponsor_user_id', true), '"None" clears it');
+        $this->assertNull($profile->get_sponsor($this->wpid));
+    }
+
+    public function testSponsorPickerListsOtherMembersByNameAndKeepsTheChoice()
+    {
+        $profile = $this->profile();
+        $zed = self::factory()->user->create(['role' => 'subscriber', 'first_name' => 'Zed', 'last_name' => 'Last']);
+        $amy = self::factory()->user->create(['role' => 'subscriber', 'first_name' => 'Amy', 'last_name' => 'First']);
+        update_user_meta($amy, 'playa_name', 'Sparkle');
+        update_user_meta($this->wpid, 'sponsor_user_id', $amy);
+
+        $options = $profile->sponsor_options($this->wpid);
+        $this->assertArrayNotHasKey($this->wpid, $options, 'Not yourself');
+        $this->assertSame('Amy First (Sparkle)', $options[$amy]);
+        $this->assertSame('Zed Last', $options[$zed]);
+        $this->assertLessThan(array_search($zed, array_keys($options), true), array_search($amy, array_keys($options), true), 'By name');
+
+        wp_set_current_user(self::factory()->user->create(['role' => 'administrator']));
+        ob_start();
+        $profile->show_extra_fields(get_userdata($this->wpid));
+        $html = ob_get_clean();
+        $this->assertStringContainsString('<label for="sponsor_user_id">Sponsor</label>', $html);
+        $this->assertMatchesRegularExpression('#<select name="sponsor_user_id" id="sponsor_user_id">\s*<option value="">None</option>#', $html);
+        $this->assertMatchesRegularExpression('#<option value="' . $amy . '"\s+selected=\'selected\'>\s*Amy First \(Sparkle\)#', $html);
+        $this->assertStringContainsString('The member who invited you to camp with us.', $html);
+    }
+
+    public function testProfilePageSaysWhoInvitedTheMember()
+    {
+        $profile = $this->profile();
+        $sponsor = self::factory()->user->create(['role' => 'subscriber', 'first_name' => 'Amy', 'last_name' => 'First', 'user_nicename' => 'amy-first']);
+        update_user_meta($sponsor, 'playa_name', 'Sparkle');
+        update_user_meta($this->wpid, 'sponsor_user_id', $sponsor);
+
+        $this->go_to(home_url('/?author=' . $this->wpid));
+        $this->assertSame(
+            'Invited by <a href="' . home_url('/profile/amy-first/') . '">Amy First (Sparkle)</a>',
+            $profile->resolve_profile_binding(['key' => 'sponsor'])
+        );
+
+        $this->go_to(home_url('/?author=' . $sponsor));
+        $this->assertSame('', $profile->resolve_profile_binding(['key' => 'sponsor']), 'Nothing when no sponsor is recorded');
+    }
 }
 
 

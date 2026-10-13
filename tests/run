@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Runs a suite with the PHP this site needs.   ./tests/run [suite] [codeception args]
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+# shellcheck disable=SC1091
+[ -f bin/local-env.sh ] && source bin/local-env.sh
+if [ "${1:-integration}" = "acceptance" ]; then
+    # The browser suite drives Chrome through ChromeDriver on port 4444; start it if it is not up.
+    [ -x vendor/bin/chromedriver ] || php vendor/bin/codecept chromedriver:update
+    (exec 3<>/dev/tcp/127.0.0.1/4444) 2>/dev/null || php vendor/bin/codecept dev:start
+fi
+exec php vendor/bin/codecept run "${@:-integration}"

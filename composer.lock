@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0f1edfad13a08422e2e88e062242f034",
+    "content-hash": "fe9cd8512303f6b270f25be82e0e52ac",
     "packages": [
         {
             "name": "composer/installers",
@@ -153,6 +153,77 @@
             "time": "2024-06-24T20:46:46+00:00"
         },
         {
+            "name": "roots/wordpress-no-content",
+            "version": "7.1.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/WordPress/WordPress.git",
+                "reference": "7.1.1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://downloads.wordpress.org/release/wordpress-7.1.1-no-content.zip",
+                "reference": "7.1.1",
+                "shasum": "bb9a161c407ea4bde3f52510d231c93a14e45506"
+            },
+            "require": {
+                "php": ">= 7.4"
+            },
+            "provide": {
+                "wordpress/core-implementation": "7.1.1"
+            },
+            "suggest": {
+                "ext-curl": "Performs remote request operations.",
+                "ext-dom": "Used to validate Text Widget content and to automatically configuring IIS7+.",
+                "ext-exif": "Works with metadata stored in images.",
+                "ext-fileinfo": "Used to detect mimetype of file uploads.",
+                "ext-hash": "Used for hashing, including passwords and update packages.",
+                "ext-imagick": "Provides better image quality for media uploads.",
+                "ext-json": "Used for communications with other servers.",
+                "ext-libsodium": "Validates Signatures and provides securely random bytes.",
+                "ext-mbstring": "Used to properly handle UTF8 text.",
+                "ext-mysqli": "Connects to MySQL for database interactions.",
+                "ext-openssl": "Permits SSL-based connections to other hosts.",
+                "ext-pcre": "Increases performance of pattern matching in code searches.",
+                "ext-xml": "Used for XML parsing, such as from a third-party site.",
+                "ext-zip": "Used for decompressing Plugins, Themes, and WordPress update packages."
+            },
+            "type": "wordpress-core",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "WordPress Community",
+                    "homepage": "https://wordpress.org/about/"
+                }
+            ],
+            "description": "WordPress is open source software you can use to create a beautiful website, blog, or app.",
+            "homepage": "https://wordpress.org/",
+            "keywords": [
+                "blog",
+                "cms",
+                "wordpress"
+            ],
+            "support": {
+                "docs": "https://developer.wordpress.org/",
+                "forum": "https://wordpress.org/support/",
+                "irc": "irc://irc.freenode.net/wordpress",
+                "issues": "https://core.trac.wordpress.org/",
+                "rss": "https://wordpress.org/news/feed/",
+                "source": "https://core.trac.wordpress.org/browser",
+                "wiki": "https://codex.wordpress.org/"
+            },
+            "funding": [
+                {
+                    "url": "https://wordpressfoundation.org/donate/",
+                    "type": "other"
+                }
+            ],
+            "time": "2026-09-17T19:19:18+00:00"
+        },
+        {
             "name": "trevorbicewebdesign/advanced-custom-fields-pro",
             "version": "v6.8.10",
             "source": {
@@ -179,6 +250,31 @@
                 "issues": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro/issues"
             },
             "time": "2026-09-23T02:52:24+00:00"
+        },
+        {
+            "name": "trevorbicewebdesign/akeebabackupwp",
+            "version": "v9.1.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/trevorbicewebdesign/akeebabackupwp.git",
+                "reference": "92a2f9bc68adf05630cd5227af89d397745bb0cc"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/trevorbicewebdesign/akeebabackupwp/zipball/92a2f9bc68adf05630cd5227af89d397745bb0cc",
+                "reference": "92a2f9bc68adf05630cd5227af89d397745bb0cc",
+                "shasum": ""
+            },
+            "require": {
+                "composer/installers": "^1.0 || ^2.0"
+            },
+            "type": "wordpress-plugin",
+            "description": "Akeeba Backup CORE for WordPress (unofficial mirror for Composer; files are the vendor's release, unchanged)",
+            "support": {
+                "source": "https://github.com/trevorbicewebdesign/akeebabackupwp/tree/v9.1.2",
+                "issues": "https://github.com/trevorbicewebdesign/akeebabackupwp/issues"
+            },
+            "time": "2026-09-29T05:34:27+00:00"
         },
         {
             "name": "trevorbicewebdesign/gravityforms",
@@ -235,6 +331,35 @@
                 "issues": "https://github.com/trevorbicewebdesign/revslider/issues"
             },
             "time": "2026-09-21T19:09:19+00:00"
+        },
+        {
+            "name": "trevorbicewebdesign/spectra-pro",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/trevorbicewebdesign/spectra-pro.git",
+                "reference": "master"
+            },
+            "type": "wordpress-plugin",
+            "description": "Spectra Pro (licensed copy, private mirror). The mirror has no composer.json, so the package is described here."
+        },
+        {
+            "name": "wpackagist-plugin/create-block-theme",
+            "version": "2.10.1",
+            "source": {
+                "type": "svn",
+                "url": "https://plugins.svn.wordpress.org/create-block-theme/",
+                "reference": "tags/2.10.1"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://downloads.wordpress.org/plugin/create-block-theme.2.10.1.zip"
+            },
+            "require": {
+                "composer/installers": "^1.0 || ^2.0"
+            },
+            "type": "wordpress-plugin",
+            "homepage": "https://wordpress.org/plugins/create-block-theme/"
         },
         {
             "name": "wpackagist-plugin/email-address-obfuscation",
@@ -6592,7 +6717,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "trevorbicewebdesign/spectra-pro": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},
@@ -6600,5 +6727,5 @@
     "platform-overrides": {
         "php": "8.4.0"
     },
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }

@@ -36,7 +36,7 @@ class AcceptanceTester extends \Codeception\Actor
      * flight on a cold CI runner it sees none, navigates back to wp-login.php and submits
      * again. The new navigation cancels the request that was about to succeed, and the
      * browser ends up on a bare login form with no error while the test waits for the admin
-     * bar (CI runs 35684724624 and 35916011873: every failure had this shape). Here each
+     * bar. Here each
      * attempt waits for the page the login redirects to; if that wait times out, a fresh
      * request for /wp-admin/ shows whether the slow submit did land before anything is
      * retried.

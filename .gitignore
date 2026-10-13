@@ -33,6 +33,7 @@
 *.wmv
 *.avi
 /tests/.env
+/bin/local-env.sh
 
 # OS Files
 *~

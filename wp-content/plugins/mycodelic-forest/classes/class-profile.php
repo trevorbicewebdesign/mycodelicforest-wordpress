@@ -406,6 +406,13 @@ class MycodelicForestProfile
                 'label' => __('Playa Name', 'textdomain'),
                 'type' => 'text',
             ],
+            // Who invited a first-time camper. A fact about the person, set once, so it lives
+            // here rather than on a season's roster row; picked from the other members.
+            'sponsor_user_id' => [
+                'label' => __('Sponsor', 'textdomain'),
+                'type' => 'user',
+                'description' => __('The member who invited you to camp with us. Set once, for first-time campers.', 'textdomain'),
+            ],
             'user_about_me' => [
                 'label' => __('About Me', 'textdomain'),
                 'type' => 'textarea',
@@ -465,6 +472,7 @@ class MycodelicForestProfile
             'user_about_me',
             'has_attended_burning_man',
             'years_attended',
+            'sponsor_user_id',
         ];
         $profile = [];
         foreach ($fields as $field) {
@@ -576,11 +584,25 @@ class MycodelicForestProfile
                             <textarea name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>" rows="5"
                                 cols="30"><?php echo esc_textarea($value); ?></textarea>
                             <?php
+                        } elseif ('user' === $field['type']) {
+                            ?>
+                            <select name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>">
+                                <option value=""><?php esc_html_e('None', 'textdomain'); ?></option>
+                                <?php foreach ($this->sponsor_options((int) $user->ID) as $option_value => $option_label) { ?>
+                                    <option value="<?php echo esc_attr($option_value); ?>" <?php selected((int) $value, $option_value); ?>>
+                                        <?php echo esc_html($option_label); ?>
+                                    </option>
+                                <?php } ?>
+                            </select>
+                            <?php
                         } else {
                             ?>
                             <input type="text" name="<?php echo esc_attr($key); ?>" id="<?php echo esc_attr($key); ?>"
                                 value="<?php echo esc_attr($value); ?>" class="regular-text" />
                             <?php
+                        }
+                        if (!empty($field['description'])) {
+                            echo '<p class="description">' . esc_html($field['description']) . '</p>';
                         }
                         ?>
                     </td>
@@ -619,6 +641,14 @@ class MycodelicForestProfile
             if (isset($data[$key])) {
                 if ('checkbox' === $field['type']) {
                     update_user_meta($user_id, $key, json_encode($data[$key]));
+                } elseif ('user' === $field['type']) {
+                    // Another existing member, or nothing.
+                    $sponsor = (int) $data[$key];
+                    if ($sponsor > 0 && $sponsor !== (int) $user_id && get_userdata($sponsor)) {
+                        update_user_meta($user_id, $key, $sponsor);
+                    } else {
+                        delete_user_meta($user_id, $key);
+                    }
                 } else {
                     update_user_meta($user_id, $key, sanitize_text_field($data[$key]));
                 }
@@ -983,9 +1013,52 @@ class MycodelicForestProfile
                 $count = (int) count_user_posts($user->ID, 'post');
                 /* translators: %d: number of posts */
                 return sprintf(_n('%d post', '%d posts', $count, 'textdomain'), $count);
+
+            case 'sponsor':
+                // "Invited by" the member who brought them in, linking to that member's page.
+                $sponsor = $this->get_sponsor($user->ID);
+                if (!$sponsor) {
+                    return '';
+                }
+                $url = home_url('/profile/' . $sponsor->user_nicename . '/');
+                /* translators: %s: the sponsor's name, linked */
+                return sprintf(__('Invited by %s', 'textdomain'), '<a href="' . esc_url($url) . '">' . esc_html($this->member_label($sponsor)) . '</a>');
         }
 
         return '';
+    }
+
+    /** The member who invited this user, if one is recorded and still exists. */
+    public function get_sponsor($user_id)
+    {
+        $sponsor_id = (int) get_user_meta((int) $user_id, 'sponsor_user_id', true);
+        if ($sponsor_id <= 0 || $sponsor_id === (int) $user_id) {
+            return null;
+        }
+        $sponsor = get_userdata($sponsor_id);
+        return $sponsor ?: null;
+    }
+
+    /** "First Last (Playa)" for pickers and the profile page. */
+    public function member_label(WP_User $user)
+    {
+        $name = trim($user->first_name . ' ' . $user->last_name) ?: $user->display_name;
+        $playa = get_user_meta($user->ID, 'playa_name', true);
+        return $playa ? $name . ' (' . $playa . ')' : $name;
+    }
+
+    /** Every other member, by name, as [user id => label], for the sponsor picker. */
+    public function sponsor_options($exclude_user_id)
+    {
+        $options = [];
+        foreach (get_users(['exclude' => [(int) $exclude_user_id], 'fields' => 'ID', 'number' => -1]) as $id) {
+            $user = get_userdata((int) $id);
+            if ($user) {
+                $options[(int) $id] = $this->member_label($user);
+            }
+        }
+        natcasesort($options);
+        return $options;
     }
 
     /**

@@ -2,7 +2,7 @@
 #
 # Tests for the seed-data helpers (tests/_support/Helper/DbHelper.php): no browser, no web
 # server, just MySQL. It runs against the prepared seed database exactly as the acceptance
-# suite finds it (dump imported, camp-manager activated), and never repopulates it.
+# suite finds it (dump imported, bin/ci-fixtures.sh applied), and never repopulates it.
 actor: DbTester
 suite_namespace: Tests\Db
 modules:

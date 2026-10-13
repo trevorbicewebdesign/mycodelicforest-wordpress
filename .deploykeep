@@ -1,0 +1,12 @@
+# Files on the server that a deploy must never delete, although they sit inside a folder that
+# Composer owns and that bin/deploy.sh therefore syncs with --delete: what a plugin writes into
+# its own folder while it runs.
+#
+# One rsync pattern per line, relative to the plugin or theme folder ("/" is that folder). The
+# repo's own files in these places are still copied; only deletion is held back.
+
+# Akeeba Backup: backup archives, its working files, and the settings file it generates.
+/app/backups/***
+/app/tmp/***
+/helpers/private/***
+/app/Solo/assets/private/***

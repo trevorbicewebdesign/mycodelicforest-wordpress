@@ -5,10 +5,10 @@ modules:
     enabled:
         - lucatume\WPBrowser\Module\WPDb
         - lucatume\WPBrowser\Module\WPFilesystem
-        - lucatume\WPBrowser\Module\WPLoader
         - lucatume\WPBrowser\Module\WPBrowser
         - Tests\Support\Helper\Functional
         - Tests\Support\Helper\DbHelper
+        - Asserts
     config:
       lucatume\WPBrowser\Module\WPBrowser:
         url: '%WORDPRESS_URL%'
@@ -19,14 +19,16 @@ modules:
         # underscores through to PHP, and wp-config.php reads HTTP_X_TEST_REQUEST
         # to pick the seed database. PHP sees the same variable either way.
         headers:
-          X-WPBrowser-Request: 1
-          X-Test-Request: 1
+          X-WPBrowser-Request: '1'
+          X-Test-Request: '1'
       lucatume\WPBrowser\Module\WPDb:
           dbUrl: '%WORDPRESS_DB_SEED_URL%'
           dump:
             - 'tests/_support/Data/db/dump.sql'
-          populate: true
-          cleanup: true
+          # Like the acceptance suite: the seed is prepared once (bin/reset-seed-db.sh, or the
+          # "Prepare test fixtures" step in CI) and each Cest resets what it touches.
+          populate: false
+          cleanup: false
           reconnect: false
           url: '%WORDPRESS_URL%'
           urlReplacement: false
@@ -34,8 +36,3 @@ modules:
           createIfNotExists: true
       lucatume\WPBrowser\Module\WPFilesystem:
           wpRootFolder: '%WORDPRESS_ROOT_DIR%'
-      lucatume\WPBrowser\Module\WPLoader:
-          loadOnly: true
-          wpRootFolder: "%WORDPRESS_ROOT_DIR%" 
-          dbUrl: '%WORDPRESS_DB_SEED_URL%'
-          domain: '%WORDPRESS_DOMAIN%'
