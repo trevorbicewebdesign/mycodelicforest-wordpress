@@ -381,15 +381,15 @@
         },
         {
             "name": "wpackagist-plugin/enable-turnstile-cloudflare-for-gravity-forms",
-            "version": "1.7.1",
+            "version": "1.8",
             "source": {
                 "type": "svn",
                 "url": "https://plugins.svn.wordpress.org/enable-turnstile-cloudflare-for-gravity-forms/",
-                "reference": "tags/1.7.1"
+                "reference": "tags/1.8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/enable-turnstile-cloudflare-for-gravity-forms.1.7.1.zip"
+                "url": "https://downloads.wordpress.org/plugin/enable-turnstile-cloudflare-for-gravity-forms.1.8.zip"
             },
             "require": {
                 "composer/installers": "^1.0 || ^2.0"
@@ -453,15 +453,15 @@
         },
         {
             "name": "wpackagist-plugin/members",
-            "version": "3.2.26",
+            "version": "3.2.27",
             "source": {
                 "type": "svn",
                 "url": "https://plugins.svn.wordpress.org/members/",
-                "reference": "tags/3.2.26"
+                "reference": "tags/3.2.27"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/members.3.2.26.zip"
+                "url": "https://downloads.wordpress.org/plugin/members.3.2.27.zip"
             },
             "require": {
                 "composer/installers": "^1.0 || ^2.0"
@@ -579,15 +579,15 @@
         },
         {
             "name": "wpackagist-plugin/wp-mail-smtp",
-            "version": "4.10.2",
+            "version": "4.10.3",
             "source": {
                 "type": "svn",
                 "url": "https://plugins.svn.wordpress.org/wp-mail-smtp/",
-                "reference": "tags/4.10.2"
+                "reference": "tags/4.10.3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/wp-mail-smtp.4.10.2.zip"
+                "url": "https://downloads.wordpress.org/plugin/wp-mail-smtp.4.10.3.zip"
             },
             "require": {
                 "composer/installers": "^1.0 || ^2.0"
