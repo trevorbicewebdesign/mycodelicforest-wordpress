@@ -29,7 +29,7 @@ jobs:
   # Builds the cache layers once, so the parallel test jobs below only ever restore them.
   setup:
     name: Build dependency caches
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       packages-key: ${{ steps.keys.outputs.packages }}
 
@@ -103,7 +103,10 @@ jobs:
   run-tests:
     name: Test ${{ matrix.test-type }}${{ matrix.group && format(' ({0})', matrix.group) || '' }}
     needs: [setup]
-    runs-on: ubuntu-latest
+    # Pinned: the default runner image moved to Ubuntu 26.04 in October 2026, and the
+    # ondrej PPA that provides PHP-FPM for the suites (.github/actions/setup-apache) has
+    # no release for it yet, so apt-get update fails there. Move on once the PPA does.
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false  # Allow tests to continue even if some fail
       # Every entry is a fully isolated runner with its own MySQL and seed database, so
