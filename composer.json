@@ -46,18 +46,8 @@
             "url": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro.git"
         },
         {
-            "type": "package",
-            "package": {
-                "name": "trevorbicewebdesign/spectra-pro",
-                "description": "Spectra Pro (licensed copy, private mirror). The mirror has no composer.json, so the package is described here.",
-                "version": "dev-master",
-                "type": "wordpress-plugin",
-                "source": {
-                    "url": "https://github.com/trevorbicewebdesign/spectra-pro.git",
-                    "type": "git",
-                    "reference": "master"
-                }
-            }
+            "type": "vcs",
+            "url": "https://github.com/trevorbicewebdesign/spectra-pro.git"
         },
         {
             "type": "vcs",
@@ -70,7 +60,7 @@
         "trevorbicewebdesign/akeebabackupwp": "*",
         "trevorbicewebdesign/gravityforms": "^3.1",
         "trevorbicewebdesign/revslider": "^7.1",
-        "trevorbicewebdesign/spectra-pro": "dev-master",
+        "trevorbicewebdesign/spectra-pro": "^1.3",
         "wpackagist-plugin/create-block-theme": "*",
         "wpackagist-plugin/email-address-obfuscation": "*",
         "wpackagist-plugin/enable-turnstile-cloudflare-for-gravity-forms": "*",
