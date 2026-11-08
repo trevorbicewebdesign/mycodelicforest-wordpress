@@ -52,6 +52,10 @@
         {
             "type": "vcs",
             "url": "https://github.com/trevorbicewebdesign/codeception-mailpit"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/trevorbicewebdesign/mothership-reporter.git"
         }
     ],
     "require": {
@@ -59,6 +63,7 @@
         "trevorbicewebdesign/advanced-custom-fields-pro": "^6.8",
         "trevorbicewebdesign/akeebabackupwp": "*",
         "trevorbicewebdesign/gravityforms": "^3.1",
+        "trevorbicewebdesign/mothership-reporter": "^1.0",
         "trevorbicewebdesign/revslider": "^7.1",
         "trevorbicewebdesign/spectra-pro": "^1.3",
         "wpackagist-plugin/create-block-theme": "*",
