@@ -227,16 +227,16 @@
         },
         {
             "name": "trevorbicewebdesign/advanced-custom-fields-pro",
-            "version": "v6.8.10",
+            "version": "v6.8.11",
             "source": {
                 "type": "git",
                 "url": "git@github.com:trevorbicewebdesign/advanced-custom-fields-pro.git",
-                "reference": "a06ed825c998873042e54dbdb82de2b2bfd992f0"
+                "reference": "5e0810d648ceb893954c9047c50758706b58294e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/trevorbicewebdesign/advanced-custom-fields-pro/zipball/a06ed825c998873042e54dbdb82de2b2bfd992f0",
-                "reference": "a06ed825c998873042e54dbdb82de2b2bfd992f0",
+                "url": "https://api.github.com/repos/trevorbicewebdesign/advanced-custom-fields-pro/zipball/5e0810d648ceb893954c9047c50758706b58294e",
+                "reference": "5e0810d648ceb893954c9047c50758706b58294e",
                 "shasum": ""
             },
             "require": {
@@ -248,10 +248,10 @@
             ],
             "description": "Advanced Custom Fields PRO (licensed copy, private distribution for mycodelicforest.org). Update: drop in the new release, keep this composer.json, commit, tag with the plugin version (vX.Y.Z).",
             "support": {
-                "source": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro/tree/v6.8.10",
+                "source": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro/tree/v6.8.11",
                 "issues": "https://github.com/trevorbicewebdesign/advanced-custom-fields-pro/issues"
             },
-            "time": "2026-09-23T02:52:24+00:00"
+            "time": "2026-11-07T01:49:26+00:00"
         },
         {
             "name": "trevorbicewebdesign/akeebabackupwp",
@@ -280,16 +280,16 @@
         },
         {
             "name": "trevorbicewebdesign/gravityforms",
-            "version": "v3.2.1",
+            "version": "v3.2.2",
             "source": {
                 "type": "git",
                 "url": "git@github.com:trevorbicewebdesign/gravityforms.git",
-                "reference": "6b7a6d31da2ffbeca50ba1f5342ab272be3ec3ac"
+                "reference": "955c112e09e14202f49d66f9d23f8882ff5dda19"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/trevorbicewebdesign/gravityforms/zipball/6b7a6d31da2ffbeca50ba1f5342ab272be3ec3ac",
-                "reference": "6b7a6d31da2ffbeca50ba1f5342ab272be3ec3ac",
+                "url": "https://api.github.com/repos/trevorbicewebdesign/gravityforms/zipball/955c112e09e14202f49d66f9d23f8882ff5dda19",
+                "reference": "955c112e09e14202f49d66f9d23f8882ff5dda19",
                 "shasum": ""
             },
             "require": {
@@ -301,10 +301,10 @@
             ],
             "description": "Gravity Forms (licensed copy, private distribution for mycodelicforest.org). Update: drop in the new release, commit, tag with the plugin version.",
             "support": {
-                "source": "https://github.com/trevorbicewebdesign/gravityforms/tree/v3.2.1",
+                "source": "https://github.com/trevorbicewebdesign/gravityforms/tree/v3.2.2",
                 "issues": "https://github.com/trevorbicewebdesign/gravityforms/issues"
             },
-            "time": "2026-10-30T22:12:17+00:00"
+            "time": "2026-11-07T01:49:32+00:00"
         },
         {
             "name": "trevorbicewebdesign/mothership-reporter",
@@ -350,16 +350,16 @@
         },
         {
             "name": "trevorbicewebdesign/revslider",
-            "version": "v7.2.6",
+            "version": "v7.2.8",
             "source": {
                 "type": "git",
                 "url": "git@github.com:trevorbicewebdesign/revslider.git",
-                "reference": "e69a84cb16555d0ab4e810fcba8b3d092ac1d601"
+                "reference": "b10db81f4dff53adc3f598429616e156567ea707"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/trevorbicewebdesign/revslider/zipball/e69a84cb16555d0ab4e810fcba8b3d092ac1d601",
-                "reference": "e69a84cb16555d0ab4e810fcba8b3d092ac1d601",
+                "url": "https://api.github.com/repos/trevorbicewebdesign/revslider/zipball/b10db81f4dff53adc3f598429616e156567ea707",
+                "reference": "b10db81f4dff53adc3f598429616e156567ea707",
                 "shasum": ""
             },
             "require": {
@@ -371,10 +371,10 @@
             ],
             "description": "Slider Revolution (licensed copy, private distribution for mycodelicforest.org). Update: drop in the new release, commit, tag with the plugin version.",
             "support": {
-                "source": "https://github.com/trevorbicewebdesign/revslider/tree/v7.2.6",
+                "source": "https://github.com/trevorbicewebdesign/revslider/tree/v7.2.8",
                 "issues": "https://github.com/trevorbicewebdesign/revslider/issues"
             },
-            "time": "2026-10-30T22:12:18+00:00"
+            "time": "2026-11-07T01:49:36+00:00"
         },
         {
             "name": "trevorbicewebdesign/spectra-pro",
@@ -425,15 +425,15 @@
         },
         {
             "name": "wpackagist-plugin/email-address-obfuscation",
-            "version": "1.2.0",
+            "version": "1.3.0",
             "source": {
                 "type": "svn",
                 "url": "https://plugins.svn.wordpress.org/email-address-obfuscation/",
-                "reference": "tags/1.2.0"
+                "reference": "tags/1.3.0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/email-address-obfuscation.1.2.0.zip"
+                "url": "https://downloads.wordpress.org/plugin/email-address-obfuscation.1.3.0.zip"
             },
             "require": {
                 "composer/installers": "^1.0 || ^2.0"
