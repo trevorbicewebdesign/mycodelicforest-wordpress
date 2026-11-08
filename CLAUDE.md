@@ -98,7 +98,8 @@ same versions (developer only: it upgrades the `local` database).
 - A plugin from wordpress.org: `composer require wpackagist-plugin/<slug>`.
 - **No third-party code is in git.** Plugins Composer cannot get from wordpress.org come from
   mirrors: `trevorbicewebdesign/akeebabackupwp` (public, tagged per release) and the private
-  `gravityforms`, `revslider`, `advanced-custom-fields-pro` and `spectra-pro`. A new Akeeba
+  `gravityforms`, `revslider`, `advanced-custom-fields-pro`, `spectra-pro` and
+  `mothership-reporter` (our own plugin that reports this site to Mothership). A new Akeeba
   release is published to its mirror with `joomla-test-kit/wordpress/bin/release-plugin-mirror.sh`;
   a paid plugin is updated by unzipping the vendor release over its private repo clone and
   tagging `vX.Y.Z` (ACF Pro: keep our `composer.json`, not WP Engine's). The nightly PR then
