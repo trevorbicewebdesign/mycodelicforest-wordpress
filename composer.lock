@@ -308,16 +308,16 @@
         },
         {
             "name": "trevorbicewebdesign/mothership-reporter",
-            "version": "v1.1.0",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "git@github.com:trevorbicewebdesign/mothership-reporter.git",
-                "reference": "06a308d8c43c0ed8390317ba42bd84d8e8e463da"
+                "reference": "89f9a0ca1756afd767cb281e9fe84a16d322a679"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/trevorbicewebdesign/mothership-reporter/zipball/06a308d8c43c0ed8390317ba42bd84d8e8e463da",
-                "reference": "06a308d8c43c0ed8390317ba42bd84d8e8e463da",
+                "url": "https://api.github.com/repos/trevorbicewebdesign/mothership-reporter/zipball/89f9a0ca1756afd767cb281e9fe84a16d322a679",
+                "reference": "89f9a0ca1756afd767cb281e9fe84a16d322a679",
                 "shasum": ""
             },
             "require": {
@@ -343,10 +343,10 @@
             ],
             "description": "WordPress plugin that reports a site's core, plugin and theme versions to Mothership.",
             "support": {
-                "source": "https://github.com/trevorbicewebdesign/mothership-reporter/tree/v1.1.0",
+                "source": "https://github.com/trevorbicewebdesign/mothership-reporter/tree/v1.2.0",
                 "issues": "https://github.com/trevorbicewebdesign/mothership-reporter/issues"
             },
-            "time": "2026-11-08T05:02:19+00:00"
+            "time": "2026-11-08T08:34:24+00:00"
         },
         {
             "name": "trevorbicewebdesign/revslider",
@@ -623,15 +623,15 @@
         },
         {
             "name": "wpackagist-plugin/wordfence",
-            "version": "9.0.2",
+            "version": "9.1.0",
             "source": {
                 "type": "svn",
                 "url": "https://plugins.svn.wordpress.org/wordfence/",
-                "reference": "tags/9.0.2"
+                "reference": "tags/9.1.0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/wordfence.9.0.2.zip"
+                "url": "https://downloads.wordpress.org/plugin/wordfence.9.1.0.zip"
             },
             "require": {
                 "composer/installers": "^1.0 || ^2.0"
