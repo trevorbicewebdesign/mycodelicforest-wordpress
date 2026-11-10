@@ -1,8 +1,9 @@
 name: Deploy to Synology NAS
 
-# Manual trigger only. The real deploy logic lives in bin/deploy.sh on the
-# NAS (git fetch + composer install + two-pass rsync + perms fix) — this
-# workflow's only job is to SSH in and run it, not to reimplement it here.
+# Manual trigger only. The real deploy logic lives in
+# /volume1/LocalSites/bin/deploy_site.sh on the NAS (git fetch + composer
+# install + two-pass rsync + perms fix) — this workflow's only job is to SSH
+# in and run it, not to reimplement it here.
 on:
   workflow_dispatch:
     inputs:
@@ -24,4 +25,7 @@ jobs:
           port: 222
           username: trevorbice
           key: ${{ secrets.NAS_DEPLOY_SSH_KEY }}
-          script: /volume1/LocalSites/bin/deploy.sh "${{ inputs.branch }}"
+          # --yes: there is no terminal to answer the [y/N] prompt. A
+          # non-login ssh shell on DSM has no /usr/local/bin (git, composer)
+          # on PATH. An empty branch means the conf's default branch.
+          script: PATH=/usr/local/bin:$PATH /volume1/LocalSites/bin/deploy_site.sh --yes mycodelicforest.org "${{ inputs.branch }}"
