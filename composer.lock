@@ -515,15 +515,15 @@
         },
         {
             "name": "wpackagist-plugin/members",
-            "version": "3.3.1",
+            "version": "3.3.2",
             "source": {
                 "type": "svn",
                 "url": "https://plugins.svn.wordpress.org/members/",
-                "reference": "tags/3.3.1"
+                "reference": "tags/3.3.2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/members.3.3.1.zip"
+                "url": "https://downloads.wordpress.org/plugin/members.3.3.2.zip"
             },
             "require": {
                 "composer/installers": "^1.0 || ^2.0"
@@ -623,15 +623,15 @@
         },
         {
             "name": "wpackagist-plugin/wordfence",
-            "version": "9.1.0",
+            "version": "9.1.1",
             "source": {
                 "type": "svn",
                 "url": "https://plugins.svn.wordpress.org/wordfence/",
-                "reference": "tags/9.1.0"
+                "reference": "tags/9.1.1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/wordfence.9.1.0.zip"
+                "url": "https://downloads.wordpress.org/plugin/wordfence.9.1.1.zip"
             },
             "require": {
                 "composer/installers": "^1.0 || ^2.0"
@@ -641,15 +641,15 @@
         },
         {
             "name": "wpackagist-plugin/wp-mail-smtp",
-            "version": "4.10.3",
+            "version": "4.10.4",
             "source": {
                 "type": "svn",
                 "url": "https://plugins.svn.wordpress.org/wp-mail-smtp/",
-                "reference": "tags/4.10.3"
+                "reference": "tags/4.10.4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/wp-mail-smtp.4.10.3.zip"
+                "url": "https://downloads.wordpress.org/plugin/wp-mail-smtp.4.10.4.zip"
             },
             "require": {
                 "composer/installers": "^1.0 || ^2.0"
@@ -752,16 +752,16 @@
         },
         {
             "name": "antecedent/patchwork",
-            "version": "2.2.4",
+            "version": "2.2.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/antecedent/patchwork.git",
-                "reference": "d5d5c6032b7109477163b68e25ff531f7654ebf9"
+                "reference": "1ea49951bdf0d2d7c0bd436ffd95215e08ed30ed"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/antecedent/patchwork/zipball/d5d5c6032b7109477163b68e25ff531f7654ebf9",
-                "reference": "d5d5c6032b7109477163b68e25ff531f7654ebf9",
+                "url": "https://api.github.com/repos/antecedent/patchwork/zipball/1ea49951bdf0d2d7c0bd436ffd95215e08ed30ed",
+                "reference": "1ea49951bdf0d2d7c0bd436ffd95215e08ed30ed",
                 "shasum": ""
             },
             "require": {
@@ -796,10 +796,10 @@
             ],
             "support": {
                 "issues": "https://github.com/antecedent/patchwork/issues",
-                "source": "https://github.com/antecedent/patchwork/tree/2.2.4"
+                "source": "https://github.com/antecedent/patchwork/tree/2.2.5"
             },
-            "time": "2026-10-25T05:26:39+00:00",
-            "published-time": "2026-10-25T05:38:17+00:00"
+            "time": "2026-11-10T09:08:20+00:00",
+            "published-time": "2026-11-10T21:11:40+00:00"
         },
         {
             "name": "behat/gherkin",
@@ -2164,16 +2164,16 @@
         },
         {
             "name": "guzzlehttp/psr7",
-            "version": "2.13.2",
+            "version": "2.13.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/psr7.git",
-                "reference": "adee536f95101929f262b8c59e8a61472f347d58"
+                "reference": "6d3cd8285a97eaa352956a4ada92fa03ecce1c4e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/psr7/zipball/adee536f95101929f262b8c59e8a61472f347d58",
-                "reference": "adee536f95101929f262b8c59e8a61472f347d58",
+                "url": "https://api.github.com/repos/guzzle/psr7/zipball/6d3cd8285a97eaa352956a4ada92fa03ecce1c4e",
+                "reference": "6d3cd8285a97eaa352956a4ada92fa03ecce1c4e",
                 "shasum": ""
             },
             "require": {
@@ -2263,7 +2263,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/psr7/issues",
-                "source": "https://github.com/guzzle/psr7/tree/2.13.2"
+                "source": "https://github.com/guzzle/psr7/tree/2.13.3"
             },
             "funding": [
                 {
@@ -2279,8 +2279,8 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-10-17T23:49:46+00:00",
-            "published-time": "2026-10-17T23:51:00+00:00"
+            "time": "2026-11-12T15:57:42+00:00",
+            "published-time": "2026-11-12T15:58:42+00:00"
         },
         {
             "name": "hamcrest/hamcrest-php",
@@ -3587,16 +3587,16 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "9.6.38",
+            "version": "9.6.39",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "8b5f757e8e92071bfdbfa93943f94f84c4e31007"
+                "reference": "133394556c813b61aa3481a87bef8419d8ec95c0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/8b5f757e8e92071bfdbfa93943f94f84c4e31007",
-                "reference": "8b5f757e8e92071bfdbfa93943f94f84c4e31007",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/133394556c813b61aa3481a87bef8419d8ec95c0",
+                "reference": "133394556c813b61aa3481a87bef8419d8ec95c0",
                 "shasum": ""
             },
             "require": {
@@ -3670,7 +3670,7 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/9.6.38"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/9.6.39"
             },
             "funding": [
                 {
@@ -3678,8 +3678,8 @@
                     "type": "other"
                 }
             ],
-            "time": "2026-10-05T05:44:26+00:00",
-            "published-time": "2026-10-05T05:45:23+00:00"
+            "time": "2026-11-13T11:05:34+00:00",
+            "published-time": "2026-11-13T11:06:33+00:00"
         },
         {
             "name": "psr/container",
